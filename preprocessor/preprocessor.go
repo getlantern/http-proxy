@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"sync/atomic"
 
 	"github.com/getlantern/golog"
@@ -71,7 +72,12 @@ func (c *conn) Read(p []byte) (n int, err error) {
 		} else if neterr, ok := e.(net.Error); ok && neterr.Timeout() {
 		} else {
 			log.Debugf("Error parse request from %s: %s", c.RemoteAddr().String(), e)
-			mimic.MimicApacheOnInvalidRequest(c.Conn)
+			// We have no way but check the error text
+			if e.Error() == "parse : empty url" || strings.HasPrefix(e.Error(), "malformed HTTP ") {
+				mimic.MimicApacheOnInvalidRequest(c.Conn, false)
+			} else {
+				mimic.MimicApacheOnInvalidRequest(c.Conn, true)
+			}
 			return 0, e
 		}
 	}
