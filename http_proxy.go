@@ -30,7 +30,6 @@ var (
 	maxConns      = flag.Uint64("maxconns", 0, "Max number of simultaneous connections allowed connections")
 	idleClose     = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
 	token         = flag.String("token", "", "Lantern token")
-	enableFilters = flag.Bool("enablefilters", false, "Enable Lantern-specific filters")
 	enableReports = flag.Bool("enablereports", false, "Enable stats reporting")
 	logglyToken   = flag.String("logglytoken", "", "Token used to report to loggly.com, not reporting if empty")
 )
