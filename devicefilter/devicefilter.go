@@ -9,7 +9,7 @@ import (
 	"github.com/getlantern/measured"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy-extensions/mimic"
+	"github.com/getlantern/http-proxy-lantern/mimic"
 )
 
 const (

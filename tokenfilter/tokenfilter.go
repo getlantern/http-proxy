@@ -5,7 +5,7 @@ import (
 	"net/http/httputil"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy-extensions/mimic"
+	"github.com/getlantern/http-proxy-lantern/mimic"
 )
 
 const (

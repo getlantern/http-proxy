@@ -9,7 +9,7 @@ import (
 	"sync/atomic"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy-extensions/mimic"
+	"github.com/getlantern/http-proxy-lantern/mimic"
 )
 
 // StatefulConn is a type of connection that changes it's internal state when its
