@@ -96,7 +96,7 @@ var invalidRequests = []entryWithHeaders{
 
 	// invalid request handled by go server
 	{"GET", "", false, []string{}},
-	{"GET", "/", true, []string{"User-Agent: xxx", "User-Agent: xxx"}},
+	{"GET", "/", true, []string{"Content-Length: 0", "Content-Length: 0"}},
 }
 
 func TestMimicApache(t *testing.T) {

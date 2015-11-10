@@ -6,10 +6,11 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"sync/atomic"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy-extensions/mimic"
+	"github.com/getlantern/http-proxy-lantern/mimic"
 )
 
 // StatefulConn is a type of connection that changes it's internal state when its
@@ -31,6 +32,9 @@ func NewListener(l net.Listener) *listener {
 
 func (sl *listener) Accept() (net.Conn, error) {
 	c, err := sl.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
 	return &conn{Conn: c, newRequest: 1}, err
 }
 
@@ -71,7 +75,12 @@ func (c *conn) Read(p []byte) (n int, err error) {
 		} else if neterr, ok := e.(net.Error); ok && neterr.Timeout() {
 		} else {
 			log.Debugf("Error parse request from %s: %s", c.RemoteAddr().String(), e)
-			mimic.MimicApacheOnInvalidRequest(c.Conn)
+			// We have no way but check the error text
+			if e.Error() == "parse : empty url" || strings.HasPrefix(e.Error(), "malformed HTTP ") {
+				mimic.MimicApacheOnInvalidRequest(c.Conn, false)
+			} else {
+				mimic.MimicApacheOnInvalidRequest(c.Conn, true)
+			}
 			return 0, e
 		}
 	}
