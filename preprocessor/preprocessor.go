@@ -73,6 +73,9 @@ func (c *conn) Read(p []byte) (n int, err error) {
 		// do nothing for network errors. ref (c *conn) serve() in net/http/server.go
 		if e == io.EOF {
 		} else if neterr, ok := e.(net.Error); ok && neterr.Timeout() {
+		} else if e.Error() == "unexpected EOF" {
+			// It can be an indicator that the request doesn't get sent in single IP packet.
+			// Ignore it to avoid causing problem in such case.
 		} else {
 			log.Debugf("Error parse request from %s: %s", c.RemoteAddr().String(), e)
 			// We have no way but check the error text
