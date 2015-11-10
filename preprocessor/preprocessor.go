@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy-extensions/mimic"
+	"github.com/getlantern/http-proxy-lantern/mimic"
 )
 
 // StatefulConn is a type of connection that changes it's internal state when its
@@ -32,6 +32,9 @@ func NewListener(l net.Listener) *listener {
 
 func (sl *listener) Accept() (net.Conn, error) {
 	c, err := sl.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
 	return &conn{Conn: c, newRequest: 1}, err
 }
 
