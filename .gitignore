@@ -29,3 +29,5 @@ http-proxy-lantern
 /bin
 /pkg
 http-proxy.raw
+
+test-data/http-proxy.raw

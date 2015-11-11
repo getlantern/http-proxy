@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/http"
+	"strings"
 	"sync/atomic"
 
 	"github.com/getlantern/golog"
@@ -31,6 +32,9 @@ func NewListener(l net.Listener) *listener {
 
 func (sl *listener) Accept() (net.Conn, error) {
 	c, err := sl.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
 	return &conn{Conn: c, newRequest: 1}, err
 }
 
@@ -69,9 +73,17 @@ func (c *conn) Read(p []byte) (n int, err error) {
 		// do nothing for network errors. ref (c *conn) serve() in net/http/server.go
 		if e == io.EOF {
 		} else if neterr, ok := e.(net.Error); ok && neterr.Timeout() {
+		} else if e.Error() == "unexpected EOF" {
+			// It can be an indicator that the request doesn't get sent in single IP packet.
+			// Ignore it to avoid causing problem in such case.
 		} else {
 			log.Debugf("Error parse request from %s: %s", c.RemoteAddr().String(), e)
-			mimic.MimicApacheOnInvalidRequest(c.Conn)
+			// We have no way but check the error text
+			if e.Error() == "parse : empty url" || strings.HasPrefix(e.Error(), "malformed HTTP ") {
+				mimic.MimicApacheOnInvalidRequest(c.Conn, false)
+			} else {
+				mimic.MimicApacheOnInvalidRequest(c.Conn, true)
+			}
 			return 0, e
 		}
 	}

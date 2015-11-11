@@ -30,10 +30,14 @@ var (
 	etag         = makeETag()
 )
 
-func MimicApacheOnInvalidRequest(c net.Conn) {
+func MimicApacheOnInvalidRequest(c net.Conn, withHeader bool) {
 	defer c.Close()
 	m := apacheMimic{c, nil, ""}
-	m.writeError(nil, badRequestBody)
+	var header *template.Template
+	if withHeader {
+		header = badRequestHeaderWithoutLength
+	}
+	m.writeError(header, badRequestBody)
 }
 
 // MimicApache mimics the behaviour of an unconfigured Apache web server 2.4.7
@@ -249,10 +253,15 @@ var notFoundBody = template.Must(template.New("notFoundBody").Parse(`<!DOCTYPE H
 </body></html>
 `))
 
-var badRequestHeader = template.Must(template.New("notFound").Parse("HTTP/1.1 400 Bad Request\r\n" +
+var badRequestHeader = template.Must(template.New("badRequestHeader").Parse("HTTP/1.1 400 Bad Request\r\n" +
 	"Date: {{.Date}}\r\n" +
 	"Server: Apache/2.4.7 (Ubuntu)\r\n" +
 	"Content-Length: {{.ContentLength}}\r\n" +
+	"Connection: close\r\n" +
+	"Content-Type: text/html; charset=iso-8859-1\r\n\r\n"))
+var badRequestHeaderWithoutLength = template.Must(template.New("badRequestHeaderWithoutLength").Parse("HTTP/1.1 400 Bad Request\r\n" +
+	"Date: {{.Date}}\r\n" +
+	"Server: Apache/2.4.7 (Ubuntu)\r\n" +
 	"Connection: close\r\n" +
 	"Content-Type: text/html; charset=iso-8859-1\r\n\r\n"))
 var badRequestBody = template.Must(template.New("notFound").Parse(
