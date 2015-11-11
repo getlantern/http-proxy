@@ -7,6 +7,10 @@ These are Lantern-specific middleware components for the HTTP Proxy in Go:
 * A filter for devices, based on their IDs
 
 * A filter for Pro users
+ 
+* A connection preprocessor to intercept bad requests and send custom responses
+
+* Custom responses for mimicking Apache in certain cases
 
 
 ### Testing with Lantern extensions and configuration
@@ -25,7 +29,7 @@ TRACE=1 go test
 
 ### Manual testing
 
-*Keep in mind that cURL doesn't support tunneling through an HTTPS proxy, so if you use the -https option you have to use other tools for testing.
+*Keep in mind that cURL doesn't support tunneling through an HTTPS proxy, so if you use the -https option you have to use other tools for testing.*
 
 Run the server with:
 
