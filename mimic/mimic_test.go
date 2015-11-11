@@ -16,9 +16,9 @@ import (
 	proxy "github.com/getlantern/http-proxy"
 )
 
-const target = "test-data/apache-2.4.7-ubuntu14.04.raw"
-const template = "test-data/apache-2.4.7-ubuntu14.04.tpl"
-const current = "test-data/http-proxy.raw"
+const target = "test/data/apache-2.4.7-ubuntu14.04.raw"
+const template = "test/data/apache-2.4.7-ubuntu14.04.tpl"
+const current = "test/data/http-proxy.raw"
 
 type entry struct {
 	method string

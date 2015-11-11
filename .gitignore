@@ -30,4 +30,4 @@ http-proxy-lantern
 /pkg
 http-proxy.raw
 
-test-data/http-proxy.raw
+test/data/http-proxy.raw
