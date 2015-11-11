@@ -17,11 +17,12 @@ import (
 	"github.com/getlantern/measured"
 	"github.com/getlantern/testify/assert"
 
-	"github.com/getlantern/http-proxy/commonfilter"
 	"github.com/getlantern/http-proxy/forward"
 	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/http-proxy/server"
+
+	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
 
 const (
@@ -649,24 +650,30 @@ func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
 		log.Error(err)
 	}
 
-	// Middleware: Common request filter
-	commonHandler, err := commonfilter.New(httpConnect, testingLocal)
+	// Middleware: Token filter
+	tokenFilter, err := tokenfilter.New(httpConnect, tokenfilter.TokenSetter(validToken))
 	if err != nil {
 		log.Error(err)
 	}
 
 	// Create server
-	srv := server.NewServer(commonHandler)
+	srv := server.NewServer(tokenFilter)
 
 	// Add net.Listener wrappers for inbound connections
 	srv.AddListenerWrappers(
 		// Limit max number of simultaneous connections
+		// We test this even if not used in production, it serves as a watchdog
+		// on the status of stacked connection wrappers
 		func(ls net.Listener) net.Listener {
 			return listeners.NewLimitedListener(ls, maxConns)
 		},
 		// Close connections after 30 seconds of no activity
 		func(ls net.Listener) net.Listener {
 			return listeners.NewIdleConnListener(ls, idleTimeout)
+		},
+		// Measure connections
+		func(ls net.Listener) net.Listener {
+			return listeners.NewMeasuredListener(ls, 100*time.Millisecond)
 		},
 	)
 
