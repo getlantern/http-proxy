@@ -8,7 +8,6 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
 
-	"github.com/getlantern/http-proxy/commonfilter"
 	"github.com/getlantern/http-proxy/forward"
 	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/logging"
@@ -43,12 +42,29 @@ func main() {
 		return
 	}
 
+	// Logging
 	// TODO: use real parameters
 	err = logging.Init("instanceid", "version", "releasedate", *logglyToken)
 	if err != nil {
 		log.Error(err)
 	}
 
+	// Reporting
+	if *enableReports {
+		redisAddr := os.Getenv("REDIS_PRODUCTION_URL")
+		if redisAddr == "" {
+			redisAddr = "127.0.0.1:6379"
+		}
+		rp, err := report.NewRedisReporter(redisAddr)
+		if err != nil {
+			log.Errorf("Error connecting to redis: %v", err)
+		} else {
+			measured.Start(20*time.Second, rp)
+			defer measured.Stop()
+		}
+	}
+
+	// Middleware
 	forwarder, err := forward.New(nil, forward.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
 	if err != nil {
 		log.Error(err)
@@ -64,26 +80,10 @@ func main() {
 		log.Error(err)
 	}
 
-	commonHandler, err := commonfilter.New(tokenFilter, testingLocal)
-	if err != nil {
-		log.Error(err)
-	}
+	// Connection wrappers
+	// TODO
 
-	srv := server.NewServer(commonHandler)
-
-	if *enableReports {
-		redisAddr := os.Getenv("REDIS_PRODUCTION_URL")
-		if redisAddr == "" {
-			redisAddr = "127.0.0.1:6379"
-		}
-		rp, err := report.NewRedisReporter(redisAddr)
-		if err != nil {
-			log.Errorf("Error connecting to redis: %v", err)
-		} else {
-			measured.Start(20*time.Second, rp)
-			defer measured.Stop()
-		}
-	}
+	srv := server.NewServer(tokenFilter)
 
 	if *https {
 		err = srv.ServeHTTPS(*addr, *keyfile, *certfile, nil)

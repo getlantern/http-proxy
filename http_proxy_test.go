@@ -16,6 +16,12 @@ import (
 	"github.com/getlantern/keyman"
 	"github.com/getlantern/measured"
 	"github.com/getlantern/testify/assert"
+
+	"github.com/getlantern/http-proxy/commonfilter"
+	"github.com/getlantern/http-proxy/forward"
+	"github.com/getlantern/http-proxy/httpconnect"
+	"github.com/getlantern/http-proxy/listeners"
+	"github.com/getlantern/http-proxy/server"
 )
 
 const (
@@ -26,8 +32,8 @@ const (
 )
 
 var (
-	httpProxy        *Server
-	tlsProxy         *Server
+	httpProxy        *server.Server
+	tlsProxy         *server.Server
 	httpTargetServer *targetHandler
 	httpTargetURL    string
 	tlsTargetServer  *targetHandler
@@ -70,7 +76,7 @@ func TestMain(m *testing.M) {
 		log.Error("Error starting proxy server")
 		os.Exit(1)
 	}
-	log.Debugf("Started HTTP proxy server at %s", httpProxy.listener.Addr().String())
+	log.Debugf("Started HTTP proxy server at %s", httpProxy.Addr.String())
 
 	// Set up HTTPS chained server
 	tlsProxy, err = setupNewHTTPSServer(0, 30*time.Second)
@@ -78,7 +84,7 @@ func TestMain(m *testing.M) {
 		log.Error("Error starting proxy server")
 		os.Exit(1)
 	}
-	log.Debugf("Started HTTPS proxy server at %s", tlsProxy.listener.Addr().String())
+	log.Debugf("Started HTTPS proxy server at %s", tlsProxy.Addr.String())
 
 	os.Exit(m.Run())
 }
@@ -90,7 +96,7 @@ func TestReportStats(t *testing.T) {
 	m := mockReporter{error: make(map[measured.Error]int)}
 	measured.Start(100*time.Millisecond, &m)
 	defer measured.Stop()
-	testFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, deviceId)
 		t.Log("\n" + req)
@@ -125,7 +131,7 @@ func TestMaxConnections(t *testing.T) {
 	}
 
 	//limitedServer.httpServer.SetKeepAlivesEnabled(false)
-	okFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	okFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken, deviceId)
 		conn.Write([]byte(req))
 		var buf [400]byte
@@ -136,7 +142,7 @@ func TestMaxConnections(t *testing.T) {
 		time.Sleep(time.Millisecond * 100)
 	}
 
-	waitFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	waitFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		conn.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
 
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken, deviceId)
@@ -173,7 +179,7 @@ func TestIdleClientConnections(t *testing.T) {
 		assert.Fail(t, "Error starting proxy server")
 	}
 
-	okFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	okFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		time.Sleep(time.Millisecond * 90)
 		conn.Write([]byte("GET / HTTP/1.1\r\n\r\n"))
 
@@ -183,7 +189,7 @@ func TestIdleClientConnections(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	idleFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	idleFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		time.Sleep(time.Millisecond * 110)
 		conn.Write([]byte("GET / HTTP/1.1\r\n\r\n"))
 
@@ -211,7 +217,7 @@ func TestIdleTargetConnections(t *testing.T) {
 		assert.Fail(t, "Error starting proxy server: %s", err)
 	}
 
-	okForwardFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	okForwardFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		conn.Write([]byte("GET / HTTP/1.1\r\n\r\n"))
 		var buf [400]byte
 		_, err := conn.Read(buf[:])
@@ -219,7 +225,7 @@ func TestIdleTargetConnections(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	okConnectFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	okConnectFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		conn.Write([]byte("CONNECT www.google.com HTTP/1.1\r\nHost: www.google.com\r\n\r\n"))
 		var buf [400]byte
 		_, err := conn.Read(buf[:])
@@ -227,7 +233,7 @@ func TestIdleTargetConnections(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	failForwardFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	failForwardFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		reqStr := "GET / HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 		req := fmt.Sprintf(reqStr, targetURL.Host, validToken, deviceId)
 		t.Log("\n" + req)
@@ -244,7 +250,7 @@ func TestIdleTargetConnections(t *testing.T) {
 		}
 	}
 
-	failConnectFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	failConnectFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		reqStr := "CONNECT www.google.com HTTP/1.1\r\nHost: www.google.com\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 		req := fmt.Sprintf(reqStr, validToken, deviceId)
 		conn.Write([]byte(req))
@@ -271,7 +277,7 @@ func TestConnectNoToken(t *testing.T) {
 	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 400 Bad Request\r\n"
 
-	testFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, deviceId)
 		t.Log("\n" + req)
@@ -300,7 +306,7 @@ func TestConnectBadToken(t *testing.T) {
 	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 400 Bad Request\r\n"
 
-	testFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, "B4dT0k3n", deviceId)
 		t.Log("\n" + req)
@@ -332,7 +338,7 @@ func TestConnectNoDevice(t *testing.T) {
 	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 400 Bad Request\r\n"
 
-	testFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken)
 		t.Log("\n" + req)
@@ -361,7 +367,7 @@ func TestConnectOK(t *testing.T) {
 	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 200 OK\r\n"
 
-	testHTTP := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	testHTTP := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken, deviceId)
 		t.Log("\n" + req)
 		_, err := conn.Write([]byte(req))
@@ -386,7 +392,7 @@ func TestConnectOK(t *testing.T) {
 		assert.Contains(t, string(buf[:]), targetResponse, "should read tunneled response")
 	}
 
-	testTLS := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	testTLS := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken, deviceId)
 		t.Log("\n" + req)
 		_, err := conn.Write([]byte(req))
@@ -429,7 +435,7 @@ func TestDirectNoToken(t *testing.T) {
 	connectReq := "GET /%s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 404 Not Found\r\n"
 
-	testFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, deviceId)
 		t.Log("\n" + req)
@@ -458,7 +464,7 @@ func TestDirectBadToken(t *testing.T) {
 	connectReq := "GET /%s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 404 Not Found\r\n"
 
-	testFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, "B4dT0k3n", deviceId)
 		t.Log("\n" + req)
@@ -490,7 +496,7 @@ func TestDirectNoDevice(t *testing.T) {
 	connectReq := "GET /%s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 404 Not Found\r\n"
 
-	testFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken)
 		t.Log("\n" + req)
@@ -519,7 +525,7 @@ func TestDirectOK(t *testing.T) {
 	reqTempl := "GET /%s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	failResp := "HTTP/1.1 500 Internal Server Error\r\n"
 
-	testOk := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	testOk := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		req := fmt.Sprintf(reqTempl, targetURL.Path, targetURL.Host, validToken, deviceId)
 		t.Log("\n" + req)
 		_, err := conn.Write([]byte(req))
@@ -533,7 +539,7 @@ func TestDirectOK(t *testing.T) {
 
 	}
 
-	testFail := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	testFail := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		req := fmt.Sprintf(reqTempl, targetURL.Path, targetURL.Host, validToken, deviceId)
 		t.Log("\n" + req)
 		_, err := conn.Write([]byte(req))
@@ -560,7 +566,7 @@ func TestDirectOK(t *testing.T) {
 
 func TestInvalidRequest(t *testing.T) {
 	connectResp := "HTTP/1.1 400 Bad Request\r\n"
-	testFn := func(conn net.Conn, proxy *Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
 		_, err := conn.Write([]byte("GET HTTP/1.1\r\n\r\n"))
 		if !assert.NoError(t, err, "should write GET request") {
 			t.FailNow()
@@ -582,12 +588,12 @@ func TestInvalidRequest(t *testing.T) {
 // Auxiliary functions
 //
 
-func testRoundTrip(t *testing.T, proxy *Server, target *targetHandler, checkerFn func(conn net.Conn, proxy *Server, targetURL *url.URL)) {
+func testRoundTrip(t *testing.T, proxy *server.Server, target *targetHandler, checkerFn func(conn net.Conn, proxy *server.Server, targetURL *url.URL)) {
 	var conn net.Conn
 	var err error
 
-	addr := proxy.listener.Addr().String()
-	if !proxy.tls {
+	addr := proxy.Addr.String()
+	if !proxy.Tls {
 		conn, err = net.Dial("tcp", addr)
 		log.Debugf("%s -> %s (via HTTP) -> %s", conn.LocalAddr().String(), addr, target.server.URL)
 		if !assert.NoError(t, err, "should dial proxy server") {
@@ -629,8 +635,46 @@ type proxy struct {
 	addr     string
 }
 
-func setupNewHTTPServer(maxConns uint64, idleTimeout time.Duration) (*Server, error) {
-	s := NewServer(validToken, maxConns, idleTimeout, true, true)
+func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
+
+	// Middleware: Forward HTTP Messages
+	forwarder, err := forward.New(nil, forward.IdleTimeoutSetter(idleTimeout))
+	if err != nil {
+		log.Error(err)
+	}
+
+	// Middleware: Handle HTTP CONNECT
+	httpConnect, err := httpconnect.New(forwarder, httpconnect.IdleTimeoutSetter(idleTimeout))
+	if err != nil {
+		log.Error(err)
+	}
+
+	// Middleware: Common request filter
+	commonHandler, err := commonfilter.New(httpConnect, testingLocal)
+	if err != nil {
+		log.Error(err)
+	}
+
+	// Create server
+	srv := server.NewServer(commonHandler)
+
+	// Add net.Listener wrappers for inbound connections
+	srv.AddListenerWrappers(
+		// Limit max number of simultaneous connections
+		func(ls net.Listener) net.Listener {
+			return listeners.NewLimitedListener(ls, maxConns)
+		},
+		// Close connections after 30 seconds of no activity
+		func(ls net.Listener) net.Listener {
+			return listeners.NewIdleConnListener(ls, idleTimeout)
+		},
+	)
+
+	return srv
+}
+
+func setupNewHTTPServer(maxConns uint64, idleTimeout time.Duration) (*server.Server, error) {
+	s := basicServer(maxConns, idleTimeout)
 	var err error
 	ready := make(chan string)
 	go func(err *error) {
@@ -642,8 +686,8 @@ func setupNewHTTPServer(maxConns uint64, idleTimeout time.Duration) (*Server, er
 	return s, err
 }
 
-func setupNewHTTPSServer(maxConns uint64, idleTimeout time.Duration) (*Server, error) {
-	s := NewServer(validToken, maxConns, idleTimeout, true, true)
+func setupNewHTTPSServer(maxConns uint64, idleTimeout time.Duration) (*server.Server, error) {
+	s := basicServer(maxConns, idleTimeout)
 	var err error
 	ready := make(chan string)
 	go func(err *error) {
