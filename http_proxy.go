@@ -2,6 +2,7 @@ package main
 
 import (
 	"flag"
+	"net"
 	"os"
 	"time"
 
@@ -10,9 +11,11 @@ import (
 
 	"github.com/getlantern/http-proxy/forward"
 	"github.com/getlantern/http-proxy/httpconnect"
+	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/http-proxy/logging"
 	"github.com/getlantern/http-proxy/server"
 
+	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/report"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
@@ -80,10 +83,27 @@ func main() {
 		log.Error(err)
 	}
 
-	// Connection wrappers
-	// TODO
-
 	srv := server.NewServer(tokenFilter)
+
+	// Add net.Listener wrappers for inbound connections
+	if *enableReports {
+		srv.AddListenerWrappers(
+			// Measure connections
+			func(ls net.Listener) net.Listener {
+				return listeners.NewMeasuredListener(ls, 100*time.Millisecond)
+			},
+		)
+	}
+	srv.AddListenerWrappers(
+		// Close connections after 30 seconds of no activity
+		func(ls net.Listener) net.Listener {
+			return listeners.NewIdleConnListener(ls, time.Duration(*idleClose)*time.Second)
+		},
+		// Preprocess connection to issue custom errors before they are passed to the server
+		func(ls net.Listener) net.Listener {
+			return lanternlisteners.NewPreprocessorListener(ls)
+		},
+	)
 
 	if *https {
 		err = srv.ServeHTTPS(*addr, *keyfile, *certfile, nil)

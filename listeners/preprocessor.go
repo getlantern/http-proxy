@@ -1,4 +1,4 @@
-package preprocessor
+package listeners
 
 import (
 	"bufio"
@@ -10,47 +10,47 @@ import (
 	"sync/atomic"
 
 	"github.com/getlantern/golog"
+
+	"github.com/getlantern/http-proxy/listeners"
+
 	"github.com/getlantern/http-proxy-lantern/mimic"
 )
 
-// StatefulConn is a type of connection that changes it's internal state when its
-// SetState() is called
-type StatefulConn interface {
-	SetState(s http.ConnState)
-}
+var log = golog.LoggerFor("listeners")
 
-var log = golog.LoggerFor("preprocessor")
-
-type listener struct {
+type preprocessorListener struct {
 	net.Listener
 }
 
-func NewListener(l net.Listener) *listener {
-	listener := &listener{l}
-	return listener
+func NewPreprocessorListener(l net.Listener) net.Listener {
+	return &preprocessorListener{
+		Listener: l,
+	}
 }
 
-func (sl *listener) Accept() (net.Conn, error) {
+func (sl *preprocessorListener) Accept() (net.Conn, error) {
 	c, err := sl.Listener.Accept()
 	if err != nil {
 		return nil, err
 	}
-	return &conn{Conn: c, newRequest: 1}, err
+
+	sac, _ := c.(listeners.StateAwareConn)
+	return &preprocessorConn{
+		StateAwareConn: sac,
+		Conn:           c,
+		newRequest:     1,
+	}, err
 }
 
-type conn struct {
+// Preprocessor Conn wrapper
+type preprocessorConn struct {
+	listeners.StateAwareConn
 	net.Conn
 	// ready to handle a new http request when == 1
 	newRequest uint32
 }
 
-func (c *conn) SetState(s http.ConnState) {
-	if s == http.StateIdle {
-		atomic.StoreUint32(&c.newRequest, 1)
-	}
-}
-
-func (c *conn) Read(p []byte) (n int, err error) {
+func (c *preprocessorConn) Read(p []byte) (n int, err error) {
 	if atomic.SwapUint32(&c.newRequest, 0) == 0 {
 		return c.Conn.Read(p)
 	}
@@ -88,4 +88,15 @@ func (c *conn) Read(p []byte) (n int, err error) {
 		}
 	}
 	return
+}
+
+func (c *preprocessorConn) OnState(s http.ConnState) {
+	if s == http.StateIdle {
+		atomic.StoreUint32(&c.newRequest, 1)
+	}
+
+	// Pass down to wrapped connections
+	if c.StateAwareConn != nil {
+		c.StateAwareConn.OnState(s)
+	}
 }
