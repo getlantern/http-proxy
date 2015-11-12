@@ -1,6 +1,9 @@
-package mimic
+package main
 
 import (
+	"fmt"
+	"time"
+
 	"bytes"
 	"io"
 	"io/ioutil"
@@ -9,15 +12,19 @@ import (
 	"os/exec"
 	"regexp"
 	"testing"
-	"time"
 
 	"github.com/getlantern/testify/assert"
 
-	proxy "github.com/getlantern/http-proxy"
+	"github.com/getlantern/http-proxy/commonfilter"
+	"github.com/getlantern/http-proxy/httpconnect"
+	"github.com/getlantern/http-proxy/server"
+
+	"github.com/getlantern/http-proxy-lantern/listeners"
+	"github.com/getlantern/http-proxy-lantern/mimic"
 )
 
 const target = "test/data/apache-2.4.7-ubuntu14.04.raw"
-const template = "test/data/apache-2.4.7-ubuntu14.04.tpl"
+const apTemplate = "test/data/apache-2.4.7-ubuntu14.04.tpl"
 const current = "test/data/http-proxy.raw"
 
 type entry struct {
@@ -56,12 +63,12 @@ var candidates = []entry{
 	{"HEAD", "/index.html"},
 	{"HEAD", "/icons/ubuntu-logo.png"},
 	{"HEAD", "/not-existed"},
-
-	{"POST", "/"},
-	{"POST", "/index.html"},
-	{"POST", "/icons/ubuntu-logo.png"},
-	{"POST", "/not-existed"},
-
+	/*
+		{"POST", "/"},
+		{"POST", "/index.html"},
+		{"POST", "/icons/ubuntu-logo.png"},
+		{"POST", "/not-existed"},
+	*/
 	{"OPTIONS", "/"},
 	{"OPTIONS", "/index.html"},
 	{"OPTIONS", "/icons/ubuntu-logo.png"},
@@ -71,12 +78,12 @@ var candidates = []entry{
 	{"PUT", "/index.html"},
 	{"PUT", "/icons/ubuntu-logo.png"},
 	{"PUT", "/not-existed"},
-
-	{"CONNECT", "/"},
-	{"CONNECT", "/index.html"},
-	{"CONNECT", "/icons/ubuntu-logo.png"},
-	{"CONNECT", "/not-existed"},
-
+	/*
+		{"CONNECT", "/"},
+		{"CONNECT", "/index.html"},
+		{"CONNECT", "/icons/ubuntu-logo.png"},
+		{"CONNECT", "/not-existed"},
+	*/
 	{"INVALID", "/"},
 	{"INVALID", "/index.html"},
 	{"INVALID", "/not-existed"},
@@ -100,15 +107,49 @@ var invalidRequests = []entryWithHeaders{
 }
 
 func TestMimicApache(t *testing.T) {
-	s := proxy.NewServer("anytoken", 100000, 30*time.Second, true, false)
+	t.Skip("comment out this line and run 'go test -run MimicApache' when you want to test Apache mimicking")
+
+	// Middleware: Common request filter
+	httpconnect, err := httpconnect.New(nil, httpconnect.IdleTimeoutSetter(time.Second*30))
+	if err != nil {
+		log.Error(err)
+	}
+
+	handler, err := commonfilter.New(httpconnect, false)
+	if err != nil {
+		log.Error(err)
+	}
+
+	s := server.NewServer(handler)
+
+	s.AddListenerWrappers(
+		// Preprocess connection to issue custom errors before they are passed to the server
+		func(ls net.Listener) net.Listener {
+			return listeners.NewPreprocessorListener(ls)
+		},
+	)
+
 	chListenOn := make(chan string)
 	go func() {
 		err := s.ServeHTTP(":0", &chListenOn)
 		assert.NoError(t, err, "should start chained server")
 	}()
-	buf := request(t, <-chListenOn)
+
+	strAddr := <-chListenOn
+	host, port, err := net.SplitHostPort(strAddr)
+	if err != nil {
+		panic("should not happen")
+	}
+	mimic.Host = host
+	mimic.Port = port
+
+	buf := request(t, s.Addr.String())
+
 	ioutil.WriteFile(current, buf.Bytes(), os.ModePerm)
-	compare(t, normalize(buf), template)
+
+	fmt.Println(normalize(buf))
+
+	compare(t, normalize(buf), apTemplate)
 }
 
 func TestRealApache(t *testing.T) {
@@ -116,7 +157,7 @@ func TestRealApache(t *testing.T) {
 	addr := "128.199.100.121:80"
 	buf := request(t, addr)
 	ioutil.WriteFile(target, buf.Bytes(), os.ModePerm)
-	ioutil.WriteFile(template, normalize(buf).Bytes(), os.ModePerm)
+	ioutil.WriteFile(apTemplate, normalize(buf).Bytes(), os.ModePerm)
 }
 
 func compare(t *testing.T, buf *bytes.Buffer, file string) {
@@ -135,6 +176,7 @@ func compare(t *testing.T, buf *bytes.Buffer, file string) {
 
 func request(t *testing.T, addr string) *bytes.Buffer {
 	var buf bytes.Buffer
+
 	for _, c := range candidates {
 		requestItem(t, &buf, addr, c.method, c.path, []string{"Host: " + addr})
 	}
@@ -149,15 +191,20 @@ func request(t *testing.T, addr string) *bytes.Buffer {
 
 func requestItem(t *testing.T, buf *bytes.Buffer, addr, method, path string, headers []string) {
 	conn, err := net.Dial("tcp", addr)
+
 	if assert.NoError(t, err, "should connect") {
 		defer conn.Close()
 		req := method + " " + path + " HTTP/1.1\n"
 		buf.WriteString(req)
 		buf.WriteString("--------------------\n")
+
 		for _, h := range headers {
 			req = req + h + "\n"
 		}
-		_, err := conn.Write([]byte(req + "\n"))
+
+		req = req + "\n\n"
+		_, err := conn.Write([]byte(req))
+
 		if assert.NoError(t, err, "should write") {
 			_, err := io.Copy(buf, conn)
 			assert.NoError(t, err, "should copy")

@@ -22,7 +22,7 @@ import (
 
 var (
 	testingLocal = false
-	log          = golog.LoggerFor("main")
+	log          = golog.LoggerFor("lantern-proxy")
 
 	help          = flag.Bool("help", false, "Get usage help")
 	keyfile       = flag.String("key", "", "Private key file name")
