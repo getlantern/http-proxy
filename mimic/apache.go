@@ -30,6 +30,15 @@ var (
 	etag         = makeETag()
 )
 
+func SetServerAddr(addr string) {
+	host, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		panic("should not happen")
+	}
+	Host = host
+	Port = port
+}
+
 func MimicApacheOnInvalidRequest(c net.Conn, withHeader bool) {
 	defer c.Close()
 	m := apacheMimic{c, nil, ""}

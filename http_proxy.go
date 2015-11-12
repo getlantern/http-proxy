@@ -16,6 +16,7 @@ import (
 	"github.com/getlantern/http-proxy/server"
 
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
+	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/report"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
@@ -105,10 +106,14 @@ func main() {
 		},
 	)
 
+	initMimic := func(addr string) {
+		mimic.SetServerAddr(addr)
+	}
+
 	if *https {
-		err = srv.ServeHTTPS(*addr, *keyfile, *certfile, nil)
+		err = srv.ServeHTTPS(*addr, *keyfile, *certfile, initMimic)
 	} else {
-		err = srv.ServeHTTP(*addr, nil)
+		err = srv.ServeHTTP(*addr, initMimic)
 	}
 	if err != nil {
 		log.Errorf("Error serving: %v", err)
