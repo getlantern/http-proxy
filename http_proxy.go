@@ -9,6 +9,7 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
 
+	"github.com/getlantern/http-proxy/commonfilter"
 	"github.com/getlantern/http-proxy/forward"
 	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
@@ -79,7 +80,15 @@ func main() {
 		log.Error(err)
 	}
 
-	tokenFilter, err := tokenfilter.New(httpConnect, tokenfilter.TokenSetter(*token))
+	commonFilter, err := commonfilter.New(httpConnect,
+		testingLocal,
+		commonfilter.SetException("127.0.0.1:7300"),
+	)
+	if err != nil {
+		log.Error(err)
+	}
+
+	tokenFilter, err := tokenfilter.New(commonFilter, tokenfilter.TokenSetter(*token))
 	if err != nil {
 		log.Error(err)
 	}
