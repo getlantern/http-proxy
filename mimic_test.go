@@ -1,9 +1,6 @@
 package main
 
 import (
-	"fmt"
-	"time"
-
 	"bytes"
 	"io"
 	"io/ioutil"
@@ -16,11 +13,11 @@ import (
 	"github.com/getlantern/testify/assert"
 
 	"github.com/getlantern/http-proxy/commonfilter"
-	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
+	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
 
 const target = "test/data/apache-2.4.7-ubuntu14.04.raw"
@@ -63,12 +60,12 @@ var candidates = []entry{
 	{"HEAD", "/index.html"},
 	{"HEAD", "/icons/ubuntu-logo.png"},
 	{"HEAD", "/not-existed"},
-	/*
-		{"POST", "/"},
-		{"POST", "/index.html"},
-		{"POST", "/icons/ubuntu-logo.png"},
-		{"POST", "/not-existed"},
-	*/
+
+	{"POST", "/"},
+	{"POST", "/index.html"},
+	{"POST", "/icons/ubuntu-logo.png"},
+	{"POST", "/not-existed"},
+
 	{"OPTIONS", "/"},
 	{"OPTIONS", "/index.html"},
 	{"OPTIONS", "/icons/ubuntu-logo.png"},
@@ -78,12 +75,12 @@ var candidates = []entry{
 	{"PUT", "/index.html"},
 	{"PUT", "/icons/ubuntu-logo.png"},
 	{"PUT", "/not-existed"},
-	/*
-		{"CONNECT", "/"},
-		{"CONNECT", "/index.html"},
-		{"CONNECT", "/icons/ubuntu-logo.png"},
-		{"CONNECT", "/not-existed"},
-	*/
+
+	{"CONNECT", "/"},
+	{"CONNECT", "/index.html"},
+	{"CONNECT", "/icons/ubuntu-logo.png"},
+	{"CONNECT", "/not-existed"},
+
 	{"INVALID", "/"},
 	{"INVALID", "/index.html"},
 	{"INVALID", "/not-existed"},
@@ -107,20 +104,13 @@ var invalidRequests = []entryWithHeaders{
 }
 
 func TestMimicApache(t *testing.T) {
-	t.Skip("comment out this line and run 'go test -run MimicApache' when you want to test Apache mimicking")
+	cf, err := commonfilter.New(nil, false)
+	assert.NoError(t, err, "should create common filter")
 
-	// Middleware: Common request filter
-	httpconnect, err := httpconnect.New(nil, httpconnect.IdleTimeoutSetter(time.Second*30))
-	if err != nil {
-		log.Error(err)
-	}
+	tf, err := tokenfilter.New(cf, tokenfilter.TokenSetter("arbitrary-token"))
+	assert.NoError(t, err, "should create token filter")
 
-	handler, err := commonfilter.New(httpconnect, false)
-	if err != nil {
-		log.Error(err)
-	}
-
-	s := server.NewServer(handler)
+	s := server.NewServer(tf)
 
 	s.AddListenerWrappers(
 		// Preprocess connection to issue custom errors before they are passed to the server
@@ -134,7 +124,7 @@ func TestMimicApache(t *testing.T) {
 		getListenAddr := func(addr string) {
 			chListenOn <- addr
 		}
-		err := s.ServeHTTP(":0", getListenAddr)
+		err := s.ServeHTTP("127.0.0.1:0", getListenAddr)
 		assert.NoError(t, err, "should start chained server")
 	}()
 
@@ -149,9 +139,6 @@ func TestMimicApache(t *testing.T) {
 	buf := request(t, s.Addr.String())
 
 	ioutil.WriteFile(current, buf.Bytes(), os.ModePerm)
-
-	fmt.Println(normalize(buf))
-
 	compare(t, normalize(buf), apTemplate)
 }
 
@@ -197,15 +184,16 @@ func requestItem(t *testing.T, buf *bytes.Buffer, addr, method, path string, hea
 
 	if assert.NoError(t, err, "should connect") {
 		defer conn.Close()
-		req := method + " " + path + " HTTP/1.1\n"
+		req := method + " " + path + " HTTP/1.1\r\n"
 		buf.WriteString(req)
 		buf.WriteString("--------------------\n")
 
 		for _, h := range headers {
-			req = req + h + "\n"
+			req = req + h + "\r\n"
 		}
 
-		req = req + "\n\n"
+		req = req + "\r\n"
+		log.Trace(req)
 		_, err := conn.Write([]byte(req))
 
 		if assert.NoError(t, err, "should write") {
