@@ -34,17 +34,17 @@ func (sl *preprocessorListener) Accept() (net.Conn, error) {
 		return nil, err
 	}
 
-	sac, _ := c.(listeners.StateAwareConn)
+	sac, _ := c.(listeners.WrapConnEmbeddable)
 	return &preprocessorConn{
-		StateAwareConn: sac,
-		Conn:           c,
-		newRequest:     1,
+		WrapConnEmbeddable: sac,
+		Conn:               c,
+		newRequest:         1,
 	}, err
 }
 
 // Preprocessor Conn wrapper
 type preprocessorConn struct {
-	listeners.StateAwareConn
+	listeners.WrapConnEmbeddable
 	net.Conn
 	// ready to handle a new http request when == 1
 	newRequest uint32
@@ -96,7 +96,14 @@ func (c *preprocessorConn) OnState(s http.ConnState) {
 	}
 
 	// Pass down to wrapped connections
-	if c.StateAwareConn != nil {
-		c.StateAwareConn.OnState(s)
+	if c.WrapConnEmbeddable != nil {
+		c.WrapConnEmbeddable.OnState(s)
+	}
+}
+
+func (c *preprocessorConn) ControlMessage(msgType string, data interface{}) {
+	// Simply pass down the control message to the wrapped connection
+	if c.WrapConnEmbeddable != nil {
+		c.WrapConnEmbeddable.ControlMessage(msgType, data)
 	}
 }

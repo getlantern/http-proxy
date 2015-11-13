@@ -6,10 +6,9 @@ import (
 
 	"github.com/gorilla/context"
 
-	"github.com/getlantern/measured"
-
 	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy-lantern/mimic"
+
+	"github.com/getlantern/http-proxy/listeners"
 )
 
 const (
@@ -46,18 +45,18 @@ func (f *DeviceFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	lanternDeviceId := req.Header.Get(deviceIdHeader)
 
 	if lanternDeviceId == "" {
-		log.Debugf("No %s header found from %s, mimicking apache", deviceIdHeader, req.RemoteAddr)
-		mimic.MimicApache(w, req)
-		return
+		log.Tracef("No %s header found from %s, usage statistis won't be registered", deviceIdHeader, req.RemoteAddr)
+	} else {
+		// Attached the uid to connection to report stats to redis correctly
+		// "conn" in context is previously attached in server.go
+		key := []byte(lanternDeviceId)
+		wc := context.Get(req, "conn").(listeners.WrapConn)
+		// Sets the ID to the provided key. This message is captured only
+		// by the measured wrapper
+		wc.ControlMessage("measured", string(key))
+
+		req.Header.Del(deviceIdHeader)
 	}
-
-	// Attached the uid to connection to report stats to redis correctly
-	// "conn" in context is previously attached in server.go
-	key := []byte(lanternDeviceId)
-	c := context.Get(req, "conn")
-	c.(*measured.Conn).ID = string(key)
-
-	req.Header.Del(deviceIdHeader)
 
 	f.next.ServeHTTP(w, req)
 }
