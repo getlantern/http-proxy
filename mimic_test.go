@@ -120,7 +120,7 @@ func TestMimicApache(t *testing.T) {
 		getListenAddr := func(addr string) {
 			chListenOn <- addr
 		}
-		err := s.ServeHTTP("127.0.0.1:0", getListenAddr)
+		err := s.ServeHTTP(":0", getListenAddr)
 		assert.NoError(t, err, "should start chained server")
 	}()
 
