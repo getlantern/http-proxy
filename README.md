@@ -45,3 +45,10 @@ Currently, the only header you need to add is `X-Lantern-Device-Id`.
 
 If you are using checkfallbacks, make sure that both the certificate and the token are correct.  A 404 will be the reply otherwise.  Running the server with `-debug` may help you troubleshooting those scenarios.
 
+### When something bad happens
+
+With option `-pprofAddr=localhost:6060`, you can always access lots of debug information from http://localhost:6060/debug. Ref https://golang.org/pkg/net/http/pprof/.
+
+***Be sure to only listen on localhost or private addresses for security reason***
+
+

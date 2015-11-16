@@ -3,6 +3,8 @@ package main
 import (
 	"flag"
 	"net"
+	"net/http"
+	_ "net/http/pprof"
 	"os"
 	"time"
 
@@ -37,6 +39,7 @@ var (
 	token         = flag.String("token", "", "Lantern token")
 	enableReports = flag.Bool("enablereports", false, "Enable stats reporting")
 	logglyToken   = flag.String("logglytoken", "", "Token used to report to loggly.com, not reporting if empty")
+	pprofAddr     = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
 )
 
 func main() {
@@ -68,6 +71,15 @@ func main() {
 			measured.Start(20*time.Second, rp)
 			defer measured.Stop()
 		}
+	}
+
+	if *pprofAddr != "" {
+		go func() {
+			log.Debugf("Starting pprof page at http://%s/debug/pprof", *pprofAddr)
+			if err := http.ListenAndServe(*pprofAddr, nil); err != nil {
+				log.Error(err)
+			}
+		}()
 	}
 
 	// Middleware
