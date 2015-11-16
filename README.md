@@ -47,8 +47,8 @@ If you are using checkfallbacks, make sure that both the certificate and the tok
 
 ### When something bad happens
 
-With option `-pprofAddr=localhost:6060`, you can always access lots of debug information from http://localhost:6060/debug. Ref https://golang.org/pkg/net/http/pprof/.
+With option `-pprofAddr=localhost:6060`, you can always access lots of debug information from http://localhost:6060/debug/pprof. Ref https://golang.org/pkg/net/http/pprof/.
 
-***Be sure to only listen on localhost or private addresses for security reason***
+***Be sure to only listen on localhost or private addresses for security reason.***
 
 
