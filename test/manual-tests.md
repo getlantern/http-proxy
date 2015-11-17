@@ -10,22 +10,71 @@ For these manual tests, you'll need 3 servers (*client*, *proxy*, *origin*), pre
 
 Look at DigitalOcean's graph data (Disk, CPU, Bandwidth).
 
-### Memory footprint monitoring
+### Pprof
 
-Monitor memory with
+The server implements a [pprof](https://golang.org/pkg/net/http/pprof/) profiling server, with customizable port.
+
+### Some tools to keep in mind
+
+Memory monitoring
 
 ```
 watch -n 0.5 'pmap <process-pid> | tail -n 1'
 ```
 
-### Connection monitoring
-
-Monitor transfers per connection with
+Connection monitoring
 
 ```
 nethogs
 ```
 
+## Stress tests and benchmarks
+
+### Siege
+
+Installation
+
+```
+git clone uaalto:JoeDog/siege.git
+cd siege
+autoreconf
+./configure && make && sudo make install
+```
+
+Configuration file can be found in the tests folder
+
+```
+cp test/.siegerc ~
+```
+
+Run it with:
+
+```
+PROXY_HOST=128.199.35.205 PROXY_PORT=8080 siege www.google.com
+```
+
+The IP and port correspond to the server where you set up the proxy. Try the `-c` flag to use more concurrent users (10 is the default). Tests have been carried with:
+
+* 10 concurrent users
+* 100 concurrent users
+* 400 concurrent users
+
+
+### Boom
+
+Install (needs Go)
+
+```
+go get github.com/rakyll/boom
+```
+
+Test proxying to Google:
+
+```
+boom -allow-insecure -n 400 -c 20 -q 100 -x http://<proxy-ip>:8080 https://www.google.com/humans.txt
+```
+
+You can use higher concurrency (`-c`) and higher number of requests (`-n`).
 
 
 ## Test large file transmission
