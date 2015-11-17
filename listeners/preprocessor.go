@@ -68,7 +68,12 @@ func (c *preprocessorConn) Read(p []byte) (n int, err error) {
 	// It may also happen for purposely built clients, pipelined requests and
 	// HTTP2 multiplexing. We know for sure that Lantern client will not issue
 	// such requests, for now.
-	_, e := http.ReadRequest(bufio.NewReader(&buf))
+	req, e := http.ReadRequest(bufio.NewReader(&buf))
+	defer func() {
+		if req != nil && req.Body != nil {
+			req.Body.Close()
+		}
+	}()
 	if e != nil {
 		// do nothing for network errors. ref (c *conn) serve() in net/http/server.go
 		if e == io.EOF {
