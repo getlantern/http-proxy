@@ -8,6 +8,8 @@ import (
 	"os"
 	"time"
 
+	"github.com/vharitonsky/iniflags"
+
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
 
@@ -45,7 +47,7 @@ var (
 func main() {
 	var err error
 
-	_ = flag.CommandLine.Parse(os.Args[1:])
+	iniflags.Parse()
 	if *help {
 		flag.Usage()
 		return
