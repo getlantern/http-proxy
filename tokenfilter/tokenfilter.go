@@ -49,11 +49,19 @@ func (f *TokenFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	token := req.Header.Get(tokenHeader)
-	if f.token != "" && (token == "" || token != f.token) {
-		log.Debugf("Token from %s doesn't match, mimicking apache", req.RemoteAddr)
-		mimic.MimicApache(w, req)
-	} else {
-		req.Header.Del(tokenHeader)
+	req.Header.Del(tokenHeader)
+	if f.token == "" {
 		f.next.ServeHTTP(w, req)
+		return
+	}
+	switch token {
+	case f.token:
+		f.next.ServeHTTP(w, req)
+	case "":
+		log.Debugf("No token provided from %s, mimicking apache", req.RemoteAddr)
+		mimic.MimicApache(w, req)
+	default:
+		log.Debugf("Mismatched token %s from %s, mimicking apache", token, req.RemoteAddr)
+		mimic.MimicApache(w, req)
 	}
 }
