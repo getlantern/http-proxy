@@ -48,14 +48,15 @@ func (f *TokenFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		log.Tracef("Token Filter Middleware received request:\n%s", reqStr)
 	}
 
-	token := req.Header.Get(tokenHeader)
-	req.Header.Del(tokenHeader)
 	if f.token == "" {
 		f.next.ServeHTTP(w, req)
 		return
 	}
+
+	token := req.Header.Get(tokenHeader)
 	switch token {
 	case f.token:
+		req.Header.Del(tokenHeader)
 		f.next.ServeHTTP(w, req)
 	case "":
 		log.Debugf("No token provided from %s, mimicking apache", req.RemoteAddr)
