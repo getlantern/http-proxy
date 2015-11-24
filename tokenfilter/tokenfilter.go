@@ -48,12 +48,21 @@ func (f *TokenFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		log.Tracef("Token Filter Middleware received request:\n%s", reqStr)
 	}
 
+	if f.token == "" {
+		f.next.ServeHTTP(w, req)
+		return
+	}
+
 	token := req.Header.Get(tokenHeader)
-	if f.token != "" && (token == "" || token != f.token) {
-		log.Debugf("Token from %s doesn't match, mimicking apache", req.RemoteAddr)
-		mimic.MimicApache(w, req)
-	} else {
+	switch token {
+	case f.token:
 		req.Header.Del(tokenHeader)
 		f.next.ServeHTTP(w, req)
+	case "":
+		log.Debugf("No token provided from %s, mimicking apache", req.RemoteAddr)
+		mimic.MimicApache(w, req)
+	default:
+		log.Debugf("Mismatched token %s from %s, mimicking apache", token, req.RemoteAddr)
+		mimic.MimicApache(w, req)
 	}
 }
