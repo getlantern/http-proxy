@@ -18,6 +18,7 @@ import (
 	"github.com/getlantern/http-proxy/logging"
 	"github.com/getlantern/http-proxy/server"
 
+	"github.com/getlantern/http-proxy-lantern/analytics"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
@@ -101,7 +102,9 @@ func main() {
 		log.Error(err)
 	}
 
-	deviceFilter, err := devicefilter.New(commonFilter)
+	analyticsFilter := analytics.New(commonFilter)
+
+	deviceFilter, err := devicefilter.New(analyticsFilter)
 	if err != nil {
 		log.Error(err)
 	}

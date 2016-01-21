@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	deviceIdHeader = "X-Lantern-Device-Id"
+	DeviceIdHeader = "X-Lantern-Device-Id"
 )
 
 var log = golog.LoggerFor("devicefilter")
@@ -42,10 +42,10 @@ func (f *DeviceFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		log.Tracef("DeviceFilter Middleware received request:\n%s", reqStr)
 	}
 
-	lanternDeviceId := req.Header.Get(deviceIdHeader)
+	lanternDeviceId := req.Header.Get(DeviceIdHeader)
 
 	if lanternDeviceId == "" {
-		log.Tracef("No %s header found from %s, usage statistis won't be registered", deviceIdHeader, req.RemoteAddr)
+		log.Tracef("No %s header found from %s, usage statistis won't be registered", DeviceIdHeader, req.RemoteAddr)
 	} else {
 		// Attached the uid to connection to report stats to redis correctly
 		// "conn" in context is previously attached in server.go
@@ -54,8 +54,6 @@ func (f *DeviceFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		// Sets the ID to the provided key. This message is captured only
 		// by the measured wrapper
 		wc.ControlMessage("measured", string(key))
-
-		req.Header.Del(deviceIdHeader)
 	}
 
 	f.next.ServeHTTP(w, req)
