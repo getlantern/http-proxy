@@ -11,7 +11,7 @@ import (
 	"strings"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy-lantern/devicefilter"
+	"github.com/getlantern/http-proxy-lantern/common"
 )
 
 const (
@@ -51,15 +51,13 @@ func New(trackingId string, next http.Handler) *AnalyticsMiddleware {
 
 func (am *AnalyticsMiddleware) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	am.track(req)
-	// For privacy, delete the DeviceId header before passing it along
-	req.Header.Del(devicefilter.DeviceIdHeader)
 	am.next.ServeHTTP(w, req)
 }
 
 func (am *AnalyticsMiddleware) track(req *http.Request) {
 	am.siteAccesses <- &siteAccess{
 		ip:       stripPort(req.RemoteAddr),
-		clientId: req.Header.Get(devicefilter.DeviceIdHeader),
+		clientId: req.Header.Get(common.DeviceIdHeader),
 		site:     stripPort(req.Host),
 	}
 }

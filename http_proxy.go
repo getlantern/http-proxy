@@ -103,14 +103,16 @@ func main() {
 		log.Error(err)
 	}
 
-	analyticsFilter := analytics.New(*proxiedSitesTrackingId, commonFilter)
+	deviceFilterPost := devicefilter.NewPost(commonFilter)
 
-	deviceFilter, err := devicefilter.New(analyticsFilter)
+	analyticsFilter := analytics.New(*proxiedSitesTrackingId, deviceFilterPost)
+
+	deviceFilterPre, err := devicefilter.NewPre(analyticsFilter)
 	if err != nil {
 		log.Error(err)
 	}
 
-	tokenFilter, err := tokenfilter.New(deviceFilter, tokenfilter.TokenSetter(*token))
+	tokenFilter, err := tokenfilter.New(deviceFilterPre, tokenfilter.TokenSetter(*token))
 	if err != nil {
 		log.Error(err)
 	}
