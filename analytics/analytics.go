@@ -15,7 +15,6 @@ import (
 )
 
 const (
-	trackingId  = "UA-21815217-15" // corresponds to the Proxied Sites property
 	ApiEndpoint = `https://ssl.google-analytics.com/collect`
 )
 
@@ -33,13 +32,15 @@ type siteAccess struct {
 // AnalyticsMiddleware allows plugging popular sites tracking into the proxy's
 // handler chain.
 type AnalyticsMiddleware struct {
+	trackingId   string
 	next         http.Handler
 	siteAccesses chan *siteAccess
 	httpClient   *http.Client
 }
 
-func New(next http.Handler) *AnalyticsMiddleware {
+func New(trackingId string, next http.Handler) *AnalyticsMiddleware {
 	am := &AnalyticsMiddleware{
+		trackingId:   trackingId,
 		next:         next,
 		siteAccesses: make(chan *siteAccess, 10000),
 		httpClient:   &http.Client{},
@@ -67,17 +68,17 @@ func (am *AnalyticsMiddleware) track(req *http.Request) {
 // goroutine to avoid blocking the processing of actual requests
 func (am *AnalyticsMiddleware) submitToGoogle() {
 	for sa := range am.siteAccesses {
-		am.trackSession(sessionVals(sa))
+		am.trackSession(am.sessionVals(sa))
 	}
 }
 
-func sessionVals(sa *siteAccess) string {
+func (am *AnalyticsMiddleware) sessionVals(sa *siteAccess) string {
 	vals := make(url.Values, 0)
 
 	// Version 1 of the API
 	vals.Add("v", "1")
 	// Our Google Tracking ID
-	vals.Add("tid", trackingId)
+	vals.Add("tid", am.trackingId)
 	// The client's ID (Lantern DeviceID, which is Base64 encoded 6 bytes from mac
 	// address)
 	vals.Add("cid", sa.clientId)
