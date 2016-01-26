@@ -18,6 +18,7 @@ import (
 	"github.com/getlantern/http-proxy/logging"
 	"github.com/getlantern/http-proxy/server"
 
+	"github.com/getlantern/http-proxy-lantern/analytics"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
@@ -29,17 +30,18 @@ var (
 	testingLocal = false
 	log          = golog.LoggerFor("lantern-proxy")
 
-	help          = flag.Bool("help", false, "Get usage help")
-	keyfile       = flag.String("key", "", "Private key file name")
-	certfile      = flag.String("cert", "", "Certificate file name")
-	https         = flag.Bool("https", false, "Use TLS for client to proxy communication")
-	addr          = flag.String("addr", ":8080", "Address to listen")
-	maxConns      = flag.Uint64("maxconns", 0, "Max number of simultaneous connections allowed connections")
-	idleClose     = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
-	token         = flag.String("token", "", "Lantern token")
-	enableReports = flag.Bool("enablereports", false, "Enable stats reporting")
-	logglyToken   = flag.String("logglytoken", "", "Token used to report to loggly.com, not reporting if empty")
-	pprofAddr     = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
+	help                   = flag.Bool("help", false, "Get usage help")
+	keyfile                = flag.String("key", "", "Private key file name")
+	certfile               = flag.String("cert", "", "Certificate file name")
+	https                  = flag.Bool("https", false, "Use TLS for client to proxy communication")
+	addr                   = flag.String("addr", ":8080", "Address to listen")
+	maxConns               = flag.Uint64("maxconns", 0, "Max number of simultaneous connections allowed connections")
+	idleClose              = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
+	token                  = flag.String("token", "", "Lantern token")
+	enableReports          = flag.Bool("enablereports", false, "Enable stats reporting")
+	logglyToken            = flag.String("logglytoken", "", "Token used to report to loggly.com, not reporting if empty")
+	pprofAddr              = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
+	proxiedSitesTrackingId = flag.String("proxied-sites-tracking-id", "UA-21815217-15", "The Google Analytics property id for tracking proxied sites")
 )
 
 func main() {
@@ -101,12 +103,16 @@ func main() {
 		log.Error(err)
 	}
 
-	deviceFilter, err := devicefilter.New(commonFilter)
+	deviceFilterPost := devicefilter.NewPost(commonFilter)
+
+	analyticsFilter := analytics.New(*proxiedSitesTrackingId, deviceFilterPost)
+
+	deviceFilterPre, err := devicefilter.NewPre(analyticsFilter)
 	if err != nil {
 		log.Error(err)
 	}
 
-	tokenFilter, err := tokenfilter.New(deviceFilter, tokenfilter.TokenSetter(*token))
+	tokenFilter, err := tokenfilter.New(deviceFilterPre, tokenfilter.TokenSetter(*token))
 	if err != nil {
 		log.Error(err)
 	}
