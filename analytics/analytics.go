@@ -44,6 +44,7 @@ type AnalyticsMiddleware struct {
 }
 
 func New(trackingId string, samplePercentage float64, next http.Handler) *AnalyticsMiddleware {
+	log.Debugf("Will report analytics to Google as %v, sampling %d percent of requests", trackingId, int(samplePercentage*100))
 	am := &AnalyticsMiddleware{
 		trackingId:       trackingId,
 		samplePercentage: samplePercentage,
