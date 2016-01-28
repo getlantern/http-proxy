@@ -51,7 +51,7 @@ func New(trackingId string, samplePercentage float64, next http.Handler) *Analyt
 		next:             next,
 		siteAccesses:     make(chan *siteAccess, 1000),
 		httpClient:       &http.Client{},
-		dnsCache:         lru.New(50000),
+		dnsCache:         lru.New(2000),
 	}
 	go am.submitToGoogle()
 	return am
