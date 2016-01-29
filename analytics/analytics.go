@@ -108,7 +108,6 @@ func (am *AnalyticsMiddleware) sessionVals(sa *siteAccess, site string) string {
 	// Track this as a page view
 	vals.Add("t", "pageview")
 
-	// Do a reverse DNS lookup if necessary
 	log.Tracef("Tracking view to site: %v", site)
 	vals.Add("dp", site)
 
