@@ -41,7 +41,7 @@ var (
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
 	logglyToken                  = flag.String("logglytoken", "", "Token used to report to loggly.com, not reporting if empty")
 	pprofAddr                    = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
-	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-15", "The Google Analytics property id for tracking proxied sites")
+	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
 	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
 )
 
