@@ -4,6 +4,8 @@ package analytics
 
 import (
 	"bytes"
+	"math/rand"
+	"net"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/golang/groupcache/lru"
 )
 
 const (
@@ -32,18 +35,23 @@ type siteAccess struct {
 // AnalyticsMiddleware allows plugging popular sites tracking into the proxy's
 // handler chain.
 type AnalyticsMiddleware struct {
-	trackingId   string
-	next         http.Handler
-	siteAccesses chan *siteAccess
-	httpClient   *http.Client
+	trackingId       string
+	samplePercentage float64
+	next             http.Handler
+	siteAccesses     chan *siteAccess
+	httpClient       *http.Client
+	dnsCache         *lru.Cache
 }
 
-func New(trackingId string, next http.Handler) *AnalyticsMiddleware {
+func New(trackingId string, samplePercentage float64, next http.Handler) *AnalyticsMiddleware {
+	log.Debugf("Will report analytics to Google as %v, sampling %d percent of requests", trackingId, int(samplePercentage*100))
 	am := &AnalyticsMiddleware{
-		trackingId:   trackingId,
-		next:         next,
-		siteAccesses: make(chan *siteAccess, 10000),
-		httpClient:   &http.Client{},
+		trackingId:       trackingId,
+		samplePercentage: samplePercentage,
+		next:             next,
+		siteAccesses:     make(chan *siteAccess, 1000),
+		httpClient:       &http.Client{},
+		dnsCache:         lru.New(2000),
 	}
 	go am.submitToGoogle()
 	return am
@@ -55,10 +63,17 @@ func (am *AnalyticsMiddleware) ServeHTTP(w http.ResponseWriter, req *http.Reques
 }
 
 func (am *AnalyticsMiddleware) track(req *http.Request) {
-	am.siteAccesses <- &siteAccess{
-		ip:       stripPort(req.RemoteAddr),
-		clientId: req.Header.Get(common.DeviceIdHeader),
-		site:     stripPort(req.Host),
+	if rand.Float64() <= am.samplePercentage {
+		select {
+		case am.siteAccesses <- &siteAccess{
+			ip:       stripPort(req.RemoteAddr),
+			clientId: req.Header.Get(common.DeviceIdHeader),
+			site:     stripPort(req.Host),
+		}:
+			// Submitted
+		default:
+			log.Debug("Site access request queue is full")
+		}
 	}
 }
 
@@ -66,11 +81,13 @@ func (am *AnalyticsMiddleware) track(req *http.Request) {
 // goroutine to avoid blocking the processing of actual requests
 func (am *AnalyticsMiddleware) submitToGoogle() {
 	for sa := range am.siteAccesses {
-		am.trackSession(am.sessionVals(sa))
+		for _, site := range am.normalizeSite(sa.site) {
+			am.trackSession(am.sessionVals(sa, site))
+		}
 	}
 }
 
-func (am *AnalyticsMiddleware) sessionVals(sa *siteAccess) string {
+func (am *AnalyticsMiddleware) sessionVals(sa *siteAccess, site string) string {
 	vals := make(url.Values, 0)
 
 	// Version 1 of the API
@@ -90,12 +107,53 @@ func (am *AnalyticsMiddleware) sessionVals(sa *siteAccess) string {
 
 	// Track this as a page view
 	vals.Add("t", "pageview")
-	vals.Add("dp", sa.site)
+
+	log.Tracef("Tracking view to site: %v", site)
+	vals.Add("dp", site)
 
 	// Note the absence of session tracking. We don't have a good way to tell
 	// when a session ends, so we don't bother with it.
 
 	return vals.Encode()
+}
+
+func (am *AnalyticsMiddleware) normalizeSite(site string) []string {
+	domain := site
+	result := make([]string, 0, 3)
+	isIP := net.ParseIP(site) != nil
+	if isIP {
+		// This was an ip, do a reverse lookup
+		cached, found := am.dnsCache.Get(site)
+		if !found {
+			names, err := net.LookupAddr(site)
+			if err != nil {
+				log.Debugf("Unable to perform reverse DNS lookup for %v: %v", site, err)
+				cached = site
+			} else {
+				name := names[0]
+				if name[len(name)-1] == '.' {
+					// Strip trailing period
+					name = name[:len(name)-1]
+				}
+				cached = name
+			}
+			am.dnsCache.Add(site, cached)
+		}
+		domain = cached.(string)
+	}
+
+	result = append(result, site)
+	if domain != site {
+		// If original site is not the same as domain, track that too
+		result = append(result, domain)
+		// Also track just the last two portions of the domain name
+		parts := strings.Split(domain, ".")
+		if len(parts) > 1 {
+			result = append(result, "/generated/"+strings.Join(parts[len(parts)-2:], "."))
+		}
+	}
+
+	return result
 }
 
 func (am *AnalyticsMiddleware) trackSession(args string) {
