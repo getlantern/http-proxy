@@ -13,6 +13,18 @@ These are Lantern-specific middleware components for the HTTP Proxy in Go:
 * Custom responses for mimicking Apache in certain cases
 
 
+### Usage
+
+Build it with `go build`.
+
+To get list of the command line options, please run `http-proxy-lantern -help`.
+
+`config.ini.default` also has the list of options, make a copy (say, `config.ini`) and tweak it as you wish, then run the proxy with
+
+```
+http-proxy-lantern -config config.ini
+```
+
 ### Testing with Lantern extensions and configuration
 
 ### Run tests
