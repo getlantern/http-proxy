@@ -127,7 +127,7 @@ func (am *AnalyticsMiddleware) normalizeSite(site string) []string {
 		if !found {
 			names, err := net.LookupAddr(site)
 			if err != nil {
-				log.Errorf("Unable to perform reverse DNS lookup for %v: %v", site, err)
+				log.Debugf("Unable to perform reverse DNS lookup for %v: %v", site, err)
 				cached = site
 			} else {
 				name := names[0]
