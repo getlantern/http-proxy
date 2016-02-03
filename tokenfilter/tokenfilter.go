@@ -55,25 +55,20 @@ func (f *TokenFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	tokens := req.Header[tokenHeader]
-	tokenSupplied := false
-	tokenMatched := false
-	if tokens != nil {
+	if tokens == nil || len(tokens) == 0 || tokens[0] == "" {
+		log.Debugf("No token provided from %s, mimicking apache", req.RemoteAddr)
+		mimic.MimicApache(w, req)
+	} else {
+		tokenMatched := false
 		for _, candidate := range tokens {
-			if candidate != "" {
-				tokenSupplied = true
-				if candidate == f.token {
-					tokenMatched = true
-					break
-				}
+			if candidate == f.token {
+				tokenMatched = true
+				break
 			}
 		}
-	}
-	if tokenMatched {
-		req.Header.Del(tokenHeader)
-		f.next.ServeHTTP(w, req)
-	} else {
-		if !tokenSupplied {
-			log.Debugf("No token provided from %s, mimicking apache", req.RemoteAddr)
+		if tokenMatched {
+			req.Header.Del(tokenHeader)
+			f.next.ServeHTTP(w, req)
 		} else {
 			log.Debugf("Mismatched token(s) %s from %s, mimicking apache", strings.Join(tokens, ","), req.RemoteAddr)
 		}
