@@ -523,7 +523,7 @@ func TestDirectNoDevice(t *testing.T) {
 
 // X-Lantern-Auth-Token + X-Lantern-Device-Id -> Forward
 func TestDirectOK(t *testing.T) {
-	reqTempl := "GET /%s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
+	reqTempl := "GET /%s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: extraauthtoken\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	failResp := "HTTP/1.1 500 Internal Server Error\r\n"
 
 	testOk := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
