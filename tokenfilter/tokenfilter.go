@@ -71,7 +71,7 @@ func (f *TokenFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			f.next.ServeHTTP(w, req)
 		} else {
 			log.Debugf("Mismatched token(s) %s from %s, mimicking apache", strings.Join(tokens, ","), req.RemoteAddr)
+			mimic.MimicApache(w, req)
 		}
-		mimic.MimicApache(w, req)
 	}
 }
