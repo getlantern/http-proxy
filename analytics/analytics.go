@@ -27,9 +27,10 @@ var (
 
 // siteAccess holds information for tracking access to a site
 type siteAccess struct {
-	ip       string
-	clientId string
-	site     string
+	ip        string
+	clientId  string
+	site      string
+	userAgent string
 }
 
 // AnalyticsMiddleware allows plugging popular sites tracking into the proxy's
@@ -66,9 +67,10 @@ func (am *AnalyticsMiddleware) track(req *http.Request) {
 	if rand.Float64() <= am.samplePercentage {
 		select {
 		case am.siteAccesses <- &siteAccess{
-			ip:       stripPort(req.RemoteAddr),
-			clientId: req.Header.Get(common.DeviceIdHeader),
-			site:     stripPort(req.Host),
+			ip:        stripPort(req.RemoteAddr),
+			clientId:  req.Header.Get(common.DeviceIdHeader),
+			site:      stripPort(req.Host),
+			userAgent: req.UserAgent(),
 		}:
 			// Submitted
 		default:
@@ -110,6 +112,9 @@ func (am *AnalyticsMiddleware) sessionVals(sa *siteAccess, site string) string {
 
 	log.Tracef("Tracking view to site: %v", site)
 	vals.Add("dp", site)
+
+	// Use the user-agent reported by the client
+	vals.Add("ua", sa.userAgent)
 
 	// Note the absence of session tracking. We don't have a good way to tell
 	// when a session ends, so we don't bother with it.
