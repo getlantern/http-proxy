@@ -3,6 +3,7 @@ package tokenfilter
 import (
 	"net/http"
 	"net/http/httputil"
+	"strings"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/mimic"
@@ -53,12 +54,17 @@ func (f *TokenFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	tokens := req.Header[tokenHeader]
+	tokenSupplied := false
 	tokenMatched := false
-	if req.Header[tokenHeader] != nil {
-		for _, candidate := range req.Header[tokenHeader] {
-			if candidate == f.token {
-				tokenMatched = true
-				break
+	if tokens != nil {
+		for _, candidate := range tokens {
+			if candidate != "" {
+				tokenSupplied = true
+				if candidate == f.token {
+					tokenMatched = true
+					break
+				}
 			}
 		}
 	}
@@ -66,7 +72,11 @@ func (f *TokenFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		req.Header.Del(tokenHeader)
 		f.next.ServeHTTP(w, req)
 	} else {
-		log.Debugf("Wrong or missing token provided from %s, mimicking apache", req.RemoteAddr)
+		if !tokenSupplied {
+			log.Debugf("No token provided from %s, mimicking apache", req.RemoteAddr)
+		} else {
+			log.Debugf("Mismatched token(s) %s from %s, mimicking apache", strings.Join(tokens, ","), req.RemoteAddr)
+		}
 		mimic.MimicApache(w, req)
 	}
 }
