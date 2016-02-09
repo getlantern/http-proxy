@@ -24,6 +24,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
+	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/report"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
@@ -98,7 +99,9 @@ func main() {
 		log.Error(err)
 	}
 
-	commonFilter, err := commonfilter.New(httpConnect,
+	pingFilter := ping.New(httpConnect)
+
+	commonFilter, err := commonfilter.New(pingFilter,
 		testingLocal,
 		commonfilter.SetException("127.0.0.1:7300"),
 	)
