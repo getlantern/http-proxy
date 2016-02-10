@@ -100,13 +100,14 @@ func (pm *PingMiddleware) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func (pm *PingMiddleware) logTimings() {
 	for {
 		time.Sleep(1 * time.Minute)
+		now := time.Now()
 		msg := fmt.Sprintf(`**** Average Ping Response Times in µs, moving average (1 min, 5 min, 15 min) ****
-Small      (1 KB) - %v
-Medium   (100 KB) - %v
-Large (10,000 KB) - %v
-`, pm.SmallResponseTime,
-			pm.MediumResponseTime,
-			pm.LargeResponseTime)
+%v Small      (1 KB) - %v
+%v Medium   (100 KB) - %v
+%v Large (10,000 KB) - %v
+`, now, pm.SmallResponseTime,
+			now, pm.MediumResponseTime,
+			now, pm.LargeResponseTime)
 		log.Debug(msg)
 	}
 }

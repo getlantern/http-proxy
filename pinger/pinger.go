@@ -72,6 +72,6 @@ func makeRequest(client *http.Client, url, token, size string) {
 	} else {
 		io.Copy(ioutil.Discard, resp.Body)
 		delta := time.Now().Sub(start)
-		log.Debugf("Finished %v request in %v", size, delta)
+		log.Debugf("%v Finished %v request in %v", time.Now(), size, delta)
 	}
 }
