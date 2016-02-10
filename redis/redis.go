@@ -10,7 +10,7 @@ import (
 
 var (
 	log = golog.LoggerFor("redis")
-	rcs map[string]*redis.Client
+	rcs = make(map[string]*redis.Client)
 )
 
 func getClient(redisAddr string) (*redis.Client, error) {

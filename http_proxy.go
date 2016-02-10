@@ -42,6 +42,8 @@ var (
 	idleClose                    = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
 	token                        = flag.String("token", "", "Lantern token")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
+	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
+	serverId                     = flag.String("serverid", "", "Server Id required for Pro-supporting servers")
 	logglyToken                  = flag.String("logglytoken", "", "Token used to report to loggly.com, not reporting if empty")
 	pprofAddr                    = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
@@ -64,12 +66,14 @@ func main() {
 		log.Error(err)
 	}
 
+	// Redis configuration
+	redisAddr := os.Getenv("REDIS_PRODUCTION_URL")
+	if redisAddr == "" {
+		redisAddr = "127.0.0.1:6379"
+	}
+
 	// Reporting
 	if *enableReports {
-		redisAddr := os.Getenv("REDIS_PRODUCTION_URL")
-		if redisAddr == "" {
-			redisAddr = "127.0.0.1:6379"
-		}
 		rp, err := redis.NewMeasuredReporter(redisAddr)
 		if err != nil {
 			log.Errorf("Error connecting to redis: %v", err)
@@ -127,6 +131,21 @@ func main() {
 	}
 
 	srv := server.NewServer(proFilter)
+
+	// Pro support
+	if *enablePro {
+		if *serverId != "" {
+			log.Debug("This proxy is configured to support Lantern Pro")
+			proconfig, err := redis.NewProConfig(redisAddr, "test", proFilter)
+			if err != nil {
+				log.Error(err)
+			}
+			proconfig.Run()
+		} else {
+			log.Error("Enabling Pro requires setting the \"serverid\" flag")
+			return
+		}
+	}
 
 	// Add net.Listener wrappers for inbound connections
 	if *enableReports {
