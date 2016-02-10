@@ -5,23 +5,17 @@ import (
 
 	"gopkg.in/redis.v3"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
 )
-
-var log = golog.LoggerFor("main")
 
 type measuredReporter struct {
 	redisClient *redis.Client
 }
 
 func NewMeasuredReporter(redisAddr string) (measured.Reporter, error) {
-	rc := redis.NewClient(&redis.Options{
-		Addr: redisAddr,
-	})
-	_, err := rc.Ping().Result()
+	rc, err := getClient(redisAddr)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to ping redis server: %s", err)
+		return nil, err
 	}
 	return &measuredReporter{rc}, nil
 }
