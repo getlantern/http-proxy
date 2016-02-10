@@ -25,7 +25,7 @@ import (
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/profilter"
-	"github.com/getlantern/http-proxy-lantern/report"
+	"github.com/getlantern/http-proxy-lantern/redis"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
 
@@ -70,7 +70,7 @@ func main() {
 		if redisAddr == "" {
 			redisAddr = "127.0.0.1:6379"
 		}
-		rp, err := report.NewRedisReporter(redisAddr)
+		rp, err := redis.NewMeasuredReporter(redisAddr)
 		if err != nil {
 			log.Errorf("Error connecting to redis: %v", err)
 		} else {

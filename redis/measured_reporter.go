@@ -1,4 +1,4 @@
-package report
+package redis
 
 import (
 	"fmt"
@@ -11,11 +11,11 @@ import (
 
 var log = golog.LoggerFor("main")
 
-type redisReporter struct {
+type measuredReporter struct {
 	redisClient *redis.Client
 }
 
-func NewRedisReporter(redisAddr string) (measured.Reporter, error) {
+func NewMeasuredReporter(redisAddr string) (measured.Reporter, error) {
 	rc := redis.NewClient(&redis.Options{
 		Addr: redisAddr,
 	})
@@ -23,16 +23,16 @@ func NewRedisReporter(redisAddr string) (measured.Reporter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Unable to ping redis server: %s", err)
 	}
-	return &redisReporter{rc}, nil
+	return &measuredReporter{rc}, nil
 }
 
-func (rp *redisReporter) ReportError(s map[*measured.Error]int) error {
+func (rp *measuredReporter) ReportError(s map[*measured.Error]int) error {
 	return nil
 }
-func (rp *redisReporter) ReportLatency(s []*measured.LatencyTracker) error {
+func (rp *measuredReporter) ReportLatency(s []*measured.LatencyTracker) error {
 	return nil
 }
-func (rp *redisReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
+func (rp *measuredReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
 	for _, t := range tt {
 		key := t.ID
 		if key == "" {
