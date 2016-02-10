@@ -6,6 +6,7 @@ package profilter
 import (
 	"net/http"
 	"net/http/httputil"
+	"sync/atomic"
 
 	"github.com/Workiva/go-datastructures/set"
 
@@ -19,7 +20,7 @@ var log = golog.LoggerFor("profilter")
 
 type LanternProFilter struct {
 	next      http.Handler
-	bypass    bool
+	enabled   int32
 	proTokens *set.Set
 }
 
@@ -28,7 +29,7 @@ type optSetter func(f *LanternProFilter) error
 func New(next http.Handler, setters ...optSetter) (*LanternProFilter, error) {
 	f := &LanternProFilter{
 		next:      next,
-		bypass:    true,
+		enabled:   0,
 		proTokens: set.New(),
 	}
 
@@ -53,7 +54,7 @@ func (f *LanternProFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		log.Tracef("Lantern Pro Token found")
 	}
 
-	if f.bypass {
+	if !f.isEnabled() {
 		f.next.ServeHTTP(w, req)
 		return
 	}
@@ -65,4 +66,16 @@ func (f *LanternProFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		log.Debugf("Mismatched Pro token %s from %s, mimicking apache", lanternProToken, req.RemoteAddr)
 		mimic.MimicApache(w, req)
 	}
+}
+
+func (f *LanternProFilter) isEnabled() bool {
+	return atomic.LoadInt32(&f.enabled) != 0
+}
+
+func (f *LanternProFilter) Enable() {
+	atomic.StoreInt32(&f.enabled, 1)
+}
+
+func (f *LanternProFilter) Disable() {
+	atomic.StoreInt32(&f.enabled, 0)
 }

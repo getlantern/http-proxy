@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/getlantern/golog"
+
+	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/mimic"
 )
 
-const (
-	tokenHeader = "X-Lantern-Auth-Token"
-)
+const ()
 
 var log = golog.LoggerFor("tokenfilter")
 
@@ -54,7 +54,7 @@ func (f *TokenFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	tokens := req.Header[tokenHeader]
+	tokens := req.Header[common.TokenHeader]
 	if tokens == nil || len(tokens) == 0 || tokens[0] == "" {
 		log.Debugf("No token provided from %s, mimicking apache", req.RemoteAddr)
 		mimic.MimicApache(w, req)
@@ -67,7 +67,7 @@ func (f *TokenFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			}
 		}
 		if tokenMatched {
-			req.Header.Del(tokenHeader)
+			req.Header.Del(common.TokenHeader)
 			f.next.ServeHTTP(w, req)
 		} else {
 			log.Debugf("Mismatched token(s) %s from %s, mimicking apache", strings.Join(tokens, ","), req.RemoteAddr)
