@@ -54,17 +54,17 @@ func (f *LanternProFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		log.Tracef("Lantern Pro Token found")
 	}
 
-	if !f.isEnabled() {
-		f.next.ServeHTTP(w, req)
-		return
-	}
-	// If a Pro token is found in the header, test if its valid and then let
-	// the request pass.
-	if lanternProToken != "" && f.proTokens.Exists(lanternProToken) {
-		f.next.ServeHTTP(w, req)
+	if f.isEnabled() {
+		// If a Pro token is found in the header, test if its valid and then let
+		// the request pass.
+		if lanternProToken != "" && f.proTokens.Exists(lanternProToken) {
+			f.next.ServeHTTP(w, req)
+		} else {
+			log.Debugf("Mismatched Pro token %s from %s, mimicking apache", lanternProToken, req.RemoteAddr)
+			mimic.MimicApache(w, req)
+		}
 	} else {
-		log.Debugf("Mismatched Pro token %s from %s, mimicking apache", lanternProToken, req.RemoteAddr)
-		mimic.MimicApache(w, req)
+		f.next.ServeHTTP(w, req)
 	}
 }
 
@@ -78,4 +78,9 @@ func (f *LanternProFilter) Enable() {
 
 func (f *LanternProFilter) Disable() {
 	atomic.StoreInt32(&f.enabled, 0)
+}
+
+func (f *LanternProFilter) UpdateTokens(tokens []string) {
+	f.proTokens.Clear()
+	f.proTokens.Add(tokens)
 }
