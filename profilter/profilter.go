@@ -11,16 +11,15 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/mimic"
-)
 
-const (
-	proTokenHeader = "X-Lantern-Pro-Token"
+	"github.com/getlantern/http-proxy-lantern/common"
 )
 
 var log = golog.LoggerFor("profilter")
 
 type LanternProFilter struct {
 	next      http.Handler
+	bypass    bool
 	proTokens *set.Set
 }
 
@@ -29,6 +28,7 @@ type optSetter func(f *LanternProFilter) error
 func New(next http.Handler, setters ...optSetter) (*LanternProFilter, error) {
 	f := &LanternProFilter{
 		next:      next,
+		bypass:    true,
 		proTokens: set.New(),
 	}
 
@@ -47,22 +47,22 @@ func (f *LanternProFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		log.Tracef("Lantern Pro Filter Middleware received request:\n%s", reqStr)
 	}
 
-	lanternProToken := req.Header.Get(proTokenHeader)
-	req.Header.Del(proTokenHeader)
+	lanternProToken := req.Header.Get(common.ProTokenHeader)
+	req.Header.Del(common.ProTokenHeader)
 	if lanternProToken != "" {
 		log.Tracef("Lantern Pro Token found")
 	}
 
+	if f.bypass {
+		f.next.ServeHTTP(w, req)
+		return
+	}
 	// If a Pro token is found in the header, test if its valid and then let
 	// the request pass.
-	if lanternProToken != "" {
-		if f.proTokens.Exists(lanternProToken) {
-			f.next.ServeHTTP(w, req)
-		} else {
-			log.Debugf("Mismatched Pro token %s from %s, mimicking apache", lanternProToken, req.RemoteAddr)
-			mimic.MimicApache(w, req)
-		}
-	} else {
+	if lanternProToken != "" && f.proTokens.Exists(lanternProToken) {
 		f.next.ServeHTTP(w, req)
+	} else {
+		log.Debugf("Mismatched Pro token %s from %s, mimicking apache", lanternProToken, req.RemoteAddr)
+		mimic.MimicApache(w, req)
 	}
 }
