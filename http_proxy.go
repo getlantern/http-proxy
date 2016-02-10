@@ -24,6 +24,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
+	"github.com/getlantern/http-proxy-lantern/profilter"
 	"github.com/getlantern/http-proxy-lantern/report"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
@@ -120,7 +121,12 @@ func main() {
 		log.Error(err)
 	}
 
-	srv := server.NewServer(tokenFilter)
+	proFilter, err := profilter.New(tokenFilter)
+	if err != nil {
+		log.Error(err)
+	}
+
+	srv := server.NewServer(proFilter)
 
 	// Add net.Listener wrappers for inbound connections
 	if *enableReports {

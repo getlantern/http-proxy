@@ -8,7 +8,9 @@ import (
 	"net/http/httputil"
 
 	"github.com/Workiva/go-datastructures/set"
+
 	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/mimic"
 )
 
 const (
@@ -53,18 +55,14 @@ func (f *LanternProFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	// If a Pro token is found in the header, test if its valid and then let
 	// the request pass.
-	// If we ever want to block users above a threshold, do it here.
-	// If we want to pass data along the request, we should use:
-	// http://www.gorillatoolkit.org/pkg/context
-	/*
-		if lanternProToken != "" {
-			if f.proTokens.Exists(lanternProToken) {
-				f.next.ServeHTTP(w, req)
-			} else {
-				w.WriteHeader(http.StatusBadGateway)
-			}
-			return
+	if lanternProToken != "" {
+		if f.proTokens.Exists(lanternProToken) {
+			f.next.ServeHTTP(w, req)
+		} else {
+			log.Debugf("Mismatched Pro token %s from %s, mimicking apache", lanternProToken, req.RemoteAddr)
+			mimic.MimicApache(w, req)
 		}
-	*/
-	f.next.ServeHTTP(w, req)
+	} else {
+		f.next.ServeHTTP(w, req)
+	}
 }
