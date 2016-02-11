@@ -1,5 +1,7 @@
 # HTTP/S Proxy with extensions for Lantern
 
+[![wercker status](https://app.wercker.com/status/dd67bf2d94efc6c30e8042585a6a8fbf/m "wercker status")](https://app.wercker.com/project/bykey/dd67bf2d94efc6c30e8042585a6a8fbf)
+
 These are Lantern-specific middleware components for the HTTP Proxy in Go:
 
 * A filter for access tokens
