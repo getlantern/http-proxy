@@ -82,5 +82,15 @@ func (f *LanternProFilter) Disable() {
 
 func (f *LanternProFilter) UpdateTokens(tokens []string) {
 	f.proTokens.Clear()
-	f.proTokens.Add(tokens)
+
+	s := make([]interface{}, len(tokens))
+	for i, v := range tokens {
+		s[i] = v
+	}
+	f.proTokens.Add(s...)
 }
+
+func (f *LanternProFilter) ClearTokens() {
+	f.proTokens.Clear()
+}
+1
