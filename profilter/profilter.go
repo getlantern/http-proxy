@@ -93,4 +93,3 @@ func (f *LanternProFilter) UpdateTokens(tokens []string) {
 func (f *LanternProFilter) ClearTokens() {
 	f.proTokens.Clear()
 }
-1

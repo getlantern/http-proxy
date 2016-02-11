@@ -3,7 +3,6 @@ package redis
 import (
 	"fmt"
 	"gopkg.in/redis.v3"
-	"time"
 
 	"github.com/getlantern/http-proxy-lantern/profilter"
 )
@@ -39,7 +38,7 @@ func (c *proConfig) getNextMessage() string {
 	}
 }
 
-func (c *proConfig) updateUsersAndTokens() (err error) {
+func (c *proConfig) retrieveUsersAndTokens() (err error) {
 	errored := 0
 
 	if users, err := c.redisClient.LRange("server->users:"+c.serverId, 0, -1).Result(); err != nil {
@@ -69,6 +68,36 @@ func (c *proConfig) updateUsersAndTokens() (err error) {
 	return
 }
 
+/* processUserAddMessage
+   Add user message format:
+   user-add <user> <token>
+*/
+func (c *proConfig) processUserAddMessage() error {
+	user, err := c.redisClient.LPop("server-msg:" + c.serverId).Result()
+	if err != nil {
+		return fmt.Errorf("malformed add user message (user not present) - %v", err)
+	}
+	token, err := c.redisClient.LPop("server-msg:" + c.serverId).Result()
+	if err != nil {
+		return fmt.Errorf("malformed add user message (token not present) - %v", err)
+	}
+	c.userTokens[user] = token
+	return nil
+}
+
+/* processUserAddMessage
+   Add user message format:
+   user-remove <user>
+*/
+func (c *proConfig) processUserRemoveMessage() error {
+	user, err := c.redisClient.LPop("server-msg:" + c.serverId).Result()
+	if err != nil {
+		return fmt.Errorf("malformed add user message (user not present)")
+	}
+	delete(c.userTokens, user)
+	return nil
+}
+
 func (c *proConfig) getAllTokens() []string {
 	tokens := make([]string, len(c.userTokens))
 	i := 0
@@ -84,27 +113,31 @@ func (c *proConfig) Run() {
 		for {
 			switch c.getNextMessage() {
 			case "turn-pro":
-				log.Debug("Proxy now is Pro-only. Retrieving tokens.")
 				c.proFilter.Enable()
-				if err := c.updateUsersAndTokens(); err != nil {
+				if err := c.retrieveUsersAndTokens(); err != nil {
 					log.Errorf("Error retrieving assigned users/tokens: %v", err)
+				} else {
+					c.proFilter.UpdateTokens(c.getAllTokens())
 				}
-				tokens := c.getAllTokens()
-				c.proFilter.UpdateTokens(tokens)
+				log.Debug("Proxy now is Pro-only. Retrieved tokens.")
 			case "turn-free":
-				log.Debug("Proxy now is Free-only")
 				c.proFilter.Disable()
 				c.proFilter.ClearTokens()
+				log.Debug("Proxy now is Free-only")
 			case "user-add":
-				log.Debug("Adding user:")
-				//c.proFilter.UpdateTokens(tokens)
+				if err := c.processUserAddMessage(); err != nil {
+					log.Errorf("Error retrieving added user/token: %v", err)
+				} else {
+					c.proFilter.UpdateTokens(c.getAllTokens())
+				}
+				log.Debugf("Adding user: %v", c.userTokens)
 			case "user-remove":
-				log.Debug("Removing user:")
-				//c.proFilter.UpdateTokens(tokens)
-			case "error":
-				log.Debug("Error retrieving messages from central Redis: waiting 30 seconds to retry")
-				// TODO: After a few tries, ping Redis and/or reconnect
-				time.Sleep(30 * time.Second)
+				if err := c.processUserRemoveMessage(); err != nil {
+					log.Errorf("Error retrieving removed users/token: %v", err)
+				} else {
+					c.proFilter.UpdateTokens(c.getAllTokens())
+				}
+				log.Debugf("Removing user: %v", c.userTokens)
 			default:
 			}
 		}
