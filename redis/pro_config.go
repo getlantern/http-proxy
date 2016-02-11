@@ -71,6 +71,7 @@ func (c *proConfig) retrieveUsersAndTokens() (err error) {
 /* processUserAddMessage
    Add user message format:
    user-add <user> <token>
+   Note: user RPUSH, so the arguments are inserted in order
 */
 func (c *proConfig) processUserAddMessage() error {
 	user, err := c.redisClient.LPop("server-msg:" + c.serverId).Result()
@@ -88,6 +89,7 @@ func (c *proConfig) processUserAddMessage() error {
 /* processUserAddMessage
    Add user message format:
    user-remove <user>
+   Note: user RPUSH, so the arguments are inserted in order
 */
 func (c *proConfig) processUserRemoveMessage() error {
 	user, err := c.redisClient.LPop("server-msg:" + c.serverId).Result()
@@ -108,17 +110,25 @@ func (c *proConfig) getAllTokens() []string {
 	return tokens
 }
 
-func (c *proConfig) Run() {
+func (c *proConfig) Run(initAsPro bool) {
+	initialize := func() {
+		c.proFilter.Enable()
+		if err := c.retrieveUsersAndTokens(); err != nil {
+			log.Errorf("Error retrieving assigned users/tokens: %v", err)
+		} else {
+			c.proFilter.UpdateTokens(c.getAllTokens())
+		}
+	}
+
+	if initAsPro {
+		initialize()
+	}
+
 	go func() {
 		for {
 			switch c.getNextMessage() {
 			case "turn-pro":
-				c.proFilter.Enable()
-				if err := c.retrieveUsersAndTokens(); err != nil {
-					log.Errorf("Error retrieving assigned users/tokens: %v", err)
-				} else {
-					c.proFilter.UpdateTokens(c.getAllTokens())
-				}
+				initialize()
 				log.Debug("Proxy now is Pro-only. Retrieved tokens.")
 			case "turn-free":
 				c.proFilter.Disable()

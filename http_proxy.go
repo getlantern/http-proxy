@@ -140,7 +140,7 @@ func main() {
 			if err != nil {
 				log.Error(err)
 			}
-			proconfig.Run()
+			proconfig.Run(false)
 		} else {
 			log.Error("Enabling Pro requires setting the \"serverid\" flag")
 			return
