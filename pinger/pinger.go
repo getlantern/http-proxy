@@ -50,7 +50,7 @@ func main() {
 }
 
 func makeRequest(client *http.Client, url, token, size string) {
-	req, err := http.NewRequest(http.MethodGet, url, nil)
+	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		log.Fatalf("Unable to create request: %v", err)
 	}
