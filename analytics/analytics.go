@@ -11,6 +11,7 @@ import (
 	"net/url"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/common"
@@ -20,6 +21,10 @@ import (
 const (
 	ApiEndpoint = `https://ssl.google-analytics.com/collect`
 )
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 var (
 	log = golog.LoggerFor("http-proxy-lantern.analytics")
