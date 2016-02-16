@@ -100,18 +100,27 @@ func (c *proConfig) getAllTokens() []string {
 	return tokens
 }
 
-func (c *proConfig) Run(initAsPro bool) {
-	initialize := func() {
+func (c *proConfig) Run(initAsPro bool) error {
+	initialize := func() error {
+		if err := c.redisClient.Del("server-msg:" + c.serverId).Err(); err != nil {
+			return err
+		}
+
 		c.proFilter.Enable()
 		if err := c.retrieveUsersAndTokens(); err != nil {
 			log.Errorf("Error retrieving assigned users/tokens: %v", err)
 		} else {
 			c.proFilter.UpdateTokens(c.getAllTokens())
 		}
+		return nil
 	}
 
+	// Currently, this is never reached.  This is here to support an eventual
+	// and likely separation between Free proxies and Pro proxies in two server queues
 	if initAsPro {
-		initialize()
+		if err := initialize(); err != nil {
+			return err
+		}
 	}
 
 	go func() {
@@ -142,4 +151,5 @@ func (c *proConfig) Run(initAsPro bool) {
 			}
 		}
 	}()
+	return nil
 }

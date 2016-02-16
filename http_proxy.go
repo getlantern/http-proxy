@@ -146,7 +146,10 @@ func main() {
 			// that can turn into a Pro server.  This is a temporary design,
 			// that will change if we decide to use separate queues, and thus
 			// can configure the proxy at launch time
-			proconfig.Run(false)
+			if err := proconfig.Run(false); err != nil {
+				log.Errorf("Error configuring Pro: %s", err)
+				return
+			}
 
 		} else {
 			log.Error("Enabling Pro requires setting the \"serverid\" flag")
