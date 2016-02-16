@@ -142,6 +142,10 @@ func main() {
 			if err != nil {
 				log.Error(err)
 			}
+			// Currently, we run a Pro server starting as a free server
+			// that can turn into a Pro server.  This is a temporary design,
+			// that will change if we decide to use separate queues, and thus
+			// can configure the proxy at launch time
 			proconfig.Run(false)
 
 		} else {

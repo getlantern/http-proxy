@@ -68,11 +68,6 @@ func (c *proConfig) retrieveUsersAndTokens() (err error) {
 	return
 }
 
-/* processUserAddMessage
-   Add user message format:
-   user-add <user> <token>
-   Note: user RPUSH, so the arguments are inserted in order
-*/
 func (c *proConfig) processUserAddMessage() error {
 	user, err := c.redisClient.LPop("server-msg:" + c.serverId).Result()
 	if err != nil {
@@ -86,11 +81,6 @@ func (c *proConfig) processUserAddMessage() error {
 	return nil
 }
 
-/* processUserAddMessage
-   Add user message format:
-   user-remove <user>
-   Note: user RPUSH, so the arguments are inserted in order
-*/
 func (c *proConfig) processUserRemoveMessage() error {
 	user, err := c.redisClient.LPop("server-msg:" + c.serverId).Result()
 	if err != nil {
