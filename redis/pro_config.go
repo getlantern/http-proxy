@@ -1,8 +1,10 @@
 package redis
 
 import (
+	"errors"
 	"fmt"
 	"gopkg.in/redis.v3"
+	"strings"
 
 	"github.com/getlantern/http-proxy-lantern/profilter"
 )
@@ -28,13 +30,13 @@ func NewProConfig(redisAddr string, serverId string, proFilter *profilter.Lanter
 	}, nil
 }
 
-func (c *proConfig) getNextMessage() string {
+func (c *proConfig) getNextMessage() ([]string, error) {
 	// This will block until there is a message in this list
 	if r, err := c.redisClient.BLPop(0, "server-msg:"+c.serverId).Result(); err != nil {
-		return "error"
+		return nil, fmt.Errorf("Error retrieving message: %v", err)
 	} else {
 		// The returned result is [key, value]
-		return r[1]
+		return strings.Split(r[1], ","), nil
 	}
 }
 
@@ -68,24 +70,27 @@ func (c *proConfig) retrieveUsersAndTokens() (err error) {
 	return
 }
 
-func (c *proConfig) processUserAddMessage() error {
-	user, err := c.redisClient.LPop("server-msg:" + c.serverId).Result()
-	if err != nil {
-		return fmt.Errorf("malformed add user message (user not present) - %v", err)
+func (c *proConfig) processUserAddMessage(msg []string) error {
+	// Should receive USER-ADD <USER> <TOKEN>
+	if len(msg) != 3 {
+		return errors.New("Malformed ADD message")
 	}
-	token, err := c.redisClient.LPop("server-msg:" + c.serverId).Result()
-	if err != nil {
-		return fmt.Errorf("malformed add user message (token not present) - %v", err)
-	}
+	user := msg[1]
+	token := msg[2]
 	c.userTokens[user] = token
 	return nil
 }
 
-func (c *proConfig) processUserRemoveMessage() error {
-	user, err := c.redisClient.LPop("server-msg:" + c.serverId).Result()
-	if err != nil {
-		return fmt.Errorf("malformed add user message (user not present)")
+func (c *proConfig) processUserRemoveMessage(msg []string) error {
+	// Should receive USER-REMOVE <USER>
+	if len(msg) != 2 {
+		return errors.New("Malformed REMOVE message")
 	}
+	user := msg[1]
+	if _, ok := c.userTokens[user]; !ok {
+		return errors.New("User in REMOVE message was not assigned to server")
+	}
+
 	delete(c.userTokens, user)
 	return nil
 }
@@ -133,29 +138,34 @@ func (c *proConfig) Run(initAsPro bool) error {
 
 	go func() {
 		for {
-			switch c.getNextMessage() {
-			case "turn-pro":
+			msg, err := c.getNextMessage()
+			if err != nil {
+				continue
+			}
+			switch msg[0] {
+			case "TURN-PRO":
 				initialize()
 				log.Debug("Proxy now is Pro-only. Retrieved tokens.")
-			case "turn-free":
+			case "TURN-FREE":
 				c.proFilter.Disable()
 				c.proFilter.ClearTokens()
 				log.Debug("Proxy now is Free-only")
-			case "user-add":
-				if err := c.processUserAddMessage(); err != nil {
+			case "USER-ADD":
+				if err := c.processUserAddMessage(msg); err != nil {
 					log.Errorf("Error retrieving added user/token: %v", err)
 				} else {
 					c.proFilter.UpdateTokens(c.getAllTokens())
+					log.Tracef("Added user: %v", c.userTokens)
 				}
-				log.Debugf("Adding user: %v", c.userTokens)
-			case "user-remove":
-				if err := c.processUserRemoveMessage(); err != nil {
+			case "USER-REMOVE":
+				if err := c.processUserRemoveMessage(msg); err != nil {
 					log.Errorf("Error retrieving removed users/token: %v", err)
 				} else {
 					c.proFilter.UpdateTokens(c.getAllTokens())
+					log.Tracef("Removed user: %v", c.userTokens)
 				}
-				log.Debugf("Removing user: %v", c.userTokens)
 			default:
+				log.Error("Unknown message type")
 			}
 		}
 	}()
