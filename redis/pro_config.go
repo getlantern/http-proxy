@@ -100,6 +100,14 @@ func (c *proConfig) getAllTokens() []string {
 	return tokens
 }
 
+func (c *proConfig) IsPro() (bool, error) {
+	isPro, err := c.redisClient.Exists("server->users:" + c.serverId).Result()
+	if err != nil {
+		return false, err
+	}
+	return isPro, nil
+}
+
 func (c *proConfig) Run(initAsPro bool) error {
 	initialize := func() error {
 		if err := c.redisClient.Del("server-msg:" + c.serverId).Err(); err != nil {
