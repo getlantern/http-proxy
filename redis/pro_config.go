@@ -43,7 +43,7 @@ func (c *proConfig) getNextMessage() ([]string, error) {
 func (c *proConfig) retrieveUsersAndTokens() (err error) {
 	errored := 0
 
-	if users, err := c.redisClient.LRange("server->users:"+c.serverId, 0, -1).Result(); err != nil {
+	if users, err := c.redisClient.SMembers("server->users:" + c.serverId).Result(); err != nil {
 		return err
 	} else {
 		log.Tracef("Assigned users: %v", users)
@@ -71,7 +71,7 @@ func (c *proConfig) retrieveUsersAndTokens() (err error) {
 }
 
 func (c *proConfig) processUserAddMessage(msg []string) error {
-	// Should receive USER-ADD <USER> <TOKEN>
+	// Should receive USER-ADD,<USER>,<TOKEN>
 	if len(msg) != 3 {
 		return errors.New("Malformed ADD message")
 	}
@@ -82,7 +82,7 @@ func (c *proConfig) processUserAddMessage(msg []string) error {
 }
 
 func (c *proConfig) processUserRemoveMessage(msg []string) error {
-	// Should receive USER-REMOVE <USER>
+	// Should receive USER-REMOVE,<USER>
 	if len(msg) != 2 {
 		return errors.New("Malformed REMOVE message")
 	}
