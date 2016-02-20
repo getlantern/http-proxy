@@ -70,7 +70,7 @@ func (c *proConfig) retrieveUsersAndTokens() (err error) {
 	return
 }
 
-func (c *proConfig) processUserAddMessage(msg []string) error {
+func (c *proConfig) processUserSetMessage(msg []string) error {
 	// Should receive USER-ADD,<USER>,<TOKEN>
 	if len(msg) != 3 {
 		return errors.New("Malformed ADD message")
@@ -123,7 +123,7 @@ func (c *proConfig) Run(initAsPro bool) error {
 		if err := c.retrieveUsersAndTokens(); err != nil {
 			log.Errorf("Error retrieving assigned users/tokens: %v", err)
 		} else {
-			c.proFilter.UpdateTokens(c.getAllTokens())
+			c.proFilter.AddTokens(c.getAllTokens()...)
 		}
 		return nil
 	}
@@ -150,19 +150,22 @@ func (c *proConfig) Run(initAsPro bool) error {
 				c.proFilter.Disable()
 				c.proFilter.ClearTokens()
 				log.Debug("Proxy now is Free-only")
-			case "USER-ADD":
-				if err := c.processUserAddMessage(msg); err != nil {
+			case "USER-SET":
+				// Add or update a user
+				if err := c.processUserSetMessage(msg); err != nil {
 					log.Errorf("Error retrieving added user/token: %v", err)
 				} else {
-					c.proFilter.UpdateTokens(c.getAllTokens())
-					log.Tracef("Added user: %v", c.userTokens)
+					// We need to update all tokens to avoid leaking old ones,
+					// in case of token update
+					c.proFilter.SetTokens(c.getAllTokens()...)
+					log.Tracef("Added user. Current set: %v", c.userTokens)
 				}
 			case "USER-REMOVE":
 				if err := c.processUserRemoveMessage(msg); err != nil {
 					log.Errorf("Error retrieving removed users/token: %v", err)
 				} else {
-					c.proFilter.UpdateTokens(c.getAllTokens())
-					log.Tracef("Removed user: %v", c.userTokens)
+					c.proFilter.SetTokens(c.getAllTokens()...)
+					log.Tracef("Removed user. Current set: %v", c.userTokens)
 				}
 			default:
 				log.Error("Unknown message type")
