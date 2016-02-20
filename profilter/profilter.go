@@ -4,6 +4,7 @@
 package profilter
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"sync"
@@ -25,9 +26,31 @@ type LanternProFilter struct {
 	proTokens atomic.Value
 	// Tokens write-only mutex
 	tkwMutex sync.Mutex
+	proConf  *proConfig
 }
 
 type optSetter func(f *LanternProFilter) error
+
+func RedisConfigSetter(redisAddr, serverId string) optSetter {
+	return func(f *LanternProFilter) (err error) {
+		if f.proConf, err = NewRedisProConfig(redisAddr, serverId, f); err != nil {
+			return
+		}
+
+		isPro, err := f.proConf.IsPro()
+		if err != nil {
+			return fmt.Errorf("Error reading assigned users in bootstrapping: %s", err)
+		}
+		// Currently, we run a Pro server starting as a free server
+		// that can turn into a Pro server.  This is an initial design,
+		// that will change if we decide to use separate queues, and therefore
+		// can configure the proxy at launch time
+		if err := f.proConf.Run(isPro); err != nil {
+			return fmt.Errorf("Error configuring Pro: %s", err)
+		}
+		return
+	}
+}
 
 func New(next http.Handler, setters ...optSetter) (*LanternProFilter, error) {
 	var proTokens atomic.Value
@@ -43,7 +66,6 @@ func New(next http.Handler, setters ...optSetter) (*LanternProFilter, error) {
 			return nil, err
 		}
 	}
-
 	return f, nil
 }
 

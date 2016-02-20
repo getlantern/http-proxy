@@ -130,7 +130,9 @@ func main() {
 	// Pro support
 	if *enablePro {
 		if *serverId != "" {
-			proFilter, err := profilter.New(tokenFilter)
+			proFilter, err := profilter.New(tokenFilter,
+				profilter.RedisConfigSetter(redisAddr, *serverId),
+			)
 			if err != nil {
 				log.Error(err)
 			}
@@ -138,24 +140,6 @@ func main() {
 			srv = server.NewServer(proFilter)
 
 			log.Debug("This proxy is configured to support Lantern Pro")
-			proconfig, err := redis.NewProConfig(redisAddr, "test", proFilter)
-			if err != nil {
-				log.Error(err)
-			}
-			isPro, err := proconfig.IsPro()
-			if err != nil {
-				log.Errorf("Error reading assigned users in bootstrapping: %s", err)
-				return
-			}
-			// Currently, we run a Pro server starting as a free server
-			// that can turn into a Pro server.  This is a temporary design,
-			// that will change if we decide to use separate queues, and thus
-			// can configure the proxy at launch time
-			if err := proconfig.Run(isPro); err != nil {
-				log.Errorf("Error configuring Pro: %s", err)
-				return
-			}
-
 		} else {
 			log.Error("Enabling Pro requires setting the \"serverid\" flag")
 			return
