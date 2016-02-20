@@ -90,6 +90,7 @@ func (c *proConfig) Run(initAsPro bool) error {
 		for {
 			msg, err := c.redisConfig.GetNextMessage()
 			if err != nil {
+				log.Debugf("Error reading message from Redis: %v", err)
 				continue
 			}
 			switch msg[0] {
