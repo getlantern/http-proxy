@@ -59,9 +59,9 @@ Currently, the only header you need to add is `X-Lantern-Device-Id`.
 
 If you are using checkfallbacks, make sure that both the certificate and the token are correct.  A 404 will be the reply otherwise.  Running the server with `-debug` may help you troubleshooting those scenarios.
 
-### With config server
+### Handle requests config server specially
 
-You should set both of below options to authenticate with config server. Once `http-proxy-lantern` receives GET request to one of the `cfgsvrdomains`, it sets `X-Lantern-Config-Auth-Token` header with supplied `cfgsvrauthtoken`, and `X-Lantern-Config-Client-IP` header with the IP address it sees.
+[To prevent spoofers from fetching Lantern config with fake client IP](https://github.com/getlantern/config-server/issues/4), we need to attach auth tokens to such requests.  Both below options should be supplied. Once `http-proxy-lantern` receives GET request to one of the `cfgsvrdomains`, it sets `X-Lantern-Config-Auth-Token` header with supplied `cfgsvrauthtoken`, and `X-Lantern-Config-Client-IP` header with the IP address it sees.
 
 ```
   -cfgsvrauthtoken string

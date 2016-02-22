@@ -22,7 +22,7 @@ import (
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
-	"github.com/getlantern/http-proxy-lantern/cfgsvrfilter"
+	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
@@ -104,11 +104,11 @@ func main() {
 	}
 
 	var nextFilter http.Handler = httpConnect
-	if *cfgSvrAuthToken != "" && *cfgSvrDomains != "" {
+	if *cfgSvrAuthToken != "" || *cfgSvrDomains != "" {
 		domains := strings.Split(*cfgSvrDomains, ",")
-		nextFilter, err = cfgsvrfilter.New(httpConnect, cfgsvrfilter.AuthToken(*cfgSvrAuthToken), cfgsvrfilter.Domains(domains))
+		nextFilter, err = configserverfilter.New(httpConnect, configserverfilter.AuthToken(*cfgSvrAuthToken), configserverfilter.Domains(domains))
 		if err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 	}
 

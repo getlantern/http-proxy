@@ -1,4 +1,4 @@
-package cfgsvrfilter
+package configserverfilter
 
 import (
 	"net/http"
@@ -37,10 +37,10 @@ func TestAttachAuthToken(t *testing.T) {
 	assert.Equal(t, "", dummy.req.Header.Get(cfgSvrClientIPHeader))
 }
 
-func TestPanics(t *testing.T) {
+func TestInitialize(t *testing.T) {
 	dummy := dummyHandler{}
-	assert.Panics(t, func() { _, _ = New(&dummy, AuthToken("fake-token")) },
-		"should panic when no token provided")
-	assert.Panics(t, func() { _, _ = New(&dummy, Domains([]string{"site1.com", "site2.org"})) },
-		"should panic when no domains provided")
+	_, err := New(&dummy, AuthToken("fake-token"))
+	assert.Error(t, err, "should return error when no token provided")
+	_, err = New(&dummy, Domains([]string{"site1.com", "site2.org"}))
+	assert.Error(t, err, "should return error when no domains provided")
 }
