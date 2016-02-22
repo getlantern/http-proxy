@@ -130,19 +130,17 @@ func main() {
 	// Pro support
 	if *enablePro {
 		if *serverId == "" {
-			log.Error("Enabling Pro requires setting the \"serverid\" flag")
-			return
+			log.Fatal("Enabling Pro requires setting the \"serverid\" flag")
 		}
+		log.Debug("This proxy is configured to support Lantern Pro")
 		proFilter, err := profilter.New(tokenFilter,
 			profilter.RedisConfigSetter(redisAddr, *serverId),
 		)
 		if err != nil {
-			log.Error(err)
+			log.Fatal(err)
 		}
 
 		srv = server.NewServer(proFilter)
-
-		log.Debug("This proxy is configured to support Lantern Pro")
 	} else {
 		srv = server.NewServer(tokenFilter)
 	}
