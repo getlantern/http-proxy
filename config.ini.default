@@ -1,11 +1,16 @@
 addr = :8080  # Address to listen
-https = false # Use TLS for client to proxy communication
+cert =   # Certificate file name
+cfgsvrauthtoken =   # Token attached to config-server requests, not attaching if empty
+cfgsvrdomains =   # Config-server domains for which to attach auth token, separated by comma
+configUpdateInterval = 0  # Update interval for re-reading config file set via -config flag. Zero disables config file re-reading.
+enablereports = false  # Enable stats reporting
+help = false  # Get usage help
+https = false  # Use TLS for client to proxy communication
 idleclose = 30  # Time in seconds that an idle connection will be allowed before closing it
 key =   # Private key file name
-cert =   # Certificate file name
-token =   # Lantern token
 logglytoken =   # Token used to report to loggly.com, not reporting if empty
 maxconns = 0  # Max number of simultaneous connections allowed connections
-enablereports = false  # Enable stats reporting
 pprofaddr =   # pprof address to listen on, not activate pprof if empty
-help = false  # Get usage help
+proxied-sites-sample-percentage = 0.01  # The percentage of requests to sample (0.01 = 1%)
+proxied-sites-tracking-id = UA-21815217-16  # The Google Analytics property id for tracking proxied sites
+token =   # Lantern token
