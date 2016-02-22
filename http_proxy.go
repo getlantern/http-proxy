@@ -6,6 +6,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/vharitonsky/iniflags"
@@ -21,9 +22,11 @@ import (
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
+	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
+	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/profilter"
 	"github.com/getlantern/http-proxy-lantern/redis"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
@@ -45,6 +48,8 @@ var (
 	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	serverId                     = flag.String("serverid", "", "Server Id required for Pro-supporting servers")
 	logglyToken                  = flag.String("logglytoken", "", "Token used to report to loggly.com, not reporting if empty")
+	cfgSvrAuthToken              = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
+	cfgSvrDomains                = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
 	pprofAddr                    = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
 	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
@@ -63,7 +68,7 @@ func main() {
 	// TODO: use real parameters
 	err = logging.Init("instanceid", "version", "releasedate", *logglyToken)
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
 	// Redis configuration
@@ -95,20 +100,31 @@ func main() {
 	// Middleware
 	forwarder, err := forward.New(nil, forward.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
 	httpConnect, err := httpconnect.New(forwarder, httpconnect.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
-	commonFilter, err := commonfilter.New(httpConnect,
+	var nextFilter http.Handler = httpConnect
+	if *cfgSvrAuthToken != "" || *cfgSvrDomains != "" {
+		domains := strings.Split(*cfgSvrDomains, ",")
+		nextFilter, err = configserverfilter.New(httpConnect, configserverfilter.AuthToken(*cfgSvrAuthToken), configserverfilter.Domains(domains))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	pingFilter := ping.New(nextFilter)
+
+	commonFilter, err := commonfilter.New(pingFilter,
 		testingLocal,
 		commonfilter.SetException("127.0.0.1:7300"),
 	)
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
 	deviceFilterPost := devicefilter.NewPost(commonFilter)
@@ -117,12 +133,12 @@ func main() {
 
 	deviceFilterPre, err := devicefilter.NewPre(analyticsFilter)
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
 	tokenFilter, err := tokenfilter.New(deviceFilterPre, tokenfilter.TokenSetter(*token))
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
 	var srv *server.Server

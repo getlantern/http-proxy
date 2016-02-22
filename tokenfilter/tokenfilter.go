@@ -6,12 +6,9 @@ import (
 	"strings"
 
 	"github.com/getlantern/golog"
-
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/mimic"
 )
-
-const ()
 
 var log = golog.LoggerFor("tokenfilter")
 

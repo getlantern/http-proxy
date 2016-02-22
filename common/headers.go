@@ -1,7 +1,10 @@
 package common
 
 const (
-	TokenHeader    = "X-Lantern-Auth-Token"
-	DeviceIdHeader = "X-Lantern-Device-Id"
-	ProTokenHeader = "X-Lantern-Pro-Token"
+	DeviceIdHeader        = "X-Lantern-Device-Id"
+	TokenHeader           = "X-Lantern-Auth-Token"
+	PingHeader            = "X-Lantern-Ping"
+	ProTokenHeader        = "X-Lantern-Pro-Token"
+	CfgSvrAuthTokenHeader = "X-Lantern-Config-Auth-Token"
+	CfgSvrClientIPHeader  = "X-Lantern-Config-Client-IP"
 )
