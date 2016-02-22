@@ -65,7 +65,7 @@ func main() {
 	// TODO: use real parameters
 	err = logging.Init("instanceid", "version", "releasedate", *logglyToken)
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
 	// Reporting
@@ -95,12 +95,12 @@ func main() {
 	// Middleware
 	forwarder, err := forward.New(nil, forward.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
 	httpConnect, err := httpconnect.New(forwarder, httpconnect.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
 	var nextFilter http.Handler = httpConnect
@@ -119,7 +119,7 @@ func main() {
 		commonfilter.SetException("127.0.0.1:7300"),
 	)
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
 	deviceFilterPost := devicefilter.NewPost(commonFilter)
@@ -128,12 +128,12 @@ func main() {
 
 	deviceFilterPre, err := devicefilter.NewPre(analyticsFilter)
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
 	tokenFilter, err := tokenfilter.New(deviceFilterPre, tokenfilter.TokenSetter(*token))
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 
 	srv := server.NewServer(tokenFilter)
