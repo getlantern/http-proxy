@@ -108,6 +108,11 @@ func (f *LanternProFilter) Disable() {
 }
 
 // AddTokens appends a series of tokens to the current list
+// Note: this isn't used at the moment, just kept for documentation
+// purposes.  The only difference with SetTokens is that appends
+// instead of reset.  Since we use a copy-on-write sync approach
+// there is no advantage to this vs. just resetting, unless we
+// can safely assume that user tokens are never updated
 func (f *LanternProFilter) AddTokens(tokens ...string) {
 	// Copy-on-write.  Writes are far less common than reads.
 	f.tkwMutex.Lock()

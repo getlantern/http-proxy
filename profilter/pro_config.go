@@ -73,7 +73,7 @@ func (c *proConfig) Run(initAsPro bool) error {
 		if c.userTokens, err = c.redisConfig.GetUsersAndTokens(); err != nil {
 			return
 		}
-		c.proFilter.AddTokens(c.getAllTokens()...)
+		c.proFilter.SetTokens(c.getAllTokens()...)
 		return
 	}
 
