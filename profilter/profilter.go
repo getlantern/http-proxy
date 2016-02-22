@@ -76,9 +76,9 @@ func (f *LanternProFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	lanternProToken := req.Header.Get(common.ProTokenHeader)
-	req.Header.Del(common.ProTokenHeader)
 	if lanternProToken != "" {
 		log.Tracef("Lantern Pro Token found")
+		req.Header.Del(common.ProTokenHeader)
 	}
 
 	if f.isEnabled() {

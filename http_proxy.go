@@ -129,21 +129,20 @@ func main() {
 
 	// Pro support
 	if *enablePro {
-		if *serverId != "" {
-			proFilter, err := profilter.New(tokenFilter,
-				profilter.RedisConfigSetter(redisAddr, *serverId),
-			)
-			if err != nil {
-				log.Error(err)
-			}
-
-			srv = server.NewServer(proFilter)
-
-			log.Debug("This proxy is configured to support Lantern Pro")
-		} else {
+		if *serverId == "" {
 			log.Error("Enabling Pro requires setting the \"serverid\" flag")
 			return
 		}
+		proFilter, err := profilter.New(tokenFilter,
+			profilter.RedisConfigSetter(redisAddr, *serverId),
+		)
+		if err != nil {
+			log.Error(err)
+		}
+
+		srv = server.NewServer(proFilter)
+
+		log.Debug("This proxy is configured to support Lantern Pro")
 	} else {
 		srv = server.NewServer(tokenFilter)
 	}

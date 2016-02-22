@@ -27,9 +27,9 @@ func NewRedisProConfig(redisAddr string, serverId string, proFilter *LanternProF
 }
 
 func (c *proConfig) processUserSetMessage(msg []string) error {
-	// Should receive USER-ADD,<USER>,<TOKEN>
+	// Should receive USER-SET,<USER>,<TOKEN>
 	if len(msg) != 3 {
-		return errors.New("Malformed ADD message")
+		return errors.New("Malformed SET message")
 	}
 	user := msg[1]
 	token := msg[2]
@@ -72,14 +72,11 @@ func (c *proConfig) Run(initAsPro bool) error {
 		c.proFilter.Enable()
 		if c.userTokens, err = c.redisConfig.GetUsersAndTokens(); err != nil {
 			return
-		} else {
-			c.proFilter.AddTokens(c.getAllTokens()...)
 		}
+		c.proFilter.AddTokens(c.getAllTokens()...)
 		return
 	}
 
-	// Currently, this is never reached.  This is here to support an eventual
-	// and likely separation between Free proxies and Pro proxies in two server queues
 	if initAsPro {
 		if err := initialize(); err != nil {
 			return err
@@ -96,7 +93,7 @@ func (c *proConfig) Run(initAsPro bool) error {
 			switch msg[0] {
 			case "TURN-PRO":
 				initialize()
-				log.Debug("Proxy now is Pro-only. Retrieved tokens.")
+				log.Debug("Proxy now is Pro-only. Tokens updated.")
 			case "TURN-FREE":
 				c.proFilter.Disable()
 				c.proFilter.ClearTokens()
@@ -104,12 +101,12 @@ func (c *proConfig) Run(initAsPro bool) error {
 			case "USER-SET":
 				// Add or update a user
 				if err := c.processUserSetMessage(msg); err != nil {
-					log.Errorf("Error retrieving added user/token: %v", err)
+					log.Errorf("Error setting user/token: %v", err)
 				} else {
 					// We need to update all tokens to avoid leaking old ones,
 					// in case of token update
 					c.proFilter.SetTokens(c.getAllTokens()...)
-					log.Tracef("Added user. Current set: %v", c.userTokens)
+					log.Tracef("User added/updated. Complete set of users: %v", c.userTokens)
 				}
 			case "USER-REMOVE":
 				if err := c.processUserRemoveMessage(msg); err != nil {
