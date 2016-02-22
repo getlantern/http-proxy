@@ -11,6 +11,7 @@ import (
 
 const (
 	cfgSvrAuthTokenHeader = "X-Lantern-Config-Auth-Token"
+	cfgSvrClientIPHeader  = "X-Lantern-Config-Client-IP"
 )
 
 var log = golog.LoggerFor("cfgsvrfilter")
@@ -66,8 +67,9 @@ next:
 }
 
 func (f *ConfigServerFilter) attachHeader(req *http.Request) *http.Request {
-	// Don't confuse it with the auth token
 	req.Header.Set(cfgSvrAuthTokenHeader, f.authToken)
 	log.Debugf("Attached %s header to \"GET %s\"", cfgSvrAuthTokenHeader, req.URL.String())
+	req.Header.Set(cfgSvrClientIPHeader, req.RemoteAddr)
+	log.Debugf("Set %s as %s to \"GET %s\"", cfgSvrClientIPHeader, req.RemoteAddr, req.URL.String())
 	return req
 }
