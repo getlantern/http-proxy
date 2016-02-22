@@ -6,6 +6,7 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/vharitonsky/iniflags"
@@ -21,6 +22,7 @@ import (
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
+	"github.com/getlantern/http-proxy-lantern/cfgsvrfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
@@ -43,6 +45,8 @@ var (
 	token                        = flag.String("token", "", "Lantern token")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
 	logglyToken                  = flag.String("logglytoken", "", "Token used to report to loggly.com, not reporting if empty")
+	cfgSvrAuthToken              = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
+	cfgSvrDomains                = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
 	pprofAddr                    = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
 	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
@@ -99,7 +103,16 @@ func main() {
 		log.Error(err)
 	}
 
-	pingFilter := ping.New(httpConnect)
+	var nextFilter http.Handler = httpConnect
+	if *cfgSvrAuthToken != "" && *cfgSvrDomains != "" {
+		domains := strings.Split(*cfgSvrDomains, ",")
+		nextFilter, err = cfgsvrfilter.New(httpConnect, cfgsvrfilter.AuthToken(*cfgSvrAuthToken), cfgsvrfilter.Domains(domains))
+		if err != nil {
+			log.Error(err)
+		}
+	}
+
+	pingFilter := ping.New(nextFilter)
 
 	commonFilter, err := commonfilter.New(pingFilter,
 		testingLocal,
