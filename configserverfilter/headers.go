@@ -8,11 +8,8 @@ import (
 	"net/http"
 
 	"github.com/getlantern/golog"
-)
 
-const (
-	cfgSvrAuthTokenHeader = "X-Lantern-Config-Auth-Token"
-	cfgSvrClientIPHeader  = "X-Lantern-Config-Client-IP"
+	"github.com/getlantern/http-proxy-lantern/common"
 )
 
 var log = golog.LoggerFor("configserverfilter")
@@ -50,7 +47,7 @@ func New(next http.Handler, setters ...optSetter) (*ConfigServerFilter, error) {
 		return nil, errors.New("should set both config-server auth token and domains")
 	}
 
-	log.Debugf("Will attach %s header on GET requests to %+v", cfgSvrAuthTokenHeader, f.domains)
+	log.Debugf("Will attach %s header on GET requests to %+v", common.CfgSvrAuthTokenHeader, f.domains)
 	return f, nil
 }
 
@@ -70,9 +67,9 @@ next:
 }
 
 func (f *ConfigServerFilter) attachHeader(req *http.Request) *http.Request {
-	req.Header.Set(cfgSvrAuthTokenHeader, f.authToken)
-	log.Debugf("Attached %s header to \"GET %s\"", cfgSvrAuthTokenHeader, req.URL.String())
-	req.Header.Set(cfgSvrClientIPHeader, req.RemoteAddr)
-	log.Debugf("Set %s as %s to \"GET %s\"", cfgSvrClientIPHeader, req.RemoteAddr, req.URL.String())
+	req.Header.Set(common.CfgSvrAuthTokenHeader, f.authToken)
+	log.Debugf("Attached %s header to \"GET %s\"", common.CfgSvrAuthTokenHeader, req.URL.String())
+	req.Header.Set(common.CfgSvrClientIPHeader, req.RemoteAddr)
+	log.Debugf("Set %s as %s to \"GET %s\"", common.CfgSvrClientIPHeader, req.RemoteAddr, req.URL.String())
 	return req
 }

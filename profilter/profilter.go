@@ -9,10 +9,8 @@ import (
 
 	"github.com/Workiva/go-datastructures/set"
 	"github.com/getlantern/golog"
-)
 
-const (
-	proTokenHeader = "X-Lantern-Pro-Token"
+	"github.com/getlantern/http-proxy-lantern/common"
 )
 
 var log = golog.LoggerFor("profilter")
@@ -45,8 +43,8 @@ func (f *LanternProFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		log.Tracef("Lantern Pro Filter Middleware received request:\n%s", reqStr)
 	}
 
-	lanternProToken := req.Header.Get(proTokenHeader)
-	req.Header.Del(proTokenHeader)
+	lanternProToken := req.Header.Get(common.ProTokenHeader)
+	req.Header.Del(common.ProTokenHeader)
 	if lanternProToken != "" {
 		log.Tracef("Lantern Pro Token found")
 	}

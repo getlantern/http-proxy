@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/getlantern/testify/assert"
+
+	"github.com/getlantern/http-proxy-lantern/common"
 )
 
 type dummyHandler struct{ req *http.Request }
@@ -21,20 +23,20 @@ func TestAttachAuthToken(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://site1.com/abc.gz", nil)
 	req.RemoteAddr = dummyClientIP
 	am.ServeHTTP(nil, req)
-	assert.Equal(t, fakeToken, dummy.req.Header.Get(cfgSvrAuthTokenHeader))
-	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(cfgSvrClientIPHeader))
+	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader))
+	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader))
 
 	req, _ = http.NewRequest("GET", "http://site2.org/abc.gz", nil)
 	req.RemoteAddr = dummyClientIP
 	am.ServeHTTP(nil, req)
-	assert.Equal(t, fakeToken, dummy.req.Header.Get(cfgSvrAuthTokenHeader))
-	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(cfgSvrClientIPHeader))
+	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader))
+	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader))
 
 	req, _ = http.NewRequest("GET", "http://not-config-server.org/abc.gz", nil)
 	req.RemoteAddr = dummyClientIP
 	am.ServeHTTP(nil, req)
-	assert.Equal(t, "", dummy.req.Header.Get(cfgSvrAuthTokenHeader))
-	assert.Equal(t, "", dummy.req.Header.Get(cfgSvrClientIPHeader))
+	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrAuthTokenHeader))
+	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrClientIPHeader))
 }
 
 func TestInitialize(t *testing.T) {
