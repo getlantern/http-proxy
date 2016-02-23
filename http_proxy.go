@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof"
-	"os"
 	"strings"
 	"time"
 
@@ -44,6 +43,7 @@ var (
 	maxConns                     = flag.Uint64("maxconns", 0, "Max number of simultaneous connections allowed connections")
 	idleClose                    = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
 	token                        = flag.String("token", "", "Lantern token")
+	redisAddr                    = flag.String("redis", "127.0.0.1:6379", "Redis address in \"host:port\" format")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
 	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	serverId                     = flag.String("serverid", "", "Server Id required for Pro-supporting servers")
@@ -71,15 +71,9 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Redis configuration
-	redisAddr := os.Getenv("REDIS_PRODUCTION_URL")
-	if redisAddr == "" {
-		redisAddr = "127.0.0.1:6379"
-	}
-
 	// Reporting
 	if *enableReports {
-		rp, err := redis.NewMeasuredReporter(redisAddr)
+		rp, err := redis.NewMeasuredReporter(*redisAddr)
 		if err != nil {
 			log.Errorf("Error connecting to redis: %v", err)
 		} else {
@@ -150,7 +144,7 @@ func main() {
 		}
 		log.Debug("This proxy is configured to support Lantern Pro")
 		proFilter, err := profilter.New(tokenFilter,
-			profilter.RedisConfigSetter(redisAddr, *serverId),
+			profilter.RedisConfigSetter(*redisAddr, *serverId),
 		)
 		if err != nil {
 			log.Fatal(err)
