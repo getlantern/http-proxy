@@ -23,7 +23,7 @@ type TokensMap map[string]bool
 type LanternProFilter struct {
 	next      http.Handler
 	enabled   int32
-	proTokens atomic.Value
+	proTokens *atomic.Value
 	// Tokens write-only mutex
 	tkwMutex sync.Mutex
 	proConf  *proConfig
@@ -53,13 +53,14 @@ func RedisConfigSetter(redisAddr, serverId string) optSetter {
 }
 
 func New(next http.Handler, setters ...optSetter) (*LanternProFilter, error) {
-	var proTokens atomic.Value
-	proTokens.Store(make(TokensMap))
 	f := &LanternProFilter{
 		next:      next,
 		enabled:   0,
-		proTokens: proTokens,
+		proTokens: new(atomic.Value),
 	}
+
+	// atomic.Value can't be copied after Store has been called
+	f.proTokens.Store(make(TokensMap))
 
 	for _, s := range setters {
 		if err := s(f); err != nil {
