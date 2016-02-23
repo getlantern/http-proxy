@@ -70,16 +70,17 @@ func New(next http.Handler, setters ...optSetter) (*LanternProFilter, error) {
 }
 
 func (f *LanternProFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	lanternProToken := req.Header.Get(common.ProTokenHeader)
+
 	if log.IsTraceEnabled() {
 		reqStr, _ := httputil.DumpRequest(req, true)
 		log.Tracef("Lantern Pro Filter Middleware received request:\n%s", reqStr)
+		if lanternProToken != "" {
+			log.Tracef("Lantern Pro Token found")
+		}
 	}
 
-	lanternProToken := req.Header.Get(common.ProTokenHeader)
-	if lanternProToken != "" {
-		log.Tracef("Lantern Pro Token found")
-		req.Header.Del(common.ProTokenHeader)
-	}
+	req.Header.Del(common.ProTokenHeader)
 
 	if f.isEnabled() {
 		// If a Pro token is found in the header, test if its valid and then let
