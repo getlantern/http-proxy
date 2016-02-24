@@ -1,38 +1,32 @@
-package report
+package redis
 
 import (
 	"fmt"
 
 	"gopkg.in/redis.v3"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
 )
 
-var log = golog.LoggerFor("main")
-
-type redisReporter struct {
+type measuredReporter struct {
 	redisClient *redis.Client
 }
 
-func NewRedisReporter(redisAddr string) (measured.Reporter, error) {
-	rc := redis.NewClient(&redis.Options{
-		Addr: redisAddr,
-	})
-	_, err := rc.Ping().Result()
+func NewMeasuredReporter(redisAddr string) (measured.Reporter, error) {
+	rc, err := getClient(redisAddr)
 	if err != nil {
-		return nil, fmt.Errorf("Unable to ping redis server: %s", err)
+		return nil, err
 	}
-	return &redisReporter{rc}, nil
+	return &measuredReporter{rc}, nil
 }
 
-func (rp *redisReporter) ReportError(s map[*measured.Error]int) error {
+func (rp *measuredReporter) ReportError(s map[*measured.Error]int) error {
 	return nil
 }
-func (rp *redisReporter) ReportLatency(s []*measured.LatencyTracker) error {
+func (rp *measuredReporter) ReportLatency(s []*measured.LatencyTracker) error {
 	return nil
 }
-func (rp *redisReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
+func (rp *measuredReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
 	for _, t := range tt {
 		key := t.ID
 		if key == "" {
