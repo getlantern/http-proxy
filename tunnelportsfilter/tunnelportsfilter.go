@@ -1,5 +1,6 @@
-// Tunnel ports filter compares the Host field HTTP CONNECT request with
-// predefined set of ports and only allow matched ones to pass.
+// Tunnel ports filter compares req.Host of HTTP CONNECT requests with predefined
+// set of ports. It allows only matched ones to pass, and responds "403 Port not
+// allowed" otherwise.
 
 package tunnelportsfilter
 
