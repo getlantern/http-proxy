@@ -73,7 +73,7 @@ func (f *tunnelPortsFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) 
 }
 
 func (f *tunnelPortsFilter) ServeError(w http.ResponseWriter, req *http.Request, statusCode int, reason string) {
-	log.Debugf("CONNECT to %s: %d %s", req.Host, statusCode, reason)
+	log.Debugf("Respond error to CONNECT request to %s: %d %s", req.Host, statusCode, reason)
 	w.WriteHeader(statusCode)
 	w.Write([]byte(reason))
 }
