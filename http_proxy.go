@@ -29,7 +29,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/profilter"
 	"github.com/getlantern/http-proxy-lantern/redis"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
-	"github.com/getlantern/http-proxy-lantern/tunnelportsfilter"
 )
 
 var (
@@ -99,28 +98,28 @@ func main() {
 		log.Fatal(err)
 	}
 
-	httpConnect, err := httpconnect.New(forwarder, httpconnect.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
+	var nextFilter http.Handler = forwarder
+
+	if *tunnelPorts != "" {
+		nextFilter, err = httpconnect.New(forwarder,
+			httpconnect.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second),
+			httpconnect.AllowedPortsFromCSV(*tunnelPorts))
+	} else {
+		nextFilter, err = httpconnect.New(forwarder,
+			httpconnect.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var nextFilter http.Handler = httpConnect
-
-	if *tunnelPorts != "" {
-		portsFilter, err := tunnelportsfilter.New(nextFilter, tunnelportsfilter.AllowedPortsFromCSV(*tunnelPorts))
-		if err != nil {
-			log.Fatal(err)
-		}
-		nextFilter = portsFilter
-	}
-
 	if *cfgSvrAuthToken != "" || *cfgSvrDomains != "" {
 		domains := strings.Split(*cfgSvrDomains, ",")
-		csFilter, err := configserverfilter.New(nextFilter, configserverfilter.AuthToken(*cfgSvrAuthToken), configserverfilter.Domains(domains))
+		nextFilter, err = configserverfilter.New(nextFilter,
+			configserverfilter.AuthToken(*cfgSvrAuthToken),
+			configserverfilter.Domains(domains))
 		if err != nil {
 			log.Fatal(err)
 		}
-		nextFilter = csFilter
 	}
 
 	pingFilter := ping.New(nextFilter)
