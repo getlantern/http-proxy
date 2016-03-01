@@ -6,6 +6,7 @@ package tunnelportsfilter
 
 import (
 	"errors"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,6 +25,22 @@ type optSetter func(f *tunnelPortsFilter) error
 
 func AllowedPorts(ports []int) optSetter {
 	return func(f *tunnelPortsFilter) error {
+		f.allowedPorts = ports
+		return nil
+	}
+}
+
+func AllowedPortsFromCSV(csv string) optSetter {
+	return func(f *tunnelPortsFilter) error {
+		fields := strings.Split(csv, ",")
+		ports := make([]int, len(fields))
+		for i, f := range fields {
+			p, err := strconv.Atoi(f)
+			if err != nil {
+				return err
+			}
+			ports[i] = p
+		}
 		f.allowedPorts = ports
 		return nil
 	}
@@ -50,14 +67,14 @@ func (f *tunnelPortsFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) 
 	}
 
 	log.Tracef("Checking CONNECT tunnel to %s against allowed ports %v", req.Host, f.allowedPorts)
-	idx := strings.LastIndex(req.Host, ":")
-	if idx < 0 || idx >= len(req.Host)-1 {
+	_, portString, err := net.SplitHostPort(req.Host)
+	if err != nil {
 		// CONNECT request should always include port in req.Host.
 		// Ref https://tools.ietf.org/html/rfc2817#section-5.2.
 		f.ServeError(w, req, http.StatusBadRequest, "No port field in Request-URI / Host header")
 		return
 	}
-	port, err := strconv.Atoi(req.Host[idx+1:])
+	port, err := strconv.Atoi(portString)
 	if err != nil {
 		f.ServeError(w, req, http.StatusBadRequest, "Invalid port")
 		return

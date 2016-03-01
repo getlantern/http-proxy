@@ -23,25 +23,31 @@ func TestFilterTunnelPorts(t *testing.T) {
 
 	req, _ := http.NewRequest("CONNECT", "http://site.com", nil)
 	resp, _ := client.Do(req)
+	_ = resp.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "")
 
 	req, _ = http.NewRequest("CONNECT", "http://site.com:", nil)
 	resp, _ = client.Do(req)
+	_ = resp.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "")
 
 	req, _ = http.NewRequest("CONNECT", "http://site.com:abc", nil)
 	resp, _ = client.Do(req)
+	_ = resp.Body.Close()
 	assert.Equal(t, http.StatusBadRequest, resp.StatusCode, "")
 
 	req, _ = http.NewRequest("CONNECT", "http://site.com:443", nil)
 	resp, _ = client.Do(req)
+	_ = resp.Body.Close()
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode, "")
 
 	req, _ = http.NewRequest("CONNECT", "http://site.com:8080", nil)
 	resp, _ = client.Do(req)
+	_ = resp.Body.Close()
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode, "")
 
 	req, _ = http.NewRequest("CONNECT", "http://site.com:8081", nil)
 	resp, _ = client.Do(req)
+	_ = resp.Body.Close()
 	assert.Equal(t, http.StatusForbidden, resp.StatusCode, "")
 }

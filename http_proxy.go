@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof"
-	"strconv"
 	"strings"
 	"time"
 
@@ -108,11 +107,20 @@ func main() {
 	var nextFilter http.Handler = httpConnect
 
 	if *tunnelPorts != "" {
-		nextFilter = plugTunnelPortsFilter(nextFilter, *tunnelPorts)
+		portsFilter, err := tunnelportsfilter.New(nextFilter, tunnelportsfilter.AllowedPortsFromCSV(*tunnelPorts))
+		if err != nil {
+			log.Fatal(err)
+		}
+		nextFilter = portsFilter
 	}
 
 	if *cfgSvrAuthToken != "" || *cfgSvrDomains != "" {
-		nextFilter = plugCfgSvrAuthTokenFilter(nextFilter, *cfgSvrAuthToken, *cfgSvrDomains)
+		domains := strings.Split(*cfgSvrDomains, ",")
+		csFilter, err := configserverfilter.New(nextFilter, configserverfilter.AuthToken(*cfgSvrAuthToken), configserverfilter.Domains(domains))
+		if err != nil {
+			log.Fatal(err)
+		}
+		nextFilter = csFilter
 	}
 
 	pingFilter := ping.New(nextFilter)
@@ -191,31 +199,4 @@ func main() {
 	if err != nil {
 		log.Errorf("Error serving: %v", err)
 	}
-}
-
-func plugTunnelPortsFilter(nextFilter http.Handler, tunnelPorts string) http.Handler {
-	fields := strings.Split(tunnelPorts, ",")
-	ports := make([]int, len(fields))
-	for i, f := range fields {
-		p, err := strconv.Atoi(f)
-		if err != nil {
-			log.Fatal(err)
-		}
-		ports[i] = p
-	}
-
-	portsFilter, err := tunnelportsfilter.New(nextFilter, tunnelportsfilter.AllowedPorts(ports))
-	if err != nil {
-		log.Fatal(err)
-	}
-	return portsFilter
-}
-
-func plugCfgSvrAuthTokenFilter(nextFilter http.Handler, cfgSvrAuthToken string, cfgSvrDomains string) http.Handler {
-	domains := strings.Split(cfgSvrDomains, ",")
-	nextFilter, err := configserverfilter.New(nextFilter, configserverfilter.AuthToken(cfgSvrAuthToken), configserverfilter.Domains(domains))
-	if err != nil {
-		log.Fatal(err)
-	}
-	return nextFilter
 }
