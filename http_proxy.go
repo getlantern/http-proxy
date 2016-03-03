@@ -35,24 +35,25 @@ var (
 	testingLocal = false
 	log          = golog.LoggerFor("lantern-proxy")
 
-	help                         = flag.Bool("help", false, "Get usage help")
-	keyfile                      = flag.String("key", "", "Private key file name")
-	certfile                     = flag.String("cert", "", "Certificate file name")
-	https                        = flag.Bool("https", false, "Use TLS for client to proxy communication")
 	addr                         = flag.String("addr", ":8080", "Address to listen")
-	maxConns                     = flag.Uint64("maxconns", 0, "Max number of simultaneous connections allowed connections")
-	idleClose                    = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
-	token                        = flag.String("token", "", "Lantern token")
-	redisAddr                    = flag.String("redis", "127.0.0.1:6379", "Redis address in \"host:port\" format")
-	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
-	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
-	serverId                     = flag.String("serverid", "", "Server Id required for Pro-supporting servers")
-	logglyToken                  = flag.String("logglytoken", "", "Token used to report to loggly.com, not reporting if empty")
+	certfile                     = flag.String("cert", "", "Certificate file name")
 	cfgSvrAuthToken              = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
 	cfgSvrDomains                = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
+	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
+	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
+	help                         = flag.Bool("help", false, "Get usage help")
+	https                        = flag.Bool("https", false, "Use TLS for client to proxy communication")
+	idleClose                    = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
+	keyfile                      = flag.String("key", "", "Private key file name")
+	logglyToken                  = flag.String("logglytoken", "", "Token used to report to loggly.com, not reporting if empty")
+	maxConns                     = flag.Uint64("maxconns", 0, "Max number of simultaneous connections allowed connections")
 	pprofAddr                    = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
-	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
 	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
+	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
+	redisAddr                    = flag.String("redis", "127.0.0.1:6379", "Redis address in \"host:port\" format")
+	serverId                     = flag.String("serverid", "", "Server Id required for Pro-supporting servers")
+	token                        = flag.String("token", "", "Lantern token")
+	tunnelPorts                  = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
 )
 
 func main() {
@@ -97,15 +98,25 @@ func main() {
 		log.Fatal(err)
 	}
 
-	httpConnect, err := httpconnect.New(forwarder, httpconnect.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
+	var nextFilter http.Handler = forwarder
+
+	if *tunnelPorts != "" {
+		nextFilter, err = httpconnect.New(forwarder,
+			httpconnect.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second),
+			httpconnect.AllowedPortsFromCSV(*tunnelPorts))
+	} else {
+		nextFilter, err = httpconnect.New(forwarder,
+			httpconnect.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	var nextFilter http.Handler = httpConnect
 	if *cfgSvrAuthToken != "" || *cfgSvrDomains != "" {
 		domains := strings.Split(*cfgSvrDomains, ",")
-		nextFilter, err = configserverfilter.New(httpConnect, configserverfilter.AuthToken(*cfgSvrAuthToken), configserverfilter.Domains(domains))
+		nextFilter, err = configserverfilter.New(nextFilter,
+			configserverfilter.AuthToken(*cfgSvrAuthToken),
+			configserverfilter.Domains(domains))
 		if err != nil {
 			log.Fatal(err)
 		}
