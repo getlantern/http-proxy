@@ -23,6 +23,7 @@ var (
 func main() {
 	proxy := flag.String("proxy", "", "The server to hit")
 	token := flag.String("token", "", "The token of the server to hit")
+	pause := flag.Int64("pause", 30, "Pause time in seconds")
 
 	flag.Parse()
 
@@ -31,12 +32,17 @@ func main() {
 	url := fmt.Sprintf("https://www.google.com/humans.txt")
 	client := &http.Client{
 		Transport: &http.Transport{
+			DisableKeepAlives: true,
 			TLSClientConfig: &tls.Config{
 				InsecureSkipVerify: true,
 			},
 			Dial: func(network, addr string) (net.Conn, error) {
 				// Always dial the proxy
-				return net.Dial("tcp", *proxy)
+				start := time.Now()
+				conn, err := net.Dial("tcp", *proxy)
+				delta := time.Now().Sub(start)
+				log.Debugf("Dial time: %v", delta)
+				return conn, err
 			},
 		},
 	}
@@ -45,7 +51,7 @@ func main() {
 		makeRequest(client, url, *token, "small")
 		makeRequest(client, url, *token, "medium")
 		makeRequest(client, url, *token, "large")
-		time.Sleep(30 * time.Second)
+		time.Sleep(time.Duration(*pause) * time.Second)
 	}
 }
 

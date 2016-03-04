@@ -32,3 +32,5 @@ pinger
 http-proxy.raw
 
 test/data/http-proxy.raw
+
+loader

@@ -11,6 +11,8 @@ var (
 )
 
 func main() {
+	flag.Parse()
+
 	p := time.Duration(*pause)
 	for {
 		if p > 0 {
