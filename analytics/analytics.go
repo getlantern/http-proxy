@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"strconv"
 	"strings"
 	"time"
@@ -42,6 +43,7 @@ type siteAccess struct {
 // handler chain.
 type AnalyticsMiddleware struct {
 	trackingId       string
+	hostname         string
 	samplePercentage float64
 	next             http.Handler
 	siteAccesses     chan *siteAccess
@@ -50,9 +52,15 @@ type AnalyticsMiddleware struct {
 }
 
 func New(trackingId string, samplePercentage float64, next http.Handler) *AnalyticsMiddleware {
-	log.Debugf("Will report analytics to Google as %v, sampling %d percent of requests", trackingId, int(samplePercentage*100))
+	hostname, err := os.Hostname()
+	if err != nil {
+		log.Errorf("Unable to determine hostname, will use '(direct))': %v", hostname)
+		hostname = "(direct)"
+	}
+	log.Debugf("Will report analytics to Google as %v using hostname '%v', sampling %d percent of requests", trackingId, hostname, int(samplePercentage*100))
 	am := &AnalyticsMiddleware{
 		trackingId:       trackingId,
+		hostname:         hostname,
 		samplePercentage: samplePercentage,
 		next:             next,
 		siteAccesses:     make(chan *siteAccess, 1000),
@@ -120,6 +128,14 @@ func (am *AnalyticsMiddleware) sessionVals(sa *siteAccess, site string) string {
 
 	// Use the user-agent reported by the client
 	vals.Add("ua", sa.userAgent)
+
+	// Use the server's hostname as the campaign source so that we can track
+	// activity per server
+	vals.Add("cs", am.hostname)
+	// Campaign medium and campaign name are required for campaign tracking to do
+	// anything. We just fill them in with some dummy values.
+	vals.Add("cm", "proxy")
+	vals.Add("cn", "proxy")
 
 	// Note the absence of session tracking. We don't have a good way to tell
 	// when a session ends, so we don't bother with it.
