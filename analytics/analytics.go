@@ -157,7 +157,7 @@ func (am *AnalyticsMiddleware) normalizeSite(site string) []string {
 				cached = site
 			} else {
 				name := names[0]
-				if name[len(name)-1] == '.' {
+				if name != "" && name[len(name)-1] == '.' {
 					// Strip trailing period
 					name = name[:len(name)-1]
 				}
@@ -169,7 +169,7 @@ func (am *AnalyticsMiddleware) normalizeSite(site string) []string {
 	}
 
 	result = append(result, site)
-	if domain != site {
+	if domain != "" && domain != site {
 		// If original site is not the same as domain, track that too
 		result = append(result, domain)
 		// Also track just the last two portions of the domain name
