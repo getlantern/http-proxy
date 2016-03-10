@@ -5,6 +5,7 @@ package configserverfilter
 
 import (
 	"errors"
+	"net"
 	"net/http"
 
 	"github.com/getlantern/golog"
@@ -69,7 +70,12 @@ next:
 func (f *ConfigServerFilter) attachHeader(req *http.Request) *http.Request {
 	req.Header.Set(common.CfgSvrAuthTokenHeader, f.authToken)
 	log.Debugf("Attached %s header to \"GET %s\"", common.CfgSvrAuthTokenHeader, req.URL.String())
-	req.Header.Set(common.CfgSvrClientIPHeader, req.RemoteAddr)
-	log.Debugf("Set %s as %s to \"GET %s\"", common.CfgSvrClientIPHeader, req.RemoteAddr, req.URL.String())
+	host, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
+		return req
+	}
+	req.Header.Set(common.CfgSvrClientIPHeader, host)
+	log.Debugf("Set %s as %s to \"GET %s\"", common.CfgSvrClientIPHeader, host, req.URL.String())
 	return req
 }
