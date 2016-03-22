@@ -18,7 +18,7 @@ func TestRoundTrip(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	l, err := NewListener("localhost:0", tmpDir, make(map[string][]string))
+	l, err := NewListener("localhost:0", tmpDir)
 	if !assert.NoError(t, err, "Unable to create listener") {
 		return
 	}
@@ -37,7 +37,7 @@ func TestRoundTrip(t *testing.T) {
 	b := []byte("Hi There")
 
 	tr := &obfs4.Transport{}
-	cf, err := tr.ClientFactory(tmpDir)
+	cf, err := tr.ClientFactory("")
 	if !assert.NoError(t, err, "Unable to create client factory") {
 		return
 	}

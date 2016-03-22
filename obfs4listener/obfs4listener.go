@@ -11,15 +11,14 @@ import (
 	"git.torproject.org/pluggable-transports/obfs4.git/transports/base"
 )
 
-func NewListener(addr string, stateDir string, settings map[string][]string) (net.Listener, error) {
+func NewListener(addr string, stateDir string) (net.Listener, error) {
 	err := os.MkdirAll(stateDir, 0700)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to make statedir at %v: %v", stateDir, err)
 	}
 
 	tr := &obfs4.Transport{}
-	ptargs := pt.Args(settings)
-	sf, err := tr.ServerFactory(stateDir, &ptargs)
+	sf, err := tr.ServerFactory(stateDir, &pt.Args{})
 	if err != nil {
 		return nil, fmt.Errorf("Unable to create obfs4 server factory: %v", err)
 	}
