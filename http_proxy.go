@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"strings"
 	"time"
 
@@ -25,10 +26,13 @@ import (
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
+	"github.com/getlantern/http-proxy-lantern/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/profilter"
 	"github.com/getlantern/http-proxy-lantern/redis"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
+
+	"git.torproject.org/pluggable-transports/obfs4.git/common/drbg"
 )
 
 var (
@@ -54,6 +58,12 @@ var (
 	serverId                     = flag.String("serverid", "", "Server Id required for Pro-supporting servers")
 	token                        = flag.String("token", "", "Lantern token")
 	tunnelPorts                  = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
+	obfs4Addr                    = flag.String("obfs4.addr", "", "Provide an address here in order to listen with obfs4")
+	obfs4NodeID                  = flag.String("obfs4.nodeid", "", "The obfs4 node ID, required if obfs4-addr is set")
+	obfs4PrivateKey              = flag.String("obfs4.private-key", "", "The obfs4 privatey key, required if obfs4-addr is set")
+	obfs4PublicKey               = flag.String("obfs4.public-key", "", "The obfs4 public key, required if obfs4-addr is set")
+	obfs4DRBGSeed                = flag.String("obfs4.drbg-seed", "", "The obfs4 drbg-seed, defaults to a random value")
+	obfs4IATMode                 = flag.String("obfs4.iat-mode", "0", "The obfs4 IAT mode, defaults to 0")
 )
 
 func main() {
@@ -190,10 +200,38 @@ func main() {
 		mimic.SetServerAddr(addr)
 	}
 
+	if *obfs4Addr != "" {
+		if *obfs4NodeID == "" || *obfs4PrivateKey == "" || *obfs4PublicKey == "" {
+			flag.Usage()
+			os.Exit(1)
+		}
+		drbgSeed := *obfs4DRBGSeed
+		if drbgSeed == "" {
+			log.Debug("No DRBG seed provided, randomly generating one")
+			seed, err := drbg.NewSeed()
+			if err != nil {
+				log.Fatalf("Unable to generate random DRBG seed: %v", err)
+			}
+			drbgSeed = seed.Hex()
+		}
+		l, err := obfs4listener.NewListener(*obfs4Addr, "/tmp/obfs4", map[string][]string{
+			"node-id":     []string{*obfs4NodeID},
+			"private-key": []string{*obfs4PrivateKey},
+			"public-key":  []string{*obfs4PublicKey},
+			"drbg-seed":   []string{drbgSeed},
+			"iat-mode":    []string{*obfs4IATMode},
+		})
+		if err != nil {
+			log.Fatalf("Unable to listen with obfs4: %v", err)
+		}
+		go srv.Serve(l, func(addr string) {
+			log.Debugf("obfs4 listening at %v", addr)
+		})
+	}
 	if *https {
-		err = srv.ServeHTTPS(*addr, *keyfile, *certfile, initMimic)
+		err = srv.ListenAndServeHTTPS(*addr, *keyfile, *certfile, initMimic)
 	} else {
-		err = srv.ServeHTTP(*addr, initMimic)
+		err = srv.ListenAndServeHTTP(*addr, initMimic)
 	}
 	if err != nil {
 		log.Errorf("Error serving: %v", err)
