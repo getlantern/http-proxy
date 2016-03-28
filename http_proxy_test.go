@@ -33,8 +33,8 @@ const (
 )
 
 var (
-	httpProxy        *server.Server
-	tlsProxy         *server.Server
+	httpProxyAddr    string
+	tlsProxyAddr     string
 	httpTargetServer *targetHandler
 	httpTargetURL    string
 	tlsTargetServer  *targetHandler
@@ -72,20 +72,20 @@ func TestMain(m *testing.M) {
 	defer tlsTargetServer.Close()
 
 	// Set up HTTP chained server
-	httpProxy, err = setupNewHTTPServer(0, 30*time.Second)
+	httpProxyAddr, err = setupNewHTTPServer(0, 30*time.Second)
 	if err != nil {
 		log.Error("Error starting proxy server")
 		os.Exit(1)
 	}
-	log.Debugf("Started HTTP proxy server at %s", httpProxy.Addr.String())
+	log.Debugf("Started HTTP proxy server at %s", httpProxyAddr)
 
 	// Set up HTTPS chained server
-	tlsProxy, err = setupNewHTTPSServer(0, 30*time.Second)
+	tlsProxyAddr, err = setupNewHTTPSServer(0, 30*time.Second)
 	if err != nil {
 		log.Error("Error starting proxy server")
 		os.Exit(1)
 	}
-	log.Debugf("Started HTTPS proxy server at %s", tlsProxy.Addr.String())
+	log.Debugf("Started HTTPS proxy server at %s", tlsProxyAddr)
 
 	os.Exit(m.Run())
 }
@@ -97,7 +97,7 @@ func TestReportStats(t *testing.T) {
 	m := mockReporter{error: make(map[measured.Error]int)}
 	measured.Start(100*time.Millisecond, &m)
 	defer measured.Stop()
-	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, deviceId)
 		t.Log("\n" + req)
@@ -114,8 +114,8 @@ func TestReportStats(t *testing.T) {
 		}
 	}
 
-	testRoundTrip(t, httpProxy, httpTargetServer, testFn)
-	testRoundTrip(t, tlsProxy, httpTargetServer, testFn)
+	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testFn)
+	testRoundTrip(t, tlsProxyAddr, true, httpTargetServer, testFn)
 	time.Sleep(200 * time.Millisecond)
 	assert.Equal(t, 2, len(m.traffic))
 	if len(m.traffic) > 0 {
@@ -126,13 +126,13 @@ func TestReportStats(t *testing.T) {
 func TestMaxConnections(t *testing.T) {
 	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 
-	limitedServer, err := setupNewHTTPServer(5, 30*time.Second)
+	limitedServerAddr, err := setupNewHTTPServer(5, 30*time.Second)
 	if err != nil {
 		assert.Fail(t, "Error starting proxy server")
 	}
 
 	//limitedServer.httpServer.SetKeepAlivesEnabled(false)
-	okFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	okFn := func(conn net.Conn, targetURL *url.URL) {
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken, deviceId)
 		conn.Write([]byte(req))
 		var buf [400]byte
@@ -143,7 +143,7 @@ func TestMaxConnections(t *testing.T) {
 		time.Sleep(time.Millisecond * 100)
 	}
 
-	waitFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	waitFn := func(conn net.Conn, targetURL *url.URL) {
 		conn.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
 
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken, deviceId)
@@ -158,29 +158,29 @@ func TestMaxConnections(t *testing.T) {
 	}
 
 	for i := 0; i < 5; i++ {
-		go testRoundTrip(t, limitedServer, httpTargetServer, okFn)
+		go testRoundTrip(t, limitedServerAddr, false, httpTargetServer, okFn)
 	}
 
 	time.Sleep(time.Millisecond * 100)
 
 	for i := 0; i < 5; i++ {
-		go testRoundTrip(t, limitedServer, httpTargetServer, waitFn)
+		go testRoundTrip(t, limitedServerAddr, false, httpTargetServer, waitFn)
 	}
 
 	time.Sleep(time.Millisecond * 100)
 
 	for i := 0; i < 5; i++ {
-		go testRoundTrip(t, limitedServer, httpTargetServer, okFn)
+		go testRoundTrip(t, limitedServerAddr, false, httpTargetServer, okFn)
 	}
 }
 
 func TestIdleClientConnections(t *testing.T) {
-	limitedServer, err := setupNewHTTPServer(0, 100*time.Millisecond)
+	limitedServerAddr, err := setupNewHTTPServer(0, 100*time.Millisecond)
 	if err != nil {
 		assert.Fail(t, "Error starting proxy server")
 	}
 
-	okFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	okFn := func(conn net.Conn, targetURL *url.URL) {
 		time.Sleep(time.Millisecond * 90)
 		conn.Write([]byte("GET / HTTP/1.1\r\n\r\n"))
 
@@ -190,7 +190,7 @@ func TestIdleClientConnections(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	idleFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	idleFn := func(conn net.Conn, targetURL *url.URL) {
 		time.Sleep(time.Millisecond * 110)
 		conn.Write([]byte("GET / HTTP/1.1\r\n\r\n"))
 
@@ -200,25 +200,25 @@ func TestIdleClientConnections(t *testing.T) {
 		assert.Error(t, err)
 	}
 
-	go testRoundTrip(t, limitedServer, httpTargetServer, okFn)
-	testRoundTrip(t, limitedServer, httpTargetServer, idleFn)
+	go testRoundTrip(t, limitedServerAddr, false, httpTargetServer, okFn)
+	testRoundTrip(t, limitedServerAddr, false, httpTargetServer, idleFn)
 }
 
 // TODO: Since both client and target server idle timeouts are identical,
 // we are just testing the combined behavior.  We probably can do that by
 // creating a custom server that only sets one timeout at a time
 func TestIdleTargetConnections(t *testing.T) {
-	normalServer, err := setupNewHTTPServer(0, 30*time.Second)
+	normalServerAddr, err := setupNewHTTPServer(0, 30*time.Second)
 	if err != nil {
 		assert.Fail(t, "Error starting proxy server: %s", err)
 	}
 
-	impatientServer, err := setupNewHTTPServer(0, 100*time.Millisecond)
+	impatientServerAddr, err := setupNewHTTPServer(0, 100*time.Millisecond)
 	if err != nil {
 		assert.Fail(t, "Error starting proxy server: %s", err)
 	}
 
-	okForwardFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	okForwardFn := func(conn net.Conn, targetURL *url.URL) {
 		conn.Write([]byte("GET / HTTP/1.1\r\n\r\n"))
 		var buf [400]byte
 		_, err := conn.Read(buf[:])
@@ -226,7 +226,7 @@ func TestIdleTargetConnections(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	okConnectFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	okConnectFn := func(conn net.Conn, targetURL *url.URL) {
 		conn.Write([]byte("CONNECT www.google.com HTTP/1.1\r\nHost: www.google.com\r\n\r\n"))
 		var buf [400]byte
 		_, err := conn.Read(buf[:])
@@ -234,7 +234,7 @@ func TestIdleTargetConnections(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	failForwardFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	failForwardFn := func(conn net.Conn, targetURL *url.URL) {
 		reqStr := "GET / HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 		req := fmt.Sprintf(reqStr, targetURL.Host, validToken, deviceId)
 		t.Log("\n" + req)
@@ -251,7 +251,7 @@ func TestIdleTargetConnections(t *testing.T) {
 		}
 	}
 
-	failConnectFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	failConnectFn := func(conn net.Conn, targetURL *url.URL) {
 		reqStr := "CONNECT www.google.com HTTP/1.1\r\nHost: www.google.com\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 		req := fmt.Sprintf(reqStr, validToken, deviceId)
 		conn.Write([]byte(req))
@@ -267,10 +267,10 @@ func TestIdleTargetConnections(t *testing.T) {
 		}
 	}
 
-	testRoundTrip(t, normalServer, httpTargetServer, okForwardFn)
-	testRoundTrip(t, normalServer, httpTargetServer, okConnectFn)
-	testRoundTrip(t, impatientServer, httpTargetServer, failForwardFn)
-	testRoundTrip(t, impatientServer, httpTargetServer, failConnectFn)
+	testRoundTrip(t, normalServerAddr, false, httpTargetServer, okForwardFn)
+	testRoundTrip(t, normalServerAddr, false, httpTargetServer, okConnectFn)
+	testRoundTrip(t, impatientServerAddr, false, httpTargetServer, failForwardFn)
+	testRoundTrip(t, impatientServerAddr, false, httpTargetServer, failConnectFn)
 }
 
 // No X-Lantern-Auth-Token -> 400
@@ -278,7 +278,7 @@ func TestConnectNoToken(t *testing.T) {
 	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 400 Bad Request\r\n"
 
-	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, deviceId)
 		t.Log("\n" + req)
@@ -295,11 +295,11 @@ func TestConnectNoToken(t *testing.T) {
 		}
 	}
 
-	testRoundTrip(t, httpProxy, httpTargetServer, testFn)
-	testRoundTrip(t, tlsProxy, httpTargetServer, testFn)
+	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testFn)
+	testRoundTrip(t, tlsProxyAddr, true, httpTargetServer, testFn)
 
-	testRoundTrip(t, httpProxy, tlsTargetServer, testFn)
-	testRoundTrip(t, tlsProxy, tlsTargetServer, testFn)
+	testRoundTrip(t, httpProxyAddr, false, tlsTargetServer, testFn)
+	testRoundTrip(t, tlsProxyAddr, true, tlsTargetServer, testFn)
 }
 
 // Bad X-Lantern-Auth-Token -> 400
@@ -307,7 +307,7 @@ func TestConnectBadToken(t *testing.T) {
 	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 400 Bad Request\r\n"
 
-	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, "B4dT0k3n", deviceId)
 		t.Log("\n" + req)
@@ -324,11 +324,11 @@ func TestConnectBadToken(t *testing.T) {
 		}
 	}
 
-	testRoundTrip(t, httpProxy, httpTargetServer, testFn)
-	testRoundTrip(t, tlsProxy, httpTargetServer, testFn)
+	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testFn)
+	testRoundTrip(t, tlsProxyAddr, true, httpTargetServer, testFn)
 
-	testRoundTrip(t, httpProxy, tlsTargetServer, testFn)
-	testRoundTrip(t, tlsProxy, tlsTargetServer, testFn)
+	testRoundTrip(t, httpProxyAddr, false, tlsTargetServer, testFn)
+	testRoundTrip(t, tlsProxyAddr, true, tlsTargetServer, testFn)
 }
 
 // No X-Lantern-Device-Id -> 400
@@ -339,7 +339,7 @@ func TestConnectNoDevice(t *testing.T) {
 	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 400 Bad Request\r\n"
 
-	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken)
 		t.Log("\n" + req)
@@ -356,11 +356,11 @@ func TestConnectNoDevice(t *testing.T) {
 		}
 	}
 
-	testRoundTrip(t, httpProxy, httpTargetServer, testFn)
-	testRoundTrip(t, tlsProxy, httpTargetServer, testFn)
+	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testFn)
+	testRoundTrip(t, tlsProxyAddr, true, httpTargetServer, testFn)
 
-	testRoundTrip(t, httpProxy, tlsTargetServer, testFn)
-	testRoundTrip(t, tlsProxy, tlsTargetServer, testFn)
+	testRoundTrip(t, httpProxyAddr, false, tlsTargetServer, testFn)
+	testRoundTrip(t, tlsProxyAddr, true, tlsTargetServer, testFn)
 }
 
 // X-Lantern-Auth-Token + X-Lantern-Device-Id -> 200 OK <- Tunneled request -> 200 OK
@@ -368,7 +368,7 @@ func TestConnectOK(t *testing.T) {
 	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 200 OK\r\n"
 
-	testHTTP := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	testHTTP := func(conn net.Conn, targetURL *url.URL) {
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken, deviceId)
 		t.Log("\n" + req)
 		_, err := conn.Write([]byte(req))
@@ -393,7 +393,7 @@ func TestConnectOK(t *testing.T) {
 		assert.Contains(t, string(buf[:]), targetResponse, "should read tunneled response")
 	}
 
-	testTLS := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	testTLS := func(conn net.Conn, targetURL *url.URL) {
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken, deviceId)
 		t.Log("\n" + req)
 		_, err := conn.Write([]byte(req))
@@ -424,11 +424,11 @@ func TestConnectOK(t *testing.T) {
 		assert.Contains(t, string(buf[:]), targetResponse, "should read tunneled response")
 	}
 
-	testRoundTrip(t, httpProxy, httpTargetServer, testHTTP)
-	testRoundTrip(t, tlsProxy, httpTargetServer, testHTTP)
+	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testHTTP)
+	testRoundTrip(t, tlsProxyAddr, true, httpTargetServer, testHTTP)
 
-	testRoundTrip(t, httpProxy, tlsTargetServer, testTLS)
-	testRoundTrip(t, tlsProxy, tlsTargetServer, testTLS)
+	testRoundTrip(t, httpProxyAddr, false, tlsTargetServer, testTLS)
+	testRoundTrip(t, tlsProxyAddr, true, tlsTargetServer, testTLS)
 }
 
 // No X-Lantern-Auth-Token -> 404
@@ -436,7 +436,7 @@ func TestDirectNoToken(t *testing.T) {
 	connectReq := "GET /%s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 404 Not Found\r\n"
 
-	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, deviceId)
 		t.Log("\n" + req)
@@ -453,11 +453,11 @@ func TestDirectNoToken(t *testing.T) {
 		}
 	}
 
-	testRoundTrip(t, httpProxy, httpTargetServer, testFn)
-	testRoundTrip(t, tlsProxy, httpTargetServer, testFn)
+	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testFn)
+	testRoundTrip(t, tlsProxyAddr, true, httpTargetServer, testFn)
 
-	testRoundTrip(t, httpProxy, tlsTargetServer, testFn)
-	testRoundTrip(t, tlsProxy, tlsTargetServer, testFn)
+	testRoundTrip(t, httpProxyAddr, false, tlsTargetServer, testFn)
+	testRoundTrip(t, tlsProxyAddr, true, tlsTargetServer, testFn)
 }
 
 // Bad X-Lantern-Auth-Token -> 404
@@ -465,7 +465,7 @@ func TestDirectBadToken(t *testing.T) {
 	connectReq := "GET /%s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 404 Not Found\r\n"
 
-	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, "B4dT0k3n", deviceId)
 		t.Log("\n" + req)
@@ -482,11 +482,11 @@ func TestDirectBadToken(t *testing.T) {
 		}
 	}
 
-	testRoundTrip(t, httpProxy, httpTargetServer, testFn)
-	testRoundTrip(t, tlsProxy, httpTargetServer, testFn)
+	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testFn)
+	testRoundTrip(t, tlsProxyAddr, true, httpTargetServer, testFn)
 
-	testRoundTrip(t, httpProxy, tlsTargetServer, testFn)
-	testRoundTrip(t, tlsProxy, tlsTargetServer, testFn)
+	testRoundTrip(t, httpProxyAddr, false, tlsTargetServer, testFn)
+	testRoundTrip(t, tlsProxyAddr, true, tlsTargetServer, testFn)
 }
 
 // No X-Lantern-Device-Id -> 404
@@ -497,7 +497,7 @@ func TestDirectNoDevice(t *testing.T) {
 	connectReq := "GET /%s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 404 Not Found\r\n"
 
-	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken)
 		t.Log("\n" + req)
@@ -514,11 +514,11 @@ func TestDirectNoDevice(t *testing.T) {
 		}
 	}
 
-	testRoundTrip(t, httpProxy, httpTargetServer, testFn)
-	testRoundTrip(t, tlsProxy, httpTargetServer, testFn)
+	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testFn)
+	testRoundTrip(t, tlsProxyAddr, true, httpTargetServer, testFn)
 
-	testRoundTrip(t, httpProxy, tlsTargetServer, testFn)
-	testRoundTrip(t, tlsProxy, tlsTargetServer, testFn)
+	testRoundTrip(t, httpProxyAddr, false, tlsTargetServer, testFn)
+	testRoundTrip(t, tlsProxyAddr, true, tlsTargetServer, testFn)
 }
 
 // X-Lantern-Auth-Token + X-Lantern-Device-Id -> Forward
@@ -526,7 +526,7 @@ func TestDirectOK(t *testing.T) {
 	reqTempl := "GET /%s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: extraauthtoken\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	failResp := "HTTP/1.1 500 Internal Server Error\r\n"
 
-	testOk := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	testOk := func(conn net.Conn, targetURL *url.URL) {
 		req := fmt.Sprintf(reqTempl, targetURL.Path, targetURL.Host, validToken, deviceId)
 		t.Log("\n" + req)
 		_, err := conn.Write([]byte(req))
@@ -540,7 +540,7 @@ func TestDirectOK(t *testing.T) {
 
 	}
 
-	testFail := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	testFail := func(conn net.Conn, targetURL *url.URL) {
 		req := fmt.Sprintf(reqTempl, targetURL.Path, targetURL.Host, validToken, deviceId)
 		t.Log("\n" + req)
 		_, err := conn.Write([]byte(req))
@@ -556,18 +556,18 @@ func TestDirectOK(t *testing.T) {
 
 	}
 
-	testRoundTrip(t, httpProxy, httpTargetServer, testOk)
-	testRoundTrip(t, tlsProxy, httpTargetServer, testOk)
+	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testOk)
+	testRoundTrip(t, tlsProxyAddr, true, httpTargetServer, testOk)
 
 	// HTTPS can't be tunneled using Direct Proxying, as redirections
 	// require a TLS handshake between the proxy and the target
-	testRoundTrip(t, httpProxy, tlsTargetServer, testFail)
-	testRoundTrip(t, tlsProxy, tlsTargetServer, testFail)
+	testRoundTrip(t, httpProxyAddr, false, tlsTargetServer, testFail)
+	testRoundTrip(t, tlsProxyAddr, true, tlsTargetServer, testFail)
 }
 
 func TestInvalidRequest(t *testing.T) {
 	connectResp := "HTTP/1.1 400 Bad Request\r\n"
-	testFn := func(conn net.Conn, proxy *server.Server, targetURL *url.URL) {
+	testFn := func(conn net.Conn, targetURL *url.URL) {
 		_, err := conn.Write([]byte("GET HTTP/1.1\r\n\r\n"))
 		if !assert.NoError(t, err, "should write GET request") {
 			t.FailNow()
@@ -579,8 +579,8 @@ func TestInvalidRequest(t *testing.T) {
 
 	}
 	for i := 0; i < 10; i++ {
-		testRoundTrip(t, httpProxy, tlsTargetServer, testFn)
-		testRoundTrip(t, tlsProxy, tlsTargetServer, testFn)
+		testRoundTrip(t, httpProxyAddr, false, tlsTargetServer, testFn)
+		testRoundTrip(t, tlsProxyAddr, true, tlsTargetServer, testFn)
 	}
 
 }
@@ -589,12 +589,11 @@ func TestInvalidRequest(t *testing.T) {
 // Auxiliary functions
 //
 
-func testRoundTrip(t *testing.T, proxy *server.Server, target *targetHandler, checkerFn func(conn net.Conn, proxy *server.Server, targetURL *url.URL)) {
+func testRoundTrip(t *testing.T, addr string, isTls bool, target *targetHandler, checkerFn func(conn net.Conn, targetURL *url.URL)) {
 	var conn net.Conn
 	var err error
 
-	addr := proxy.Addr.String()
-	if !proxy.Tls {
+	if !isTls {
 		conn, err = net.Dial("tcp", addr)
 		log.Debugf("%s -> %s (via HTTP) -> %s", conn.LocalAddr().String(), addr, target.server.URL)
 		if !assert.NoError(t, err, "should dial proxy server") {
@@ -624,7 +623,7 @@ func testRoundTrip(t *testing.T, proxy *server.Server, target *targetHandler, ch
 	}()
 
 	url, _ := url.Parse(target.server.URL)
-	checkerFn(conn, proxy, url)
+	checkerFn(conn, url)
 }
 
 //
@@ -680,7 +679,7 @@ func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
 	return srv
 }
 
-func setupNewHTTPServer(maxConns uint64, idleTimeout time.Duration) (*server.Server, error) {
+func setupNewHTTPServer(maxConns uint64, idleTimeout time.Duration) (string, error) {
 	s := basicServer(maxConns, idleTimeout)
 	var err error
 	ready := make(chan string)
@@ -688,15 +687,14 @@ func setupNewHTTPServer(maxConns uint64, idleTimeout time.Duration) (*server.Ser
 		ready <- addr
 	}
 	go func(err *error) {
-		if *err = s.ServeHTTP("localhost:0", wait); err != nil {
+		if *err = s.ListenAndServeHTTP("localhost:0", wait); err != nil {
 			log.Errorf("Unable to serve: %s", err)
 		}
 	}(&err)
-	<-ready
-	return s, err
+	return <-ready, err
 }
 
-func setupNewHTTPSServer(maxConns uint64, idleTimeout time.Duration) (*server.Server, error) {
+func setupNewHTTPSServer(maxConns uint64, idleTimeout time.Duration) (string, error) {
 	s := basicServer(maxConns, idleTimeout)
 	var err error
 	ready := make(chan string)
@@ -704,16 +702,16 @@ func setupNewHTTPSServer(maxConns uint64, idleTimeout time.Duration) (*server.Se
 		ready <- addr
 	}
 	go func(err *error) {
-		if *err = s.ServeHTTPS("localhost:0", "key.pem", "cert.pem", wait); err != nil {
+		if *err = s.ListenAndServeHTTPS("localhost:0", "key.pem", "cert.pem", wait); err != nil {
 			log.Errorf("Unable to serve: %s", err)
 		}
 	}(&err)
-	<-ready
+	addr := <-ready
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 	serverCertificate, err = keyman.LoadCertificateFromFile("cert.pem")
-	return s, err
+	return addr, err
 }
 
 //

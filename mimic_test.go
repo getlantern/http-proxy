@@ -120,7 +120,7 @@ func TestMimicApache(t *testing.T) {
 		getListenAddr := func(addr string) {
 			chListenOn <- addr
 		}
-		err := s.ServeHTTP(":0", getListenAddr)
+		err := s.ListenAndServeHTTP(":0", getListenAddr)
 		assert.NoError(t, err, "should start chained server")
 	}()
 
@@ -132,7 +132,7 @@ func TestMimicApache(t *testing.T) {
 	mimic.Host = host
 	mimic.Port = port
 
-	buf := request(t, s.Addr.String())
+	buf := request(t, strAddr)
 
 	ioutil.WriteFile(current, buf.Bytes(), os.ModePerm)
 	compare(t, normalize(buf), apTemplate)
