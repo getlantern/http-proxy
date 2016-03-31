@@ -198,9 +198,14 @@ func main() {
 		if err != nil {
 			log.Fatalf("Unable to listen with obfs4: %v", err)
 		}
-		go srv.Serve(l, func(addr string) {
-			log.Debugf("obfs4 listening at %v", addr)
-		})
+		go func() {
+			err := srv.Serve(l, func(addr string) {
+				log.Debugf("obfs4 listening at %v", addr)
+			})
+			if err != nil {
+				log.Fatalf("Error serving OBFS4: %v", err)
+			}
+		}()
 	}
 	if *https {
 		err = srv.ListenAndServeHTTPS(*addr, *keyfile, *certfile, initMimic)
@@ -208,6 +213,6 @@ func main() {
 		err = srv.ListenAndServeHTTP(*addr, initMimic)
 	}
 	if err != nil {
-		log.Errorf("Error serving: %v", err)
+		log.Errorf("Error serving HTTP(S): %v", err)
 	}
 }
