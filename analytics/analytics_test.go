@@ -4,7 +4,7 @@ import (
 	"net"
 	"testing"
 
-	"github.com/getlantern/testify/assert"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNormalizeSite(t *testing.T) {

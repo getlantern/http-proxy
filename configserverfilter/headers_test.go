@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/getlantern/testify/assert"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/getlantern/http-proxy-lantern/common"
 )

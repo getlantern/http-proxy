@@ -10,7 +10,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/getlantern/testify/assert"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/getlantern/http-proxy/server"
 
