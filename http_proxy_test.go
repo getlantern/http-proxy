@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -90,7 +91,7 @@ func TestMain(m *testing.M) {
 func TestReportStats(t *testing.T) {
 	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 400 Bad Request\r\n"
-	m := mockReporter{error: make(map[measured.Error]int)}
+	m := mockReporter{_error: make(map[measured.Error]int)}
 	measured.Start(100*time.Millisecond, &m)
 	defer measured.Stop()
 	testFn := func(conn net.Conn, targetURL *url.URL) {
@@ -113,9 +114,10 @@ func TestReportStats(t *testing.T) {
 	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testFn)
 	testRoundTrip(t, tlsProxyAddr, true, httpTargetServer, testFn)
 	time.Sleep(200 * time.Millisecond)
-	assert.Equal(t, 2, len(m.traffic))
-	if len(m.traffic) > 0 {
-		t.Logf("%+v", m.traffic[0])
+	traffic := m.traffic()
+	assert.Equal(t, 2, len(traffic))
+	if len(traffic) > 0 {
+		t.Logf("%+v", traffic[0])
 	}
 }
 
@@ -132,7 +134,7 @@ func TestMaxConnections(t *testing.T) {
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken, deviceId)
 		conn.Write([]byte(req))
 		var buf [400]byte
-		_, err = conn.Read(buf[:])
+		_, err := conn.Read(buf[:])
 
 		assert.NoError(t, err)
 
@@ -145,7 +147,7 @@ func TestMaxConnections(t *testing.T) {
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken, deviceId)
 		conn.Write([]byte(req))
 		var buf [400]byte
-		_, err = conn.Read(buf[:])
+		_, err := conn.Read(buf[:])
 
 		if assert.Error(t, err) {
 			e, ok := err.(*net.OpError)
@@ -775,24 +777,49 @@ func newTargetHandler(msg string, tls bool) (string, *targetHandler) {
 //
 
 type mockReporter struct {
-	error   map[measured.Error]int
-	latency []*measured.LatencyTracker
-	traffic []*measured.TrafficTracker
+	_error   map[measured.Error]int
+	_latency []*measured.LatencyTracker
+	_traffic []*measured.TrafficTracker
+	mx       sync.RWMutex
 }
 
 func (nr *mockReporter) ReportError(e map[*measured.Error]int) error {
+	nr.mx.Lock()
+	defer nr.mx.Unlock()
 	for k, v := range e {
-		nr.error[*k] = nr.error[*k] + v
+		nr._error[*k] = nr._error[*k] + v
 	}
 	return nil
 }
 
 func (nr *mockReporter) ReportLatency(l []*measured.LatencyTracker) error {
-	nr.latency = append(nr.latency, l...)
+	nr.mx.Lock()
+	defer nr.mx.Unlock()
+	nr._latency = append(nr._latency, l...)
 	return nil
 }
 
 func (nr *mockReporter) ReportTraffic(t []*measured.TrafficTracker) error {
-	nr.traffic = append(nr.traffic, t...)
+	nr.mx.Lock()
+	defer nr.mx.Unlock()
+	nr._traffic = append(nr._traffic, t...)
 	return nil
+}
+
+func (nr *mockReporter) error() map[measured.Error]int {
+	nr.mx.RLock()
+	defer nr.mx.RUnlock()
+	return nr._error
+}
+
+func (nr *mockReporter) latency() []*measured.LatencyTracker {
+	nr.mx.RLock()
+	defer nr.mx.RUnlock()
+	return nr._latency
+}
+
+func (nr *mockReporter) traffic() []*measured.TrafficTracker {
+	nr.mx.RLock()
+	defer nr.mx.RUnlock()
+	return nr._traffic
 }
