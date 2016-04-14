@@ -36,11 +36,11 @@ func (rp *measuredReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
 		defer tx.Close()
 
 		_, err := tx.Exec(func() error {
-			err := tx.HIncrBy("client->bytes-in", string(key), int64(t.LastIn)).Err()
+			err := tx.HIncrBy("_client:"+string(key), "bytesIn", int64(t.LastIn)).Err()
 			if err != nil {
 				return err
 			}
-			err = tx.HIncrBy("client->bytes-out", string(key), int64(t.LastOut)).Err()
+			err = tx.HIncrBy("_client:"+string(key), "bytesOut", int64(t.LastOut)).Err()
 			if err != nil {
 				return err
 			}
