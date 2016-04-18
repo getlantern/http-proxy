@@ -25,6 +25,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
+	"github.com/getlantern/http-proxy-lantern/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/profilter"
 	"github.com/getlantern/http-proxy-lantern/redis"
@@ -54,6 +55,8 @@ var (
 	serverId                     = flag.String("serverid", "", "Server Id required for Pro-supporting servers")
 	token                        = flag.String("token", "", "Lantern token")
 	tunnelPorts                  = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
+	obfs4Addr                    = flag.String("obfs4-addr", "", "Provide an address here in order to listen with obfs4")
+	obfs4Dir                     = flag.String("obfs4-dir", ".", "Directory where obfs4 can store its files")
 )
 
 func main() {
@@ -190,12 +193,26 @@ func main() {
 		mimic.SetServerAddr(addr)
 	}
 
+	if *obfs4Addr != "" {
+		l, err := obfs4listener.NewListener(*obfs4Addr, *obfs4Dir)
+		if err != nil {
+			log.Fatalf("Unable to listen with obfs4: %v", err)
+		}
+		go func() {
+			err := srv.Serve(l, func(addr string) {
+				log.Debugf("obfs4 listening at %v", addr)
+			})
+			if err != nil {
+				log.Fatalf("Error serving OBFS4: %v", err)
+			}
+		}()
+	}
 	if *https {
-		err = srv.ServeHTTPS(*addr, *keyfile, *certfile, initMimic)
+		err = srv.ListenAndServeHTTPS(*addr, *keyfile, *certfile, initMimic)
 	} else {
-		err = srv.ServeHTTP(*addr, initMimic)
+		err = srv.ListenAndServeHTTP(*addr, initMimic)
 	}
 	if err != nil {
-		log.Errorf("Error serving: %v", err)
+		log.Errorf("Error serving HTTP(S): %v", err)
 	}
 }

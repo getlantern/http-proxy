@@ -34,3 +34,6 @@ http-proxy.raw
 test/data/http-proxy.raw
 
 loader
+obfs4_bridgeline.txt
+obfs4_state.json
+
