@@ -3,10 +3,15 @@ package redis
 import (
 	"fmt"
 	"net"
+	"time"
 
 	"gopkg.in/redis.v3"
 
 	"github.com/getlantern/measured"
+)
+
+var (
+	keysExpiration time.Duration = time.Hour * 24 * 31
 )
 
 type measuredReporter struct {
@@ -44,14 +49,21 @@ func (rp *measuredReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
 		defer tx.Close()
 
 		_, err := tx.Exec(func() error {
-			err := tx.HIncrBy("client:"+string(key), "bytesIn", int64(t.LastIn)).Err()
+			clientKey := "_client:" + string(key)
+
+			err := tx.HIncrBy(clientKey, "bytesIn", int64(t.LastIn)).Err()
 			if err != nil {
 				return err
 			}
-			err = tx.HIncrBy("client:"+string(key), "bytesOut", int64(t.LastOut)).Err()
+			err = tx.HIncrBy(clientKey, "bytesOut", int64(t.LastOut)).Err()
 			if err != nil {
 				return err
 			}
+			err = tx.Expire(clientKey, keysExpiration).Err()
+			if err != nil {
+				return err
+			}
+
 			// An auxiliary ordered set for aggregated bytesIn+bytesOut
 			// Redis stores scores as float64
 			err = tx.ZAdd("client->bytes",
