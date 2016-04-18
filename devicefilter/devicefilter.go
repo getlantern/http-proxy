@@ -48,7 +48,7 @@ func (f *DeviceFilterPre) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	lanternDeviceId := req.Header.Get(common.DeviceIdHeader)
 
 	if lanternDeviceId == "" {
-		log.Tracef("No %s header found from %s, usage statistis won't be registered", common.DeviceIdHeader, req.RemoteAddr)
+		log.Debugf("No %s header found from %s", common.DeviceIdHeader, req.RemoteAddr)
 	} else {
 		// Attached the uid to connection to report stats to redis correctly
 		// "conn" in context is previously attached in server.go

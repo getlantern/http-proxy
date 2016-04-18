@@ -2,6 +2,7 @@ package redis
 
 import (
 	"fmt"
+	"net"
 	"time"
 
 	"gopkg.in/redis.v3"
@@ -37,6 +38,13 @@ func (rp *measuredReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
 		if key == "" {
 			panic("empty key is not allowed")
 		}
+
+		// Don't report IDs in the form ip:port, so no connection that isn't
+		// associated to a request that passes through devicefilter gets reported
+		if _, _, err := net.SplitHostPort(key); err == nil {
+			continue
+		}
+
 		tx := rp.redisClient.Multi()
 		defer tx.Close()
 
