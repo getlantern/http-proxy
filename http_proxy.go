@@ -21,6 +21,7 @@ import (
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
+	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
@@ -95,6 +96,9 @@ func main() {
 		}()
 	}
 
+	// Set up a blacklist
+	bl := blacklist.New(10 * time.Second)
+
 	// Middleware
 	forwarder, err := forward.New(nil, forward.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
 	if err != nil {
@@ -135,7 +139,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	deviceFilterPost := devicefilter.NewPost(commonFilter)
+	deviceFilterPost := devicefilter.NewPost(bl, commonFilter)
 
 	analyticsFilter := analytics.New(*proxiedSitesTrackingId, *proxiedSitesSamplePercentage, deviceFilterPost)
 
@@ -168,6 +172,9 @@ func main() {
 	} else {
 		srv = server.NewServer(tokenFilter)
 	}
+
+	// Only allow connections from remote IPs that are not blacklisted
+	srv.Allow = bl.OnConnect
 
 	// Add net.Listener wrappers for inbound connections
 	if *enableReports {

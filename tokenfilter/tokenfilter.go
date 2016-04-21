@@ -53,7 +53,7 @@ func (f *TokenFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	tokens := req.Header[common.TokenHeader]
 	if tokens == nil || len(tokens) == 0 || tokens[0] == "" {
-		log.Debugf("No token provided from %s, mimicking apache", req.RemoteAddr)
+		log.Debugf("No token provided from %s for request to %v, mimicking apache", req.RemoteAddr, req.Host)
 		mimic.MimicApache(w, req)
 	} else {
 		tokenMatched := false
@@ -65,9 +65,10 @@ func (f *TokenFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		}
 		if tokenMatched {
 			req.Header.Del(common.TokenHeader)
+			log.Debugf("Allowing connection from %v to %v", req.RemoteAddr, req.Host)
 			f.next.ServeHTTP(w, req)
 		} else {
-			log.Debugf("Mismatched token(s) %s from %s, mimicking apache", strings.Join(tokens, ","), req.RemoteAddr)
+			log.Debugf("Mismatched token(s) %s from %s for request to %v, mimicking apache", strings.Join(tokens, ","), req.RemoteAddr, req.Host)
 			mimic.MimicApache(w, req)
 		}
 	}
