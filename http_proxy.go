@@ -21,6 +21,7 @@ import (
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
+	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
@@ -168,6 +169,9 @@ func main() {
 	} else {
 		srv = server.NewServer(tokenFilter)
 	}
+
+	// Only allow connections from remote IPs that are not blacklisted
+	srv.Allow = blacklist.IsNotBlacklisted
 
 	// Add net.Listener wrappers for inbound connections
 	if *enableReports {
