@@ -51,11 +51,11 @@ func (rp *measuredReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
 		_, err := tx.Exec(func() error {
 			clientKey := "_client:" + string(key)
 
-			err := tx.HIncrBy(clientKey, "bytesIn", int64(t.LastIn)).Err()
+			err := tx.HIncrBy(clientKey, "bytesIn", int64(t.TotalIn)).Err()
 			if err != nil {
 				return err
 			}
-			err = tx.HIncrBy(clientKey, "bytesOut", int64(t.LastOut)).Err()
+			err = tx.HIncrBy(clientKey, "bytesOut", int64(t.TotalOut)).Err()
 			if err != nil {
 				return err
 			}
@@ -64,16 +64,21 @@ func (rp *measuredReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
 				return err
 			}
 
-			// An auxiliary ordered set for aggregated bytesIn+bytesOut
+			// Ordered set for aggregated bytesIn+bytesOut, bytesIn, bytesOut
 			// Redis stores scores as float64
-			err = tx.ZAdd("client->bytes",
-				redis.Z{
-					float64(t.TotalIn + t.TotalOut),
-					key,
-				}).Err()
+			err = tx.ZIncrBy("client->bytesIn", float64(t.TotalIn), key).Err()
 			if err != nil {
 				return err
 			}
+			err = tx.ZIncrBy("client->bytesOut", float64(t.TotalOut), key).Err()
+			if err != nil {
+				return err
+			}
+			err = tx.ZIncrBy("client->bytesInOut", float64(t.TotalIn+t.TotalOut), key).Err()
+			if err != nil {
+				return err
+			}
+
 			return nil
 		})
 		if err != nil {
