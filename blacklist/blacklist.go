@@ -16,30 +16,36 @@ var (
 
 // Blacklist is a blacklist of IPs.
 type Blacklist struct {
-	maxIdleTime          time.Duration
-	allowedFailures      int
-	failureResetInterval time.Duration
-	connections          chan string
-	successes            chan string
-	firstConnectionTime  map[string]time.Time
-	failureCounts        map[string]int
-	failureTimes         map[string]time.Time
-	blacklist            map[string]time.Time
-	mutex                sync.RWMutex
+	maxIdleTime         time.Duration
+	allowedFailures     int
+	blacklistExpiration time.Duration
+	connections         chan string
+	successes           chan string
+	firstConnectionTime map[string]time.Time
+	failureCounts       map[string]int
+	blacklist           map[string]time.Time
+	mutex               sync.RWMutex
 }
 
-// New creates a new Blacklist with the given maxIdleTime.
-func New(maxIdleTime time.Duration, allowedFailures int, failureResetInterval time.Duration) *Blacklist {
+// New creates a new Blacklist.
+// maxIdleTime - the maximum amount of time we'll wait between the start of a
+//               connection and seeing a successful HTTP request before we mark
+//               the connection as failed.
+// allowedFailures - the number of consecutive failures allowed before an IP is
+//                   blacklisted
+// blacklistExpiration - how long an IP is allowed to remain on the blacklist.
+//                       In practice, an IP may end up on the blacklist up to
+//                       1.1 * blacklistExpiration.
+func New(maxIdleTime time.Duration, allowedFailures int, blacklistExpiration time.Duration) *Blacklist {
 	bl := &Blacklist{
-		maxIdleTime:          maxIdleTime,
-		allowedFailures:      allowedFailures,
-		failureResetInterval: failureResetInterval,
-		connections:          make(chan string, 1000),
-		successes:            make(chan string, 1000),
-		firstConnectionTime:  make(map[string]time.Time),
-		failureCounts:        make(map[string]int),
-		failureTimes:         make(map[string]time.Time),
-		blacklist:            make(map[string]time.Time),
+		maxIdleTime:         maxIdleTime,
+		allowedFailures:     allowedFailures,
+		blacklistExpiration: blacklistExpiration,
+		connections:         make(chan string, 1000),
+		successes:           make(chan string, 1000),
+		firstConnectionTime: make(map[string]time.Time),
+		failureCounts:       make(map[string]int),
+		blacklist:           make(map[string]time.Time),
 	}
 	go bl.track()
 	return bl
@@ -66,16 +72,20 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 }
 
 func (bl *Blacklist) track() {
-	timer := time.NewTimer(bl.maxIdleTime)
+	idleTimer := time.NewTimer(bl.maxIdleTime)
+	blacklistTimer := time.NewTimer(bl.blacklistExpiration / 10)
 	for {
 		select {
 		case ip := <-bl.connections:
 			bl.onConnection(ip)
 		case ip := <-bl.successes:
 			bl.onSuccess(ip)
-		case <-timer.C:
+		case <-idleTimer.C:
 			bl.checkForIdlers()
-			timer.Reset(bl.maxIdleTime)
+			idleTimer.Reset(bl.maxIdleTime)
+		case <-blacklistTimer.C:
+			bl.checkExpiration()
+			blacklistTimer.Reset(bl.blacklistExpiration / 10)
 		}
 	}
 }
@@ -104,15 +114,8 @@ func (bl *Blacklist) checkForIdlers() {
 			log.Debugf("%v connected but failed to successfully send an HTTP request within %v", ip, bl.maxIdleTime)
 			delete(bl.firstConnectionTime, ip)
 
-			var count int
-			lastFailureTime, found := bl.failureTimes[ip]
-			if found && now.Sub(lastFailureTime) > bl.failureResetInterval {
-				count = 1
-			} else {
-				count = bl.failureCounts[ip] + 1
-			}
+			count := bl.failureCounts[ip] + 1
 			bl.failureCounts[ip] = count
-			bl.failureTimes[ip] = now
 			if count >= bl.allowedFailures {
 				log.Debugf("Blacklisting %v", ip)
 				blacklistAdditions = append(blacklistAdditions, ip)
@@ -126,4 +129,18 @@ func (bl *Blacklist) checkForIdlers() {
 			bl.mutex.Unlock()
 		}
 	}
+}
+
+func (bl *Blacklist) checkExpiration() {
+	now := time.Now()
+	bl.mutex.Lock()
+	for ip, blacklistedAt := range bl.blacklist {
+		if now.Sub(blacklistedAt) > bl.blacklistExpiration {
+			log.Debugf("Removing %v from blacklist", ip)
+			delete(bl.blacklist, ip)
+			delete(bl.failureCounts, ip)
+			delete(bl.firstConnectionTime, ip)
+		}
+	}
+	bl.mutex.Unlock()
 }
