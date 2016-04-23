@@ -10,34 +10,36 @@ import (
 	"github.com/getlantern/golog"
 )
 
-const (
-	allowedFailures = 3
-)
-
 var (
 	log = golog.LoggerFor("blacklist")
 )
 
 // Blacklist is a blacklist of IPs.
 type Blacklist struct {
-	maxIdleTime         time.Duration
-	connections         chan string
-	successes           chan string
-	firstConnectionTime map[string]time.Time
-	failureCounts       map[string]int
-	blacklist           map[string]time.Time
-	mutex               sync.RWMutex
+	maxIdleTime          time.Duration
+	allowedFailures      int
+	failureResetInterval time.Duration
+	connections          chan string
+	successes            chan string
+	firstConnectionTime  map[string]time.Time
+	failureCounts        map[string]int
+	failureTimes         map[string]time.Time
+	blacklist            map[string]time.Time
+	mutex                sync.RWMutex
 }
 
 // New creates a new Blacklist with the given maxIdleTime.
-func New(maxIdleTime time.Duration) *Blacklist {
+func New(maxIdleTime time.Duration, allowedFailures int, failureResetInterval time.Duration) *Blacklist {
 	bl := &Blacklist{
-		maxIdleTime:         maxIdleTime,
-		connections:         make(chan string, 1000),
-		successes:           make(chan string, 1000),
-		firstConnectionTime: make(map[string]time.Time),
-		failureCounts:       make(map[string]int),
-		blacklist:           make(map[string]time.Time),
+		maxIdleTime:          maxIdleTime,
+		allowedFailures:      allowedFailures,
+		failureResetInterval: failureResetInterval,
+		connections:          make(chan string, 1000),
+		successes:            make(chan string, 1000),
+		firstConnectionTime:  make(map[string]time.Time),
+		failureCounts:        make(map[string]int),
+		failureTimes:         make(map[string]time.Time),
+		blacklist:            make(map[string]time.Time),
 	}
 	go bl.track()
 	return bl
@@ -101,9 +103,17 @@ func (bl *Blacklist) checkForIdlers() {
 		if now.Sub(t) > bl.maxIdleTime {
 			log.Debugf("%v connected but failed to successfully send an HTTP request within %v", ip, bl.maxIdleTime)
 			delete(bl.firstConnectionTime, ip)
-			count := bl.failureCounts[ip] + 1
+
+			var count int
+			lastFailureTime, found := bl.failureTimes[ip]
+			if found && now.Sub(lastFailureTime) > bl.failureResetInterval {
+				count = 1
+			} else {
+				count = bl.failureCounts[ip] + 1
+			}
 			bl.failureCounts[ip] = count
-			if count >= allowedFailures {
+			bl.failureTimes[ip] = now
+			if count >= bl.allowedFailures {
 				log.Debugf("Blacklisting %v", ip)
 				blacklistAdditions = append(blacklistAdditions, ip)
 			}
