@@ -97,7 +97,7 @@ func main() {
 	}
 
 	// Set up a blacklist
-	bl := blacklist.New(30*time.Second, 10, 24*time.Hour)
+	bl := blacklist.New(30*time.Second, 10, 6*time.Hour)
 
 	// Middleware
 	forwarder, err := forward.New(nil, forward.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
