@@ -79,7 +79,7 @@ func main() {
 	if *enableReports {
 		rp, err := redis.NewMeasuredReporter(*redisAddr)
 		if err != nil {
-			log.Errorf("Error connecting to redis: %v", err)
+			log.Fatalf("Error connecting to redis: %v", err)
 		} else {
 			measured.Start(20*time.Second, rp)
 			defer measured.Stop()
