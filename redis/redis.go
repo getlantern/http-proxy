@@ -27,14 +27,13 @@ func getClient(redisUrl string) (*redis.Client, error) {
 	if rc, ok := rcs[u.Host]; ok {
 		return rc, nil
 	} else {
-		redisPass := ""
+		opt := redis.Options{Addr: u.Host}
 		if u.User != nil {
-			redisPass, _ = u.User.Password()
+			redisPass, _ := u.User.Password()
+			opt.Password = redisPass
 		}
-		rc := redis.NewClient(&redis.Options{
-			Addr:     u.Host,
-			Password: redisPass,
-		})
+
+		rc := redis.NewClient(&opt)
 		_, err := rc.Ping().Result()
 		if err != nil {
 			return nil, fmt.Errorf("Unable to ping redis server: %s", err)
