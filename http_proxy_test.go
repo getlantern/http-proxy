@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"os"
 	"strconv"
+	"sync"
 	"testing"
 	"time"
 
@@ -117,10 +118,12 @@ func TestReportStats(t *testing.T) {
 	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testFn)
 	testRoundTrip(t, tlsProxyAddr, true, httpTargetServer, testFn)
 	time.Sleep(200 * time.Millisecond)
+	m.tmtx.Lock()
 	assert.Equal(t, 2, len(m.traffic))
 	if len(m.traffic) > 0 {
 		t.Logf("%+v", m.traffic[0])
 	}
+	m.tmtx.Unlock()
 }
 
 func TestMaxConnections(t *testing.T) {
@@ -782,6 +785,8 @@ type mockReporter struct {
 	error   map[measured.Error]int
 	latency []*measured.LatencyTracker
 	traffic []*measured.TrafficTracker
+	lmtx    sync.Mutex
+	tmtx    sync.Mutex
 }
 
 func (nr *mockReporter) ReportError(e map[*measured.Error]int) error {
@@ -791,12 +796,16 @@ func (nr *mockReporter) ReportError(e map[*measured.Error]int) error {
 	return nil
 }
 
-func (nr *mockReporter) ReportLatency(l []*measured.LatencyTracker) error {
-	nr.latency = append(nr.latency, l...)
+func (mr *mockReporter) ReportLatency(l []*measured.LatencyTracker) error {
+	mr.lmtx.Lock()
+	defer mr.lmtx.Unlock()
+	mr.latency = append(mr.latency, l...)
 	return nil
 }
 
-func (nr *mockReporter) ReportTraffic(t []*measured.TrafficTracker) error {
-	nr.traffic = append(nr.traffic, t...)
+func (mr *mockReporter) ReportTraffic(t []*measured.TrafficTracker) error {
+	mr.tmtx.Lock()
+	defer mr.tmtx.Unlock()
+	mr.traffic = append(mr.traffic, t...)
 	return nil
 }
