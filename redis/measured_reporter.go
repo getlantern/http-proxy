@@ -24,11 +24,10 @@ func NewMeasuredReporter(redisAddr string) (measured.Reporter, error) {
 	if err != nil {
 		return nil, err
 	}
-	ttlcache := NewTTLCache(time.Hour)
-	ttlcache.Init("multi", 0)
+
 	return &measuredReporter{
 		redisClient: rc,
-		errorCache:  ttlcache,
+		errorCache:  NewTTLCache(time.Hour),
 	}, nil
 }
 

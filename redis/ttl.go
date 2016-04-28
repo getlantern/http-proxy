@@ -33,32 +33,37 @@ func (item *Item) expired() bool {
 }
 
 type TTLCache struct {
-	mutex sync.RWMutex
+	mutex sync.Mutex
 	ttl   time.Duration
 	items map[string]*Item
 }
 
-func (cache *TTLCache) Init(key string, init uint64) {
-	cache.mutex.Lock()
-	item := &Item{val: init}
-	item.touch(cache.ttl)
-	cache.items[key] = item
-	cache.mutex.Unlock()
-}
-
 func (cache *TTLCache) Incr(key string) (val uint64, found bool) {
-	cache.mutex.RLock()
+	cache.mutex.Lock()
+	defer cache.mutex.Unlock()
+
 	item, exists := cache.items[key]
-	if !exists || item.expired() {
-		val = 0
-		found = false
-	} else {
+	if !exists {
+		val = uint64(1)
+		item := &Item{val: val}
 		item.touch(cache.ttl)
-		val = atomic.AddUint64(&item.val, 1)
-		found = true
+		cache.items[key] = item
+
+		return val, false
 	}
-	cache.mutex.RUnlock()
-	return
+
+	if item.expired() {
+		val = uint64(1)
+		item.touch(cache.ttl)
+		atomic.StoreUint64(&item.val, val)
+
+		return val, false
+	}
+
+	item.touch(cache.ttl)
+	val = atomic.AddUint64(&item.val, 1)
+
+	return val, true
 }
 
 func (cache *TTLCache) cleanup() {
