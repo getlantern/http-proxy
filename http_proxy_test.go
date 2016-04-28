@@ -134,14 +134,21 @@ func TestMaxConnections(t *testing.T) {
 		assert.Fail(t, "Error starting proxy server")
 	}
 
+	// They are reusing the underlaying socket, since we are connecting to localhost
+	var mtx sync.RWMutex
+
 	//limitedServer.httpServer.SetKeepAlivesEnabled(false)
 	okFn := func(conn net.Conn, targetURL *url.URL) {
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken, deviceId)
+		mtx.Lock()
 		conn.Write([]byte(req))
-		var buf [400]byte
-		_, err = conn.Read(buf[:])
+		mtx.Unlock()
 
+		var buf [400]byte
+		mtx.RLock()
+		_, err = conn.Read(buf[:])
 		assert.NoError(t, err)
+		mtx.RUnlock()
 
 		time.Sleep(time.Millisecond * 100)
 	}
@@ -150,21 +157,27 @@ func TestMaxConnections(t *testing.T) {
 		conn.SetReadDeadline(time.Now().Add(50 * time.Millisecond))
 
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken, deviceId)
-		conn.Write([]byte(req))
-		var buf [400]byte
-		_, err = conn.Read(buf[:])
 
+		mtx.Lock()
+		conn.Write([]byte(req))
+		mtx.Unlock()
+
+		var buf [400]byte
+		mtx.RLock()
+		_, err = conn.Read(buf[:])
 		if assert.Error(t, err) {
 			e, ok := err.(*net.OpError)
+
 			assert.True(t, ok && e.Timeout(), "should be a time out error")
 		}
+		mtx.RUnlock()
 	}
 
 	for i := 0; i < 5; i++ {
 		go testRoundTrip(t, limitedServerAddr, false, httpTargetServer, okFn)
 	}
 
-	time.Sleep(time.Millisecond * 100)
+	time.Sleep(time.Millisecond * 50)
 
 	for i := 0; i < 5; i++ {
 		go testRoundTrip(t, limitedServerAddr, false, httpTargetServer, waitFn)
