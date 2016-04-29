@@ -88,7 +88,7 @@ func (rp *measuredReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
 		})
 		if err != nil {
 			n, _ := rp.errorCache.Incr("multi")
-			// Do not allow more than 20 errors in an hour, otherwise shut doewn reporting
+			// Do not allow more than 20 errors in an hour, otherwise shut down reporting
 			if n >= 20 {
 				measured.Stop()
 			}

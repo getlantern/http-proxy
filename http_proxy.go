@@ -77,16 +77,13 @@ func main() {
 	}
 
 	// Reporting
-	redisConnSuccess := false
 	if *enableReports {
 		rp, err := redis.NewMeasuredReporter(*redisAddr)
 		if err != nil {
-			log.Errorf("Error connecting to redis: %v", err)
-		} else {
-			measured.Start(60*time.Second, rp)
-			redisConnSuccess = true
-			defer measured.Stop()
+			log.Errorf("Error creating mesured reporter: %v", err)
 		}
+		measured.Start(60*time.Second, rp)
+		defer measured.Stop()
 	}
 
 	if *pprofAddr != "" {
@@ -179,7 +176,7 @@ func main() {
 	srv.Allow = bl.OnConnect
 
 	// Add net.Listener wrappers for inbound connections
-	if *enableReports && redisConnSuccess {
+	if *enableReports {
 		srv.AddListenerWrappers(
 			// Measure connections
 			func(ls net.Listener) net.Listener {

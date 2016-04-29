@@ -34,10 +34,6 @@ func getClient(redisUrl string) (*redis.Client, error) {
 		}
 
 		rc := redis.NewClient(&opt)
-		_, err := rc.Ping().Result()
-		if err != nil {
-			return nil, fmt.Errorf("Unable to ping redis server: %s", err)
-		}
 		rcs[u.Host] = rc
 		return rc, nil
 	}
