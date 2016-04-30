@@ -16,7 +16,6 @@ var (
 
 type measuredReporter struct {
 	redisClient *redis.Client
-	errorCache  *TTLCache
 }
 
 func NewMeasuredReporter(redisAddr string) (measured.Reporter, error) {
@@ -27,7 +26,6 @@ func NewMeasuredReporter(redisAddr string) (measured.Reporter, error) {
 
 	return &measuredReporter{
 		redisClient: rc,
-		errorCache:  NewTTLCache(time.Hour),
 	}, nil
 }
 
@@ -87,11 +85,6 @@ func (rp *measuredReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
 			return nil
 		})
 		if err != nil {
-			n, _ := rp.errorCache.Incr("multi")
-			// Do not allow more than 20 errors in an hour, otherwise shut down reporting
-			if n >= 20 {
-				measured.Stop()
-			}
 			return fmt.Errorf("Error in MULTI command: %v\n", err)
 		}
 	}
