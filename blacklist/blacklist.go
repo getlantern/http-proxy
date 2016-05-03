@@ -41,8 +41,8 @@ func New(maxIdleTime time.Duration, allowedFailures int, blacklistExpiration tim
 		maxIdleTime:         maxIdleTime,
 		allowedFailures:     allowedFailures,
 		blacklistExpiration: blacklistExpiration,
-		connections:         make(chan string, 1000),
-		successes:           make(chan string, 1000),
+		connections:         make(chan string, 10000),
+		successes:           make(chan string, 10000),
 		firstConnectionTime: make(map[string]time.Time),
 		failureCounts:       make(map[string]int),
 		blacklist:           make(map[string]time.Time),
@@ -54,7 +54,12 @@ func New(maxIdleTime time.Duration, allowedFailures int, blacklistExpiration tim
 // Succeed records a success for the given addr, which resets the failure count
 // for that IP and removes it from the blacklist.
 func (bl *Blacklist) Succeed(ip string) {
-	bl.successes <- ip
+	select {
+	case bl.successes <- ip:
+		// ip submitted as success
+	default:
+		log.Debugf("Unable to record success from %v", ip)
+	}
 }
 
 // OnConnect records an attempt to connect from the given IP. If the IP is
@@ -66,7 +71,12 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 	if blacklisted {
 		log.Debugf("%v is blacklisted", ip)
 	} else {
-		bl.connections <- ip
+		select {
+		case bl.connections <- ip:
+			// ip submitted as connected
+		default:
+			log.Debugf("Unable to record connection from %v", ip)
+		}
 	}
 	return !blacklisted
 }
