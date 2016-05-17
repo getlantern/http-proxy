@@ -29,7 +29,7 @@ import (
 const (
 	deviceId       = "1234-1234-1234-1234-1234-1234"
 	validToken     = "6o0dToK3n"
-	tunneledReq    = "GET / HTTP/1.1\r\n\r\n"
+	tunneledReq    = "GET / HTTP/1.1\r\nHost:localhost\r\n\r\n"
 	targetResponse = "Fight for a Free Internet!"
 )
 
