@@ -768,10 +768,12 @@ func (m *targetHandler) Close() {
 func newTargetHandler(msg string, tls bool) (string, *targetHandler) {
 	m := targetHandler{}
 	m.Msg(msg)
+	m.server = httptest.NewUnstartedServer(&m)
+	m.server.Config.AcceptAnyHostHeader = true
 	if tls {
-		m.server = httptest.NewTLSServer(&m)
+		m.server.StartTLS()
 	} else {
-		m.server = httptest.NewServer(&m)
+		m.server.Start()
 	}
 	log.Debugf("Started target site at %v", m.server.URL)
 	return m.server.URL, &m
