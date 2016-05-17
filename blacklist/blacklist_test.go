@@ -20,7 +20,7 @@ func TestBlacklistSucceed(t *testing.T) {
 }
 
 func TestBlacklistFail(t *testing.T) {
-	bl := New(5*time.Millisecond, 2, 25*time.Millisecond)
+	bl := New(5*time.Millisecond, 2, 50*time.Millisecond)
 	// Run through the same tests multiple times since this depends somewhat on timing
 	for i := 0; i < 10; i++ {
 		for j := 0; j < bl.allowedFailures; j++ {
