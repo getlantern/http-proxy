@@ -31,6 +31,6 @@ build:
         GOROOT=/usr/local/go go build ./...
     # Test the project
     - script:
-      name: go test
+      name: go test -race
       code: |
         GOROOT=/usr/local/go go test ./...
