@@ -18,8 +18,8 @@ type measuredReporter struct {
 	redisClient *redis.Client
 }
 
-func NewMeasuredReporter(redisAddr string) (measured.Reporter, error) {
-	rc, err := getClient(redisAddr)
+func NewMeasuredReporter(redisOpts *Options) (measured.Reporter, error) {
+	rc, err := getClient(redisOpts)
 	if err != nil {
 		return nil, err
 	}

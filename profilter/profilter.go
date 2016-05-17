@@ -11,9 +11,10 @@ import (
 	"sync/atomic"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy-lantern/mimic"
 
 	"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/getlantern/http-proxy-lantern/mimic"
+	"github.com/getlantern/http-proxy-lantern/redis"
 )
 
 var log = golog.LoggerFor("profilter")
@@ -31,9 +32,9 @@ type LanternProFilter struct {
 
 type optSetter func(f *LanternProFilter) error
 
-func RedisConfigSetter(redisAddr, serverId string) optSetter {
+func RedisConfigSetter(redisOpts *redis.Options, serverId string) optSetter {
 	return func(f *LanternProFilter) (err error) {
-		if f.proConf, err = NewRedisProConfig(redisAddr, serverId, f); err != nil {
+		if f.proConf, err = NewRedisProConfig(redisOpts, serverId, f); err != nil {
 			return
 		}
 
