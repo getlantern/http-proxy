@@ -23,7 +23,10 @@ func NewMeasuredReporter(redisOpts *Options) (measured.Reporter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &measuredReporter{rc}, nil
+
+	return &measuredReporter{
+		redisClient: rc,
+	}, nil
 }
 
 func (rp *measuredReporter) ReportError(s map[*measured.Error]int) error {

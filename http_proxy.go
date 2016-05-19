@@ -89,11 +89,10 @@ func main() {
 	if *enableReports {
 		rp, err := redis.NewMeasuredReporter(redisOpts)
 		if err != nil {
-			log.Fatalf("Error connecting to redis: %v", err)
-		} else {
-			measured.Start(20*time.Second, rp)
-			defer measured.Stop()
+			log.Errorf("Error creating mesured reporter: %v", err)
 		}
+		measured.Start(60*time.Second, rp)
+		defer measured.Stop()
 	}
 
 	if *pprofAddr != "" {
