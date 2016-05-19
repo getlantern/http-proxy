@@ -17,8 +17,9 @@ var (
 )
 
 type SharedFlowControllerOptions struct {
-	GlobalLimit int64
-	Interval    time.Duration
+	GlobalLimit   int64
+	Interval      time.Duration
+	FlowGroupOpts *FlowGroupOptions
 }
 
 type GroupsMap map[string]*FlowGroup
@@ -37,6 +38,9 @@ func NewSharedFlowController(opts *SharedFlowControllerOptions) *SharedFlowContr
 	if opts.Interval == 0 {
 		opts.Interval = time.Second
 	}
+	if opts.FlowGroupOpts == nil {
+		panic("FlowGroupOpts should be provided")
+	}
 
 	s := &SharedFlowController{
 		options: opts,
@@ -51,13 +55,12 @@ func NewSharedFlowController(opts *SharedFlowControllerOptions) *SharedFlowContr
 func (m *SharedFlowController) AddToGroup(group string, l *flowrate.Limiter) (isNew bool) {
 	m.gMtx.Lock()
 	defer m.gMtx.Unlock()
-	if s, ok := m.groups[group]; ok {
-		s.AddLimiter(l)
+	if fg, ok := m.groups[group]; ok {
+		fg.AddLimiter(l)
 		isNew = false
+		fg.RebalanceLimits()
 	} else {
-		//newSet := set.New(l)
-		// TOD
-		flowgroup := NewFlowGroup(9999999, l)
+		flowgroup := NewFlowGroup(m.options.FlowGroupOpts, l)
 		m.groups[group] = flowgroup
 		isNew = true
 	}
@@ -84,7 +87,7 @@ func (m *SharedFlowController) updateFlowGroups() {
 
 	for range m.ticker.C {
 		for _, fg := range m.groups {
-			fg.UpdateLimits()
+			fg.RebalanceLimits()
 		}
 	}
 }
