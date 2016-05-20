@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"net/url"
+	"path"
+	"strconv"
 	"time"
 
 	"gopkg.in/redis.v3"
@@ -55,12 +57,25 @@ func getClient(opts *Options) (*redis.Client, error) {
 	}
 
 	if u.Host == "" {
-		return nil, fmt.Errorf("Please provide a Redis URL of the form 'redis[s]://[user:pass@host:port]'")
+		return nil, fmt.Errorf("Please provide a Redis URL of the form 'redis[s]://[user:pass]@host:port[/db]'")
 	}
 
 	if rc, ok := rcs[u.Host]; ok {
 		return rc, nil
 	}
+
+	db := int64(0)
+	if len(u.Path) > 0 {
+		log.Debugf("Trying to determine database number from path: %v", u.Path)
+		_, dbstring := path.Split(u.Path)
+		_db, err2 := strconv.Atoi(dbstring)
+		if err2 != nil {
+			log.Errorf("Unable to get database number from path %v: %v", u.Path, err2)
+		} else {
+			db = int64(_db)
+		}
+	}
+	log.Debugf("Using database %d", db)
 
 	dialer := &net.Dialer{
 		Timeout:   opts.DialTimeout,
@@ -108,6 +123,7 @@ func getClient(opts *Options) (*redis.Client, error) {
 
 	opt := redis.Options{
 		Dialer: dialFunc,
+		DB:     db,
 	}
 	if u.User != nil {
 		redisPass, _ := u.User.Password()
