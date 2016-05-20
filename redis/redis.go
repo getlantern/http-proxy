@@ -55,49 +55,59 @@ func getClient(opts *Options) (*redis.Client, error) {
 	}
 
 	if u.Host == "" {
-		return nil, fmt.Errorf("Please provide a Redis URL of the form 'redis://[user:pass@host:port]'")
+		return nil, fmt.Errorf("Please provide a Redis URL of the form 'redis[s]://[user:pass@host:port]'")
 	}
 
 	if rc, ok := rcs[u.Host]; ok {
 		return rc, nil
 	}
 
-	tlsConfig := &tls.Config{}
-
-	if opts.RedisCAFile == "" {
-		log.Debugf("Not using custom Redis CA")
-	} else {
-		log.Debugf("Adding custom Redis CA from: %v", opts.RedisCAFile)
-		cert, err2 := keyman.LoadCertificateFromFile(opts.RedisCAFile)
-		if err2 != nil {
-			return nil, fmt.Errorf("Unable to load RedisCAFile: %v", err2)
-		}
-		tlsConfig.RootCAs = cert.PoolContainingCert()
+	dialer := &net.Dialer{
+		Timeout:   opts.DialTimeout,
+		KeepAlive: opts.TCPKeepAlive,
+	}
+	if dialer.Timeout == 0 {
+		dialer.Timeout = 30 * time.Second
+		log.Debugf("Defaulted dial timeout to %v", dialer.Timeout)
 	}
 
-	if opts.ClientPKFile == "" || opts.ClientCertFile == "" {
-		log.Debug("Not enabling client TLS authentication")
-	} else {
-		log.Debugf("Enabling client TLS authentication using pk %v and cert %v", opts.ClientPKFile, opts.ClientCertFile)
-		cert, err2 := tls.LoadX509KeyPair(opts.ClientCertFile, opts.ClientPKFile)
-		if err2 != nil {
-			return nil, fmt.Errorf("Unable to load Client certificate/key pair: %v", err2)
+	dialFunc := func() (net.Conn, error) {
+		return dialer.Dial("tcp", u.Host)
+	}
+
+	if u.Scheme == "rediss" {
+		log.Debug("Using encrypted connection to Redis")
+		tlsConfig := &tls.Config{}
+
+		if opts.RedisCAFile == "" {
+			log.Debugf("Not using custom Redis CA")
+		} else {
+			log.Debugf("Adding custom Redis CA from: %v", opts.RedisCAFile)
+			cert, err2 := keyman.LoadCertificateFromFile(opts.RedisCAFile)
+			if err2 != nil {
+				return nil, fmt.Errorf("Unable to load RedisCAFile: %v", err2)
+			}
+			tlsConfig.RootCAs = cert.PoolContainingCert()
 		}
-		tlsConfig.Certificates = []tls.Certificate{cert}
+
+		if opts.ClientPKFile == "" || opts.ClientCertFile == "" {
+			log.Debug("Not enabling client TLS authentication")
+		} else {
+			log.Debugf("Enabling client TLS authentication using pk %v and cert %v", opts.ClientPKFile, opts.ClientCertFile)
+			cert, err2 := tls.LoadX509KeyPair(opts.ClientCertFile, opts.ClientPKFile)
+			if err2 != nil {
+				return nil, fmt.Errorf("Unable to load Client certificate/key pair: %v", err2)
+			}
+			tlsConfig.Certificates = []tls.Certificate{cert}
+		}
+
+		dialFunc = func() (net.Conn, error) {
+			return tls.DialWithDialer(dialer, "tcp", u.Host, tlsConfig)
+		}
 	}
 
 	opt := redis.Options{
-		Dialer: func() (net.Conn, error) {
-			dialer := &net.Dialer{
-				Timeout:   opts.DialTimeout,
-				KeepAlive: opts.TCPKeepAlive,
-			}
-			if dialer.Timeout == 0 {
-				dialer.Timeout = 30 * time.Second
-				log.Debugf("Defaulted dial timeout to %v", dialer.Timeout)
-			}
-			return tls.DialWithDialer(dialer, "tcp", u.Host, tlsConfig)
-		},
+		Dialer: dialFunc,
 	}
 	if u.User != nil {
 		redisPass, _ := u.User.Password()
