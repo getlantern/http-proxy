@@ -89,9 +89,9 @@ func main() {
 	if *enableReports {
 		rp, err := redis.NewMeasuredReporter(redisOpts)
 		if err != nil {
-			log.Errorf("Error creating mesured reporter: %v", err)
+			log.Fatalf("Error creating mesured reporter: %v", err)
 		}
-		measured.Start(60*time.Second, rp)
+		measured.Start(time.Minute, rp)
 		defer measured.Stop()
 	}
 
