@@ -7,6 +7,7 @@ import (
 	"net/url"
 	"path"
 	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/redis.v3"
@@ -90,7 +91,7 @@ func getClient(opts *Options) (*redis.Client, error) {
 		return dialer.Dial("tcp", u.Host)
 	}
 
-	if u.Scheme == "rediss" {
+	if strings.EqualFold(u.Scheme, "rediss") {
 		log.Debug("Using encrypted connection to Redis")
 		tlsConfig := &tls.Config{}
 
