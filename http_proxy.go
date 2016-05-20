@@ -53,7 +53,7 @@ var (
 	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
 	redisAddr                    = flag.String("redis", "127.0.0.1:6379", "Redis address in \"host:port\" format")
-	redisCA                      = flag.String("redisca", "garantia_ca.pem", "Certificate for redislabs's CA")
+	redisCA                      = flag.String("redisca", "", "Certificate for redislabs's CA")
 	redisClientPK                = flag.String("redisclientpk", "garantia_user_private.key", "Private key for authenticating client to redis's stunnel")
 	redisClientCert              = flag.String("redisclientcert", "garantia_user.crt", "Certificate for authenticating client to redis's stunnel")
 	serverId                     = flag.String("serverid", "", "Server Id required for Pro-supporting servers")
