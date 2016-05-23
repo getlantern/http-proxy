@@ -36,6 +36,15 @@ func (rp *measuredReporter) ReportLatency(s []*measured.LatencyTracker) error {
 	return nil
 }
 func (rp *measuredReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
+	now := time.Now()
+	nextMonth := now.Month() + 1
+	nextYear := now.Year()
+	if nextMonth > time.December {
+		nextMonth = time.January
+		nextYear++
+	}
+	beginningOfNextMonth := time.Date(nextYear, nextMonth, 1, 0, 0, 0, 0, now.Location())
+	endOfThisMonth := beginningOfNextMonth.Add(-1 * time.Nanosecond)
 	for _, t := range tt {
 		key := t.ID
 		if key == "" {
@@ -62,7 +71,7 @@ func (rp *measuredReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
 			if err != nil {
 				return err
 			}
-			err = tx.Expire(clientKey, keysExpiration).Err()
+			err = tx.ExpireAt(clientKey, endOfThisMonth).Err()
 			if err != nil {
 				return err
 			}
