@@ -26,9 +26,12 @@ func NewFlowGroup(opts *FlowGroupOptions, ls ...*flowrate.Limiter) *FlowGroup {
 		panic("RateLimit should be set in FlowGroupOptions")
 	}
 	// Keep utilization always below 0.95 to both avoid convergence to zero and too many
-	// attenuationSteps
+	// attenuation steps
 	if opts.Utilization <= 0.0 || opts.Utilization >= 0.95 {
 		panic("Utilization should be in the interval (0.0, 0.95)")
+	}
+	if opts.AttenuationStep <= 0.0 || opts.AttenuationStep > 1.0 {
+		panic("AttenuationStep should be in the interval (0.0, 1.0]")
 	}
 
 	return &FlowGroup{
