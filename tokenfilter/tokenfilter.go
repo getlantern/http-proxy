@@ -6,6 +6,8 @@ import (
 	"strings"
 
 	"github.com/getlantern/golog"
+	"github.com/getlantern/ops"
+
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/mimic"
 )
@@ -41,19 +43,23 @@ func New(next http.Handler, setters ...optSetter) (*TokenFilter, error) {
 }
 
 func (f *TokenFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	op := ops.Enter("tokenfilter")
+	defer op.Exit()
+
 	if log.IsTraceEnabled() {
 		reqStr, _ := httputil.DumpRequest(req, true)
 		log.Tracef("Token Filter Middleware received request:\n%s", reqStr)
 	}
 
 	if f.token == "" {
+		log.Debug("Not checking token")
 		f.next.ServeHTTP(w, req)
 		return
 	}
 
 	tokens := req.Header[common.TokenHeader]
 	if tokens == nil || len(tokens) == 0 || tokens[0] == "" {
-		log.Debugf("No token provided from %s for request to %v, mimicking apache", req.RemoteAddr, req.Host)
+		log.Error(op.Errorf("No token provided, mimicking apache"))
 		mimic.MimicApache(w, req)
 	} else {
 		tokenMatched := false
@@ -68,7 +74,7 @@ func (f *TokenFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			log.Debugf("Allowing connection from %v to %v", req.RemoteAddr, req.Host)
 			f.next.ServeHTTP(w, req)
 		} else {
-			log.Debugf("Mismatched token(s) %s from %s for request to %v, mimicking apache", strings.Join(tokens, ","), req.RemoteAddr, req.Host)
+			log.Error(op.Errorf("Mismatched token(s) %v, mimicking apache", strings.Join(tokens, ",")))
 			mimic.MimicApache(w, req)
 		}
 	}

@@ -10,8 +10,11 @@ import (
 
 	"github.com/vharitonsky/iniflags"
 
+	borda "github.com/getlantern/borda/client"
+	"github.com/getlantern/context"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
+	"github.com/getlantern/ops"
 
 	"github.com/getlantern/http-proxy/commonfilter"
 	"github.com/getlantern/http-proxy/forward"
@@ -27,6 +30,7 @@ import (
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
+	"github.com/getlantern/http-proxy-lantern/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/profilter"
 	"github.com/getlantern/http-proxy-lantern/redis"
@@ -43,6 +47,7 @@ var (
 	cfgSvrDomains                = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
 	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
+	bordaInterval                = flag.Duration("bordainterval", 30*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
 	help                         = flag.Bool("help", false, "Get usage help")
 	https                        = flag.Bool("https", false, "Use TLS for client to proxy communication")
 	idleClose                    = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
@@ -79,6 +84,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	context.PutGlobal("app", "http-proxy")
+
 	redisOpts := &redis.Options{
 		RedisURL:       *redisAddr,
 		RedisCAFile:    *redisCA,
@@ -102,6 +109,30 @@ func main() {
 				log.Error(err)
 			}
 		}()
+	}
+
+	// Configure borda
+	if *bordaInterval > 0 {
+		bordaClient := borda.NewClient(&borda.Options{
+			BatchInterval: *bordaInterval,
+		})
+		reportToBorda := bordaClient.ReducingSubmitter("proxy_results", 10000, func(existingValues map[string]float64, newValues map[string]float64) {
+			for key, value := range newValues {
+				existingValues[key] += value
+			}
+		})
+		ops.RegisterReporter(func(failure error, ctx map[string]interface{}) {
+			values := map[string]float64{}
+			if failure != nil {
+				values["error_count"] = 1
+			} else {
+				values["success_count"] = 1
+			}
+			reportErr := reportToBorda(values, ctx)
+			if reportErr != nil {
+				log.Errorf("Error reporting error to borda: %v", reportErr)
+			}
+		})
 	}
 
 	// Set up a blacklist
@@ -161,7 +192,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	var srv *server.Server
+	var top http.Handler = tokenFilter
 
 	// Pro support
 	if *enablePro {
@@ -169,17 +200,16 @@ func main() {
 			log.Fatal("Enabling Pro requires setting the \"serverid\" flag")
 		}
 		log.Debug("This proxy is configured to support Lantern Pro")
-		proFilter, err := profilter.New(tokenFilter,
+		proFilter, err2 := profilter.New(tokenFilter,
 			profilter.RedisConfigSetter(redisOpts, *serverId),
 		)
-		if err != nil {
-			log.Fatal(err)
+		if err2 != nil {
+			log.Fatal(err2)
 		}
-
-		srv = server.NewServer(proFilter)
-	} else {
-		srv = server.NewServer(tokenFilter)
+		top = proFilter
 	}
+
+	srv := server.NewServer(opsfilter.New(top))
 
 	// Only allow connections from remote IPs that are not blacklisted
 	srv.Allow = bl.OnConnect
@@ -204,7 +234,12 @@ func main() {
 		},
 	)
 
-	initMimic := func(addr string) {
+	onAddress := func(addr string) {
+		proxyHost, proxyPort, err2 := net.SplitHostPort(addr)
+		if err2 == nil {
+			context.PutGlobal("proxy_host", proxyHost)
+			context.PutGlobal("proxy_port", proxyPort)
+		}
 		mimic.SetServerAddr(addr)
 	}
 
@@ -223,9 +258,9 @@ func main() {
 		}()
 	}
 	if *https {
-		err = srv.ListenAndServeHTTPS(*addr, *keyfile, *certfile, initMimic)
+		err = srv.ListenAndServeHTTPS(*addr, *keyfile, *certfile, onAddress)
 	} else {
-		err = srv.ListenAndServeHTTP(*addr, initMimic)
+		err = srv.ListenAndServeHTTP(*addr, onAddress)
 	}
 	if err != nil {
 		log.Errorf("Error serving HTTP(S): %v", err)
