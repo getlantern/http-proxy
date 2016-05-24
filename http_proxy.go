@@ -50,7 +50,7 @@ var (
 	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
 	bordaReportInterval          = flag.Duration("borda-report-interval", 30*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
-	bordaSamplePercentage        = flag.Float64("borda-sample-percentage", 0.001, "The percentage of devices to report to Borda (0.01 = 1%)")
+	bordaSamplePercentage        = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
 	help                         = flag.Bool("help", false, "Get usage help")
 	https                        = flag.Bool("https", false, "Use TLS for client to proxy communication")
 	idleClose                    = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
