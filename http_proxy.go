@@ -49,7 +49,7 @@ var (
 	cfgSvrDomains                = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
 	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
-	bordaInterval                = flag.Duration("bordainterval", 30*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
+	bordaReportInterval          = flag.Duration("borda-report-interval", 30*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
 	bordaSamplePercentage        = flag.Float64("borda-sample-percentage", 0.001, "The percentage of devices to report to Borda (0.01 = 1%)")
 	help                         = flag.Bool("help", false, "Get usage help")
 	https                        = flag.Bool("https", false, "Use TLS for client to proxy communication")
@@ -115,9 +115,9 @@ func main() {
 	}
 
 	// Configure borda
-	if *bordaInterval > 0 {
+	if *bordaReportInterval > 0 {
 		bordaClient := borda.NewClient(&borda.Options{
-			BatchInterval: *bordaInterval,
+			BatchInterval: *bordaReportInterval,
 		})
 		reportToBorda := bordaClient.ReducingSubmitter("proxy_results", 10000, func(existingValues map[string]float64, newValues map[string]float64) {
 			for key, value := range newValues {
