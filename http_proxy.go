@@ -1,6 +1,8 @@
 package main
 
 import (
+	"encoding/base64"
+	"encoding/binary"
 	"flag"
 	"net"
 	"net/http"
@@ -48,6 +50,7 @@ var (
 	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
 	bordaInterval                = flag.Duration("bordainterval", 30*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
+	bordaSamplePercentage        = flag.Float64("borda-sample-percentage", 0.001, "The percentage of devices to report to Borda (0.01 = 1%)")
 	help                         = flag.Bool("help", false, "Get usage help")
 	https                        = flag.Bool("https", false, "Use TLS for client to proxy communication")
 	idleClose                    = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
@@ -122,6 +125,29 @@ func main() {
 			}
 		})
 		ops.RegisterReporter(func(failure error, ctx map[string]interface{}) {
+			// Sample a subset of device ids
+			deviceID := ctx["device_id"]
+			if deviceID == nil {
+				log.Debugf("No device id, not reporting measurement")
+				return
+			}
+			deviceIDBytes, base64Err := base64.StdEncoding.DecodeString(deviceID.(string))
+			if base64Err != nil {
+				log.Debugf("Error decoding base64 deviceID: %v", base64Err)
+				return
+			}
+			var deviceIDInt uint64
+			if len(deviceIDBytes) < 4 {
+				log.Debugf("DeviceID too small: %v", base64Err)
+			} else if len(deviceIDBytes) < 8 {
+				deviceIDInt = uint64(binary.BigEndian.Uint32(deviceIDBytes))
+			} else {
+				deviceIDInt = binary.BigEndian.Uint64(deviceIDBytes)
+			}
+			if deviceIDInt%uint64(1 / *bordaSamplePercentage) != 0 {
+				log.Trace("DeviceID not being sampled")
+			}
+
 			values := map[string]float64{}
 			if failure != nil {
 				values["error_count"] = 1
