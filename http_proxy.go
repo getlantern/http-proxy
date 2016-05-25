@@ -13,7 +13,6 @@ import (
 	"github.com/vharitonsky/iniflags"
 
 	borda "github.com/getlantern/borda/client"
-	"github.com/getlantern/context"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
 	"github.com/getlantern/ops"
@@ -87,7 +86,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	context.PutGlobal("app", "http-proxy")
+	ops.PutGlobal("app", "http-proxy")
 
 	redisOpts := &redis.Options{
 		RedisURL:       *redisAddr,
@@ -263,8 +262,8 @@ func main() {
 	onAddress := func(addr string) {
 		proxyHost, proxyPort, err2 := net.SplitHostPort(addr)
 		if err2 == nil {
-			context.PutGlobal("proxy_host", proxyHost)
-			context.PutGlobal("proxy_port", proxyPort)
+			ops.PutGlobal("proxy_host", proxyHost)
+			ops.PutGlobal("proxy_port", proxyPort)
 		}
 		mimic.SetServerAddr(addr)
 	}
