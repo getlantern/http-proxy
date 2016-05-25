@@ -5,21 +5,21 @@ package bitrate
 
 import (
 	"errors"
-	"math"
 	"sync"
 	"time"
 
+	"github.com/getlantern/golog"
 	"github.com/mxk/go-flowrate/flowrate"
 )
 
 var (
 	errorGroupNotExist = errors.New("Group does not exist")
+	log                = golog.LoggerFor("bitrate")
 )
 
 type SharedFlowControllerOptions struct {
-	GlobalLimit   int64
-	Interval      time.Duration
-	FlowGroupOpts *FlowGroupOptions
+	RebalanceInterval time.Duration
+	FlowGroupOpts     *FlowGroupOptions
 }
 
 type GroupsMap map[string]*FlowGroup
@@ -32,11 +32,8 @@ type SharedFlowController struct {
 }
 
 func NewSharedFlowController(opts *SharedFlowControllerOptions) *SharedFlowController {
-	if opts.GlobalLimit == 0 {
-		opts.GlobalLimit = math.MaxInt64
-	}
-	if opts.Interval == 0 {
-		opts.Interval = time.Second
+	if opts.RebalanceInterval == 0 {
+		opts.RebalanceInterval = time.Second
 	}
 	if opts.FlowGroupOpts == nil {
 		panic("FlowGroupOpts should be provided")
@@ -45,7 +42,7 @@ func NewSharedFlowController(opts *SharedFlowControllerOptions) *SharedFlowContr
 	s := &SharedFlowController{
 		options: opts,
 		groups:  make(GroupsMap),
-		ticker:  time.NewTicker(opts.Interval),
+		ticker:  time.NewTicker(opts.RebalanceInterval),
 	}
 	go s.updateFlowGroups()
 
