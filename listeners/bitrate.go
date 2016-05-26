@@ -1,37 +1,37 @@
 package listeners
 
 import (
-	"bufio"
-	"bytes"
-	"io"
 	"net"
 	"net/http"
-	"strings"
 
-	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy/listeners"
+	"github.com/mxk/go-flowrate/flowrate"
 )
 
 type bitrateListener struct {
 	net.Listener
+	limit int64
 }
 
-func NewBitrateListener(l net.Listener) net.Listener {
+func NewBitrateListener(l net.Listener, lim int64) net.Listener {
 	return &bitrateListener{
 		Listener: l,
+		limit:    lim,
 	}
 }
 
-func (sl *bitrateListener) Accept() (net.Conn, error) {
-	c, err := sl.Listener.Accept()
+func (bl *bitrateListener) Accept() (net.Conn, error) {
+	c, err := bl.Listener.Accept()
 	if err != nil {
 		return nil, err
 	}
 
-	sac, _ := c.(listeners.WrapConnEmbeddable)
+	wc, _ := c.(listeners.WrapConnEmbeddable)
 	return &bitrateConn{
-		WrapConnEmbeddable: sac,
+		WrapConnEmbeddable: wc,
 		Conn:               c,
+		freader:            flowrate.NewReader(c, bl.limit),
+		fwriter:            flowrate.NewWriter(c, bl.limit),
 	}, err
 }
 
@@ -39,10 +39,16 @@ func (sl *bitrateListener) Accept() (net.Conn, error) {
 type bitrateConn struct {
 	listeners.WrapConnEmbeddable
 	net.Conn
+	freader *flowrate.Reader
+	fwriter *flowrate.Writer
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	return c.Conn.Read(p)
+	return c.freader.Read(p)
+}
+
+func (c *bitrateConn) Write(p []byte) (n int, err error) {
+	return c.fwriter.Write(p)
 }
 
 func (c *bitrateConn) OnState(s http.ConnState) {
