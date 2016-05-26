@@ -43,6 +43,7 @@ var (
 	cfgSvrDomains                = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
 	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
+	enableThrottling             = flag.Bool("enablethrottling", false, "Enable throttling (needs stats reporting enabled)")
 	help                         = flag.Bool("help", false, "Get usage help")
 	https                        = flag.Bool("https", false, "Use TLS for client to proxy communication")
 	idleClose                    = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
@@ -93,6 +94,13 @@ func main() {
 		}
 		measured.Start(time.Minute, rp)
 		defer measured.Stop()
+	}
+	// Throttling
+	if *enableThrottling {
+		if !*enableReports {
+			log.Fatal("Throttling requires reports enabled")
+		}
+
 	}
 
 	if *pprofAddr != "" {
@@ -185,6 +193,14 @@ func main() {
 	srv.Allow = bl.OnConnect
 
 	// Add net.Listener wrappers for inbound connections
+	if *enableThrottling {
+		srv.AddListenerWrappers(
+			// Throttle connections when signaled (50k/second)
+			func(ls net.Listener) net.Listener {
+				return lanternlisteners.NewBitrateListener(ls, 51200)
+			},
+		)
+	}
 	if *enableReports {
 		srv.AddListenerWrappers(
 			// Measure connections

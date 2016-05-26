@@ -30,6 +30,7 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 	return &bitrateConn{
 		WrapConnEmbeddable: wc,
 		Conn:               c,
+		active:             false,
 		freader:            flowrate.NewReader(c, bl.limit),
 		fwriter:            flowrate.NewWriter(c, bl.limit),
 	}, err
@@ -39,16 +40,25 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 type bitrateConn struct {
 	listeners.WrapConnEmbeddable
 	net.Conn
+	active  bool
 	freader *flowrate.Reader
 	fwriter *flowrate.Writer
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	return c.freader.Read(p)
+	if c.active {
+		return c.freader.Read(p)
+	} else {
+		return c.Conn.Read(p)
+	}
 }
 
 func (c *bitrateConn) Write(p []byte) (n int, err error) {
-	return c.fwriter.Write(p)
+	if c.active {
+		return c.fwriter.Write(p)
+	} else {
+		return c.Conn.Write(p)
+	}
 }
 
 func (c *bitrateConn) OnState(s http.ConnState) {
@@ -59,7 +69,11 @@ func (c *bitrateConn) OnState(s http.ConnState) {
 }
 
 func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
-	// Simply pass down the control message to the wrapped connection
+	if msgType == "bitrate" {
+		log.Trace("Bitrate throttling message received")
+
+	}
+
 	if c.WrapConnEmbeddable != nil {
 		c.WrapConnEmbeddable.ControlMessage(msgType, data)
 	}

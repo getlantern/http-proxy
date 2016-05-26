@@ -29,7 +29,7 @@ func handleConn(t *testing.T, c net.Conn, bytesReadChan *chan int) {
 	}
 }
 
-func server(t *testing.T, ready *chan struct{}, bytesReadChan *chan int) {
+func server(t *testing.T, ready *chan struct{}, bytesReadChan *chan int) *bitrateConn {
 	ln, err := net.Listen("tcp", ":9999")
 	if err != nil {
 		t.Fatal("Error creating listener")
@@ -40,11 +40,14 @@ func server(t *testing.T, ready *chan struct{}, bytesReadChan *chan int) {
 	*ready <- struct{}{}
 
 	conn, err := bl.Accept()
+	conn.(*bitrateConn).active = true
 
 	go handleConn(t, conn, bytesReadChan)
+
+	return conn.(*bitrateConn)
 }
 
-func TestLimit(t *testing.T) {
+func TestLimited(t *testing.T) {
 	ready := make(chan struct{})
 	bytesReadChan := make(chan int)
 	go server(t, &ready, &bytesReadChan)
@@ -78,5 +81,5 @@ Done:
 		}
 	}
 
-	assert.Equal(t, totalRead, bitrateLimit, "Read an unexpected number of bytes! Rate limiting is not working")
+	assert.Equal(t, bitrateLimit, totalRead, "Read an unexpected number of bytes! Rate limiting is not working")
 }
