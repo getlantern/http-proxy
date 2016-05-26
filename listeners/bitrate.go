@@ -71,7 +71,7 @@ func (c *bitrateConn) OnState(s http.ConnState) {
 func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	if msgType == "bitrate" {
 		log.Trace("Bitrate throttling message received")
-
+		c.active = true
 	}
 
 	if c.WrapConnEmbeddable != nil {

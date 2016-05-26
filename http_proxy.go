@@ -97,11 +97,8 @@ func main() {
 		defer measured.Stop()
 	}
 	// Throttling
-	if *enableThrottling {
-		if !*enableReports {
-			log.Fatal("Throttling requires reports enabled")
-		}
-
+	if *enableThrottling && !*enableReports {
+		log.Fatal("Throttling requires reports enabled")
 	}
 
 	if *pprofAddr != "" {
