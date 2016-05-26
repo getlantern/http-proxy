@@ -13,8 +13,8 @@ type proConfig struct {
 	proFilter   *LanternProFilter
 }
 
-func NewRedisProConfig(redisAddr string, serverId string, proFilter *LanternProFilter) (*proConfig, error) {
-	redisConfig, err := redis.NewProConfig(redisAddr, serverId)
+func NewRedisProConfig(redisOpts *redis.Options, serverId string, proFilter *LanternProFilter) (*proConfig, error) {
+	redisConfig, err := redis.NewProConfig(redisOpts, serverId)
 	if err != nil {
 		return nil, err
 	}

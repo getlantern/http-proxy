@@ -58,7 +58,7 @@ func (bl *Blacklist) Succeed(ip string) {
 	case bl.successes <- ip:
 		// ip submitted as success
 	default:
-		log.Debugf("Unable to record success from %v", ip)
+		log.Errorf("Unable to record success from %v", ip)
 	}
 }
 
@@ -75,7 +75,7 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 		case bl.connections <- ip:
 			// ip submitted as connected
 		default:
-			log.Debugf("Unable to record connection from %v", ip)
+			log.Errorf("Unable to record connection from %v", ip)
 		}
 	}
 	return !blacklisted
@@ -127,7 +127,7 @@ func (bl *Blacklist) checkForIdlers() {
 			count := bl.failureCounts[ip] + 1
 			bl.failureCounts[ip] = count
 			if count >= bl.allowedFailures {
-				log.Debugf("Blacklisting %v", ip)
+				log.Errorf("Blacklisting %v", ip)
 				blacklistAdditions = append(blacklistAdditions, ip)
 			}
 		}

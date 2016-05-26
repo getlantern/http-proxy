@@ -29,7 +29,7 @@ import (
 const (
 	deviceId       = "1234-1234-1234-1234-1234-1234"
 	validToken     = "6o0dToK3n"
-	tunneledReq    = "GET / HTTP/1.1\r\n\r\n"
+	tunneledReq    = "GET / HTTP/1.1\r\nHost:localhost\r\n\r\n"
 	targetResponse = "Fight for a Free Internet!"
 )
 
@@ -768,10 +768,12 @@ func (m *targetHandler) Close() {
 func newTargetHandler(msg string, tls bool) (string, *targetHandler) {
 	m := targetHandler{}
 	m.Msg(msg)
+	m.server = httptest.NewUnstartedServer(&m)
+	m.server.Config.AcceptAnyHostHeader = true
 	if tls {
-		m.server = httptest.NewTLSServer(&m)
+		m.server.StartTLS()
 	} else {
-		m.server = httptest.NewServer(&m)
+		m.server.Start()
 	}
 	log.Debugf("Started target site at %v", m.server.URL)
 	return m.server.URL, &m

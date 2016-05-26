@@ -13,8 +13,8 @@ type ProConfig struct {
 	serverId    string
 }
 
-func NewProConfig(redisAddr string, serverId string) (*ProConfig, error) {
-	rc, err := getClient(redisAddr)
+func NewProConfig(redisOpts *Options, serverId string) (*ProConfig, error) {
+	rc, err := getClient(redisOpts)
 	if err != nil {
 		return nil, err
 	}
