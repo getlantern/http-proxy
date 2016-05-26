@@ -77,6 +77,9 @@ func (rp *measuredReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
 
 		if bytesIn+bytesOut >= rp.registerDeviceAt {
 			devicefilter.DeviceRegistryAdd(key)
+		} else {
+			// No-op if doesn't exist
+			devicefilter.DeviceRegistryRemove(key)
 		}
 	}
 	return nil

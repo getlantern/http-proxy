@@ -25,6 +25,12 @@ func DeviceRegistryAdd(dev string) {
 	globalRegistry.Unlock()
 }
 
+func DeviceRegistryRemove(dev string) {
+	globalRegistry.Lock()
+	delete(globalRegistry.devices, dev)
+	globalRegistry.Unlock()
+}
+
 func DeviceRegistryExists(dev string) bool {
 	globalRegistry.RLock()
 	_, ok := globalRegistry.devices[dev]
