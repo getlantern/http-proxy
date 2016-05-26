@@ -87,8 +87,9 @@ func main() {
 		ClientCertFile: *redisClientCert,
 	}
 	// Reporting
+	registerDeviceAt := int64(1024 * 1024 * 500) // Reporter will register devices reaching 500Mb in+out transfer
 	if *enableReports {
-		rp, err := redis.NewMeasuredReporter(redisOpts)
+		rp, err := redis.NewMeasuredReporter(redisOpts, registerDeviceAt)
 		if err != nil {
 			log.Fatalf("Error creating mesured reporter: %v", err)
 		}
