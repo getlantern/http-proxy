@@ -29,13 +29,7 @@ func NewMeasuredReporter(redisOpts *Options) (measured.Reporter, error) {
 	}, nil
 }
 
-func (rp *measuredReporter) ReportError(s map[*measured.Error]int) error {
-	return nil
-}
-func (rp *measuredReporter) ReportLatency(s []*measured.LatencyTracker) error {
-	return nil
-}
-func (rp *measuredReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
+func (rp *measuredReporter) ReportTraffic(tt map[string]*measured.TrafficTracker) error {
 	now := time.Now()
 	nextMonth := now.Month() + 1
 	nextYear := now.Year()
@@ -45,12 +39,7 @@ func (rp *measuredReporter) ReportTraffic(tt []*measured.TrafficTracker) error {
 	}
 	beginningOfNextMonth := time.Date(nextYear, nextMonth, 1, 0, 0, 0, 0, now.Location())
 	endOfThisMonth := beginningOfNextMonth.Add(-1 * time.Nanosecond)
-	for _, t := range tt {
-		key := t.ID
-		if key == "" {
-			panic("empty key is not allowed")
-		}
-
+	for key, t := range tt {
 		// Don't report IDs in the form ip:port, so no connection that isn't
 		// associated to a request that passes through devicefilter gets reported
 		if _, _, err := net.SplitHostPort(key); err == nil {
