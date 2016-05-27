@@ -79,6 +79,7 @@ func main() {
 		log.Fatal(err)
 	}
 
+	var m *measured.Measured
 	redisOpts := &redis.Options{
 		RedisURL:       *redisAddr,
 		RedisCAFile:    *redisCA,
@@ -87,12 +88,13 @@ func main() {
 	}
 	// Reporting
 	if *enableReports {
-		rp, err := redis.NewMeasuredReporter(redisOpts)
-		if err != nil {
-			log.Fatalf("Error creating mesured reporter: %v", err)
+		rp, reporterErr := redis.NewMeasuredReporter(redisOpts)
+		if reporterErr != nil {
+			log.Fatalf("Error creating mesured reporter: %v", reporterErr)
 		}
-		measured.Start(time.Minute, rp)
-		defer measured.Stop()
+		m = measured.New(5000)
+		m.Start(time.Minute, rp)
+		defer m.Stop()
 	}
 
 	if *pprofAddr != "" {
@@ -189,7 +191,7 @@ func main() {
 		srv.AddListenerWrappers(
 			// Measure connections
 			func(ls net.Listener) net.Listener {
-				return listeners.NewMeasuredListener(ls, 100*time.Millisecond)
+				return listeners.NewMeasuredListener(ls, 100*time.Millisecond, m)
 			},
 		)
 	}
