@@ -14,6 +14,7 @@ import (
 	"github.com/getlantern/measured"
 
 	"github.com/getlantern/http-proxy/commonfilter"
+	"github.com/getlantern/http-proxy/filter"
 	"github.com/getlantern/http-proxy/forward"
 	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
@@ -109,61 +110,46 @@ func main() {
 	// Set up a blacklist
 	bl := blacklist.New(30*time.Second, 10, 6*time.Hour)
 
-	// Middleware
-	forwarder, err := forward.New(nil, forward.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var nextFilter http.Handler = forwarder
-
+	idleTimeout := time.Duration(*idleClose) * time.Second
+	var allowedPorts []int
 	if *tunnelPorts != "" {
-		nextFilter, err = httpconnect.New(forwarder,
-			httpconnect.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second),
-			httpconnect.AllowedPortsFromCSV(*tunnelPorts))
-	} else {
-		nextFilter, err = httpconnect.New(forwarder,
-			httpconnect.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if *cfgSvrAuthToken != "" || *cfgSvrDomains != "" {
-		domains := strings.Split(*cfgSvrDomains, ",")
-		nextFilter, err = configserverfilter.New(nextFilter,
-			configserverfilter.AuthToken(*cfgSvrAuthToken),
-			configserverfilter.Domains(domains))
+		allowedPorts, err = httpconnect.AllowedPortsFromCSV(*tunnelPorts)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	pingFilter := ping.New(nextFilter)
-
-	commonFilter, err := commonfilter.New(pingFilter,
-		testingLocal,
-		commonfilter.SetException("127.0.0.1:7300"),
+	filters := filter.Chain(
+		tokenfilter.New(*token),
+		devicefilter.NewPre(),
+		analytics.New(&analytics.Options{
+			TrackingID:       *proxiedSitesTrackingId,
+			SamplePercentage: *proxiedSitesSamplePercentage,
+		}),
+		devicefilter.NewPost(bl),
+		commonfilter.New(&commonfilter.Options{
+			AllowLocalhost: testingLocal,
+			Exceptions:     []string{"127.0.0.1:7300"},
+		}),
+		ping.New(),
 	)
-	if err != nil {
-		log.Fatal(err)
+
+	if *cfgSvrAuthToken != "" || *cfgSvrDomains != "" {
+		filters = filters.And(configserverfilter.New(&configserverfilter.Options{
+			AuthToken: *cfgSvrAuthToken,
+			Domains:   strings.Split(*cfgSvrDomains, ","),
+		}))
 	}
 
-	deviceFilterPost := devicefilter.NewPost(bl, commonFilter)
-
-	analyticsFilter := analytics.New(*proxiedSitesTrackingId, *proxiedSitesSamplePercentage, deviceFilterPost)
-
-	deviceFilterPre, err := devicefilter.NewPre(analyticsFilter)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	tokenFilter, err := tokenfilter.New(deviceFilterPre, tokenfilter.TokenSetter(*token))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var srv *server.Server
+	filters = filters.And(
+		httpconnect.New(&httpconnect.Options{
+			IdleTimeout:  idleTimeout,
+			AllowedPorts: allowedPorts,
+		}),
+		forward.New(&forward.Options{
+			IdleTimeout: idleTimeout,
+		}),
+	)
 
 	// Pro support
 	if *enablePro {
@@ -171,18 +157,19 @@ func main() {
 			log.Fatal("Enabling Pro requires setting the \"serverid\" flag")
 		}
 		log.Debug("This proxy is configured to support Lantern Pro")
-		proFilter, err := profilter.New(tokenFilter,
-			profilter.RedisConfigSetter(redisOpts, *serverId),
-		)
+		proFilter, err := profilter.New(&profilter.Options{
+			RedisOpts: redisOpts,
+			ServerID:  *serverId,
+		})
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		srv = server.NewServer(proFilter)
-	} else {
-		srv = server.NewServer(tokenFilter)
+		// Put profilter at the beginning of the chain.
+		filters = filter.Chain(proFilter, filters)
 	}
 
+	srv := server.NewServer(filters)
 	// Only allow connections from remote IPs that are not blacklisted
 	srv.Allow = bl.OnConnect
 

@@ -10,65 +10,47 @@ import (
 
 	"github.com/getlantern/golog"
 
+	"github.com/getlantern/http-proxy/filter"
+
 	"github.com/getlantern/http-proxy-lantern/common"
 )
 
-var log = golog.LoggerFor("configserverfilter")
+var log = golog.LoggerFor("configServerFilter")
 
-type ConfigServerFilter struct {
-	next      http.Handler
-	authToken string
-	domains   []string
+type Options struct {
+	AuthToken string
+	Domains   []string
 }
 
-type optSetter func(f *ConfigServerFilter)
-
-func AuthToken(token string) optSetter {
-	return func(f *ConfigServerFilter) {
-		f.authToken = token
-	}
+type configServerFilter struct {
+	*Options
 }
 
-func Domains(domains []string) optSetter {
-	return func(f *ConfigServerFilter) {
-		f.domains = domains
+func New(opts *Options) filter.Filter {
+	if opts.AuthToken == "" || len(opts.Domains) == 0 {
+		panic(errors.New("should set both config-server auth token and domains"))
 	}
+	log.Debugf("Will attach %s header on GET requests to %+v", common.CfgSvrAuthTokenHeader, opts.Domains)
+	return &configServerFilter{opts}
 }
 
-func New(next http.Handler, setters ...optSetter) (*ConfigServerFilter, error) {
-	f := &ConfigServerFilter{
-		next: next,
-	}
-
-	for _, s := range setters {
-		s(f)
-	}
-
-	if f.authToken == "" || len(f.domains) == 0 {
-		return nil, errors.New("should set both config-server auth token and domains")
-	}
-
-	log.Debugf("Will attach %s header on GET requests to %+v", common.CfgSvrAuthTokenHeader, f.domains)
-	return f, nil
-}
-
-func (f *ConfigServerFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (f *configServerFilter) Apply(w http.ResponseWriter, req *http.Request) (bool, error, string) {
 	// It's unlikely that config-server will add non-GET public endpoint.
 	// Bypass all other methods, especially CONNECT (https).
 	if req.Method == "GET" {
-		for _, d := range f.domains {
+		for _, d := range f.Domains {
 			if req.Host == d {
 				req = f.attachHeader(req)
-				goto next
+				return filter.Continue()
 			}
 		}
 	}
-next:
-	f.next.ServeHTTP(w, req)
+
+	return filter.Continue()
 }
 
-func (f *ConfigServerFilter) attachHeader(req *http.Request) *http.Request {
-	req.Header.Set(common.CfgSvrAuthTokenHeader, f.authToken)
+func (f *configServerFilter) attachHeader(req *http.Request) *http.Request {
+	req.Header.Set(common.CfgSvrAuthTokenHeader, f.AuthToken)
 	log.Debugf("Attached %s header to \"GET %s\"", common.CfgSvrAuthTokenHeader, req.URL.String())
 	host, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
