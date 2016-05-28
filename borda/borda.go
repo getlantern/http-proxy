@@ -28,22 +28,24 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) {
 		// Sample a subset of device ids
 		deviceID := ctx["device_id"]
 		if deviceID == nil {
-			log.Debugf("No device id, not reporting measurement")
+			log.Debugf("No device_id, not reporting measurement")
 			return
 		}
+
+		// DeviceID is expected to be a Base64 encoded 48-bit (6 byte) MAC address
 		deviceIDBytes, base64Err := base64.StdEncoding.DecodeString(deviceID.(string))
 		if base64Err != nil {
 			log.Debugf("Error decoding base64 deviceID: %v", base64Err)
 			return
 		}
 		var deviceIDInt uint64
-		if len(deviceIDBytes) < 4 {
-			log.Debugf("DeviceID too small: %v", base64Err)
-		} else if len(deviceIDBytes) < 8 {
-			deviceIDInt = uint64(binary.BigEndian.Uint32(deviceIDBytes))
-		} else {
-			deviceIDInt = binary.BigEndian.Uint64(deviceIDBytes)
+		if len(deviceIDBytes) != 6 {
+			log.Debugf("Unexpected DeviceID length %d", len(deviceIDBytes))
 		}
+		// Pad and decode to int
+		paddedDeviceIDBytes := append(deviceIDBytes, 0, 0)
+		// Use BigEndian because Mac address has most significant bytes on left
+		deviceIDInt = binary.BigEndian.Uint64(paddedDeviceIDBytes)
 		if deviceIDInt%uint64(1/bordaSamplePercentage) != 0 {
 			log.Trace("DeviceID not being sampled")
 		}

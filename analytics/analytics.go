@@ -16,7 +16,7 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy/filter"
+	"github.com/getlantern/http-proxy/filters"
 	"github.com/golang/groupcache/lru"
 )
 
@@ -55,7 +55,7 @@ type analyticsMiddleware struct {
 	dnsCache     *lru.Cache
 }
 
-func New(opts *Options) filter.Filter {
+func New(opts *Options) filters.Filter {
 	hostname, err := os.Hostname()
 	if err != nil {
 		log.Errorf("Unable to determine hostname, will use '(direct))': %v", hostname)
@@ -73,9 +73,9 @@ func New(opts *Options) filter.Filter {
 	return am
 }
 
-func (am *analyticsMiddleware) Apply(w http.ResponseWriter, req *http.Request) (bool, error, string) {
+func (am *analyticsMiddleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
 	am.track(req)
-	return filter.Continue()
+	return next()
 }
 
 func (am *analyticsMiddleware) track(req *http.Request) {

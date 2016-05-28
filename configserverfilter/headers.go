@@ -10,7 +10,7 @@ import (
 
 	"github.com/getlantern/golog"
 
-	"github.com/getlantern/http-proxy/filter"
+	"github.com/getlantern/http-proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/common"
 )
@@ -26,7 +26,7 @@ type configServerFilter struct {
 	*Options
 }
 
-func New(opts *Options) filter.Filter {
+func New(opts *Options) filters.Filter {
 	if opts.AuthToken == "" || len(opts.Domains) == 0 {
 		panic(errors.New("should set both config-server auth token and domains"))
 	}
@@ -34,19 +34,19 @@ func New(opts *Options) filter.Filter {
 	return &configServerFilter{opts}
 }
 
-func (f *configServerFilter) Apply(w http.ResponseWriter, req *http.Request) (bool, error, string) {
+func (f *configServerFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
 	// It's unlikely that config-server will add non-GET public endpoint.
 	// Bypass all other methods, especially CONNECT (https).
 	if req.Method == "GET" {
 		for _, d := range f.Domains {
 			if req.Host == d {
 				req = f.attachHeader(req)
-				return filter.Continue()
+				return next()
 			}
 		}
 	}
 
-	return filter.Continue()
+	return next()
 }
 
 func (f *configServerFilter) attachHeader(req *http.Request) *http.Request {

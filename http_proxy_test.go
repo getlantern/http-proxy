@@ -18,7 +18,7 @@ import (
 	"github.com/getlantern/measured"
 	"github.com/getlantern/testify/assert"
 
-	"github.com/getlantern/http-proxy/filter"
+	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/forward"
 	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
@@ -643,7 +643,7 @@ type proxy struct {
 }
 
 func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
-	filters := filter.Chain(
+	filters := filters.Join(
 		tokenfilter.New(validToken),
 		httpconnect.New(&httpconnect.Options{
 			IdleTimeout: idleTimeout,

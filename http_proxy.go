@@ -15,7 +15,7 @@ import (
 	"github.com/getlantern/ops"
 
 	"github.com/getlantern/http-proxy/commonfilter"
-	"github.com/getlantern/http-proxy/filter"
+	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/forward"
 	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
@@ -131,7 +131,7 @@ func main() {
 		}
 	}
 
-	filters := filter.Chain(
+	filterChain := filters.Join(
 		tokenfilter.New(*token),
 		devicefilter.NewPre(),
 		analytics.New(&analytics.Options{
@@ -147,13 +147,13 @@ func main() {
 	)
 
 	if *cfgSvrAuthToken != "" || *cfgSvrDomains != "" {
-		filters = filters.And(configserverfilter.New(&configserverfilter.Options{
+		filterChain = filterChain.Append(configserverfilter.New(&configserverfilter.Options{
 			AuthToken: *cfgSvrAuthToken,
 			Domains:   strings.Split(*cfgSvrDomains, ","),
 		}))
 	}
 
-	filters = filters.And(
+	filterChain = filterChain.Append(
 		httpconnect.New(&httpconnect.Options{
 			IdleTimeout:  idleTimeout,
 			AllowedPorts: allowedPorts,
@@ -178,10 +178,10 @@ func main() {
 		}
 
 		// Put profilter at the beginning of the chain.
-		filters = filter.Chain(proFilter, filters)
+		filterChain = filterChain.Prepend(proFilter)
 	}
 
-	srv := server.NewServer(filter.Chain(opsfilter.New(), filters))
+	srv := server.NewServer(filterChain.Prepend(opsfilter.New()))
 	// Only allow connections from remote IPs that are not blacklisted
 	srv.Allow = bl.OnConnect
 
