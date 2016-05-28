@@ -48,6 +48,7 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) {
 		deviceIDInt = binary.BigEndian.Uint64(paddedDeviceIDBytes)
 		if deviceIDInt%uint64(1/bordaSamplePercentage) != 0 {
 			log.Trace("DeviceID not being sampled")
+			return
 		}
 
 		values := map[string]float64{}
