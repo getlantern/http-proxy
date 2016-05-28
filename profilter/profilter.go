@@ -79,17 +79,19 @@ func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next 
 
 	req.Header.Del(common.ProTokenHeader)
 
-	if f.isEnabled() {
-		// If a Pro token is found in the header, test if its valid and then let
-		// the request pass.
-		if lanternProToken != "" && f.tokenExists(lanternProToken) {
-			return next()
-		}
-		log.Debugf("Mismatched Pro token %s from %s, mimicking apache", lanternProToken, req.RemoteAddr)
-		mimic.MimicApache(w, req)
-		return filters.Stop()
+	if !f.isEnabled() {
+		return next()
 	}
-	return next()
+
+	// If a Pro token is found in the header, test if its valid and then let
+	// the request pass.
+	if lanternProToken != "" && f.tokenExists(lanternProToken) {
+		return next()
+	}
+
+	log.Debugf("Mismatched Pro token %s from %s, mimicking apache", lanternProToken, req.RemoteAddr)
+	mimic.MimicApache(w, req)
+	return filters.Stop()
 }
 
 func (f *lanternProFilter) isEnabled() bool {
