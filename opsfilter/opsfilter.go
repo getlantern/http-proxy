@@ -7,6 +7,8 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
 
+	"github.com/getlantern/http-proxy/filter"
+
 	"github.com/getlantern/http-proxy-lantern/common"
 )
 
@@ -14,16 +16,14 @@ var (
 	log = golog.LoggerFor("logging")
 )
 
-type filter struct {
-	next http.Handler
-}
+type opsfilter struct{}
 
 // New constructs a new filter that adds ops context.
-func New(next http.Handler) http.Handler {
-	return &filter{next}
+func New() filter.Filter {
+	return &opsfilter{}
 }
 
-func (f *filter) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
+func (f *opsfilter) Apply(resp http.ResponseWriter, req *http.Request) (bool, error, string) {
 	deviceID := req.Header.Get(common.DeviceIdHeader)
 	op := ops.
 		Enter("proxy").
@@ -34,5 +34,5 @@ func (f *filter) ServeHTTP(resp http.ResponseWriter, req *http.Request) {
 	if err == nil {
 		op.Put("client_ip", clientIP)
 	}
-	f.next.ServeHTTP(resp, req)
+	return filter.Continue()
 }

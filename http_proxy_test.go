@@ -18,6 +18,7 @@ import (
 	"github.com/getlantern/measured"
 	"github.com/getlantern/testify/assert"
 
+	"github.com/getlantern/http-proxy/filter"
 	"github.com/getlantern/http-proxy/forward"
 	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
@@ -642,27 +643,17 @@ type proxy struct {
 }
 
 func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
-
-	// Middleware: Forward HTTP Messages
-	forwarder, err := forward.New(nil, forward.IdleTimeoutSetter(idleTimeout))
-	if err != nil {
-		log.Error(err)
-	}
-
-	// Middleware: Handle HTTP CONNECT
-	httpConnect, err := httpconnect.New(forwarder, httpconnect.IdleTimeoutSetter(idleTimeout))
-	if err != nil {
-		log.Error(err)
-	}
-
-	// Middleware: Token filter
-	tokenFilter, err := tokenfilter.New(httpConnect, tokenfilter.TokenSetter(validToken))
-	if err != nil {
-		log.Error(err)
-	}
-
+	filters := filter.Chain(
+		tokenfilter.New(validToken),
+		httpconnect.New(&httpconnect.Options{
+			IdleTimeout: idleTimeout,
+		}),
+		forward.New(&forward.Options{
+			IdleTimeout: idleTimeout,
+		}),
+	)
 	// Create server
-	srv := server.NewServer(tokenFilter)
+	srv := server.NewServer(filters)
 
 	// Add net.Listener wrappers for inbound connections
 	srv.AddListenerWrappers(
