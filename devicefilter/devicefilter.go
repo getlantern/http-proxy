@@ -1,6 +1,7 @@
 package devicefilter
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/getlantern/http-proxy-lantern/usage"
 	"github.com/getlantern/http-proxy/listeners"
 )
 
@@ -60,8 +62,11 @@ func (f *DeviceFilterPre) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		// by the measured wrapper
 		wc.ControlMessage("measured", lanternDeviceId)
 
-		// Check if this device Id is listed for throttling
-		if DeviceRegistryExists(lanternDeviceId) {
+		limit := uint64(50)
+		u := usage.Get(lanternDeviceId)
+		uMiB := u / 1024768
+		w.Header().Set("XLU", fmt.Sprintf("%d/%d", uMiB, limit))
+		if uMiB > limit {
 			wc.ControlMessage("bitrate", true)
 		}
 	}

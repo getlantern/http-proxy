@@ -43,7 +43,7 @@ var (
 	cfgSvrDomains                = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
 	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
-	enableThrottling             = flag.Bool("enablethrottling", false, "Enable throttling (needs stats reporting enabled)")
+	throttleAfterMiB             = flag.Uint64("throttle-after", 1024*1024*500, "After this many mebibytes (MiB) for a given device, we'll throttle their bandwidth. Set to 0 to disable throttling.")
 	help                         = flag.Bool("help", false, "Get usage help")
 	https                        = flag.Bool("https", false, "Use TLS for client to proxy communication")
 	idleClose                    = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
@@ -80,6 +80,12 @@ func main() {
 		log.Fatal(err)
 	}
 
+	// Throttling
+	enableThrottling := *throttleAfterMiB > 0
+	if enableThrottling && !*enableReports {
+		log.Fatal("Throttling requires reports enabled")
+	}
+
 	redisOpts := &redis.Options{
 		RedisURL:       *redisAddr,
 		RedisCAFile:    *redisCA,
@@ -87,18 +93,13 @@ func main() {
 		ClientCertFile: *redisClientCert,
 	}
 	// Reporting
-	registerDeviceAt := int64(1024 * 1024 * 500) // Reporter will register devices reaching 500Mb in+out transfer
 	if *enableReports {
-		rp, err := redis.NewMeasuredReporter(redisOpts, registerDeviceAt)
+		rp, err := redis.NewMeasuredReporter(redisOpts)
 		if err != nil {
 			log.Fatalf("Error creating mesured reporter: %v", err)
 		}
 		measured.Start(time.Minute, rp)
 		defer measured.Stop()
-	}
-	// Throttling
-	if *enableThrottling && !*enableReports {
-		log.Fatal("Throttling requires reports enabled")
 	}
 
 	if *pprofAddr != "" {
