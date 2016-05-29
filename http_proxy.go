@@ -12,9 +12,10 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
+	"github.com/getlantern/ops"
 
 	"github.com/getlantern/http-proxy/commonfilter"
-	"github.com/getlantern/http-proxy/filter"
+	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/forward"
 	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
@@ -23,11 +24,13 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
 	"github.com/getlantern/http-proxy-lantern/blacklist"
+	"github.com/getlantern/http-proxy-lantern/borda"
 	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
+	"github.com/getlantern/http-proxy-lantern/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/profilter"
 	"github.com/getlantern/http-proxy-lantern/redis"
@@ -44,6 +47,8 @@ var (
 	cfgSvrDomains                = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
 	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
+	bordaReportInterval          = flag.Duration("borda-report-interval", 30*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
+	bordaSamplePercentage        = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
 	help                         = flag.Bool("help", false, "Get usage help")
 	https                        = flag.Bool("https", false, "Use TLS for client to proxy communication")
 	idleClose                    = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
@@ -80,6 +85,8 @@ func main() {
 		log.Fatal(err)
 	}
 
+	ops.PutGlobal("app", "http-proxy")
+
 	var m *measured.Measured
 	redisOpts := &redis.Options{
 		RedisURL:       *redisAddr,
@@ -107,6 +114,11 @@ func main() {
 		}()
 	}
 
+	// Configure borda
+	if *bordaReportInterval > 0 {
+		borda.Enable(*bordaReportInterval, *bordaSamplePercentage)
+	}
+
 	// Set up a blacklist
 	bl := blacklist.New(30*time.Second, 10, 6*time.Hour)
 
@@ -119,7 +131,7 @@ func main() {
 		}
 	}
 
-	filters := filter.Chain(
+	filterChain := filters.Join(
 		tokenfilter.New(*token),
 		devicefilter.NewPre(),
 		analytics.New(&analytics.Options{
@@ -135,13 +147,13 @@ func main() {
 	)
 
 	if *cfgSvrAuthToken != "" || *cfgSvrDomains != "" {
-		filters = filters.And(configserverfilter.New(&configserverfilter.Options{
+		filterChain = filterChain.Append(configserverfilter.New(&configserverfilter.Options{
 			AuthToken: *cfgSvrAuthToken,
 			Domains:   strings.Split(*cfgSvrDomains, ","),
 		}))
 	}
 
-	filters = filters.And(
+	filterChain = filterChain.Append(
 		httpconnect.New(&httpconnect.Options{
 			IdleTimeout:  idleTimeout,
 			AllowedPorts: allowedPorts,
@@ -166,10 +178,10 @@ func main() {
 		}
 
 		// Put profilter at the beginning of the chain.
-		filters = filter.Chain(proFilter, filters)
+		filterChain = filterChain.Prepend(proFilter)
 	}
 
-	srv := server.NewServer(filters)
+	srv := server.NewServer(filterChain.Prepend(opsfilter.New()))
 	// Only allow connections from remote IPs that are not blacklisted
 	srv.Allow = bl.OnConnect
 
@@ -193,7 +205,12 @@ func main() {
 		},
 	)
 
-	initMimic := func(addr string) {
+	onAddress := func(addr string) {
+		proxyHost, proxyPort, err2 := net.SplitHostPort(addr)
+		if err2 == nil {
+			ops.PutGlobal("proxy_host", proxyHost)
+			ops.PutGlobal("proxy_port", proxyPort)
+		}
 		mimic.SetServerAddr(addr)
 	}
 
@@ -212,9 +229,9 @@ func main() {
 		}()
 	}
 	if *https {
-		err = srv.ListenAndServeHTTPS(*addr, *keyfile, *certfile, initMimic)
+		err = srv.ListenAndServeHTTPS(*addr, *keyfile, *certfile, onAddress)
 	} else {
-		err = srv.ListenAndServeHTTP(*addr, initMimic)
+		err = srv.ListenAndServeHTTP(*addr, onAddress)
 	}
 	if err != nil {
 		log.Errorf("Error serving HTTP(S): %v", err)

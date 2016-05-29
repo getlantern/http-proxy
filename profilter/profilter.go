@@ -12,7 +12,7 @@ import (
 
 	"github.com/getlantern/golog"
 
-	"github.com/getlantern/http-proxy/filter"
+	"github.com/getlantern/http-proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/mimic"
@@ -36,7 +36,7 @@ type Options struct {
 	ServerID  string
 }
 
-func New(opts *Options) (filter.Filter, error) {
+func New(opts *Options) (filters.Filter, error) {
 	f := &lanternProFilter{
 		enabled:   0,
 		proTokens: new(atomic.Value),
@@ -66,7 +66,7 @@ func New(opts *Options) (filter.Filter, error) {
 	return f, nil
 }
 
-func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request) (bool, error, string) {
+func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
 	lanternProToken := req.Header.Get(common.ProTokenHeader)
 
 	if log.IsTraceEnabled() {
@@ -79,19 +79,19 @@ func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request) (bool
 
 	req.Header.Del(common.ProTokenHeader)
 
-	if f.isEnabled() {
-		// If a Pro token is found in the header, test if its valid and then let
-		// the request pass.
-		if lanternProToken != "" && f.tokenExists(lanternProToken) {
-			return filter.Continue()
-		} else {
-			log.Debugf("Mismatched Pro token %s from %s, mimicking apache", lanternProToken, req.RemoteAddr)
-			mimic.MimicApache(w, req)
-			return filter.Stop()
-		}
-	} else {
-		return filter.Continue()
+	if !f.isEnabled() {
+		return next()
 	}
+
+	// If a Pro token is found in the header, test if its valid and then let
+	// the request pass.
+	if lanternProToken != "" && f.tokenExists(lanternProToken) {
+		return next()
+	}
+
+	log.Debugf("Mismatched Pro token %s from %s, mimicking apache", lanternProToken, req.RemoteAddr)
+	mimic.MimicApache(w, req)
+	return filters.Stop()
 }
 
 func (f *lanternProFilter) isEnabled() bool {
