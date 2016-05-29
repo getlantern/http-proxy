@@ -10,7 +10,7 @@ import (
 
 	"github.com/getlantern/golog"
 
-	"github.com/getlantern/http-proxy/filter"
+	"github.com/getlantern/http-proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/metrics"
@@ -49,7 +49,7 @@ type pingMiddleware struct {
 	LargeResponseTime  metrics.MovingAverage
 }
 
-func New() filter.Filter {
+func New() filters.Filter {
 	pm := &pingMiddleware{
 		metrics.NewMovingAverage(),
 		metrics.NewMovingAverage(),
@@ -59,12 +59,12 @@ func New() filter.Filter {
 	return pm
 }
 
-func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request) (bool, error, string) {
+func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
 	log.Trace("In ping")
 	pingSize := req.Header.Get(common.PingHeader)
 	if pingSize == "" {
 		log.Trace("Bypassing ping")
-		return filter.Continue()
+		return next()
 	}
 	log.Trace("Processing ping")
 
@@ -83,7 +83,7 @@ func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request) (bool,
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "Invalid ping size %v\n", pingSize)
-		return filter.Stop()
+		return filters.Stop()
 	}
 
 	start := time.Now()
@@ -96,7 +96,7 @@ func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request) (bool,
 	delta := time.Now().Sub(start)
 	ma.Update(delta.Nanoseconds() / 1000)
 
-	return filter.Stop()
+	return filters.Stop()
 }
 
 func (pm *pingMiddleware) logTimings() {

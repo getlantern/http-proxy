@@ -12,7 +12,7 @@ import (
 
 	"github.com/getlantern/testify/assert"
 
-	"github.com/getlantern/http-proxy/filter"
+	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/listeners"
@@ -105,7 +105,7 @@ var invalidRequests = []entryWithHeaders{
 
 func TestMimicApache(t *testing.T) {
 	tf := tokenfilter.New("arbitrary-token")
-	s := server.NewServer(filter.Chain(tf))
+	s := server.NewServer(filters.Join(tf))
 
 	s.AddListenerWrappers(
 		// Preprocess connection to issue custom errors before they are passed to the server

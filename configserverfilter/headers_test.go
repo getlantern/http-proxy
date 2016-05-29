@@ -7,7 +7,7 @@ import (
 	"github.com/getlantern/testify/assert"
 
 	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy/filter"
+	"github.com/getlantern/http-proxy/filters"
 )
 
 type dummyHandler struct{ req *http.Request }
@@ -21,7 +21,7 @@ func TestAttachAuthToken(t *testing.T) {
 	dummyClientIP := "1.1.1.1"
 	dummyAddr := dummyClientIP + ":12345"
 	dummy := &dummyHandler{}
-	chain := filter.Chain(New(&Options{fakeToken, []string{"site1.com", "site2.org"}}), filter.Adapt(dummy))
+	chain := filters.Join(New(&Options{fakeToken, []string{"site1.com", "site2.org"}}), filters.Adapt(dummy))
 
 	req, _ := http.NewRequest("GET", "http://site1.com/abc.gz", nil)
 	req.RemoteAddr = dummyAddr

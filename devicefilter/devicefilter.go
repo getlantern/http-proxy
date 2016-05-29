@@ -10,7 +10,7 @@ import (
 
 	"github.com/getlantern/golog"
 
-	"github.com/getlantern/http-proxy/filter"
+	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/listeners"
 
 	"github.com/getlantern/http-proxy-lantern/blacklist"
@@ -30,13 +30,13 @@ type deviceFilterPost struct {
 	bl *blacklist.Blacklist
 }
 
-func NewPre(throttleAfterMiB uint64) filter.Filter {
+func NewPre(throttleAfterMiB uint64) filters.Filter {
 	return &deviceFilterPre{
 		throttleAfterMiB: throttleAfterMiB,
 	}
 }
 
-func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request) (bool, error, string) {
+func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
 	if log.IsTraceEnabled() {
 		reqStr, _ := httputil.DumpRequest(req, true)
 		log.Tracef("DeviceFilter Middleware received request:\n%s", reqStr)
@@ -65,19 +65,19 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request) (bool,
 		}
 	}
 
-	return filter.Continue()
+	return next()
 }
 
-func NewPost(bl *blacklist.Blacklist) filter.Filter {
+func NewPost(bl *blacklist.Blacklist) filters.Filter {
 	return &deviceFilterPost{
 		bl: bl,
 	}
 }
 
-func (f *deviceFilterPost) Apply(w http.ResponseWriter, req *http.Request) (bool, error, string) {
+func (f *deviceFilterPost) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
 	// For privacy, delete the DeviceId header before passing it along
 	req.Header.Del(common.DeviceIdHeader)
 	ip, _, _ := net.SplitHostPort(req.RemoteAddr)
 	f.bl.Succeed(ip)
-	return filter.Continue()
+	return next()
 }
