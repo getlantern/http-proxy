@@ -10,10 +10,10 @@ type proConfig struct {
 	serverId    string
 	redisConfig *redis.ProConfig
 	userTokens  redis.UserTokens
-	proFilter   *LanternProFilter
+	proFilter   *lanternProFilter
 }
 
-func NewRedisProConfig(redisOpts *redis.Options, serverId string, proFilter *LanternProFilter) (*proConfig, error) {
+func NewRedisProConfig(redisOpts *redis.Options, serverId string, proFilter *lanternProFilter) (*proConfig, error) {
 	redisConfig, err := redis.NewProConfig(redisOpts, serverId)
 	if err != nil {
 		return nil, err
