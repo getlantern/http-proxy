@@ -12,6 +12,8 @@ import (
 
 	"github.com/getlantern/golog"
 
+	"github.com/getlantern/http-proxy/filters"
+
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/redis"
@@ -21,8 +23,7 @@ var log = golog.LoggerFor("profilter")
 
 type TokensMap map[string]bool
 
-type LanternProFilter struct {
-	next      http.Handler
+type lanternProFilter struct {
 	enabled   int32
 	proTokens *atomic.Value
 	// Tokens write-only mutex
@@ -30,48 +31,42 @@ type LanternProFilter struct {
 	proConf  *proConfig
 }
 
-type optSetter func(f *LanternProFilter) error
-
-func RedisConfigSetter(redisOpts *redis.Options, serverId string) optSetter {
-	return func(f *LanternProFilter) (err error) {
-		if f.proConf, err = NewRedisProConfig(redisOpts, serverId, f); err != nil {
-			return
-		}
-
-		isPro, err := f.proConf.IsPro()
-		if err != nil {
-			return fmt.Errorf("Error reading assigned users in bootstrapping: %s", err)
-		}
-		// Currently, we run a Pro server starting as a free server
-		// that can turn into a Pro server.  This is an initial design,
-		// that will change if we decide to use separate queues, and therefore
-		// can configure the proxy at launch time
-		if err := f.proConf.Run(isPro); err != nil {
-			return fmt.Errorf("Error configuring Pro: %s", err)
-		}
-		return
-	}
+type Options struct {
+	RedisOpts *redis.Options
+	ServerID  string
 }
 
-func New(next http.Handler, setters ...optSetter) (*LanternProFilter, error) {
-	f := &LanternProFilter{
-		next:      next,
+func New(opts *Options) (filters.Filter, error) {
+	f := &lanternProFilter{
 		enabled:   0,
 		proTokens: new(atomic.Value),
 	}
-
 	// atomic.Value can't be copied after Store has been called
 	f.proTokens.Store(make(TokensMap))
 
-	for _, s := range setters {
-		if err := s(f); err != nil {
-			return nil, err
-		}
+	var err error
+	f.proConf, err = NewRedisProConfig(opts.RedisOpts, opts.ServerID, f)
+	if err != nil {
+		return nil, err
 	}
+
+	isPro, err := f.proConf.IsPro()
+	if err != nil {
+		return nil, fmt.Errorf("Error reading assigned users in bootstrapping: %s", err)
+	}
+	// Currently, we run a Pro server starting as a free server
+	// that can turn into a Pro server.  This is an initial design,
+	// that will change if we decide to use separate queues, and therefore
+	// can configure the proxy at launch time
+	err = f.proConf.Run(isPro)
+	if err != nil {
+		return nil, fmt.Errorf("Error configuring Pro: %s", err)
+	}
+
 	return f, nil
 }
 
-func (f *LanternProFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
 	lanternProToken := req.Header.Get(common.ProTokenHeader)
 
 	if log.IsTraceEnabled() {
@@ -84,29 +79,30 @@ func (f *LanternProFilter) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	req.Header.Del(common.ProTokenHeader)
 
-	if f.isEnabled() {
-		// If a Pro token is found in the header, test if its valid and then let
-		// the request pass.
-		if lanternProToken != "" && f.tokenExists(lanternProToken) {
-			f.next.ServeHTTP(w, req)
-		} else {
-			log.Debugf("Mismatched Pro token %s from %s, mimicking apache", lanternProToken, req.RemoteAddr)
-			mimic.MimicApache(w, req)
-		}
-	} else {
-		f.next.ServeHTTP(w, req)
+	if !f.isEnabled() {
+		return next()
 	}
+
+	// If a Pro token is found in the header, test if its valid and then let
+	// the request pass.
+	if lanternProToken != "" && f.tokenExists(lanternProToken) {
+		return next()
+	}
+
+	log.Debugf("Mismatched Pro token %s from %s, mimicking apache", lanternProToken, req.RemoteAddr)
+	mimic.MimicApache(w, req)
+	return filters.Stop()
 }
 
-func (f *LanternProFilter) isEnabled() bool {
+func (f *lanternProFilter) isEnabled() bool {
 	return atomic.LoadInt32(&f.enabled) != 0
 }
 
-func (f *LanternProFilter) Enable() {
+func (f *lanternProFilter) Enable() {
 	atomic.StoreInt32(&f.enabled, 1)
 }
 
-func (f *LanternProFilter) Disable() {
+func (f *lanternProFilter) Disable() {
 	atomic.StoreInt32(&f.enabled, 0)
 }
 
@@ -116,7 +112,7 @@ func (f *LanternProFilter) Disable() {
 // instead of reset.  Since we use a copy-on-write sync approach
 // there is no advantage to this vs. just resetting, unless we
 // can safely assume that user tokens are never updated
-func (f *LanternProFilter) AddTokens(tokens ...string) {
+func (f *lanternProFilter) AddTokens(tokens ...string) {
 	// Copy-on-write.  Writes are far less common than reads.
 	f.tkwMutex.Lock()
 	defer f.tkwMutex.Unlock()
@@ -134,7 +130,7 @@ func (f *LanternProFilter) AddTokens(tokens ...string) {
 
 // SetTokens sets the tokens to the provided list, removing
 // any previous token
-func (f *LanternProFilter) SetTokens(tokens ...string) {
+func (f *lanternProFilter) SetTokens(tokens ...string) {
 	// Copy-on-write.  Writes are far less common than reads.
 	f.tkwMutex.Lock()
 	defer f.tkwMutex.Unlock()
@@ -146,7 +142,7 @@ func (f *LanternProFilter) SetTokens(tokens ...string) {
 	f.proTokens.Store(tks)
 }
 
-func (f *LanternProFilter) ClearTokens() {
+func (f *lanternProFilter) ClearTokens() {
 	// Synchronize with writers
 	f.tkwMutex.Lock()
 	defer f.tkwMutex.Unlock()
@@ -154,7 +150,7 @@ func (f *LanternProFilter) ClearTokens() {
 	f.proTokens.Store(make(TokensMap))
 }
 
-func (f *LanternProFilter) tokenExists(token string) bool {
+func (f *lanternProFilter) tokenExists(token string) bool {
 	tks := f.proTokens.Load().(TokensMap)
 	_, ok := tks[token]
 	return ok

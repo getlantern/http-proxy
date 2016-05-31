@@ -12,8 +12,10 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
+	"github.com/getlantern/ops"
 
 	"github.com/getlantern/http-proxy/commonfilter"
+	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/forward"
 	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
@@ -22,11 +24,13 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
 	"github.com/getlantern/http-proxy-lantern/blacklist"
+	"github.com/getlantern/http-proxy-lantern/borda"
 	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
+	"github.com/getlantern/http-proxy-lantern/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/profilter"
 	"github.com/getlantern/http-proxy-lantern/redis"
@@ -44,6 +48,8 @@ var (
 	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
 	enableThrottling             = flag.Bool("enablethrottling", false, "Enable throttling (needs stats reporting enabled)")
+	bordaReportInterval          = flag.Duration("borda-report-interval", 30*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
+	bordaSamplePercentage        = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
 	help                         = flag.Bool("help", false, "Get usage help")
 	https                        = flag.Bool("https", false, "Use TLS for client to proxy communication")
 	idleClose                    = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
@@ -80,6 +86,9 @@ func main() {
 		log.Fatal(err)
 	}
 
+	ops.PutGlobal("app", "http-proxy")
+
+	var m *measured.Measured
 	redisOpts := &redis.Options{
 		RedisURL:       *redisAddr,
 		RedisCAFile:    *redisCA,
@@ -89,12 +98,13 @@ func main() {
 	// Reporting
 	registerDeviceAt := int64(1024 * 1024 * 500) // Reporter will register devices reaching 500Mb in+out transfer
 	if *enableReports {
-		rp, err := redis.NewMeasuredReporter(redisOpts, registerDeviceAt)
-		if err != nil {
-			log.Fatalf("Error creating mesured reporter: %v", err)
+		rp, reporterErr := redis.NewMeasuredReporter(redisOpts, registerDeviceAt)
+		if reporterErr != nil {
+			log.Fatalf("Error creating mesured reporter: %v", reporterErr)
 		}
-		measured.Start(time.Minute, rp)
-		defer measured.Stop()
+		m = measured.New(5000)
+		m.Start(time.Minute, rp)
+		defer m.Stop()
 	}
 	// Throttling
 	if *enableThrottling && !*enableReports {
@@ -110,64 +120,54 @@ func main() {
 		}()
 	}
 
+	// Configure borda
+	if *bordaReportInterval > 0 {
+		borda.Enable(*bordaReportInterval, *bordaSamplePercentage)
+	}
+
 	// Set up a blacklist
 	bl := blacklist.New(30*time.Second, 10, 6*time.Hour)
 
-	// Middleware
-	forwarder, err := forward.New(nil, forward.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var nextFilter http.Handler = forwarder
-
+	idleTimeout := time.Duration(*idleClose) * time.Second
+	var allowedPorts []int
 	if *tunnelPorts != "" {
-		nextFilter, err = httpconnect.New(forwarder,
-			httpconnect.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second),
-			httpconnect.AllowedPortsFromCSV(*tunnelPorts))
-	} else {
-		nextFilter, err = httpconnect.New(forwarder,
-			httpconnect.IdleTimeoutSetter(time.Duration(*idleClose)*time.Second))
-	}
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	if *cfgSvrAuthToken != "" || *cfgSvrDomains != "" {
-		domains := strings.Split(*cfgSvrDomains, ",")
-		nextFilter, err = configserverfilter.New(nextFilter,
-			configserverfilter.AuthToken(*cfgSvrAuthToken),
-			configserverfilter.Domains(domains))
+		allowedPorts, err = httpconnect.AllowedPortsFromCSV(*tunnelPorts)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
-	pingFilter := ping.New(nextFilter)
-
-	commonFilter, err := commonfilter.New(pingFilter,
-		testingLocal,
-		commonfilter.SetException("127.0.0.1:7300"),
+	filterChain := filters.Join(
+		tokenfilter.New(*token),
+		devicefilter.NewPre(),
+		analytics.New(&analytics.Options{
+			TrackingID:       *proxiedSitesTrackingId,
+			SamplePercentage: *proxiedSitesSamplePercentage,
+		}),
+		devicefilter.NewPost(bl),
+		commonfilter.New(&commonfilter.Options{
+			AllowLocalhost: testingLocal,
+			Exceptions:     []string{"127.0.0.1:7300"},
+		}),
+		ping.New(),
 	)
-	if err != nil {
-		log.Fatal(err)
+
+	if *cfgSvrAuthToken != "" || *cfgSvrDomains != "" {
+		filterChain = filterChain.Append(configserverfilter.New(&configserverfilter.Options{
+			AuthToken: *cfgSvrAuthToken,
+			Domains:   strings.Split(*cfgSvrDomains, ","),
+		}))
 	}
 
-	deviceFilterPost := devicefilter.NewPost(bl, commonFilter)
-
-	analyticsFilter := analytics.New(*proxiedSitesTrackingId, *proxiedSitesSamplePercentage, deviceFilterPost)
-
-	deviceFilterPre, err := devicefilter.NewPre(analyticsFilter)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	tokenFilter, err := tokenfilter.New(deviceFilterPre, tokenfilter.TokenSetter(*token))
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	var srv *server.Server
+	filterChain = filterChain.Append(
+		httpconnect.New(&httpconnect.Options{
+			IdleTimeout:  idleTimeout,
+			AllowedPorts: allowedPorts,
+		}),
+		forward.New(&forward.Options{
+			IdleTimeout: idleTimeout,
+		}),
+	)
 
 	// Pro support
 	if *enablePro {
@@ -175,18 +175,19 @@ func main() {
 			log.Fatal("Enabling Pro requires setting the \"serverid\" flag")
 		}
 		log.Debug("This proxy is configured to support Lantern Pro")
-		proFilter, err := profilter.New(tokenFilter,
-			profilter.RedisConfigSetter(redisOpts, *serverId),
-		)
+		proFilter, err := profilter.New(&profilter.Options{
+			RedisOpts: redisOpts,
+			ServerID:  *serverId,
+		})
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		srv = server.NewServer(proFilter)
-	} else {
-		srv = server.NewServer(tokenFilter)
+		// Put profilter at the beginning of the chain.
+		filterChain = filterChain.Prepend(proFilter)
 	}
 
+	srv := server.NewServer(filterChain.Prepend(opsfilter.New()))
 	// Only allow connections from remote IPs that are not blacklisted
 	srv.Allow = bl.OnConnect
 
@@ -203,7 +204,7 @@ func main() {
 		srv.AddListenerWrappers(
 			// Measure connections
 			func(ls net.Listener) net.Listener {
-				return listeners.NewMeasuredListener(ls, 100*time.Millisecond)
+				return listeners.NewMeasuredListener(ls, 100*time.Millisecond, m)
 			},
 		)
 	}
@@ -218,7 +219,12 @@ func main() {
 		},
 	)
 
-	initMimic := func(addr string) {
+	onAddress := func(addr string) {
+		proxyHost, proxyPort, err2 := net.SplitHostPort(addr)
+		if err2 == nil {
+			ops.PutGlobal("proxy_host", proxyHost)
+			ops.PutGlobal("proxy_port", proxyPort)
+		}
 		mimic.SetServerAddr(addr)
 	}
 
@@ -237,9 +243,9 @@ func main() {
 		}()
 	}
 	if *https {
-		err = srv.ListenAndServeHTTPS(*addr, *keyfile, *certfile, initMimic)
+		err = srv.ListenAndServeHTTPS(*addr, *keyfile, *certfile, onAddress)
 	} else {
-		err = srv.ListenAndServeHTTP(*addr, initMimic)
+		err = srv.ListenAndServeHTTP(*addr, onAddress)
 	}
 	if err != nil {
 		log.Errorf("Error serving HTTP(S): %v", err)

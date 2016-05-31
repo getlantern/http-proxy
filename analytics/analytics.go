@@ -16,6 +16,7 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/getlantern/http-proxy/filters"
 	"github.com/golang/groupcache/lru"
 )
 
@@ -39,45 +40,46 @@ type siteAccess struct {
 	userAgent string
 }
 
-// AnalyticsMiddleware allows plugging popular sites tracking into the proxy's
-// handler chain.
-type AnalyticsMiddleware struct {
-	trackingId       string
-	hostname         string
-	samplePercentage float64
-	next             http.Handler
-	siteAccesses     chan *siteAccess
-	httpClient       *http.Client
-	dnsCache         *lru.Cache
+type Options struct {
+	TrackingID       string
+	SamplePercentage float64
 }
 
-func New(trackingId string, samplePercentage float64, next http.Handler) *AnalyticsMiddleware {
+// analyticsMiddleware allows plugging popular sites tracking into the proxy's
+// handler chain.
+type analyticsMiddleware struct {
+	*Options
+	hostname     string
+	siteAccesses chan *siteAccess
+	httpClient   *http.Client
+	dnsCache     *lru.Cache
+}
+
+func New(opts *Options) filters.Filter {
 	hostname, err := os.Hostname()
 	if err != nil {
 		log.Errorf("Unable to determine hostname, will use '(direct))': %v", hostname)
 		hostname = "(direct)"
 	}
-	log.Debugf("Will report analytics to Google as %v using hostname '%v', sampling %d percent of requests", trackingId, hostname, int(samplePercentage*100))
-	am := &AnalyticsMiddleware{
-		trackingId:       trackingId,
-		hostname:         hostname,
-		samplePercentage: samplePercentage,
-		next:             next,
-		siteAccesses:     make(chan *siteAccess, 1000),
-		httpClient:       &http.Client{},
-		dnsCache:         lru.New(2000),
+	log.Debugf("Will report analytics to Google as %v using hostname '%v', sampling %d percent of requests", opts.TrackingID, hostname, int(opts.SamplePercentage*100))
+	am := &analyticsMiddleware{
+		Options:      opts,
+		hostname:     hostname,
+		siteAccesses: make(chan *siteAccess, 1000),
+		httpClient:   &http.Client{},
+		dnsCache:     lru.New(2000),
 	}
 	go am.submitToGoogle()
 	return am
 }
 
-func (am *AnalyticsMiddleware) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (am *analyticsMiddleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
 	am.track(req)
-	am.next.ServeHTTP(w, req)
+	return next()
 }
 
-func (am *AnalyticsMiddleware) track(req *http.Request) {
-	if rand.Float64() <= am.samplePercentage {
+func (am *analyticsMiddleware) track(req *http.Request) {
+	if rand.Float64() <= am.SamplePercentage {
 		select {
 		case am.siteAccesses <- &siteAccess{
 			ip:        stripPort(req.RemoteAddr),
@@ -94,7 +96,7 @@ func (am *AnalyticsMiddleware) track(req *http.Request) {
 
 // submitToGoogle submits tracking information to Google Analytics on a
 // goroutine to avoid blocking the processing of actual requests
-func (am *AnalyticsMiddleware) submitToGoogle() {
+func (am *analyticsMiddleware) submitToGoogle() {
 	for sa := range am.siteAccesses {
 		for _, site := range am.normalizeSite(sa.site) {
 			am.trackSession(am.sessionVals(sa, site))
@@ -102,13 +104,13 @@ func (am *AnalyticsMiddleware) submitToGoogle() {
 	}
 }
 
-func (am *AnalyticsMiddleware) sessionVals(sa *siteAccess, site string) string {
+func (am *analyticsMiddleware) sessionVals(sa *siteAccess, site string) string {
 	vals := make(url.Values, 0)
 
 	// Version 1 of the API
 	vals.Add("v", "1")
 	// Our Google Tracking ID
-	vals.Add("tid", am.trackingId)
+	vals.Add("tid", am.TrackingID)
 	// The client's ID (Lantern DeviceID, which is Base64 encoded 6 bytes from mac
 	// address)
 	vals.Add("cid", sa.clientId)
@@ -143,7 +145,7 @@ func (am *AnalyticsMiddleware) sessionVals(sa *siteAccess, site string) string {
 	return vals.Encode()
 }
 
-func (am *AnalyticsMiddleware) normalizeSite(site string) []string {
+func (am *analyticsMiddleware) normalizeSite(site string) []string {
 	domain := site
 	result := make([]string, 0, 3)
 	isIP := net.ParseIP(site) != nil
@@ -182,7 +184,7 @@ func (am *AnalyticsMiddleware) normalizeSite(site string) []string {
 	return result
 }
 
-func (am *AnalyticsMiddleware) trackSession(args string) {
+func (am *analyticsMiddleware) trackSession(args string) {
 	r, err := http.NewRequest("POST", ApiEndpoint, bytes.NewBufferString(args))
 
 	if err != nil {

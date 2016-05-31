@@ -10,6 +10,8 @@ import (
 
 	"github.com/getlantern/golog"
 
+	"github.com/getlantern/http-proxy/filters"
+
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/metrics"
 )
@@ -40,16 +42,15 @@ func randStringRunes(n int) string {
 	return string(b)
 }
 
-// PingMiddleware intercepts ping requests and returns some random data
-type PingMiddleware struct {
-	next               http.Handler
+// pingMiddleware intercepts ping requests and returns some random data
+type pingMiddleware struct {
 	SmallResponseTime  metrics.MovingAverage
 	MediumResponseTime metrics.MovingAverage
 	LargeResponseTime  metrics.MovingAverage
 }
 
-func New(next http.Handler) *PingMiddleware {
-	pm := &PingMiddleware{next,
+func New() filters.Filter {
+	pm := &pingMiddleware{
 		metrics.NewMovingAverage(),
 		metrics.NewMovingAverage(),
 		metrics.NewMovingAverage(),
@@ -58,13 +59,12 @@ func New(next http.Handler) *PingMiddleware {
 	return pm
 }
 
-func (pm *PingMiddleware) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
 	log.Trace("In ping")
 	pingSize := req.Header.Get(common.PingHeader)
 	if pingSize == "" {
 		log.Trace("Bypassing ping")
-		pm.next.ServeHTTP(w, req)
-		return
+		return next()
 	}
 	log.Trace("Processing ping")
 
@@ -83,7 +83,7 @@ func (pm *PingMiddleware) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "Invalid ping size %v\n", pingSize)
-		return
+		return filters.Stop()
 	}
 
 	start := time.Now()
@@ -95,9 +95,11 @@ func (pm *PingMiddleware) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	w.(http.Flusher).Flush()
 	delta := time.Now().Sub(start)
 	ma.Update(delta.Nanoseconds() / 1000)
+
+	return filters.Stop()
 }
 
-func (pm *PingMiddleware) logTimings() {
+func (pm *pingMiddleware) logTimings() {
 	for {
 		time.Sleep(1 * time.Minute)
 		now := time.Now()
