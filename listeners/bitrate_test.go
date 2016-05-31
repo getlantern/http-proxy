@@ -86,32 +86,33 @@ Done:
 	assert.Equal(t, bitrateLimit, totalRead, "Read an unexpected number of bytes! Rate limiting is not working")
 }
 
-var onceStd, onceThr sync.Once
+var onceStd, onceInThr, onceThr sync.Once
 
-func benchSrv(wg *sync.WaitGroup, enableBitrate bool) {
+func benchSrv(wg *sync.WaitGroup, useThrottle, enableBitrate bool, port string) {
 	wg.Add(1)
 	go func() {
-		var port string
-		if enableBitrate {
-			port = ":9991"
-		} else {
-			port = ":9990"
-		}
 		ln, err := net.Listen("tcp", port)
 		if err != nil {
 			panic(err)
 		}
-		bl := NewBitrateListener(ln, 1024*1024*1024)
+
+		li := ln
+		if useThrottle {
+			li = NewBitrateListener(ln, 1024*1024*1024)
+		}
 
 		wg.Done()
 
 		for {
-			conn, err := bl.Accept()
+			conn, err := li.Accept()
 			if err != nil {
 				panic(err)
 			}
 
-			conn.(*bitrateConn).active = enableBitrate
+			if useThrottle {
+				conn.(*bitrateConn).active = enableBitrate
+			}
+
 			go func() {
 				for {
 					b := make([]byte, 512)
@@ -130,7 +131,7 @@ func benchSrv(wg *sync.WaitGroup, enableBitrate bool) {
 
 func BenchmarkStandardReader(b *testing.B) {
 	var wg sync.WaitGroup
-	onceStd.Do(func() { benchSrv(&wg, false) })
+	onceStd.Do(func() { benchSrv(&wg, false, false, ":9990") })
 	wg.Wait()
 
 	conn, err := net.Dial("tcp", "127.0.0.1:9990")
@@ -138,16 +139,20 @@ func BenchmarkStandardReader(b *testing.B) {
 		panic(err)
 	}
 
-	buf := make([]byte, 1024*1024*1024)
+	buf := make([]byte, 1024*1024)
 	for i := range buf {
 		buf[i] = '#'
 	}
-	conn.Write(buf)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		conn.Write(buf)
+	}
 }
 
-func BenchmarkThrottledReader(b *testing.B) {
+func BenchmarkInactiveThrottledReader(b *testing.B) {
 	var wg sync.WaitGroup
-	onceThr.Do(func() { benchSrv(&wg, true) })
+	onceInThr.Do(func() { benchSrv(&wg, true, false, ":9991") })
 	wg.Wait()
 
 	conn, err := net.Dial("tcp", "127.0.0.1:9991")
@@ -155,9 +160,34 @@ func BenchmarkThrottledReader(b *testing.B) {
 		panic(err)
 	}
 
-	buf := make([]byte, 1024*1024*1024)
+	buf := make([]byte, 1024*1024)
 	for i := range buf {
 		buf[i] = '#'
 	}
-	conn.Write(buf)
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		conn.Write(buf)
+	}
+}
+
+func BenchmarkThrottledReader(b *testing.B) {
+	var wg sync.WaitGroup
+	onceThr.Do(func() { benchSrv(&wg, true, true, ":9992") })
+	wg.Wait()
+
+	conn, err := net.Dial("tcp", "127.0.0.1:9992")
+	if err != nil {
+		panic(err)
+	}
+
+	buf := make([]byte, 1024*1024)
+	for i := range buf {
+		buf[i] = '#'
+	}
+
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		conn.Write(buf)
+	}
 }
