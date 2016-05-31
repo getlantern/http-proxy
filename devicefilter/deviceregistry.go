@@ -4,42 +4,36 @@ import (
 	"sync"
 )
 
-type DeviceRegistry struct {
-	sync.RWMutex
-	devices map[string]bool
-}
-
 var (
-	globalRegistry *DeviceRegistry
+	mtx     sync.RWMutex
+	devices map[string]bool
 )
 
 func init() {
-	globalRegistry = &DeviceRegistry{
-		devices: make(map[string]bool),
-	}
+	DeviceRegistryReset()
 }
 
 func DeviceRegistryAdd(dev string) {
-	globalRegistry.Lock()
-	globalRegistry.devices[dev] = true
-	globalRegistry.Unlock()
+	mtx.Lock()
+	devices[dev] = true
+	mtx.Unlock()
 }
 
 func DeviceRegistryRemove(dev string) {
-	globalRegistry.Lock()
-	delete(globalRegistry.devices, dev)
-	globalRegistry.Unlock()
+	mtx.Lock()
+	delete(devices, dev)
+	mtx.Unlock()
 }
 
 func DeviceRegistryExists(dev string) bool {
-	globalRegistry.RLock()
-	_, ok := globalRegistry.devices[dev]
-	globalRegistry.RUnlock()
+	mtx.RLock()
+	_, ok := devices[dev]
+	mtx.RUnlock()
 	return ok
 }
 
 func DeviceRegistryReset() {
-	globalRegistry.Lock()
-	globalRegistry.devices = make(map[string]bool)
-	globalRegistry.Unlock()
+	mtx.Lock()
+	devices = make(map[string]bool)
+	mtx.Unlock()
 }
