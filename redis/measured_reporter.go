@@ -64,15 +64,10 @@ func (rp *measuredReporter) ReportTraffic(tt map[string]*measured.TrafficTracker
 			return err
 		}
 
-		// In both cases, we first check existence, since it provides lower contention
 		if bytesIn+bytesOut >= rp.registerDeviceAt {
-			if !devicefilter.DeviceRegistryExists(key) {
-				devicefilter.DeviceRegistryAdd(key)
-			}
+			devicefilter.DeviceRegistryAdd(key)
 		} else {
-			if devicefilter.DeviceRegistryExists(key) {
-				devicefilter.DeviceRegistryRemove(key)
-			}
+			devicefilter.DeviceRegistryRemove(key)
 		}
 	}
 	return nil
