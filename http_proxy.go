@@ -65,7 +65,7 @@ type Proxy struct {
 }
 
 // ListenAndServe listens, serves and blocks.
-func (p *Proxy) ListenAndServe() {
+func (p *Proxy) ListenAndServe() error {
 	var err error
 	ops.PutGlobal("app", "http-proxy")
 
@@ -210,4 +210,5 @@ func (p *Proxy) ListenAndServe() {
 	if err != nil {
 		log.Errorf("Error serving HTTP(S): %v", err)
 	}
+	return err
 }
