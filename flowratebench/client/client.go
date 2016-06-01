@@ -13,7 +13,7 @@ import (
 
 var (
 	addr        = flag.String("addr", "localhost:14082", "The address to which to send data")
-	concurrency = flag.Int("concurrency", 10, "How many concurrent clients to run")
+	concurrency = flag.Int("concurrency", 1000, "How many concurrent clients to run")
 	limit       = flag.Int64("limit", 0, "Rate limit in bytes per second, set to 0 to not limit")
 
 	data = make([]byte, 256)
