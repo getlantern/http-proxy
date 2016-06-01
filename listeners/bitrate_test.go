@@ -87,10 +87,16 @@ Done:
 }
 
 var onceStd, onceInThr, onceThr sync.Once
+var benchBuf []byte
 
 func benchSrv(wg *sync.WaitGroup, useThrottle, enableBitrate bool, port string) {
 	wg.Add(1)
 	go func() {
+		benchBuf = make([]byte, 1024*1024)
+		for i := range benchBuf {
+			benchBuf[i] = '#'
+		}
+
 		ln, err := net.Listen("tcp", port)
 		if err != nil {
 			panic(err)
@@ -139,14 +145,9 @@ func BenchmarkStandardReader(b *testing.B) {
 		panic(err)
 	}
 
-	buf := make([]byte, 1024*1024)
-	for i := range buf {
-		buf[i] = '#'
-	}
-
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		conn.Write(buf)
+		conn.Write(benchBuf)
 	}
 }
 
@@ -160,14 +161,9 @@ func BenchmarkInactiveThrottledReader(b *testing.B) {
 		panic(err)
 	}
 
-	buf := make([]byte, 1024*1024)
-	for i := range buf {
-		buf[i] = '#'
-	}
-
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		conn.Write(buf)
+		conn.Write(benchBuf)
 	}
 }
 
@@ -181,13 +177,8 @@ func BenchmarkThrottledReader(b *testing.B) {
 		panic(err)
 	}
 
-	buf := make([]byte, 1024*1024)
-	for i := range buf {
-		buf[i] = '#'
-	}
-
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
-		conn.Write(buf)
+		conn.Write(benchBuf)
 	}
 }
