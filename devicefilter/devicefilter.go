@@ -1,9 +1,11 @@
 package devicefilter
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"time"
 
 	"github.com/gorilla/context"
 
@@ -14,12 +16,18 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/getlantern/http-proxy-lantern/usage"
 )
 
-var log = golog.LoggerFor("devicefilter")
+var (
+	log = golog.LoggerFor("devicefilter")
+
+	epoch = time.Date(2016, 1, 1, 0, 0, 0, 0, time.UTC)
+)
 
 // deviceFilterPre does the device-based filtering
 type deviceFilterPre struct {
+	throttleAfterMiB uint64
 }
 
 // deviceFilterPost cleans up
@@ -27,8 +35,10 @@ type deviceFilterPost struct {
 	bl *blacklist.Blacklist
 }
 
-func NewPre() filters.Filter {
-	return &deviceFilterPre{}
+func NewPre(throttleAfterMiB uint64) filters.Filter {
+	return &deviceFilterPre{
+		throttleAfterMiB: throttleAfterMiB,
+	}
 }
 
 func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
@@ -49,9 +59,24 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 		// by the measured wrapper
 		wc.ControlMessage("measured", lanternDeviceID)
 
-		// Check if this device Id is listed for throttling
-		if DeviceRegistryExists(lanternDeviceID) {
-			wc.ControlMessage("bitrate", true)
+		if f.throttleAfterMiB > 0 {
+			// Throttling enabled
+			u := usage.Get(lanternDeviceID)
+			uMiB := u.Bytes / 1024768
+			// Encode usage information in a header. The header is expected to follow
+			// this format:
+			//
+			// <used>/<allowed>/<asof>
+			//
+			// <used> is the string representation of a 64-bit unsigned integer
+			// <allowed> is the string representation of a 64-bit unsigned integer
+			// <asof> is the 64-bit signed integer representing seconds since a custom
+			// epoch (00:00:00 01/01/2016 UTC).
+			w.Header().Set("XBQ", fmt.Sprintf("%d/%d/%d", uMiB, f.throttleAfterMiB, int64(u.AsOf.Sub(epoch).Seconds())))
+			if uMiB > f.throttleAfterMiB {
+				// Start limiting the throughput on this connection
+				wc.ControlMessage("bitrate", true)
+			}
 		}
 	}
 

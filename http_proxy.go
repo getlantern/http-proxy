@@ -58,8 +58,8 @@ type Proxy struct {
 	RedisClientPK                string
 	RedisClientCert              string
 	ServerID                     string
-	ThrottleBPS                  int64
-	ThrottleThreshold            int64
+	ThrottleBPS                  uint64
+	ThrottleThreshold            uint64
 	Token                        string
 	TunnelPorts                  string
 	Obfs4Addr                    string
@@ -81,7 +81,7 @@ func (p *Proxy) ListenAndServe() error {
 
 	// Reporting
 	if p.EnableReports {
-		rp, reporterErr := redis.NewMeasuredReporter(redisOpts, p.ThrottleThreshold)
+		rp, reporterErr := redis.NewMeasuredReporter(redisOpts)
 		if reporterErr != nil {
 			log.Fatalf("Error creating mesured reporter: %v", reporterErr)
 		}
@@ -89,6 +89,7 @@ func (p *Proxy) ListenAndServe() error {
 		m.Start(time.Minute, rp)
 		defer m.Stop()
 	}
+
 	// Throttling
 	if (p.ThrottleBPS > 0 || p.ThrottleThreshold > 0) &&
 		(p.ThrottleBPS <= 0 || p.ThrottleThreshold <= 0) &&
@@ -115,7 +116,7 @@ func (p *Proxy) ListenAndServe() error {
 
 	filterChain := filters.Join(
 		tokenfilter.New(p.Token),
-		devicefilter.NewPre(),
+		devicefilter.NewPre(p.ThrottleThreshold/(1024*1024)),
 		analytics.New(&analytics.Options{
 			TrackingID:       p.ProxiedSitesTrackingID,
 			SamplePercentage: p.ProxiedSitesSamplePercentage,

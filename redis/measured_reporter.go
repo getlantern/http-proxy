@@ -6,20 +6,20 @@ import (
 
 	"gopkg.in/redis.v3"
 
-	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/measured"
+
+	"github.com/getlantern/http-proxy-lantern/usage"
 )
 
 var (
-	keysExpiration time.Duration = time.Hour * 24 * 31
+	keysExpiration = time.Hour * 24 * 31
 )
 
 type measuredReporter struct {
-	redisClient      *redis.Client
-	registerDeviceAt int64
+	redisClient *redis.Client
 }
 
-func NewMeasuredReporter(redisOpts *Options, registerDeviceAt int64) (measured.Reporter, error) {
+func NewMeasuredReporter(redisOpts *Options) (measured.Reporter, error) {
 	rc, err := getClient(redisOpts)
 	if err != nil {
 		return nil, err
@@ -64,11 +64,7 @@ func (rp *measuredReporter) ReportTraffic(tt map[string]*measured.TrafficTracker
 			return err
 		}
 
-		if bytesIn+bytesOut >= rp.registerDeviceAt {
-			devicefilter.DeviceRegistryAdd(key)
-		} else {
-			devicefilter.DeviceRegistryRemove(key)
-		}
+		usage.Set(key, uint64(bytesIn+bytesOut), now)
 	}
 	return nil
 }
