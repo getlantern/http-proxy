@@ -2,22 +2,28 @@ package usage
 
 import (
 	"sync"
+	"time"
 )
 
 var (
 	mutex           sync.RWMutex
-	usageByDeviceID = make(map[string]uint64)
+	usageByDeviceID = make(map[string]*Usage)
 )
 
-// Set sets the usage in bytes for the given device.
-func Set(dev string, usage uint64) {
+type Usage struct {
+	Bytes uint64
+	AsOf  time.Time
+}
+
+// Set sets the Usage in bytes for the given device as of the given time.
+func Set(dev string, usage uint64, asOf time.Time) {
 	mutex.Lock()
-	usageByDeviceID[dev] = usage
+	usageByDeviceID[dev] = &Usage{usage, asOf}
 	mutex.Unlock()
 }
 
-// Get gets the usage in bytes for the given device.
-func Get(dev string) uint64 {
+// Get gets the Usage for the given device.
+func Get(dev string) *Usage {
 	mutex.RLock()
 	result := usageByDeviceID[dev]
 	mutex.RUnlock()

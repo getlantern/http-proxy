@@ -64,7 +64,7 @@ func (rp *measuredReporter) ReportTraffic(tt map[string]*measured.TrafficTracker
 			return err
 		}
 
-		usage.Set(key, uint64(bytesIn+bytesOut))
+		usage.Set(key, uint64(bytesIn+bytesOut), now)
 	}
 	return nil
 }

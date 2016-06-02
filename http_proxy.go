@@ -47,7 +47,7 @@ var (
 	cfgSvrDomains                = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
 	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
-	throttleAfterMiB             = flag.Uint64("throttle-after", 1024*1024*500, "After this many mebibytes (MiB) for a given device, we'll throttle their bandwidth. Set to 0 to disable throttling.")
+	throttleAfterMiB             = flag.Uint64("throttle-after", 0, "After this many mebibytes (MiB) for a given device, we'll throttle their bandwidth. Set to 0 to disable throttling.")
 	bordaReportInterval          = flag.Duration("borda-report-interval", 30*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
 	bordaSamplePercentage        = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
 	help                         = flag.Bool("help", false, "Get usage help")

@@ -2,9 +2,11 @@ package devicefilter
 
 import (
 	"fmt"
+	"math/rand"
 	"net"
 	"net/http"
 	"net/http/httputil"
+	"time"
 
 	"github.com/gorilla/context"
 
@@ -57,11 +59,14 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 		if f.throttleAfterMiB > 0 {
 			// Throttling enabled
 			u := usage.Get(lanternDeviceID)
-			uMiB := u / 1024768
-			w.Header().Set("XLU", fmt.Sprintf("%d/%d", uMiB, f.throttleAfterMiB))
+			uMiB := u.Bytes / 1024768
+			w.Header().Set("XBQ", fmt.Sprintf("%d/%d/%d", uMiB, f.throttleAfterMiB, u.AsOf))
 			if uMiB > f.throttleAfterMiB {
 				wc.ControlMessage("bitrate", true)
 			}
+		} else {
+			// The below is just testing code that we should remove before actually using this.
+			w.Header().Set("XBQ", fmt.Sprintf("%d/%d/%d", rand.Intn(500), 500, time.Now().UnixNano()))
 		}
 	}
 
