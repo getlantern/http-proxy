@@ -9,14 +9,10 @@ import (
 	"strings"
 	"sync/atomic"
 
-	"github.com/getlantern/golog"
-
 	"github.com/getlantern/http-proxy/listeners"
 
 	"github.com/getlantern/http-proxy-lantern/mimic"
 )
-
-var log = golog.LoggerFor("listeners")
 
 type preprocessorListener struct {
 	net.Listener

@@ -44,11 +44,15 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 	} else {
 		// Attached the uid to connection to report stats to redis correctly
 		// "conn" in context is previously attached in server.go
-		key := []byte(lanternDeviceID)
 		wc := context.Get(req, "conn").(listeners.WrapConn)
 		// Sets the ID to the provided key. This message is captured only
 		// by the measured wrapper
-		wc.ControlMessage("measured", string(key))
+		wc.ControlMessage("measured", lanternDeviceID)
+
+		// Check if this device Id is listed for throttling
+		if DeviceRegistryExists(lanternDeviceID) {
+			wc.ControlMessage("bitrate", true)
+		}
 	}
 
 	return next()

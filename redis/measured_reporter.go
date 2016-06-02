@@ -1,12 +1,12 @@
 package redis
 
 import (
-	"fmt"
 	"net"
 	"time"
 
 	"gopkg.in/redis.v3"
 
+	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/measured"
 )
 
@@ -15,10 +15,11 @@ var (
 )
 
 type measuredReporter struct {
-	redisClient *redis.Client
+	redisClient      *redis.Client
+	registerDeviceAt int64
 }
 
-func NewMeasuredReporter(redisOpts *Options) (measured.Reporter, error) {
+func NewMeasuredReporter(redisOpts *Options, registerDeviceAt int64) (measured.Reporter, error) {
 	rc, err := getClient(redisOpts)
 	if err != nil {
 		return nil, err
@@ -46,44 +47,27 @@ func (rp *measuredReporter) ReportTraffic(tt map[string]*measured.TrafficTracker
 			continue
 		}
 
-		tx := rp.redisClient.Multi()
-		defer tx.Close()
+		pipe := rp.redisClient.Pipeline()
+		defer pipe.Close()
 
-		_, err := tx.Exec(func() error {
-			clientKey := "_client:" + string(key)
-
-			err := tx.HIncrBy(clientKey, "bytesIn", int64(t.TotalIn)).Err()
-			if err != nil {
-				return err
-			}
-			err = tx.HIncrBy(clientKey, "bytesOut", int64(t.TotalOut)).Err()
-			if err != nil {
-				return err
-			}
-			err = tx.ExpireAt(clientKey, endOfThisMonth).Err()
-			if err != nil {
-				return err
-			}
-
-			// Ordered set for aggregated bytesIn+bytesOut, bytesIn, bytesOut
-			// Redis stores scores as float64
-			err = tx.ZIncrBy("client->bytesIn", float64(t.TotalIn), key).Err()
-			if err != nil {
-				return err
-			}
-			err = tx.ZIncrBy("client->bytesOut", float64(t.TotalOut), key).Err()
-			if err != nil {
-				return err
-			}
-			err = tx.ZIncrBy("client->bytesInOut", float64(t.TotalIn+t.TotalOut), key).Err()
-			if err != nil {
-				return err
-			}
-
-			return nil
-		})
+		clientKey := "_client:" + key
+		bytesIn, err := pipe.HIncrBy(clientKey, "bytesIn", int64(t.TotalIn)).Result()
 		if err != nil {
-			return fmt.Errorf("Error in MULTI command: %v\n", err)
+			return err
+		}
+		bytesOut, err := pipe.HIncrBy(clientKey, "bytesOut", int64(t.TotalOut)).Result()
+		if err != nil {
+			return err
+		}
+		pipe.ExpireAt(clientKey, endOfThisMonth).Err()
+		if err != nil {
+			return err
+		}
+
+		if bytesIn+bytesOut >= rp.registerDeviceAt {
+			devicefilter.DeviceRegistryAdd(key)
+		} else {
+			devicefilter.DeviceRegistryRemove(key)
 		}
 	}
 	return nil

@@ -47,7 +47,9 @@ var (
 	cfgSvrDomains                = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
 	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
-	bordaReportInterval          = flag.Duration("borda-report-interval", 30*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
+	throttlebps                  = flag.Int64("throttlebps", 0, "If > 0, enables throttling at the given bps (needs stats reporting enabled)")
+	throttlethreshold            = flag.Int64("throttlethreshold", 0, "If > 0, throttling will be activated at the given threshold (in bytes) in all connections of the throttled device")
+	bordaReportInterval          = flag.Duration("borda-report-interval", 30*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting")
 	bordaSamplePercentage        = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
 	help                         = flag.Bool("help", false, "Get usage help")
 	https                        = flag.Bool("https", false, "Use TLS for client to proxy communication")
@@ -64,7 +66,7 @@ var (
 	redisClientCert              = flag.String("redisclientcert", "garantia_user.crt", "Certificate for authenticating client to redis's stunnel")
 	serverId                     = flag.String("serverid", "", "Server Id required for Pro-supporting servers")
 	token                        = flag.String("token", "", "Lantern token")
-	tunnelPorts                  = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
+	tunnelPorts                  = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty")
 	obfs4Addr                    = flag.String("obfs4-addr", "", "Provide an address here in order to listen with obfs4")
 	obfs4Dir                     = flag.String("obfs4-dir", ".", "Directory where obfs4 can store its files")
 )
@@ -96,13 +98,19 @@ func main() {
 	}
 	// Reporting
 	if *enableReports {
-		rp, reporterErr := redis.NewMeasuredReporter(redisOpts)
+		rp, reporterErr := redis.NewMeasuredReporter(redisOpts, *throttlethreshold)
 		if reporterErr != nil {
 			log.Fatalf("Error creating mesured reporter: %v", reporterErr)
 		}
 		m = measured.New(5000)
 		m.Start(time.Minute, rp)
 		defer m.Stop()
+	}
+	// Throttling
+	if (*throttlebps > 0 || *throttlethreshold > 0) &&
+		(*throttlebps <= 0 || *throttlethreshold <= 0) &&
+		!*enableReports {
+		log.Fatal("Throttling requires reports enabled and both throttlebps and throttlethreshold > 0")
 	}
 
 	if *pprofAddr != "" {
@@ -186,6 +194,14 @@ func main() {
 	srv.Allow = bl.OnConnect
 
 	// Add net.Listener wrappers for inbound connections
+	if *throttlebps > 0 {
+		srv.AddListenerWrappers(
+			// Throttle connections when signaled
+			func(ls net.Listener) net.Listener {
+				return lanternlisteners.NewBitrateListener(ls, *throttlebps)
+			},
+		)
+	}
 	if *enableReports {
 		srv.AddListenerWrappers(
 			// Measure connections
