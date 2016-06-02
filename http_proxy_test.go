@@ -16,7 +16,7 @@ import (
 
 	"github.com/getlantern/keyman"
 	"github.com/getlantern/measured"
-	"github.com/getlantern/testify/assert"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/forward"
