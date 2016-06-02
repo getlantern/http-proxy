@@ -47,7 +47,7 @@ var (
 	cfgSvrDomains                = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
 	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
-	enableThrottling             = flag.Bool("enablethrottling", false, "Enable throttling (needs stats reporting enabled)")
+	throttlebps                  = flag.Int64("throttlebps", 0, "If > 0, enables throttling at the given bps (needs stats reporting enabled)")
 	bordaReportInterval          = flag.Duration("borda-report-interval", 30*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
 	bordaSamplePercentage        = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
 	help                         = flag.Bool("help", false, "Get usage help")
@@ -107,7 +107,7 @@ func main() {
 		defer m.Stop()
 	}
 	// Throttling
-	if *enableThrottling && !*enableReports {
+	if *throttlebps > 0 && !*enableReports {
 		log.Fatal("Throttling requires reports enabled")
 	}
 
@@ -192,11 +192,11 @@ func main() {
 	srv.Allow = bl.OnConnect
 
 	// Add net.Listener wrappers for inbound connections
-	if *enableThrottling {
+	if *throttlebps > 0 {
 		srv.AddListenerWrappers(
 			// Throttle connections when signaled (50k/second)
 			func(ls net.Listener) net.Listener {
-				return lanternlisteners.NewBitrateListener(ls, 51200)
+				return lanternlisteners.NewBitrateListener(ls, *throttlebps)
 			},
 		)
 	}
