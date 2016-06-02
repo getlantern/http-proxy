@@ -2,7 +2,6 @@ package devicefilter
 
 import (
 	"fmt"
-	"math/rand"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -20,7 +19,11 @@ import (
 	"github.com/getlantern/http-proxy-lantern/usage"
 )
 
-var log = golog.LoggerFor("devicefilter")
+var (
+	log = golog.LoggerFor("devicefilter")
+
+	epoch = time.Date(2016, 1, 1, 0, 0, 0, 0, time.UTC)
+)
 
 // deviceFilterPre does the device-based filtering
 type deviceFilterPre struct {
@@ -60,13 +63,20 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 			// Throttling enabled
 			u := usage.Get(lanternDeviceID)
 			uMiB := u.Bytes / 1024768
-			w.Header().Set("XBQ", fmt.Sprintf("%d/%d/%d", uMiB, f.throttleAfterMiB, u.AsOf))
+			// Encode usage information in a header. The header is expected to follow
+			// this format:
+			//
+			// <used>/<allowed>/<asof>
+			//
+			// <used> is the string representation of a 64-bit unsigned integer
+			// <allowed> is the string representation of a 64-bit unsigned integer
+			// <asof> is the 64-bit signed integer representing seconds since a custom
+			// epoch (00:00:00 01/01/2016 UTC).
+			w.Header().Set("XBQ", fmt.Sprintf("%d/%d/%d", uMiB, f.throttleAfterMiB, int64(u.AsOf.Sub(epoch).Seconds())))
 			if uMiB > f.throttleAfterMiB {
+				// Start limiting the throughput on this connection
 				wc.ControlMessage("bitrate", true)
 			}
-		} else {
-			// The below is just testing code that we should remove before actually using this.
-			w.Header().Set("XBQ", fmt.Sprintf("%d/%d/%d", rand.Intn(500), 500, time.Now().UnixNano()))
 		}
 	}
 
