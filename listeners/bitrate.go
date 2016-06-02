@@ -10,10 +10,10 @@ import (
 
 type bitrateListener struct {
 	net.Listener
-	limit int64
+	limit uint64
 }
 
-func NewBitrateListener(l net.Listener, lim int64) net.Listener {
+func NewBitrateListener(l net.Listener, lim uint64) net.Listener {
 	return &bitrateListener{
 		Listener: l,
 		limit:    lim,
@@ -31,8 +31,8 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 		WrapConnEmbeddable: wc,
 		Conn:               c,
 		active:             false,
-		freader:            flowrate.NewReader(c, bl.limit),
-		fwriter:            flowrate.NewWriter(c, bl.limit),
+		freader:            flowrate.NewReader(c, int64(bl.limit)),
+		fwriter:            flowrate.NewWriter(c, int64(bl.limit)),
 	}, err
 }
 

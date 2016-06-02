@@ -1,4 +1,4 @@
-package main
+package proxy
 
 import (
 	"crypto/tls"
@@ -16,7 +16,7 @@ import (
 
 	"github.com/getlantern/keyman"
 	"github.com/getlantern/measured"
-	"github.com/getlantern/testify/assert"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/forward"
@@ -60,10 +60,6 @@ var (
 		tls.TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
 	}
 )
-
-func init() {
-	testingLocal = true
-}
 
 func TestMain(m *testing.M) {
 	flag.Parse()

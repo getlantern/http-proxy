@@ -1,14 +1,10 @@
-package main
+package proxy
 
 import (
-	"flag"
 	"net"
-	"net/http"
 	_ "net/http/pprof"
 	"strings"
 	"time"
-
-	"github.com/vharitonsky/iniflags"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
@@ -19,7 +15,6 @@ import (
 	"github.com/getlantern/http-proxy/forward"
 	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
-	"github.com/getlantern/http-proxy/logging"
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
@@ -38,71 +33,54 @@ import (
 )
 
 var (
-	testingLocal = false
-	log          = golog.LoggerFor("lantern-proxy")
-
-	addr                         = flag.String("addr", ":8080", "Address to listen")
-	certfile                     = flag.String("cert", "", "Certificate file name")
-	cfgSvrAuthToken              = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
-	cfgSvrDomains                = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
-	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
-	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
-	throttleAfterMiB             = flag.Uint64("throttle-after", 0, "After this many mebibytes (MiB) for a given device, we'll throttle their bandwidth. Set to 0 to disable throttling.")
-	bordaReportInterval          = flag.Duration("borda-report-interval", 30*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
-	bordaSamplePercentage        = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
-	help                         = flag.Bool("help", false, "Get usage help")
-	https                        = flag.Bool("https", false, "Use TLS for client to proxy communication")
-	idleClose                    = flag.Uint64("idleclose", 30, "Time in seconds that an idle connection will be allowed before closing it")
-	keyfile                      = flag.String("key", "", "Private key file name")
-	logglyToken                  = flag.String("logglytoken", "", "Token used to report to loggly.com, not reporting if empty")
-	maxConns                     = flag.Uint64("maxconns", 0, "Max number of simultaneous connections allowed connections")
-	pprofAddr                    = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
-	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
-	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
-	redisAddr                    = flag.String("redis", "127.0.0.1:6379", "Redis address in \"host:port\" format")
-	redisCA                      = flag.String("redisca", "", "Certificate for redislabs's CA")
-	redisClientPK                = flag.String("redisclientpk", "garantia_user_private.key", "Private key for authenticating client to redis's stunnel")
-	redisClientCert              = flag.String("redisclientcert", "garantia_user.crt", "Certificate for authenticating client to redis's stunnel")
-	serverId                     = flag.String("serverid", "", "Server Id required for Pro-supporting servers")
-	token                        = flag.String("token", "", "Lantern token")
-	tunnelPorts                  = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
-	obfs4Addr                    = flag.String("obfs4-addr", "", "Provide an address here in order to listen with obfs4")
-	obfs4Dir                     = flag.String("obfs4-dir", ".", "Directory where obfs4 can store its files")
+	log = golog.LoggerFor("lantern-proxy")
 )
 
-func main() {
+// Proxy is an HTTP proxy.
+type Proxy struct {
+	TestingLocal                 bool
+	Addr                         string
+	BordaReportInterval          time.Duration
+	BordaSamplePercentage        float64
+	CertFile                     string
+	CfgSvrAuthToken              string
+	CfgSvrDomains                string
+	EnablePro                    bool
+	EnableReports                bool
+	HTTPS                        bool
+	IdleClose                    uint64
+	KeyFile                      string
+	MaxConns                     uint64
+	ProxiedSitesSamplePercentage float64
+	ProxiedSitesTrackingID       string
+	RedisAddr                    string
+	RedisCA                      string
+	RedisClientPK                string
+	RedisClientCert              string
+	ServerID                     string
+	ThrottleBPS                  uint64
+	ThrottleThreshold            uint64
+	Token                        string
+	TunnelPorts                  string
+	Obfs4Addr                    string
+	Obfs4Dir                     string
+}
+
+// ListenAndServe listens, serves and blocks.
+func (p *Proxy) ListenAndServe() error {
 	var err error
-
-	iniflags.Parse()
-	if *help {
-		flag.Usage()
-		return
-	}
-
-	// Logging
-	// TODO: use real parameters
-	err = logging.Init("instanceid", "version", "releasedate", *logglyToken)
-	if err != nil {
-		log.Fatal(err)
-	}
-
 	ops.PutGlobal("app", "http-proxy")
-
-	// Throttling
-	enableThrottling := *throttleAfterMiB > 0
-	if enableThrottling && !*enableReports {
-		log.Fatal("Throttling requires reports enabled")
-	}
 
 	var m *measured.Measured
 	redisOpts := &redis.Options{
-		RedisURL:       *redisAddr,
-		RedisCAFile:    *redisCA,
-		ClientPKFile:   *redisClientPK,
-		ClientCertFile: *redisClientCert,
+		RedisURL:       p.RedisAddr,
+		RedisCAFile:    p.RedisCA,
+		ClientPKFile:   p.RedisClientPK,
+		ClientCertFile: p.RedisClientCert,
 	}
+
 	// Reporting
-	if *enableReports {
+	if p.EnableReports {
 		rp, reporterErr := redis.NewMeasuredReporter(redisOpts)
 		if reporterErr != nil {
 			log.Fatalf("Error creating mesured reporter: %v", reporterErr)
@@ -112,51 +90,49 @@ func main() {
 		defer m.Stop()
 	}
 
-	if *pprofAddr != "" {
-		go func() {
-			log.Debugf("Starting pprof page at http://%s/debug/pprof", *pprofAddr)
-			if err := http.ListenAndServe(*pprofAddr, nil); err != nil {
-				log.Error(err)
-			}
-		}()
+	// Throttling
+	if (p.ThrottleBPS > 0 || p.ThrottleThreshold > 0) &&
+		(p.ThrottleBPS <= 0 || p.ThrottleThreshold <= 0) &&
+		!p.EnableReports {
+		log.Fatal("Throttling requires reports enabled and both throttlebps and throttlethreshold > 0")
 	}
 
 	// Configure borda
-	if *bordaReportInterval > 0 {
-		borda.Enable(*bordaReportInterval, *bordaSamplePercentage)
+	if p.BordaReportInterval > 0 {
+		borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage)
 	}
 
 	// Set up a blacklist
 	bl := blacklist.New(30*time.Second, 10, 6*time.Hour)
 
-	idleTimeout := time.Duration(*idleClose) * time.Second
+	idleTimeout := time.Duration(p.IdleClose) * time.Second
 	var allowedPorts []int
-	if *tunnelPorts != "" {
-		allowedPorts, err = httpconnect.AllowedPortsFromCSV(*tunnelPorts)
+	if p.TunnelPorts != "" {
+		allowedPorts, err = httpconnect.AllowedPortsFromCSV(p.TunnelPorts)
 		if err != nil {
 			log.Fatal(err)
 		}
 	}
 
 	filterChain := filters.Join(
-		tokenfilter.New(*token),
-		devicefilter.NewPre(*throttleAfterMiB),
+		tokenfilter.New(p.Token),
+		devicefilter.NewPre(p.ThrottleThreshold/(1024*1024)),
 		analytics.New(&analytics.Options{
-			TrackingID:       *proxiedSitesTrackingId,
-			SamplePercentage: *proxiedSitesSamplePercentage,
+			TrackingID:       p.ProxiedSitesTrackingID,
+			SamplePercentage: p.ProxiedSitesSamplePercentage,
 		}),
 		devicefilter.NewPost(bl),
 		commonfilter.New(&commonfilter.Options{
-			AllowLocalhost: testingLocal,
+			AllowLocalhost: p.TestingLocal,
 			Exceptions:     []string{"127.0.0.1:7300"},
 		}),
 		ping.New(),
 	)
 
-	if *cfgSvrAuthToken != "" || *cfgSvrDomains != "" {
+	if p.CfgSvrAuthToken != "" || p.CfgSvrDomains != "" {
 		filterChain = filterChain.Append(configserverfilter.New(&configserverfilter.Options{
-			AuthToken: *cfgSvrAuthToken,
-			Domains:   strings.Split(*cfgSvrDomains, ","),
+			AuthToken: p.CfgSvrAuthToken,
+			Domains:   strings.Split(p.CfgSvrDomains, ","),
 		}))
 	}
 
@@ -171,14 +147,14 @@ func main() {
 	)
 
 	// Pro support
-	if *enablePro {
-		if *serverId == "" {
+	if p.EnablePro {
+		if p.ServerID == "" {
 			log.Fatal("Enabling Pro requires setting the \"serverid\" flag")
 		}
 		log.Debug("This proxy is configured to support Lantern Pro")
 		proFilter, err := profilter.New(&profilter.Options{
 			RedisOpts: redisOpts,
-			ServerID:  *serverId,
+			ServerID:  p.ServerID,
 		})
 		if err != nil {
 			log.Fatal(err)
@@ -193,15 +169,15 @@ func main() {
 	srv.Allow = bl.OnConnect
 
 	// Add net.Listener wrappers for inbound connections
-	if enableThrottling {
+	if p.ThrottleBPS > 0 {
 		srv.AddListenerWrappers(
-			// Throttle connections when signaled (50k/second)
+			// Throttle connections when signaled
 			func(ls net.Listener) net.Listener {
-				return lanternlisteners.NewBitrateListener(ls, 51200)
+				return lanternlisteners.NewBitrateListener(ls, p.ThrottleBPS)
 			},
 		)
 	}
-	if *enableReports {
+	if p.EnableReports {
 		srv.AddListenerWrappers(
 			// Measure connections
 			func(ls net.Listener) net.Listener {
@@ -212,7 +188,7 @@ func main() {
 	srv.AddListenerWrappers(
 		// Close connections after 30 seconds of no activity
 		func(ls net.Listener) net.Listener {
-			return listeners.NewIdleConnListener(ls, time.Duration(*idleClose)*time.Second)
+			return listeners.NewIdleConnListener(ls, idleTimeout)
 		},
 		// Preprocess connection to issue custom errors before they are passed to the server
 		func(ls net.Listener) net.Listener {
@@ -229,8 +205,8 @@ func main() {
 		mimic.SetServerAddr(addr)
 	}
 
-	if *obfs4Addr != "" {
-		l, err := obfs4listener.NewListener(*obfs4Addr, *obfs4Dir)
+	if p.Obfs4Addr != "" {
+		l, err := obfs4listener.NewListener(p.Obfs4Addr, p.Obfs4Dir)
 		if err != nil {
 			log.Fatalf("Unable to listen with obfs4: %v", err)
 		}
@@ -243,12 +219,13 @@ func main() {
 			}
 		}()
 	}
-	if *https {
-		err = srv.ListenAndServeHTTPS(*addr, *keyfile, *certfile, onAddress)
+	if p.HTTPS {
+		err = srv.ListenAndServeHTTPS(p.Addr, p.KeyFile, p.CertFile, onAddress)
 	} else {
-		err = srv.ListenAndServeHTTP(*addr, onAddress)
+		err = srv.ListenAndServeHTTP(p.Addr, onAddress)
 	}
 	if err != nil {
 		log.Errorf("Error serving HTTP(S): %v", err)
 	}
+	return err
 }
