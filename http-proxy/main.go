@@ -23,6 +23,8 @@ var (
 	cfgSvrDomains                = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
 	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
+	throttlebps                  = flag.Int64("throttlebps", 0, "If > 0, enables throttling at the given bps (needs stats reporting enabled)")
+	throttlethreshold            = flag.Int64("throttlethreshold", 0, "If > 0, throttling will be activated at the given threshold (in bytes) in all connections of the throttled device")
 	bordaReportInterval          = flag.Duration("borda-report-interval", 30*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
 	bordaSamplePercentage        = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
 	help                         = flag.Bool("help", false, "Get usage help")
@@ -77,6 +79,8 @@ func main() {
 		CfgSvrDomains:         *cfgSvrDomains,
 		EnablePro:             *enablePro,
 		EnableReports:         *enableReports,
+		ThrottleBPS:           *throttlebps,
+		ThrottleThreshold:     *throttlethreshold,
 		BordaReportInterval:   *bordaReportInterval,
 		BordaSamplePercentage: *bordaSamplePercentage,
 		HTTPS:                        *https,

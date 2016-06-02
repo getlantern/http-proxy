@@ -58,6 +58,8 @@ type Proxy struct {
 	RedisClientPK                string
 	RedisClientCert              string
 	ServerID                     string
+	ThrottleBPS                  int64
+	ThrottleThreshold            int64
 	Token                        string
 	TunnelPorts                  string
 	Obfs4Addr                    string
@@ -79,13 +81,19 @@ func (p *Proxy) ListenAndServe() error {
 
 	// Reporting
 	if p.EnableReports {
-		rp, reporterErr := redis.NewMeasuredReporter(redisOpts)
+		rp, reporterErr := redis.NewMeasuredReporter(redisOpts, p.ThrottleThreshold)
 		if reporterErr != nil {
 			log.Fatalf("Error creating mesured reporter: %v", reporterErr)
 		}
 		m = measured.New(5000)
 		m.Start(time.Minute, rp)
 		defer m.Stop()
+	}
+	// Throttling
+	if (p.ThrottleBPS > 0 || p.ThrottleThreshold > 0) &&
+		(p.ThrottleBPS <= 0 || p.ThrottleThreshold <= 0) &&
+		!p.EnableReports {
+		log.Fatal("Throttling requires reports enabled and both throttlebps and throttlethreshold > 0")
 	}
 
 	// Configure borda
@@ -160,6 +168,14 @@ func (p *Proxy) ListenAndServe() error {
 	srv.Allow = bl.OnConnect
 
 	// Add net.Listener wrappers for inbound connections
+	if p.ThrottleBPS > 0 {
+		srv.AddListenerWrappers(
+			// Throttle connections when signaled
+			func(ls net.Listener) net.Listener {
+				return lanternlisteners.NewBitrateListener(ls, p.ThrottleBPS)
+			},
+		)
+	}
 	if p.EnableReports {
 		srv.AddListenerWrappers(
 			// Measure connections
