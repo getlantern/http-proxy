@@ -38,8 +38,8 @@ var (
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
 	redisAddr                    = flag.String("redis", "redis://localhost:6379", "Redis address in \"host:port\" format")
 	redisCA                      = flag.String("redisca", "", "Certificate for redislabs's CA")
-	redisClientPK                = flag.String("redisclientpk", "garantia_user_private.key", "Private key for authenticating client to redis's stunnel")
-	redisClientCert              = flag.String("redisclientcert", "garantia_user.crt", "Certificate for authenticating client to redis's stunnel")
+	redisClientPK                = flag.String("redisclientpk", "", "Private key for authenticating client to redis's stunnel")
+	redisClientCert              = flag.String("redisclientcert", "", "Certificate for authenticating client to redis's stunnel")
 	serverId                     = flag.String("serverid", "", "Server Id required for Pro-supporting servers")
 	token                        = flag.String("token", "", "Lantern token")
 	tunnelPorts                  = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
@@ -92,6 +92,7 @@ func main() {
 		RedisAddr:                    *redisAddr,
 		RedisCA:                      *redisCA,
 		RedisClientPK:                *redisClientPK,
+		RedisClientCert:              *redisClientCert,
 		ServerID:                     *serverId,
 		Token:                        *token,
 		TunnelPorts:                  *tunnelPorts,
