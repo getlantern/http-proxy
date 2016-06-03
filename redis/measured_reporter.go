@@ -50,23 +50,26 @@ func (rp *measuredReporter) ReportTraffic(tt map[string]*measured.TrafficTracker
 			continue
 		}
 
-		pipe := rp.redisClient.Pipeline()
-		defer pipe.Close()
+		multi := rp.redisClient.Multi()
+		var bytesInOp *redis.IntCmd
+		var bytesOutOp *redis.IntCmd
+		_, merr := multi.Exec(func() error {
+			clientKey := "_client:" + key
+			// If any of these commands fails, the error will be immediately returned by Exec,
+			// so we shouldn't be checking them here. Also, reifying the values should be done
+			// after the Exec is done and we've checked for errors running it.
+			bytesInOp = multi.HIncrBy(clientKey, "bytesIn", int64(t.TotalIn))
+			bytesOutOp = multi.HIncrBy(clientKey, "bytesOut", int64(t.TotalOut))
+			multi.ExpireAt(clientKey, endOfThisMonth)
+			return nil
+		})
+		multi.Close()
+		if merr != nil {
+			return merr
+		}
 
-		clientKey := "_client:" + key
-		bytesIn, err := pipe.HIncrBy(clientKey, "bytesIn", int64(t.TotalIn)).Result()
-		if err != nil {
-			return err
-		}
-		bytesOut, err := pipe.HIncrBy(clientKey, "bytesOut", int64(t.TotalOut)).Result()
-		if err != nil {
-			return err
-		}
-		pipe.ExpireAt(clientKey, endOfThisMonth).Err()
-		if err != nil {
-			return err
-		}
-
+		bytesIn := bytesInOp.Val()
+		bytesOut := bytesOutOp.Val()
 		usage.Set(key, uint64(bytesIn+bytesOut), now)
 	}
 	return nil

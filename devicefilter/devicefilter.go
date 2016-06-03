@@ -62,6 +62,9 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 		if f.throttleAfterMiB > 0 {
 			// Throttling enabled
 			u := usage.Get(lanternDeviceID)
+			if u == nil {
+				return next()
+			}
 			uMiB := u.Bytes / 1024768
 			// Encode usage information in a header. The header is expected to follow
 			// this format:
