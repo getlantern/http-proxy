@@ -47,20 +47,24 @@ func (rp *measuredReporter) ReportTraffic(tt map[string]*measured.TrafficTracker
 			continue
 		}
 
-		clientKey := "_client:" + key
-		bytesIn, err := rp.redisClient.HIncrBy(clientKey, "bytesIn", int64(t.TotalIn)).Result()
-		if err != nil {
-			return err
-		}
-		bytesOut, err := rp.redisClient.HIncrBy(clientKey, "bytesOut", int64(t.TotalOut)).Result()
-		if err != nil {
-			return err
-		}
-		rp.redisClient.ExpireAt(clientKey, endOfThisMonth).Err()
-		if err != nil {
-			return err
+		multi := rp.redisClient.Multi()
+		defer multi.Close()
+
+		var bytesInOp *redis.IntCmd
+		var bytesOutOp *redis.IntCmd
+		_, merr := multi.Exec(func() error {
+			clientKey := "_client:" + key
+			bytesInOp = multi.HIncrBy(clientKey, "bytesIn", int64(t.TotalIn))
+			bytesOutOp = multi.HIncrBy(clientKey, "bytesOut", int64(t.TotalOut))
+			multi.ExpireAt(clientKey, endOfThisMonth)
+			return nil
+		})
+		if merr != nil {
+			return merr
 		}
 
+		bytesIn := bytesInOp.Val()
+		bytesOut := bytesOutOp.Val()
 		usage.Set(key, uint64(bytesIn+bytesOut), now)
 	}
 	return nil
