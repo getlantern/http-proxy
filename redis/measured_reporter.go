@@ -25,12 +25,15 @@ func NewMeasuredReporter(redisOpts *Options) (measured.Reporter, error) {
 		return nil, err
 	}
 
+	log.Debug("Will report traffic")
+
 	return &measuredReporter{
 		redisClient: rc,
 	}, nil
 }
 
 func (rp *measuredReporter) ReportTraffic(tt map[string]*measured.TrafficTracker) error {
+	log.Debug("Reporting traffic")
 	now := time.Now()
 	nextMonth := now.Month() + 1
 	nextYear := now.Year()
