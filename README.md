@@ -48,7 +48,14 @@ TRACE=1 go test
 Run the server with:
 
 ```
-go run http_proxy.go -https -token=<your-token>
+cd http-proxy
+go install && http-proxy -https -token <your-token> -enablereports -throttlebps 50000 -throttlethreshold 500000000
+```
+
+Run a Lantern client accordingly, as in:
+
+```
+./lantern -force-proxy-addr localhost:8080 -force-auth-token <your-token>
 ```
 
 You have two options to test it: the Lantern client or [checkfallbacks](https://github.com/getlantern/lantern/tree/valencia/src/github.com/getlantern/checkfallbacks).
