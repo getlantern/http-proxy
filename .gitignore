@@ -26,6 +26,7 @@ _testmain.go
 .env
 *.pem
 http-proxy-lantern
+http-proxy/http-proxy
 pinger
 /bin
 /pkg
