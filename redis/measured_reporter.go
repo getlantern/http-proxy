@@ -47,19 +47,16 @@ func (rp *measuredReporter) ReportTraffic(tt map[string]*measured.TrafficTracker
 			continue
 		}
 
-		pipe := rp.redisClient.Pipeline()
-		defer pipe.Close()
-
 		clientKey := "_client:" + key
-		bytesIn, err := pipe.HIncrBy(clientKey, "bytesIn", int64(t.TotalIn)).Result()
+		bytesIn, err := rp.redisClient.HIncrBy(clientKey, "bytesIn", int64(t.TotalIn)).Result()
 		if err != nil {
 			return err
 		}
-		bytesOut, err := pipe.HIncrBy(clientKey, "bytesOut", int64(t.TotalOut)).Result()
+		bytesOut, err := rp.redisClient.HIncrBy(clientKey, "bytesOut", int64(t.TotalOut)).Result()
 		if err != nil {
 			return err
 		}
-		pipe.ExpireAt(clientKey, endOfThisMonth).Err()
+		rp.redisClient.ExpireAt(clientKey, endOfThisMonth).Err()
 		if err != nil {
 			return err
 		}
