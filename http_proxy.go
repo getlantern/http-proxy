@@ -69,7 +69,7 @@ type Proxy struct {
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
 	var err error
-	ops.PutGlobal("app", "http-proxy")
+	ops.SetGlobal("app", "http-proxy")
 
 	var m *measured.Measured
 	redisOpts := &redis.Options{
@@ -199,8 +199,8 @@ func (p *Proxy) ListenAndServe() error {
 	onAddress := func(addr string) {
 		proxyHost, proxyPort, err2 := net.SplitHostPort(addr)
 		if err2 == nil {
-			ops.PutGlobal("proxy_host", proxyHost)
-			ops.PutGlobal("proxy_port", proxyPort)
+			ops.SetGlobal("proxy_host", proxyHost)
+			ops.SetGlobal("proxy_port", proxyPort)
 		}
 		mimic.SetServerAddr(addr)
 	}

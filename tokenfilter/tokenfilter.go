@@ -27,8 +27,8 @@ func New(token string) filters.Filter {
 }
 
 func (f *tokenFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
-	op := ops.Enter("tokenfilter")
-	defer op.Exit()
+	op := ops.Begin("tokenfilter")
+	defer op.End()
 
 	if log.IsTraceEnabled() {
 		reqStr, _ := httputil.DumpRequest(req, true)

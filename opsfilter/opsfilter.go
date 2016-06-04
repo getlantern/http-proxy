@@ -26,13 +26,13 @@ func New() filters.Filter {
 func (f *opsfilter) Apply(resp http.ResponseWriter, req *http.Request, next filters.Next) error {
 	deviceID := req.Header.Get(common.DeviceIdHeader)
 	op := ops.
-		Enter("proxy").
-		Put("device_id", deviceID).
-		Put("origin", req.Host)
-	defer op.Exit()
+		Begin("proxy").
+		Set("device_id", deviceID).
+		Set("origin", req.Host)
+	defer op.End()
 	clientIP, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err == nil {
-		op.Put("client_ip", clientIP)
+		op.Set("client_ip", clientIP)
 	}
 	return next()
 }
