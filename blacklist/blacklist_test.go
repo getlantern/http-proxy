@@ -12,7 +12,7 @@ const (
 )
 
 func TestBlacklistSucceed(t *testing.T) {
-	bl := New(50*time.Millisecond, 2, 5*time.Second)
+	bl := New(Options{50 * time.Millisecond, 1 * time.Millisecond, 2, 5 * time.Second})
 	for i := 0; i < 10000; i++ {
 		assert.True(t, bl.OnConnect(ip), "Should be able to continuously connect while succeeding")
 		bl.Succeed(ip)
@@ -20,14 +20,25 @@ func TestBlacklistSucceed(t *testing.T) {
 }
 
 func TestBlacklistFail(t *testing.T) {
-	bl := New(5*time.Millisecond, 2, 250*time.Millisecond)
+	maxIdleTime := 5 * time.Millisecond
+	bl := New(Options{
+		MaxIdleTime:        maxIdleTime,
+		MaxConnectInterval: maxIdleTime * 5,
+		AllowedFailures:    3,
+		Expiration:         maxIdleTime * 50,
+	})
 	// Run through the same tests multiple times since this depends somewhat on timing
 	for i := 0; i < 10; i++ {
 		for j := 0; j < bl.allowedFailures; j++ {
-			time.Sleep(bl.maxIdleTime * 3)
 			assert.True(t, bl.OnConnect(ip), "Should be able to continue connecting while failures are below threshold")
+			time.Sleep(bl.maxConnectInterval * 2)
 		}
-		time.Sleep(bl.maxIdleTime * 3)
+		assert.True(t, bl.OnConnect(ip), "Connecting should not fail if the interval between each connect attempt is long enough")
+
+		for k := 0; k < bl.allowedFailures; k++ {
+			assert.True(t, bl.OnConnect(ip), "Should be able to continue connecting while failures are below threshold")
+			time.Sleep(bl.maxIdleTime * 3)
+		}
 		assert.False(t, bl.OnConnect(ip), "Connecting should fail once failures exceed threshold")
 
 		time.Sleep(bl.blacklistExpiration * 2)

@@ -103,7 +103,12 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	// Set up a blacklist
-	bl := blacklist.New(30*time.Second, 10, 6*time.Hour)
+	bl := blacklist.New(blacklist.Options{
+		MaxIdleTime:        30 * time.Second,
+		MaxConnectInterval: 5 * time.Second,
+		AllowedFailures:    10,
+		Expiration:         6 * time.Hour,
+	})
 
 	idleTimeout := time.Duration(p.IdleClose) * time.Second
 	var allowedPorts []int
