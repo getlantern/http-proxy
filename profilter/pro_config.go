@@ -7,10 +7,11 @@ import (
 )
 
 type proConfig struct {
-	serverId    string
-	redisConfig *redis.ProConfig
-	userTokens  redis.UserTokens
-	proFilter   *lanternProFilter
+	serverId          string
+	redisConfig       *redis.ProConfig
+	userTokens        redis.UserTokens
+	proFilter         *lanternProFilter
+	maxDevicesPerUser int
 }
 
 func NewRedisProConfig(redisOpts *redis.Options, serverId string, proFilter *lanternProFilter) (*proConfig, error) {
