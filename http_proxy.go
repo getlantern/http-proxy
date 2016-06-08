@@ -60,6 +60,7 @@ type Proxy struct {
 	ServerID                     string
 	ThrottleBPS                  uint64
 	ThrottleThreshold            uint64
+	MaxDevicesPerProUser         uint64
 	Token                        string
 	TunnelPorts                  string
 	Obfs4Addr                    string
@@ -153,8 +154,9 @@ func (p *Proxy) ListenAndServe() error {
 		}
 		log.Debug("This proxy is configured to support Lantern Pro")
 		proFilter, err := profilter.New(&profilter.Options{
-			RedisOpts: redisOpts,
-			ServerID:  p.ServerID,
+			RedisOpts:            redisOpts,
+			ServerID:             p.ServerID,
+			MaxDevicesPerProUser: p.MaxDevicesPerProUser,
 		})
 		if err != nil {
 			log.Fatal(err)

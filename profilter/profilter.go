@@ -5,8 +5,10 @@ package profilter
 
 import (
 	"fmt"
+	"math"
 	"net/http"
 	"net/http/httputil"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -29,17 +31,26 @@ type lanternProFilter struct {
 	// Tokens write-only mutex
 	tkwMutex sync.Mutex
 	proConf  *proConfig
+
+	deviceRegistry       *DeviceRegistry
+	maxDevicesPerProUser uint64
 }
 
 type Options struct {
-	RedisOpts *redis.Options
-	ServerID  string
+	RedisOpts            *redis.Options
+	ServerID             string
+	MaxDevicesPerProUser uint64
 }
 
 func New(opts *Options) (filters.Filter, error) {
+	if opts.MaxDevicesPerProUser <= 0 {
+		opts.MaxDevicesPerProUser = math.MaxInt32
+	}
 	f := &lanternProFilter{
-		enabled:   0,
-		proTokens: new(atomic.Value),
+		enabled:              0,
+		proTokens:            new(atomic.Value),
+		deviceRegistry:       NewDeviceRegistry(),
+		maxDevicesPerProUser: opts.MaxDevicesPerProUser,
 	}
 	// atomic.Value can't be copied after Store has been called
 	f.proTokens.Store(make(TokensMap))
@@ -54,10 +65,6 @@ func New(opts *Options) (filters.Filter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error reading assigned users in bootstrapping: %s", err)
 	}
-	// Currently, we run a Pro server starting as a free server
-	// that can turn into a Pro server.  This is an initial design,
-	// that will change if we decide to use separate queues, and therefore
-	// can configure the proxy at launch time
 	err = f.proConf.Run(isPro)
 	if err != nil {
 		return nil, fmt.Errorf("Error configuring Pro: %s", err)
@@ -68,6 +75,23 @@ func New(opts *Options) (filters.Filter, error) {
 
 func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
 	lanternProToken := req.Header.Get(common.ProTokenHeader)
+	lanternDeviceID := req.Header.Get(common.DeviceIdHeader)
+	lanternUserID := req.Header.Get(common.UserIdHeader)
+	userID, convErr := strconv.ParseUint(lanternUserID, 10, 64)
+	if convErr != nil {
+		mimic.MimicApache(w, req)
+		return filters.Stop()
+	}
+
+	currentDevices := f.deviceRegistry.GetUserDevices(userID)
+	if _, ok := currentDevices[lanternDeviceID]; !ok {
+		if uint64(len(currentDevices)) >= f.maxDevicesPerProUser {
+			w.WriteHeader(http.StatusForbidden)
+			return filters.Stop()
+		} else {
+			f.deviceRegistry.SetUserDevice(userID, lanternDeviceID)
+		}
+	}
 
 	if log.IsTraceEnabled() {
 		reqStr, _ := httputil.DumpRequest(req, true)
