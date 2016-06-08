@@ -5,7 +5,6 @@ package profilter
 
 import (
 	"fmt"
-	"math"
 	"net/http"
 	"net/http/httputil"
 	"strconv"
@@ -32,25 +31,19 @@ type lanternProFilter struct {
 	tkwMutex sync.Mutex
 	proConf  *proConfig
 
-	deviceRegistry    *DeviceRegistry
-	maxDevicesPerUser int
+	deviceRegistry *DeviceRegistry
 }
 
 type Options struct {
-	RedisOpts         *redis.Options
-	ServerID          string
-	MaxDevicesPerUser int
+	RedisOpts *redis.Options
+	ServerID  string
 }
 
 func New(opts *Options) (filters.Filter, error) {
-	if opts.MaxDevicesPerUser <= 0 {
-		opts.MaxDevicesPerUser = math.MaxInt32
-	}
 	f := &lanternProFilter{
-		enabled:           0,
-		proTokens:         new(atomic.Value),
-		deviceRegistry:    NewDeviceRegistry(),
-		maxDevicesPerUser: opts.MaxDevicesPerUser,
+		enabled:        0,
+		proTokens:      new(atomic.Value),
+		deviceRegistry: NewDeviceRegistry(),
 	}
 	// atomic.Value can't be copied after Store has been called
 	f.proTokens.Store(make(TokensMap))
@@ -85,12 +78,8 @@ func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next 
 
 	currentDevices := f.deviceRegistry.GetUserDevices(userID)
 	if _, ok := currentDevices[lanternDeviceID]; !ok {
-		if len(currentDevices) >= f.maxDevicesPerUser {
-			w.WriteHeader(http.StatusForbidden)
-			return filters.Stop()
-		} else {
-			f.deviceRegistry.SetUserDevice(userID, lanternDeviceID)
-		}
+		w.WriteHeader(http.StatusForbidden)
+		return filters.Stop()
 	}
 
 	if log.IsTraceEnabled() {
