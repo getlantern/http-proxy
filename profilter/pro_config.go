@@ -69,74 +69,77 @@ func (c *proConfig) IsPro() (bool, error) {
 }
 
 func (c *proConfig) Run(initAsPro bool) error {
-	initialize := func() (err error) {
-		c.redisConfig.EmptyMessageQueue()
-
-		c.proFilter.Enable()
-		if c.userTokens, err = c.redisConfig.GetUsersAndTokens(); err != nil {
-			return
-		}
-		c.proFilter.SetTokens(c.getAllTokens()...)
-		return
-	}
-
 	if initAsPro {
-		if err := initialize(); err != nil {
+		if err := c.initializePro(); err != nil {
 			return err
 		}
 	}
+	go c.handleDevices()
+	go c.handleMessages()
 
-	go func() {
-		for range c.devicesPollTimer.C {
-			usersDevicesArray := c.redisConfig.RetrieveGlobalUserDevices()
-			userDevices := make(DevicesMap)
-			for u, ds := range usersDevicesArray {
-				devices := make(map[string]bool)
-				for _, d := range ds {
-					devices[d] = true
-				}
-				userDevices[u] = devices
-			}
-			c.proFilter.DeviceRegistry.SetUserDevices(userDevices)
-		}
-	}()
-
-	go func() {
-		for {
-			msg, err := c.redisConfig.GetNextMessage()
-			if err != nil {
-				log.Debugf("Error reading message from Redis: %v", err)
-				continue
-			}
-			switch msg[0] {
-			case "TURN-PRO":
-				initialize()
-				log.Debug("Proxy now is Pro-only. Tokens updated.")
-			case "TURN-FREE":
-				c.proFilter.Disable()
-				c.proFilter.ClearTokens()
-				log.Debug("Proxy now is Free-only")
-			case "USER-SET":
-				// Add or update a user
-				if err := c.processUserSetMessage(msg); err != nil {
-					log.Errorf("Error setting user/token: %v", err)
-				} else {
-					// We need to update all tokens to avoid leaking old ones,
-					// in case of token update
-					c.proFilter.SetTokens(c.getAllTokens()...)
-					log.Tracef("User added/updated. Complete set of users: %v", c.userTokens)
-				}
-			case "USER-REMOVE":
-				if err := c.processUserRemoveMessage(msg); err != nil {
-					log.Errorf("Error retrieving removed users/token: %v", err)
-				} else {
-					c.proFilter.SetTokens(c.getAllTokens()...)
-					log.Tracef("Removed user. Current set: %v", c.userTokens)
-				}
-			default:
-				log.Error("Unknown message type")
-			}
-		}
-	}()
 	return nil
+}
+
+func (c *proConfig) initializePro() (err error) {
+	c.redisConfig.EmptyMessageQueue()
+
+	c.proFilter.Enable()
+	if c.userTokens, err = c.redisConfig.GetUsersAndTokens(); err != nil {
+		return
+	}
+	c.proFilter.SetTokens(c.getAllTokens()...)
+	return
+}
+
+func (c *proConfig) handleDevices() {
+	for range c.devicesPollTimer.C {
+		usersDevicesArray := c.redisConfig.RetrieveGlobalUserDevices()
+		userDevices := make(DevicesMap)
+		for u, ds := range usersDevicesArray {
+			devices := make(map[string]bool)
+			for _, d := range ds {
+				devices[d] = true
+			}
+			userDevices[u] = devices
+		}
+		c.proFilter.DeviceRegistry.SetUserDevices(userDevices)
+	}
+}
+
+func (c *proConfig) handleMessages() {
+	for {
+		msg, err := c.redisConfig.GetNextMessage()
+		if err != nil {
+			log.Debugf("Error reading message from Redis: %v", err)
+			continue
+		}
+		switch msg[0] {
+		case "TURN-PRO":
+			c.initializePro()
+			log.Debug("Proxy now is Pro-only. Tokens updated.")
+		case "TURN-FREE":
+			c.proFilter.Disable()
+			c.proFilter.ClearTokens()
+			log.Debug("Proxy now is Free-only")
+		case "USER-SET":
+			// Add or update a user
+			if err := c.processUserSetMessage(msg); err != nil {
+				log.Errorf("Error setting user/token: %v", err)
+			} else {
+				// We need to update all tokens to avoid leaking old ones,
+				// in case of token update
+				c.proFilter.SetTokens(c.getAllTokens()...)
+				log.Tracef("User added/updated. Complete set of users: %v", c.userTokens)
+			}
+		case "USER-REMOVE":
+			if err := c.processUserRemoveMessage(msg); err != nil {
+				log.Errorf("Error retrieving removed users/token: %v", err)
+			} else {
+				c.proFilter.SetTokens(c.getAllTokens()...)
+				log.Tracef("Removed user. Current set: %v", c.userTokens)
+			}
+		default:
+			log.Error("Unknown message type")
+		}
+	}
 }
