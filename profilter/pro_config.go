@@ -25,7 +25,7 @@ func NewRedisProConfig(redisOpts *redis.Options, serverId string, proFilter *lan
 		redisConfig:      redisConfig,
 		userTokens:       make(redis.UserTokens),
 		proFilter:        proFilter,
-		devicesPollTimer: time.NewTicker(time.Minute),
+		devicesPollTimer: time.NewTicker(30 * time.Second),
 	}, nil
 }
 
@@ -102,6 +102,7 @@ func (c *proConfig) handleDevices() {
 			}
 			userDevices[u] = devices
 		}
+		log.Debugf("Retrieved %v users for device limiting", len(userDevices))
 		c.proFilter.DeviceRegistry.SetUserDevices(userDevices)
 	}
 }

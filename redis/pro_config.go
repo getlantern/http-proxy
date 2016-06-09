@@ -86,8 +86,8 @@ func (c *ProConfig) RetrieveGlobalUserDevices() (userDevices map[uint64][]string
 		log.Tracef("Assigned users: %v", users)
 		for _, u := range users {
 			devices, err := c.redisClient.SMembers("user->devices:" + u).Result()
-			if err == nil {
-				log.Errorf("Error retrieving user devices")
+			if err != nil {
+				log.Errorf("Error retrieving user devices for user %v", u)
 			} else {
 				userID, convErr := strconv.ParseUint(u, 10, 64)
 				if convErr != nil {
