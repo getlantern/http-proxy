@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/Yawning/obfs4/transports/obfs4"
-	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/withtimeout"
 
@@ -19,9 +18,6 @@ var (
 	log = golog.LoggerFor("obfs4listener")
 
 	handshakeTimeout = 30 * time.Second
-
-	// ErrHandshakeTimeout signifies that the obfs4 handshake timed out
-	ErrHandshakeTimeout = "obfs4 handshake timed out"
 )
 
 func NewListener(addr string, stateDir string) (net.Listener, error) {
@@ -92,13 +88,13 @@ func (l *obfs4listener) wrap(conn net.Conn) {
 	_wrapped, timedOut, err := withtimeout.Do(handshakeTimeout, func() (interface{}, error) {
 		return l.sf.WrapConn(conn)
 	})
-	var wrapped net.Conn
 	if timedOut {
-		err = errors.New(ErrHandshakeTimeout)
-	} else if err == nil {
-		wrapped = _wrapped.(net.Conn)
+		log.Debugf("Handshake with %v timed out", conn.RemoteAddr())
+	} else if err != nil {
+		log.Debugf("Handshake error with %v: %v", conn.RemoteAddr(), err)
+	} else {
+		l.ready <- &result{_wrapped.(net.Conn), err}
 	}
-	l.ready <- &result{wrapped, err}
 }
 
 func (l *obfs4listener) monitor() {

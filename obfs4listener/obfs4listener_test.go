@@ -6,9 +6,9 @@ import (
 	"net"
 	"os"
 	"testing"
-	"time"
 
 	"github.com/Yawning/obfs4/transports/obfs4"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -48,8 +48,17 @@ func TestRoundTrip(t *testing.T) {
 		return
 	}
 
+	// Dial with a regular dialer that won't handshake. This makes sure that we're
+	// handling this case correctly and not interfering with successful
+	// connections afterwards
+	badConn, err := net.Dial("tcp", l.Addr().String())
+	if !assert.NoError(t, err, "Unable to dial bad conn") {
+		return
+	}
+	defer badConn.Close()
+
 	conn, err := cf.Dial("tcp", l.Addr().String(), net.Dial, args)
-	if !assert.NoError(t, err, "Unable to dial out") {
+	if !assert.NoError(t, err, "Unable to dial good conn") {
 		return
 	}
 	defer conn.Close()
@@ -64,38 +73,4 @@ func TestRoundTrip(t *testing.T) {
 		return
 	}
 	assert.Equal(t, string(b), string(e), "Echoed did not match written")
-}
-
-func TestTimeout(t *testing.T) {
-	origHandshakeTimeout := handshakeTimeout
-	defer func() {
-		handshakeTimeout = origHandshakeTimeout
-	}()
-	handshakeTimeout = 25 * time.Millisecond
-
-	tmpDir, err := ioutil.TempDir("", "obfs4listener-test-timeout")
-	if !assert.NoError(t, err, "Unable to create tempdir") {
-		return
-	}
-	defer os.RemoveAll(tmpDir)
-
-	l, err := NewListener("localhost:0", tmpDir)
-	if !assert.NoError(t, err, "Unable to create listener") {
-		return
-	}
-	defer l.Close()
-
-	// Use just a regular dialer, since we have no intention of handshaking
-	conn, err := net.Dial("tcp", l.Addr().String())
-	if !assert.NoError(t, err, "Unable to dial") {
-		return
-	}
-	defer conn.Close()
-
-	start := time.Now()
-	conn2, err2 := l.Accept()
-	delta := time.Now().Sub(start)
-	assert.Nil(t, conn2, "Failed connection should be nil")
-	assert.Error(t, err2, "Failed connection should have error")
-	assert.True(t, delta < 50*time.Millisecond, "Failure should have happened quickly")
 }
