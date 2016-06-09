@@ -94,10 +94,7 @@ func (c *ProConfig) RetrieveGlobalUserDevices() (userDevices map[uint64][]string
 					log.Errorf("Error parsing user ID")
 				} else {
 					for i, d := range devices {
-						pos := strings.IndexByte(d, '|')
-						if pos == -1 {
-							devices[i] = d
-						} else {
+						if pos := strings.IndexByte(d, '|'); pos != -1 {
 							devices[i] = d[:pos]
 						}
 					}
