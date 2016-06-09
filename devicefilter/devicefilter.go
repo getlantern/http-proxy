@@ -36,6 +36,9 @@ type deviceFilterPost struct {
 }
 
 func NewPre(throttleAfterMiB uint64) filters.Filter {
+	if throttleAfterMiB > 0 {
+		log.Debugf("Throttling clients after %v MiB", throttleAfterMiB)
+	}
 	return &deviceFilterPre{
 		throttleAfterMiB: throttleAfterMiB,
 	}
