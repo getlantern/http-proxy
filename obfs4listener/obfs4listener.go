@@ -4,11 +4,24 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"time"
 
 	"github.com/Yawning/obfs4/transports/obfs4"
+	"github.com/getlantern/errors"
+	"github.com/getlantern/golog"
+	"github.com/getlantern/withtimeout"
 
 	"git.torproject.org/pluggable-transports/goptlib.git"
 	"git.torproject.org/pluggable-transports/obfs4.git/transports/base"
+)
+
+var (
+	log = golog.LoggerFor("obfs4listener")
+
+	handshakeTimeout = 30 * time.Second
+
+	// ErrHandshakeTimeout signifies that the obfs4 handshake timed out
+	ErrHandshakeTimeout = "obfs4 handshake timed out"
 )
 
 func NewListener(addr string, stateDir string) (net.Listener, error) {
@@ -27,20 +40,31 @@ func NewListener(addr string, stateDir string) (net.Listener, error) {
 		return nil, fmt.Errorf("Unable to listen at %v: %v", addr, err)
 	}
 
-	return &obfs4listener{l, sf}, nil
+	ol := &obfs4listener{
+		wrapped: l,
+		sf:      sf,
+		ready:   make(chan *result, 1000),
+	}
+
+	go ol.accept()
+	go ol.monitor()
+	return ol, nil
+}
+
+type result struct {
+	conn net.Conn
+	err  error
 }
 
 type obfs4listener struct {
 	wrapped net.Listener
 	sf      base.ServerFactory
+	ready   chan *result
 }
 
 func (l *obfs4listener) Accept() (net.Conn, error) {
-	conn, err := l.wrapped.Accept()
-	if err != nil {
-		return nil, err
-	}
-	return l.sf.WrapConn(conn)
+	r := <-l.ready
+	return r.conn, r.err
 }
 
 func (l *obfs4listener) Addr() net.Addr {
@@ -49,4 +73,37 @@ func (l *obfs4listener) Addr() net.Addr {
 
 func (l *obfs4listener) Close() error {
 	return l.wrapped.Close()
+}
+
+func (l *obfs4listener) accept() {
+	for {
+		conn, err := l.wrapped.Accept()
+		if err != nil {
+			l.ready <- &result{nil, err}
+		} else {
+			// WrapConn does a handshake with the client, which involves io operations
+			// and can time out
+			go l.wrap(conn)
+		}
+	}
+}
+
+func (l *obfs4listener) wrap(conn net.Conn) {
+	_wrapped, timedOut, err := withtimeout.Do(handshakeTimeout, func() (interface{}, error) {
+		return l.sf.WrapConn(conn)
+	})
+	var wrapped net.Conn
+	if timedOut {
+		err = errors.New(ErrHandshakeTimeout)
+	} else if err == nil {
+		wrapped = _wrapped.(net.Conn)
+	}
+	l.ready <- &result{wrapped, err}
+}
+
+func (l *obfs4listener) monitor() {
+	for {
+		time.Sleep(5 * time.Second)
+		log.Debugf("Currently handshaking connections: %d", len(l.ready))
+	}
 }
