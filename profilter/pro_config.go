@@ -2,16 +2,17 @@ package profilter
 
 import (
 	"errors"
+	"time"
 
 	"github.com/getlantern/http-proxy-lantern/redis"
 )
 
 type proConfig struct {
-	serverId          string
-	redisConfig       *redis.ProConfig
-	userTokens        redis.UserTokens
-	proFilter         *lanternProFilter
-	maxDevicesPerUser int
+	serverId         string
+	redisConfig      *redis.ProConfig
+	userTokens       redis.UserTokens
+	proFilter        *lanternProFilter
+	devicesPollTimer *time.Ticker
 }
 
 func NewRedisProConfig(redisOpts *redis.Options, serverId string, proFilter *lanternProFilter) (*proConfig, error) {
@@ -20,10 +21,11 @@ func NewRedisProConfig(redisOpts *redis.Options, serverId string, proFilter *lan
 		return nil, err
 	}
 	return &proConfig{
-		serverId:    serverId,
-		redisConfig: redisConfig,
-		userTokens:  make(redis.UserTokens),
-		proFilter:   proFilter,
+		serverId:         serverId,
+		redisConfig:      redisConfig,
+		userTokens:       make(redis.UserTokens),
+		proFilter:        proFilter,
+		devicesPollTimer: time.NewTicker(time.Minute),
 	}, nil
 }
 
@@ -83,6 +85,21 @@ func (c *proConfig) Run(initAsPro bool) error {
 			return err
 		}
 	}
+
+	go func() {
+		for range c.devicesPollTimer.C {
+			usersDevicesArray := c.redisConfig.RetrieveGlobalUserDevices()
+			userDevices := make(DevicesMap)
+			for u, ds := range usersDevicesArray {
+				devices := make(map[string]bool)
+				for _, d := range ds {
+					devices[d] = true
+				}
+				userDevices[u] = devices
+			}
+			c.proFilter.DeviceRegistry.SetUserDevices(userDevices)
+		}
+	}()
 
 	go func() {
 		for {

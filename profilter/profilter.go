@@ -31,7 +31,7 @@ type lanternProFilter struct {
 	tkwMutex sync.Mutex
 	proConf  *proConfig
 
-	deviceRegistry *DeviceRegistry
+	DeviceRegistry *DeviceRegistry
 }
 
 type Options struct {
@@ -43,7 +43,7 @@ func New(opts *Options) (filters.Filter, error) {
 	f := &lanternProFilter{
 		enabled:        0,
 		proTokens:      new(atomic.Value),
-		deviceRegistry: NewDeviceRegistry(),
+		DeviceRegistry: NewDeviceRegistry(),
 	}
 	// atomic.Value can't be copied after Store has been called
 	f.proTokens.Store(make(TokensMap))
@@ -72,11 +72,12 @@ func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next 
 	lanternUserID := req.Header.Get(common.UserIdHeader)
 	userID, convErr := strconv.ParseUint(lanternUserID, 10, 64)
 	if convErr != nil {
+		log.Debugf("Error parsing user ID")
 		mimic.MimicApache(w, req)
 		return filters.Stop()
 	}
 
-	currentDevices := f.deviceRegistry.GetUserDevices(userID)
+	currentDevices := f.DeviceRegistry.GetUserDevices(userID)
 	if _, ok := currentDevices[lanternDeviceID]; !ok {
 		w.WriteHeader(http.StatusForbidden)
 		return filters.Stop()
