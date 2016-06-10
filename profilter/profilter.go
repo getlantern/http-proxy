@@ -11,11 +11,12 @@ import (
 	"sync/atomic"
 
 	"github.com/getlantern/golog"
+	"github.com/gorilla/context"
 
 	"github.com/getlantern/http-proxy/filters"
+	"github.com/getlantern/http-proxy/listeners"
 
 	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/redis"
 )
 
@@ -79,19 +80,12 @@ func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next 
 
 	req.Header.Del(common.ProTokenHeader)
 
-	if !f.isEnabled() {
-		return next()
+	if f.isEnabled() && lanternProToken != "" && f.tokenExists(lanternProToken) {
+		wc := context.Get(req, "conn").(listeners.WrapConn)
+		wc.ControlMessage("pro-user", true)
 	}
 
-	// If a Pro token is found in the header, test if its valid and then let
-	// the request pass.
-	if lanternProToken != "" && f.tokenExists(lanternProToken) {
-		return next()
-	}
-
-	log.Debugf("Mismatched Pro token %s from %s, mimicking apache", lanternProToken, req.RemoteAddr)
-	mimic.MimicApache(w, req)
-	return filters.Stop()
+	return next()
 }
 
 func (f *lanternProFilter) isEnabled() bool {
