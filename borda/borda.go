@@ -41,6 +41,7 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) {
 		var deviceIDInt uint64
 		if len(deviceIDBytes) != 6 {
 			log.Debugf("Unexpected DeviceID length %d", len(deviceIDBytes))
+			return
 		}
 		// Pad and decode to int
 		paddedDeviceIDBytes := append(deviceIDBytes, 0, 0)
