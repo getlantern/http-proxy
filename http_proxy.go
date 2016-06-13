@@ -92,9 +92,11 @@ func (p *Proxy) ListenAndServe() error {
 
 	// Throttling
 	if (p.ThrottleBPS > 0 || p.ThrottleThreshold > 0) &&
-		(p.ThrottleBPS <= 0 || p.ThrottleThreshold <= 0) &&
-		!p.EnableReports {
-		log.Fatal("Throttling requires reports enabled and both throttlebps and throttlethreshold > 0")
+		(p.ThrottleBPS <= 0 || p.ThrottleThreshold <= 0) {
+		log.Fatal("Throttling requires both throttlebps and throttlethreshold > 0")
+	}
+	if p.ThrottleBPS > 0 && !p.EnableReports {
+		log.Fatal("Throttling requires reporting enabled")
 	}
 
 	// Configure borda
