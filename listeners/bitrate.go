@@ -31,7 +31,7 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 		WrapConnEmbeddable: wc,
 		Conn:               c,
 		active:             false,
-		proUser:            false,
+		locked:             false,
 		freader:            flowrate.NewReader(c, int64(bl.limit)),
 		fwriter:            flowrate.NewWriter(c, int64(bl.limit)),
 	}, err
@@ -42,7 +42,7 @@ type bitrateConn struct {
 	listeners.WrapConnEmbeddable
 	net.Conn
 	active  bool
-	proUser bool
+	locked  bool
 	freader *flowrate.Reader
 	fwriter *flowrate.Writer
 }
@@ -72,12 +72,18 @@ func (c *bitrateConn) OnState(s http.ConnState) {
 
 func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	// pro-user message always overrides the active flag
-	if msgType == "bitrate" && !c.proUser {
-		log.Trace("Bitrate throttling message received")
-		c.active = true
-	} else if msgType == "pro-user" {
-		c.proUser = true
-		c.active = false
+	if !c.locked && msgType == "throttle" {
+		strData := data.(string)
+		if strData == "lock" {
+			log.Trace("Bitrate no-throttling lock message received")
+			c.locked = true
+			c.active = false
+		} else if strData == "enable" {
+			log.Trace("Bitrate throttling message received")
+			c.active = true
+		} else {
+			log.Errorf("Unhandled bitrate message")
+		}
 	}
 
 	if c.WrapConnEmbeddable != nil {

@@ -82,7 +82,7 @@ func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next 
 
 	if f.isEnabled() && lanternProToken != "" && f.tokenExists(lanternProToken) {
 		wc := context.Get(req, "conn").(listeners.WrapConn)
-		wc.ControlMessage("pro-user", true)
+		wc.ControlMessage("throttle", "lock")
 	}
 
 	return next()

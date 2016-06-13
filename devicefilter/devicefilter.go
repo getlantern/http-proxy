@@ -81,7 +81,7 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 			w.Header().Set("XBQ", fmt.Sprintf("%d/%d/%d", uMiB, f.throttleAfterMiB, int64(u.AsOf.Sub(epoch).Seconds())))
 			if uMiB > f.throttleAfterMiB {
 				// Start limiting the throughput on this connection
-				wc.ControlMessage("bitrate", true)
+				wc.ControlMessage("throttle", "enable")
 			}
 		}
 	}
