@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httputil"
+	"strconv"
 	"sync"
 	"sync/atomic"
 
@@ -29,6 +30,8 @@ type lanternProFilter struct {
 	// Tokens write-only mutex
 	tkwMutex sync.Mutex
 	proConf  *proConfig
+
+	DeviceRegistry *DeviceRegistry
 }
 
 type Options struct {
@@ -38,8 +41,9 @@ type Options struct {
 
 func New(opts *Options) (filters.Filter, error) {
 	f := &lanternProFilter{
-		enabled:   0,
-		proTokens: new(atomic.Value),
+		enabled:        0,
+		proTokens:      new(atomic.Value),
+		DeviceRegistry: NewDeviceRegistry(),
 	}
 	// atomic.Value can't be copied after Store has been called
 	f.proTokens.Store(make(TokensMap))
@@ -54,10 +58,6 @@ func New(opts *Options) (filters.Filter, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error reading assigned users in bootstrapping: %s", err)
 	}
-	// Currently, we run a Pro server starting as a free server
-	// that can turn into a Pro server.  This is an initial design,
-	// that will change if we decide to use separate queues, and therefore
-	// can configure the proxy at launch time
 	err = f.proConf.Run(isPro)
 	if err != nil {
 		return nil, fmt.Errorf("Error configuring Pro: %s", err)
@@ -68,6 +68,20 @@ func New(opts *Options) (filters.Filter, error) {
 
 func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
 	lanternProToken := req.Header.Get(common.ProTokenHeader)
+	lanternDeviceID := req.Header.Get(common.DeviceIdHeader)
+	lanternUserID := req.Header.Get(common.UserIdHeader)
+	userID, convErr := strconv.ParseUint(lanternUserID, 10, 64)
+	if convErr != nil {
+		log.Debugf("Error parsing user ID")
+		mimic.MimicApache(w, req)
+		return filters.Stop()
+	}
+
+	currentDevices := f.DeviceRegistry.GetUserDevices(userID)
+	if _, ok := currentDevices[lanternDeviceID]; !ok {
+		w.WriteHeader(http.StatusForbidden)
+		return filters.Stop()
+	}
 
 	if log.IsTraceEnabled() {
 		reqStr, _ := httputil.DumpRequest(req, true)

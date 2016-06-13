@@ -2,8 +2,10 @@ package redis
 
 import (
 	"fmt"
-	"gopkg.in/redis.v3"
+	"strconv"
 	"strings"
+
+	"gopkg.in/redis.v3"
 )
 
 type UserTokens map[string]string
@@ -74,4 +76,32 @@ func (c *ProConfig) IsPro() (bool, error) {
 		return false, err
 	}
 	return isPro, nil
+}
+
+func (c *ProConfig) RetrieveGlobalUserDevices() (userDevices map[uint64][]string) {
+	userDevices = make(map[uint64][]string)
+	if users, err := c.redisClient.SMembers("server->users:" + c.serverId).Result(); err != nil {
+		log.Errorf("Error retrieving server users")
+	} else {
+		log.Tracef("Assigned users: %v", users)
+		for _, u := range users {
+			devices, err := c.redisClient.SMembers("user->devices:" + u).Result()
+			if err != nil {
+				log.Errorf("Error retrieving user devices for user %v", u)
+			} else {
+				userID, convErr := strconv.ParseUint(u, 10, 64)
+				if convErr != nil {
+					log.Errorf("Error parsing user ID")
+				} else {
+					for i, d := range devices {
+						if pos := strings.IndexByte(d, '|'); pos != -1 {
+							devices[i] = d[:pos]
+						}
+					}
+					userDevices[userID] = devices
+				}
+			}
+		}
+	}
+	return
 }
