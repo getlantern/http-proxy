@@ -4,7 +4,6 @@
 package profilter
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"sync"
@@ -38,7 +37,7 @@ type Options struct {
 
 func New(opts *Options) (filters.Filter, error) {
 	f := &lanternProFilter{
-		enabled:   0,
+		enabled:   1,
 		proTokens: new(atomic.Value),
 	}
 	// atomic.Value can't be copied after Store has been called
@@ -50,19 +49,7 @@ func New(opts *Options) (filters.Filter, error) {
 		return nil, err
 	}
 
-	isPro, err := f.proConf.IsPro()
-	if err != nil {
-		return nil, fmt.Errorf("Error reading assigned users in bootstrapping: %s", err)
-	}
-	// Currently, we run a Pro server starting as a free server
-	// that can turn into a Pro server.  This is an initial design,
-	// that will change if we decide to use separate queues, and therefore
-	// can configure the proxy at launch time
-	err = f.proConf.Run(isPro)
-	if err != nil {
-		return nil, fmt.Errorf("Error configuring Pro: %s", err)
-	}
-
+	err = f.proConf.Run(true)
 	return f, nil
 }
 
