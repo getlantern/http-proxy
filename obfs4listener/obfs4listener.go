@@ -90,8 +90,10 @@ func (l *obfs4listener) wrap(conn net.Conn) {
 	})
 	if timedOut {
 		log.Debugf("Handshake with %v timed out", conn.RemoteAddr())
+		conn.Close()
 	} else if err != nil {
 		log.Debugf("Handshake error with %v: %v", conn.RemoteAddr(), err)
+		conn.Close()
 	} else {
 		l.ready <- &result{_wrapped.(net.Conn), err}
 	}
