@@ -8,6 +8,12 @@ import (
 	"github.com/mxk/go-flowrate/flowrate"
 )
 
+const (
+	stateDisabled = 0
+	stateEnabled
+	stateLocked
+)
+
 type bitrateListener struct {
 	net.Listener
 	limit uint64
@@ -30,8 +36,7 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 	return &bitrateConn{
 		WrapConnEmbeddable: wc,
 		Conn:               c,
-		active:             false,
-		locked:             false,
+		state:              stateDisabled,
 		freader:            flowrate.NewReader(c, int64(bl.limit)),
 		fwriter:            flowrate.NewWriter(c, int64(bl.limit)),
 	}, err
@@ -41,14 +46,13 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 type bitrateConn struct {
 	listeners.WrapConnEmbeddable
 	net.Conn
-	active  bool
-	locked  bool
+	state   byte
 	freader *flowrate.Reader
 	fwriter *flowrate.Writer
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	if c.active {
+	if c.state == stateEnabled {
 		return c.freader.Read(p)
 	} else {
 		return c.Conn.Read(p)
@@ -56,7 +60,7 @@ func (c *bitrateConn) Read(p []byte) (n int, err error) {
 }
 
 func (c *bitrateConn) Write(p []byte) (n int, err error) {
-	if c.active {
+	if c.state == stateEnabled {
 		return c.fwriter.Write(p)
 	} else {
 		return c.Conn.Write(p)
@@ -72,15 +76,14 @@ func (c *bitrateConn) OnState(s http.ConnState) {
 
 func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	// pro-user message always overrides the active flag
-	if !c.locked && msgType == "throttle" {
+	if c.state != stateLocked && msgType == "throttle" {
 		strData := data.(string)
 		if strData == "lock" {
 			log.Trace("Bitrate no-throttling lock message received")
-			c.locked = true
-			c.active = false
+			c.state = stateLocked
 		} else if strData == "enable" {
 			log.Trace("Bitrate throttling message received")
-			c.active = true
+			c.state = stateEnabled
 		} else {
 			log.Errorf("Unhandled bitrate message")
 		}
