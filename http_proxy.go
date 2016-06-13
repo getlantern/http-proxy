@@ -81,12 +81,12 @@ func (p *Proxy) ListenAndServe() error {
 
 	// Reporting
 	if p.EnableReports {
-		rp, reporterErr := redis.NewMeasuredReporter(redisOpts)
+		rp, reporterErr := redis.NewMeasuredReporter(redisOpts, time.Minute)
 		if reporterErr != nil {
 			log.Fatalf("Error creating measured reporter: %v", reporterErr)
 		}
 		m = measured.New(5000)
-		m.Start(time.Minute, rp)
+		m.Start(2*time.Second, rp)
 		defer m.Stop()
 	}
 
