@@ -27,7 +27,7 @@ var (
 
 // deviceFilterPre does the device-based filtering
 type deviceFilterPre struct {
-	throttleAfterMiB uint64
+	throttleAfterBytes uint64
 }
 
 // deviceFilterPost cleans up
@@ -35,12 +35,12 @@ type deviceFilterPost struct {
 	bl *blacklist.Blacklist
 }
 
-func NewPre(throttleAfterMiB uint64) filters.Filter {
-	if throttleAfterMiB > 0 {
-		log.Debugf("Throttling clients after %v MiB", throttleAfterMiB)
+func NewPre(throttleAfterBytes uint64) filters.Filter {
+	if throttleAfterBytes > 0 {
+		log.Debugf("Throttling clients after %v MiB", throttleAfterBytes/(1024*1024))
 	}
 	return &deviceFilterPre{
-		throttleAfterMiB: throttleAfterMiB,
+		throttleAfterBytes: throttleAfterBytes,
 	}
 }
 
@@ -62,13 +62,13 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 		// by the measured wrapper
 		wc.ControlMessage("measured", lanternDeviceID)
 
-		if f.throttleAfterMiB > 0 {
+		if f.throttleAfterBytes > 0 {
 			// Throttling enabled
 			u := usage.Get(lanternDeviceID)
 			if u == nil {
 				return next()
 			}
-			uMiB := u.Bytes / 1024768
+			uMiB := u.Bytes / (1024 * 1024)
 			// Encode usage information in a header. The header is expected to follow
 			// this format:
 			//
@@ -78,8 +78,8 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 			// <allowed> is the string representation of a 64-bit unsigned integer
 			// <asof> is the 64-bit signed integer representing seconds since a custom
 			// epoch (00:00:00 01/01/2016 UTC).
-			w.Header().Set("XBQ", fmt.Sprintf("%d/%d/%d", uMiB, f.throttleAfterMiB, int64(u.AsOf.Sub(epoch).Seconds())))
-			if uMiB > f.throttleAfterMiB {
+			w.Header().Set("XBQ", fmt.Sprintf("%d/%d/%d", uMiB, f.throttleAfterBytes/(1024*1024), int64(u.AsOf.Sub(epoch).Seconds())))
+			if u.Bytes > f.throttleAfterBytes {
 				// Start limiting the throughput on this connection
 				wc.ControlMessage("bitrate", true)
 			}
