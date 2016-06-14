@@ -8,10 +8,12 @@ import (
 	"github.com/mxk/go-flowrate/flowrate"
 )
 
+type ThrottleState byte
+
 const (
-	stateDisabled = 0
-	stateEnabled
-	stateLocked
+	On = iota
+	Off
+	Never
 )
 
 type bitrateListener struct {
@@ -36,7 +38,7 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 	return &bitrateConn{
 		WrapConnEmbeddable: wc,
 		Conn:               c,
-		state:              stateDisabled,
+		throttle:           Off,
 		freader:            flowrate.NewReader(c, int64(bl.limit)),
 		fwriter:            flowrate.NewWriter(c, int64(bl.limit)),
 	}, err
@@ -46,13 +48,13 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 type bitrateConn struct {
 	listeners.WrapConnEmbeddable
 	net.Conn
-	state   byte
-	freader *flowrate.Reader
-	fwriter *flowrate.Writer
+	throttle ThrottleState
+	freader  *flowrate.Reader
+	fwriter  *flowrate.Writer
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	if c.state == stateEnabled {
+	if c.throttle == On {
 		return c.freader.Read(p)
 	} else {
 		return c.Conn.Read(p)
@@ -60,7 +62,7 @@ func (c *bitrateConn) Read(p []byte) (n int, err error) {
 }
 
 func (c *bitrateConn) Write(p []byte) (n int, err error) {
-	if c.state == stateEnabled {
+	if c.throttle == On {
 		return c.fwriter.Write(p)
 	} else {
 		return c.Conn.Write(p)
@@ -76,14 +78,14 @@ func (c *bitrateConn) OnState(s http.ConnState) {
 
 func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	// pro-user message always overrides the active flag
-	if c.state != stateLocked && msgType == "throttle" {
+	if c.throttle != Never && msgType == "throttle" {
 		strData := data.(string)
 		if strData == "lock" {
 			log.Trace("Bitrate no-throttling lock message received")
-			c.state = stateLocked
+			c.throttle = Never
 		} else if strData == "enable" {
 			log.Trace("Bitrate throttling message received")
-			c.state = stateEnabled
+			c.throttle = On
 		} else {
 			log.Errorf("Unhandled bitrate message")
 		}
