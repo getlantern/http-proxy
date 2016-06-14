@@ -17,6 +17,7 @@ import (
 	"github.com/getlantern/http-proxy/listeners"
 
 	"github.com/getlantern/http-proxy-lantern/common"
+	throttle "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/redis"
 )
 
@@ -82,7 +83,7 @@ func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next 
 
 	if f.isEnabled() && lanternProToken != "" && f.tokenExists(lanternProToken) {
 		wc := context.Get(req, "conn").(listeners.WrapConn)
-		wc.ControlMessage("throttle", "lock")
+		wc.ControlMessage("throttle", throttle.Never)
 	}
 
 	return next()

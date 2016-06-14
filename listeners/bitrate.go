@@ -79,16 +79,9 @@ func (c *bitrateConn) OnState(s http.ConnState) {
 func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	// pro-user message always overrides the active flag
 	if c.throttle != Never && msgType == "throttle" {
-		strData := data.(string)
-		if strData == "lock" {
-			log.Trace("Bitrate no-throttling lock message received")
-			c.throttle = Never
-		} else if strData == "enable" {
-			log.Trace("Bitrate throttling message received")
-			c.throttle = On
-		} else {
-			log.Errorf("Unhandled bitrate message")
-		}
+		state := data.(ThrottleState)
+		log.Tracef("Bitrate no-throttling message received: %v", state)
+		c.throttle = state
 	}
 
 	if c.WrapConnEmbeddable != nil {

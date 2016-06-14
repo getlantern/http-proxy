@@ -16,6 +16,7 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/common"
+	throttle "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/usage"
 )
 
@@ -81,7 +82,7 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 			w.Header().Set("XBQ", fmt.Sprintf("%d/%d/%d", uMiB, f.throttleAfterMiB, int64(u.AsOf.Sub(epoch).Seconds())))
 			if uMiB > f.throttleAfterMiB {
 				// Start limiting the throughput on this connection
-				wc.ControlMessage("throttle", "enable")
+				wc.ControlMessage("throttle", throttle.On)
 			}
 		}
 	}
