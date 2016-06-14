@@ -42,7 +42,7 @@ func server(t *testing.T, ready *chan struct{}, bytesReadChan *chan int) *bitrat
 	*ready <- struct{}{}
 
 	conn, err := bl.Accept()
-	conn.(*bitrateConn).active = true
+	conn.(*bitrateConn).throttle = On
 
 	go handleConn(t, conn, bytesReadChan)
 
@@ -116,7 +116,7 @@ func benchSrv(wg *sync.WaitGroup, useThrottle, enableBitrate bool, port string) 
 			}
 
 			if useThrottle {
-				conn.(*bitrateConn).active = enableBitrate
+				conn.(*bitrateConn).throttle = On
 			}
 
 			go func() {
