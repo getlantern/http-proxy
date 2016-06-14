@@ -37,7 +37,6 @@ type Options struct {
 
 func New(opts *Options) (filters.Filter, error) {
 	f := &lanternProFilter{
-		enabled:   1,
 		proTokens: new(atomic.Value),
 	}
 	// atomic.Value can't be copied after Store has been called
