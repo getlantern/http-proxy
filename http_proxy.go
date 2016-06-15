@@ -78,13 +78,15 @@ func (p *Proxy) ListenAndServe() error {
 		ClientPKFile:   p.RedisClientPK,
 		ClientCertFile: p.RedisClientCert,
 	}
+	// Get a Redis client
+	rc, err := redis.GetClient(redisOpts)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Reporting
 	if p.EnableReports {
-		rp, reporterErr := redis.NewMeasuredReporter(redisOpts)
-		if reporterErr != nil {
-			log.Fatalf("Error creating measured reporter: %v", reporterErr)
-		}
+		rp := redis.NewMeasuredReporter(rc)
 		m = measured.New(5000)
 		m.Start(time.Minute, rp)
 		defer m.Stop()
@@ -121,7 +123,7 @@ func (p *Proxy) ListenAndServe() error {
 
 	filterChain := filters.Join(
 		tokenfilter.New(p.Token),
-		devicefilter.NewPre(p.ThrottleThreshold/(1024*1024)),
+		devicefilter.NewPre(rc, p.ThrottleThreshold/(1024*1024)),
 		analytics.New(&analytics.Options{
 			TrackingID:       p.ProxiedSitesTrackingID,
 			SamplePercentage: p.ProxiedSitesSamplePercentage,
@@ -158,8 +160,8 @@ func (p *Proxy) ListenAndServe() error {
 		}
 		log.Debug("This proxy is configured to support Lantern Pro")
 		proFilter, err := profilter.New(&profilter.Options{
-			RedisOpts: redisOpts,
-			ServerID:  p.ServerID,
+			RedisClient: rc,
+			ServerID:    p.ServerID,
 		})
 		if err != nil {
 			log.Fatal(err)

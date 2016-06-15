@@ -17,7 +17,7 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/common"
 	throttle "github.com/getlantern/http-proxy-lantern/listeners"
-	"github.com/getlantern/http-proxy-lantern/redis"
+	redislib "gopkg.in/redis.v3"
 )
 
 var log = golog.LoggerFor("profilter")
@@ -33,8 +33,8 @@ type lanternProFilter struct {
 }
 
 type Options struct {
-	RedisOpts *redis.Options
-	ServerID  string
+	RedisClient *redislib.Client
+	ServerID    string
 }
 
 func New(opts *Options) (filters.Filter, error) {
@@ -44,14 +44,10 @@ func New(opts *Options) (filters.Filter, error) {
 	// atomic.Value can't be copied after Store has been called
 	f.proTokens.Store(make(TokensMap))
 
-	var err error
-	f.proConf, err = NewRedisProConfig(opts.RedisOpts, opts.ServerID, f)
-	if err != nil {
-		return nil, err
-	}
+	f.proConf = NewRedisProConfig(opts.RedisClient, opts.ServerID, f)
 
-	err = f.proConf.Run(true)
-	return f, nil
+	err := f.proConf.Run(true)
+	return f, err
 }
 
 func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {

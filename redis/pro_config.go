@@ -2,8 +2,9 @@ package redis
 
 import (
 	"fmt"
-	"gopkg.in/redis.v3"
 	"strings"
+
+	"gopkg.in/redis.v3"
 )
 
 type UserTokens map[string]string
@@ -13,15 +14,11 @@ type ProConfig struct {
 	serverId    string
 }
 
-func NewProConfig(redisOpts *Options, serverId string) (*ProConfig, error) {
-	rc, err := getClient(redisOpts)
-	if err != nil {
-		return nil, err
-	}
+func NewProConfig(rc *redis.Client, serverId string) *ProConfig {
 	return &ProConfig{
 		redisClient: rc,
 		serverId:    serverId,
-	}, nil
+	}
 }
 
 func (c *ProConfig) EmptyMessageQueue() error {

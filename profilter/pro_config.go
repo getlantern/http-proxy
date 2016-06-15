@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/getlantern/http-proxy-lantern/redis"
+	redislib "gopkg.in/redis.v3"
 )
 
 type proConfig struct {
@@ -13,17 +14,13 @@ type proConfig struct {
 	proFilter   *lanternProFilter
 }
 
-func NewRedisProConfig(redisOpts *redis.Options, serverId string, proFilter *lanternProFilter) (*proConfig, error) {
-	redisConfig, err := redis.NewProConfig(redisOpts, serverId)
-	if err != nil {
-		return nil, err
-	}
+func NewRedisProConfig(rc *redislib.Client, serverId string, proFilter *lanternProFilter) *proConfig {
 	return &proConfig{
 		serverId:    serverId,
-		redisConfig: redisConfig,
+		redisConfig: redis.NewProConfig(rc, serverId),
 		userTokens:  make(redis.UserTokens),
 		proFilter:   proFilter,
-	}, nil
+	}
 }
 
 func (c *proConfig) processUserSetMessage(msg []string) error {
