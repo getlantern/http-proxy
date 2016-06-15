@@ -91,10 +91,15 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	// Throttling
-	if (p.ThrottleBPS > 0 || p.ThrottleThreshold > 0) &&
-		(p.ThrottleBPS <= 0 || p.ThrottleThreshold <= 0) &&
-		!p.EnableReports {
-		log.Fatal("Throttling requires reports enabled and both throttlebps and throttlethreshold > 0")
+	if p.ThrottleBPS > 0 && p.ThrottleThreshold > 0 {
+		if !p.EnableReports {
+			log.Fatal("Throttling requires reporting enabled")
+		}
+		log.Debugf("Throttling to %d bps after %d bytes", p.ThrottleBPS, p.ThrottleThreshold)
+	} else if (p.ThrottleBPS > 0) != (p.ThrottleThreshold > 0) {
+		log.Fatal("Throttling requires both throttlebps and throttlethreshold > 0")
+	} else {
+		log.Debug("Throttling is disabled")
 	}
 
 	// Configure borda
@@ -121,7 +126,7 @@ func (p *Proxy) ListenAndServe() error {
 
 	filterChain := filters.Join(
 		tokenfilter.New(p.Token),
-		devicefilter.NewPre(p.ThrottleThreshold/(1024*1024)),
+		devicefilter.NewPre(p.ThrottleThreshold),
 		analytics.New(&analytics.Options{
 			TrackingID:       p.ProxiedSitesTrackingID,
 			SamplePercentage: p.ProxiedSitesSamplePercentage,
