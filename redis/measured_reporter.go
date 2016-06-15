@@ -21,7 +21,6 @@ type measuredReporter struct {
 
 func NewMeasuredReporter(rc *redis.Client) measured.Reporter {
 	log.Debug("Will report traffic")
-
 	return &measuredReporter{
 		redisClient: rc,
 	}
