@@ -73,7 +73,13 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 			u := usage.Get(lanternDeviceID)
 			if u == nil {
 				// Eagerly request device ID data to Redis and store it in usage
-				go redis.ForceRetrieveDeviceUsage(f.redisClient, lanternDeviceID)
+				go func() {
+					err := redis.ForceRetrieveDeviceUsage(f.redisClient, lanternDeviceID)
+					if err != nil {
+						log.Errorf("Error when eagerly requesting device usage data: %v", err)
+					}
+				}()
+
 				return next()
 			}
 			uMiB := u.Bytes / 1024768
