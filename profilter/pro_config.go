@@ -70,7 +70,9 @@ func (c *proConfig) Run(initAsPro bool) error {
 		if c.userTokens, err = c.redisConfig.GetUsersAndTokens(); err != nil {
 			return
 		}
-		c.proFilter.SetTokens(c.getAllTokens()...)
+		tks := c.getAllTokens()
+		c.proFilter.SetTokens(tks...)
+		log.Debugf("Initializing with the following Pro tokens: %v", tks)
 		return
 	}
 
