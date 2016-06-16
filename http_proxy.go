@@ -128,7 +128,7 @@ func (p *Proxy) ListenAndServe() error {
 
 	filterChain := filters.Join(
 		tokenfilter.New(p.Token),
-		devicefilter.NewPre(rc, p.ThrottleThreshold),
+		devicefilter.NewPre(redis.NewDeviceFetcher(rc), p.ThrottleThreshold),
 		analytics.New(&analytics.Options{
 			TrackingID:       p.ProxiedSitesTrackingID,
 			SamplePercentage: p.ProxiedSitesSamplePercentage,

@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/gorilla/context"
-	redislib "gopkg.in/redis.v3"
 
 	"github.com/getlantern/golog"
 
@@ -31,7 +30,7 @@ var (
 // deviceFilterPre does the device-based filtering
 type deviceFilterPre struct {
 	throttleAfterBytes uint64
-	redisClient        *redislib.Client
+	deviceFetcher      *redis.DeviceFetcher
 }
 
 // deviceFilterPost cleans up
@@ -39,13 +38,13 @@ type deviceFilterPost struct {
 	bl *blacklist.Blacklist
 }
 
-func NewPre(rc *redislib.Client, throttleAfterBytes uint64) filters.Filter {
+func NewPre(df *redis.DeviceFetcher, throttleAfterBytes uint64) filters.Filter {
 	if throttleAfterBytes > 0 {
 		log.Debugf("Throttling clients after %v MiB", throttleAfterBytes/(1024*1024))
 	}
 
 	return &deviceFilterPre{
-		redisClient:        rc,
+		deviceFetcher:      df,
 		throttleAfterBytes: throttleAfterBytes,
 	}
 }
@@ -73,13 +72,7 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 			u := usage.Get(lanternDeviceID)
 			if u == nil {
 				// Eagerly request device ID data to Redis and store it in usage
-				go func() {
-					err := redis.ForceRetrieveDeviceUsage(f.redisClient, lanternDeviceID)
-					if err != nil {
-						log.Errorf("Error when eagerly requesting device usage data: %v", err)
-					}
-				}()
-
+				f.deviceFetcher.RequestNewDeviceUsage(lanternDeviceID)
 				return next()
 			}
 			uMiB := u.Bytes / (1024 * 1024)
