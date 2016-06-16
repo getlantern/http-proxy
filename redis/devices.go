@@ -59,7 +59,12 @@ func (df *DeviceFetcher) RequestNewDeviceUsage(device string) {
 		return
 	} else {
 		df.ongoing.add(device)
-		df.queue <- device
+		select {
+		case df.queue <- device:
+			// ok
+		default:
+			// queue full, ignore
+		}
 	}
 }
 
