@@ -33,12 +33,14 @@ func (s *ongoingSet) isMember(dev string) bool {
 	return ok
 }
 
+// DeviceFetcher retrieves device information from Redis
 type DeviceFetcher struct {
 	rc      *redis.Client
 	ongoing ongoingSet
 	queue   chan string
 }
 
+// NewDeviceFetcher creates a new DeviceFetcher
 func NewDeviceFetcher(rc *redis.Client) *DeviceFetcher {
 	df := &DeviceFetcher{
 		rc:    rc,
@@ -54,17 +56,17 @@ func NewDeviceFetcher(rc *redis.Client) *DeviceFetcher {
 	return df
 }
 
+// RequestNewDeviceUsage adds a new request for device usage to the queue
 func (df *DeviceFetcher) RequestNewDeviceUsage(device string) {
 	if df.ongoing.isMember(device) {
 		return
-	} else {
-		df.ongoing.add(device)
-		select {
-		case df.queue <- device:
-			// ok
-		default:
-			// queue full, ignore
-		}
+	}
+	df.ongoing.add(device)
+	select {
+	case df.queue <- device:
+		// ok
+	default:
+		// queue full, ignore
 	}
 }
 
@@ -72,7 +74,8 @@ func (df *DeviceFetcher) retrieveDeviceUsage(device string) error {
 	vals, err := df.rc.HMGet("_client:"+device, "bytesIn", "bytesOut").Result()
 	if err != nil {
 		return err
-	} else if vals[0] == nil || vals[1] == nil {
+	}
+	if vals[0] == nil || vals[1] == nil {
 		// No entry found or partially stored, nothing to be done
 		return nil
 	}
