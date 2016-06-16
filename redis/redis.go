@@ -51,7 +51,7 @@ type Options struct {
 	TCPKeepAlive time.Duration
 }
 
-func getClient(opts *Options) (*redis.Client, error) {
+func GetClient(opts *Options) (*redis.Client, error) {
 	u, err := url.Parse(opts.RedisURL)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse Redis address: %s", err)

@@ -17,6 +17,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/common"
 	throttle "github.com/getlantern/http-proxy-lantern/listeners"
+	"github.com/getlantern/http-proxy-lantern/redis"
 	"github.com/getlantern/http-proxy-lantern/usage"
 )
 
@@ -29,6 +30,7 @@ var (
 // deviceFilterPre does the device-based filtering
 type deviceFilterPre struct {
 	throttleAfterBytes uint64
+	deviceFetcher      *redis.DeviceFetcher
 }
 
 // deviceFilterPost cleans up
@@ -36,11 +38,13 @@ type deviceFilterPost struct {
 	bl *blacklist.Blacklist
 }
 
-func NewPre(throttleAfterBytes uint64) filters.Filter {
+func NewPre(df *redis.DeviceFetcher, throttleAfterBytes uint64) filters.Filter {
 	if throttleAfterBytes > 0 {
 		log.Debugf("Throttling clients after %v MiB", throttleAfterBytes/(1024*1024))
 	}
+
 	return &deviceFilterPre{
+		deviceFetcher:      df,
 		throttleAfterBytes: throttleAfterBytes,
 	}
 }
@@ -67,6 +71,8 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 			// Throttling enabled
 			u := usage.Get(lanternDeviceID)
 			if u == nil {
+				// Eagerly request device ID data to Redis and store it in usage
+				f.deviceFetcher.RequestNewDeviceUsage(lanternDeviceID)
 				return next()
 			}
 			uMiB := u.Bytes / (1024 * 1024)

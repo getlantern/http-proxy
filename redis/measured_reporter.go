@@ -19,17 +19,11 @@ type measuredReporter struct {
 	redisClient *redis.Client
 }
 
-func NewMeasuredReporter(redisOpts *Options) (measured.Reporter, error) {
-	rc, err := getClient(redisOpts)
-	if err != nil {
-		return nil, err
-	}
-
+func NewMeasuredReporter(rc *redis.Client) measured.Reporter {
 	log.Debug("Will report traffic")
-
 	return &measuredReporter{
 		redisClient: rc,
-	}, nil
+	}
 }
 
 func (rp *measuredReporter) ReportTraffic(tt map[string]*measured.TrafficTracker) error {
