@@ -42,7 +42,7 @@ type DeviceFetcher struct {
 func NewDeviceFetcher(rc *redis.Client) *DeviceFetcher {
 	df := &DeviceFetcher{
 		rc:    rc,
-		queue: make(chan string),
+		queue: make(chan string, 512),
 	}
 
 	go func() {
@@ -59,6 +59,7 @@ func (df *DeviceFetcher) RequestNewDeviceUsage(device string) {
 		return
 	} else {
 		df.ongoing.add(device)
+		df.queue <- device
 	}
 }
 
