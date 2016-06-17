@@ -52,7 +52,7 @@ var (
 
 func init() {
 	if hostnameErr != nil {
-		log.Debugf("Unable to obtain hostname: %v", hostnameErr)
+		log.Errorf("Unable to obtain hostname: %v", hostnameErr)
 	}
 }
 

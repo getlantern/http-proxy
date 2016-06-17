@@ -8,7 +8,7 @@ import (
 	"github.com/mxk/go-flowrate/flowrate"
 )
 
-type ThrottleState int
+type ThrottleState byte
 
 var (
 	On    = ThrottleState(0)
