@@ -2,6 +2,10 @@
 
 [![wercker status](https://app.wercker.com/status/dd67bf2d94efc6c30e8042585a6a8fbf/m "wercker status")](https://app.wercker.com/project/bykey/dd67bf2d94efc6c30e8042585a6a8fbf)
 
+Note - this project versions its dependencies using [glide](https://github.com/Masterminds/glide).
+
+Just run `glide install` to download the vendored packages.
+
 These are Lantern-specific middleware components for the HTTP Proxy in Go:
 
 * A filter for access tokens
@@ -9,7 +13,7 @@ These are Lantern-specific middleware components for the HTTP Proxy in Go:
 * A filter for devices, based on their IDs
 
 * A filter for Pro users
- 
+
 * A connection preprocessor to intercept bad requests and send custom responses
 
 * Custom responses for mimicking Apache in certain cases
@@ -82,5 +86,3 @@ If you are using checkfallbacks, make sure that both the certificate and the tok
 With option `-pprofAddr=localhost:6060`, you can always access lots of debug information from http://localhost:6060/debug/pprof. Ref https://golang.org/pkg/net/http/pprof/.
 
 ***Be sure to only listen on localhost or private addresses for security reason.***
-
-

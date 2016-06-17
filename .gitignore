@@ -37,3 +37,6 @@ test/data/http-proxy.raw
 loader
 obfs4_bridgeline.txt
 obfs4_state.json
+
+glide.lock
+vendor

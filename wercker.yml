@@ -15,22 +15,25 @@ build:
   steps:
     # Sets the go workspace and places you package
     # at the right place in the workspace tree
-    - setup-go-workspace
+    - wercker/setup-go-workspace:
+      package-dir: github.com/getlantern/http-proxy-lantern
+    - script:
+      name: glide install
+      code: |
+        cd /tmp
+        curl -L https://github.com/Masterminds/glide/releases/download/0.10.2/glide-0.10.2-linux-amd64.tar.gz -o glide.tar.gz
+        tar -xf glide.tar.gz
+        sudo mv linux-amd64/glide /usr/local/bin/
+    - script:
+      name: glide update
+      code: |
+        glide update
     - script:
       name: get patched go
       code: |
         curl https://s3-eu-west-1.amazonaws.com/uaalto/go1.6.2_lantern_20160503_linux_amd64.tar.gz | tar -xz -C /tmp && rm -Rf /usr/local/go && mv /tmp/go /usr/local
-    - script:
-      name: go get
-      code: |
-        GOROOT=/usr/local/go go get -t ./...
-    # Build the project
-    - script:
-      name: go build
-      code: |
-        GOROOT=/usr/local/go go build ./...
     # Test the project
     - script:
       name: go test -race
       code: |
-        GOROOT=/usr/local/go go test ./...
+        GOROOT=/usr/local/go go test -race $(glide novendor)
