@@ -8,12 +8,12 @@ import (
 	"github.com/mxk/go-flowrate/flowrate"
 )
 
-type ThrottleState byte
+type ThrottleState int
 
-const (
-	On = iota
-	Off
-	Never
+var (
+	On    = ThrottleState(0)
+	Off   = ThrottleState(1)
+	Never = ThrottleState(2)
 )
 
 type bitrateListener struct {
