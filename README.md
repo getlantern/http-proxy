@@ -21,7 +21,7 @@ These are Lantern-specific middleware components for the HTTP Proxy in Go:
 
 ### Usage
 
-Build it with `glide update && go build`.
+Build it with `glide install && go build`.
 
 To get list of the command line options, please run `http-proxy-lantern -help`.
 
