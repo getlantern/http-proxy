@@ -93,7 +93,9 @@ func GetClient(opts *Options) (*redis.Client, error) {
 
 	if strings.EqualFold(u.Scheme, "rediss") {
 		log.Debug("Using encrypted connection to Redis")
-		tlsConfig := &tls.Config{}
+		tlsConfig := &tls.Config{
+			ClientSessionCache: tls.NewLRUClientSessionCache(1000),
+		}
 
 		if opts.RedisCAFile == "" {
 			log.Debugf("Not using custom Redis CA")
