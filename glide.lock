@@ -1,5 +1,5 @@
 hash: ac38059598d37e0414d627c02b88da605350784e73bf1a05dcac06e9055e0219
-updated: 2016-06-17T13:16:38.904081077-05:00
+updated: 2016-06-20T08:01:30.383719049-05:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 15d8df1cd780ddb0bb1710b08a5546f2a8f027bf
@@ -54,25 +54,6 @@ imports:
   - server
   - utils
   - buffers
-- name: github.com/getlantern/http-proxy-lantern
-  version: 7608236bc06f532c1eae237605418ffd830ff8bb
-  subpackages:
-  - analytics
-  - blacklist
-  - borda
-  - configserverfilter
-  - devicefilter
-  - listeners
-  - mimic
-  - obfs4listener
-  - opsfilter
-  - ping
-  - profilter
-  - redis
-  - tokenfilter
-  - common
-  - usage
-  - metrics
 - name: github.com/getlantern/idletiming
   version: 81aae812ae5e5c9b39251ab8892f8100899761f4
 - name: github.com/getlantern/keyman
