@@ -1,5 +1,5 @@
 hash: ac38059598d37e0414d627c02b88da605350784e73bf1a05dcac06e9055e0219
-updated: 2016-06-20T08:01:30.383719049-05:00
+updated: 2016-06-22T14:23:43.162908255-05:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 15d8df1cd780ddb0bb1710b08a5546f2a8f027bf
@@ -61,7 +61,7 @@ imports:
   subpackages:
   - certimporter
 - name: github.com/getlantern/measured
-  version: 7860e4fec9d3a4967a0979c36bb8821830e7f769
+  version: 9abc2622c88edcbe1436a80e69f912b3ccfc73bf
 - name: github.com/getlantern/ops
   version: b70875f5d689a9438bca72aefd7142a2af889b18
 - name: github.com/getlantern/rotator
