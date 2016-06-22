@@ -1,0 +1,40 @@
+package: github.com/getlantern/http-proxy-lantern
+import:
+- package: git.torproject.org/pluggable-transports/goptlib.git
+- package: git.torproject.org/pluggable-transports/obfs4.git
+  subpackages:
+  - transports/base
+- package: github.com/Yawning/obfs4
+  subpackages:
+  - transports/obfs4
+- package: github.com/getlantern/borda
+  subpackages:
+  - client
+- package: github.com/getlantern/golog
+- package: github.com/getlantern/http-proxy
+  subpackages:
+  - commonfilter
+  - filters
+  - forward
+  - httpconnect
+  - listeners
+  - logging
+  - server
+- package: github.com/getlantern/keyman
+- package: github.com/getlantern/measured
+- package: github.com/getlantern/ops
+- package: github.com/getlantern/withtimeout
+- package: github.com/golang/groupcache
+  subpackages:
+  - lru
+- package: github.com/gorilla/context
+- package: github.com/mxk/go-flowrate
+  subpackages:
+  - flowrate
+- package: github.com/rcrowley/go-metrics
+- package: github.com/vharitonsky/iniflags
+- package: gopkg.in/redis.v3
+- package: github.com/getlantern/eventual
+- package: github.com/stretchr/testify
+  subpackages:
+  - assert

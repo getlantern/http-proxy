@@ -10,10 +10,10 @@ import (
 
 type ThrottleState byte
 
-const (
-	On = iota
-	Off
-	Never
+var (
+	On    = ThrottleState(0)
+	Off   = ThrottleState(1)
+	Never = ThrottleState(2)
 )
 
 type bitrateListener struct {

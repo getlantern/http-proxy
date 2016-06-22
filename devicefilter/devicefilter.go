@@ -87,7 +87,7 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 			// epoch (00:00:00 01/01/2016 UTC).
 			w.Header().Set("XBQ", fmt.Sprintf("%d/%d/%d", uMiB, f.throttleAfterBytes/(1024*1024), int64(u.AsOf.Sub(epoch).Seconds())))
 			if u.Bytes > f.throttleAfterBytes {
-				// Start limiting the throughput on this connection
+				log.Debug("Throttling connection")
 				wc.ControlMessage("throttle", throttle.On)
 			}
 		}

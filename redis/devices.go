@@ -36,15 +36,16 @@ func (s *ongoingSet) isMember(dev string) bool {
 // DeviceFetcher retrieves device information from Redis
 type DeviceFetcher struct {
 	rc      *redis.Client
-	ongoing ongoingSet
+	ongoing *ongoingSet
 	queue   chan string
 }
 
 // NewDeviceFetcher creates a new DeviceFetcher
 func NewDeviceFetcher(rc *redis.Client) *DeviceFetcher {
 	df := &DeviceFetcher{
-		rc:    rc,
-		queue: make(chan string, 512),
+		rc:      rc,
+		ongoing: &ongoingSet{set: make(map[string]bool, 512)},
+		queue:   make(chan string, 512),
 	}
 
 	go func() {
