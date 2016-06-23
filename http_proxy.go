@@ -193,7 +193,7 @@ func (p *Proxy) ListenAndServe() error {
 		srv.AddListenerWrappers(
 			// Measure connections
 			func(ls net.Listener) net.Listener {
-				return listeners.NewMeasuredListener(ls, 1*time.Second, m)
+				return listeners.NewMeasuredListener(ls, 10*time.Second, m)
 			},
 		)
 	}
