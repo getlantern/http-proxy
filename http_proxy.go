@@ -165,8 +165,9 @@ func (p *Proxy) ListenAndServe() error {
 		}
 		log.Debug("This proxy is configured to support Lantern Pro")
 		proFilter, err := profilter.New(&profilter.Options{
-			RedisClient: rc,
-			ServerID:    p.ServerID,
+			RedisClient:         rc,
+			ServerID:            p.ServerID,
+			KeepProTokenDomains: strings.Split(p.CfgSvrDomains, ","),
 		})
 		if err != nil {
 			log.Fatal(err)
