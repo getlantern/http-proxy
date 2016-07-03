@@ -28,18 +28,21 @@ type lanternProFilter struct {
 	enabled   int32
 	proTokens *atomic.Value
 	// Tokens write-only mutex
-	tkwMutex sync.Mutex
-	proConf  *proConfig
+	tkwMutex            sync.Mutex
+	proConf             *proConfig
+	keepProTokenDomains []string
 }
 
 type Options struct {
-	RedisClient *redislib.Client
-	ServerID    string
+	RedisClient         *redislib.Client
+	ServerID            string
+	KeepProTokenDomains []string
 }
 
 func New(opts *Options) (filters.Filter, error) {
 	f := &lanternProFilter{
-		proTokens: new(atomic.Value),
+		proTokens:           new(atomic.Value),
+		keepProTokenDomains: opts.KeepProTokenDomains,
 	}
 	// atomic.Value can't be copied after Store has been called
 	f.proTokens.Store(make(TokensMap))
@@ -61,7 +64,16 @@ func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next 
 		}
 	}
 
-	req.Header.Del(common.ProTokenHeader)
+	shouldDelete := true
+	for _, domain := range f.keepProTokenDomains {
+		if req.Host == domain {
+			shouldDelete = false
+			break
+		}
+	}
+	if shouldDelete {
+		req.Header.Del(common.ProTokenHeader)
+	}
 
 	if f.isEnabled() && lanternProToken != "" && f.tokenExists(lanternProToken) {
 		wc := context.Get(req, "conn").(listeners.WrapConn)
