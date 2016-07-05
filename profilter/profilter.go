@@ -55,33 +55,33 @@ func New(opts *Options) (filters.Filter, error) {
 
 func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
 	// BEGIN of temporary fix: Do not throttle *any* connection if the proxy is Pro-only
-	/*
-		lanternProToken := req.Header.Get(common.ProTokenHeader)
 
-		if log.IsTraceEnabled() {
-			reqStr, _ := httputil.DumpRequest(req, true)
-			log.Tracef("Lantern Pro Filter Middleware received request:\n%s", reqStr)
-			if lanternProToken != "" {
-				log.Tracef("Lantern Pro Token found")
-			}
-		}
+	// lanternProToken := req.Header.Get(common.ProTokenHeader)
 
-		shouldDelete := true
-		for _, domain := range f.keepProTokenDomains {
-			if req.Host == domain {
-				shouldDelete = false
-				break
-			}
-		}
-		if shouldDelete {
-			req.Header.Del(common.ProTokenHeader)
-		}
+	// if log.IsTraceEnabled() {
+	// 	reqStr, _ := httputil.DumpRequest(req, true)
+	// 	log.Tracef("Lantern Pro Filter Middleware received request:\n%s", reqStr)
+	// 	if lanternProToken != "" {
+	// 		log.Tracef("Lantern Pro Token found")
+	// 	}
+	// }
 
-		if f.isEnabled() && lanternProToken != "" && f.tokenExists(lanternProToken) {
-			wc := context.Get(req, "conn").(listeners.WrapConn)
-			wc.ControlMessage("throttle", throttle.Never)
-		}
-	*/
+	// shouldDelete := true
+	// for _, domain := range f.keepProTokenDomains {
+	// 	if req.Host == domain {
+	// 		shouldDelete = false
+	// 		break
+	// 	}
+	// }
+	// if shouldDelete {
+	// 	req.Header.Del(common.ProTokenHeader)
+	// }
+
+	// if f.isEnabled() && lanternProToken != "" && f.tokenExists(lanternProToken) {
+	// 	wc := context.Get(req, "conn").(listeners.WrapConn)
+	// 	wc.ControlMessage("throttle", throttle.Never)
+	// }
+
 	if f.isEnabled() {
 		wc := context.Get(req, "conn").(listeners.WrapConn)
 		wc.ControlMessage("throttle", throttle.Never)
