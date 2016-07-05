@@ -5,7 +5,7 @@ package profilter
 
 import (
 	"net/http"
-	"net/http/httputil"
+	//"net/http/httputil"
 	"sync"
 	"sync/atomic"
 
@@ -15,7 +15,7 @@ import (
 	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/listeners"
 
-	"github.com/getlantern/http-proxy-lantern/common"
+	//"github.com/getlantern/http-proxy-lantern/common"
 	throttle "github.com/getlantern/http-proxy-lantern/listeners"
 	redislib "gopkg.in/redis.v3"
 )
@@ -54,31 +54,39 @@ func New(opts *Options) (filters.Filter, error) {
 }
 
 func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
-	lanternProToken := req.Header.Get(common.ProTokenHeader)
+	// BEGIN of temporary fix: Do not throttle *any* connection if the proxy is Pro-only
 
-	if log.IsTraceEnabled() {
-		reqStr, _ := httputil.DumpRequest(req, true)
-		log.Tracef("Lantern Pro Filter Middleware received request:\n%s", reqStr)
-		if lanternProToken != "" {
-			log.Tracef("Lantern Pro Token found")
-		}
-	}
+	// lanternProToken := req.Header.Get(common.ProTokenHeader)
 
-	shouldDelete := true
-	for _, domain := range f.keepProTokenDomains {
-		if req.Host == domain {
-			shouldDelete = false
-			break
-		}
-	}
-	if shouldDelete {
-		req.Header.Del(common.ProTokenHeader)
-	}
+	// if log.IsTraceEnabled() {
+	// 	reqStr, _ := httputil.DumpRequest(req, true)
+	// 	log.Tracef("Lantern Pro Filter Middleware received request:\n%s", reqStr)
+	// 	if lanternProToken != "" {
+	// 		log.Tracef("Lantern Pro Token found")
+	// 	}
+	// }
 
-	if f.isEnabled() && lanternProToken != "" && f.tokenExists(lanternProToken) {
+	// shouldDelete := true
+	// for _, domain := range f.keepProTokenDomains {
+	// 	if req.Host == domain {
+	// 		shouldDelete = false
+	// 		break
+	// 	}
+	// }
+	// if shouldDelete {
+	// 	req.Header.Del(common.ProTokenHeader)
+	// }
+
+	// if f.isEnabled() && lanternProToken != "" && f.tokenExists(lanternProToken) {
+	// 	wc := context.Get(req, "conn").(listeners.WrapConn)
+	// 	wc.ControlMessage("throttle", throttle.Never)
+	// }
+
+	if f.isEnabled() {
 		wc := context.Get(req, "conn").(listeners.WrapConn)
 		wc.ControlMessage("throttle", throttle.Never)
 	}
+	// END of temporary fix
 
 	return next()
 }
