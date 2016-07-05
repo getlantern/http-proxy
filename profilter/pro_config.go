@@ -72,11 +72,13 @@ func (c *proConfig) Run(initAsPro bool) error {
 		if len(c.userTokens) > 0 {
 			c.proFilter.Enable()
 		} else {
+			log.Debugf("The proxy has no assigned users: Free-only proxy.")
 			return
 		}
 
 		tks := c.getAllTokens()
 		c.proFilter.SetTokens(tks...)
+		log.Debugf("The proxy has assigned users: Pro-only proxy.")
 		log.Debugf("Initializing with the following Pro tokens: %v", tks)
 		return
 	}
