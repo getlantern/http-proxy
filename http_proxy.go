@@ -3,6 +3,7 @@ package proxy
 import (
 	"net"
 	_ "net/http/pprof"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +21,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/analytics"
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/borda"
+	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
@@ -120,7 +122,7 @@ func (p *Proxy) ListenAndServe() error {
 	idleTimeout := time.Duration(p.IdleClose) * time.Second
 	var allowedPorts []int
 	if p.TunnelPorts != "" {
-		allowedPorts, err = httpconnect.AllowedPortsFromCSV(p.TunnelPorts)
+		allowedPorts, err = PortsFromCSV(p.TunnelPorts)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -148,13 +150,16 @@ func (p *Proxy) ListenAndServe() error {
 		}))
 	}
 
+	dialer := common.PreferIPV4Dialer(10 * time.Second)
 	filterChain = filterChain.Append(
 		httpconnect.New(&httpconnect.Options{
 			IdleTimeout:  idleTimeout,
 			AllowedPorts: allowedPorts,
+			Dialer:       dialer,
 		}),
 		forward.New(&forward.Options{
 			IdleTimeout: idleTimeout,
+			Dialer:      dialer,
 		}),
 	)
 
@@ -241,4 +246,17 @@ func (p *Proxy) ListenAndServe() error {
 		log.Errorf("Error serving HTTP(S): %v", err)
 	}
 	return err
+}
+
+func PortsFromCSV(csv string) ([]int, error) {
+	fields := strings.Split(csv, ",")
+	ports := make([]int, len(fields))
+	for i, f := range fields {
+		p, err := strconv.Atoi(f)
+		if err != nil {
+			return nil, err
+		}
+		ports[i] = p
+	}
+	return ports, nil
 }
