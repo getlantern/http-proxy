@@ -64,12 +64,17 @@ func (c *proConfig) IsPro() (bool, error) {
 
 func (c *proConfig) Run(initAsPro bool) error {
 	initialize := func() (err error) {
-		c.redisConfig.EmptyMessageQueue()
-
-		c.proFilter.Enable()
 		if c.userTokens, err = c.redisConfig.GetUsersAndTokens(); err != nil {
 			return
 		}
+
+		// Initialize only if there are users assigned to this server
+		if len(c.userTokens) > 0 {
+			c.proFilter.Enable()
+		} else {
+			return
+		}
+
 		tks := c.getAllTokens()
 		c.proFilter.SetTokens(tks...)
 		log.Debugf("Initializing with the following Pro tokens: %v", tks)
@@ -90,15 +95,13 @@ func (c *proConfig) Run(initAsPro bool) error {
 				continue
 			}
 			switch msg[0] {
-			case "TURN-PRO":
-				initialize()
-				log.Debug("Proxy now is Pro-only. Tokens updated.")
-			case "TURN-FREE":
-				c.proFilter.Disable()
-				c.proFilter.ClearTokens()
-				log.Debug("Proxy now is Free-only")
 			case "USER-SET":
-				// Add or update a user
+				c.redisConfig.EmptyMessageQueue()
+				// If this is the first user of the proxy, initialization will be required
+				if len(c.userTokens) == 0 {
+					initialize()
+				}
+				// Add or update an user
 				if err := c.processUserSetMessage(msg); err != nil {
 					log.Errorf("Error setting user/token: %v", err)
 				} else {
@@ -114,6 +117,13 @@ func (c *proConfig) Run(initAsPro bool) error {
 					c.proFilter.SetTokens(c.getAllTokens()...)
 					log.Tracef("Removed user. Current set: %v", c.userTokens)
 				}
+			case "TURN-PRO":
+				initialize()
+				log.Debug("Proxy now is Pro-only. Tokens updated.")
+			case "TURN-FREE":
+				c.proFilter.Disable()
+				c.proFilter.ClearTokens()
+				log.Debug("Proxy now is Free-only")
 			default:
 				log.Error("Unknown message type")
 			}
