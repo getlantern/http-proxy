@@ -49,7 +49,7 @@ func New(opts *Options) (filters.Filter, error) {
 
 	f.proConf = NewRedisProConfig(opts.RedisClient, opts.ServerID, f)
 
-	err := f.proConf.Run(true)
+	err := f.proConf.Run(false)
 	return f, err
 }
 

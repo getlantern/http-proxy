@@ -64,6 +64,10 @@ func (c *proConfig) IsPro() (bool, error) {
 
 func (c *proConfig) Run(initAsPro bool) error {
 	initialize := func() (err error) {
+		log.Debugf("Initializing Pro proxy mode")
+		// This is initialization, so we don't need to read from the blocking message
+		// queue. Instead, we clean it up in case it has leftovers, and read users and
+		// tokens directly in the next step.
 		c.redisConfig.EmptyMessageQueue()
 
 		c.proFilter.Enable()
