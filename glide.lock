@@ -1,25 +1,13 @@
-hash: ac38059598d37e0414d627c02b88da605350784e73bf1a05dcac06e9055e0219
-updated: 2016-06-22T14:23:43.162908255-05:00
+hash: a67c8e06db21c9646f8952283d989436e989a4599519e51a2fa2670cbfd9b75d
+updated: 2016-07-11T18:10:01.048215276+08:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 15d8df1cd780ddb0bb1710b08a5546f2a8f027bf
 - name: git.torproject.org/pluggable-transports/obfs4.git
-  version: a7a2575cab8b916e33d4b85fda4bac41f2124eec
+  version: 62057625eaba2a555967b9615039d43dda071360
   subpackages:
   - transports/base
-  - common/csrand
-  - common/drbg
-  - common/ntor
-  - common/probdist
-  - common/replayfilter
-  - transports/obfs4/framing
-- name: github.com/agl/ed25519
-  version: 278e1ec8e8a6e017cd07577924d6766039146ced
-  subpackages:
-  - extra25519
-  - edwards25519
-- name: github.com/dchest/siphash
-  version: 6d8617816bb5d8268011ffbfb8720f17ce9af63c
+  - transports/obfs4
 - name: github.com/getlantern/borda
   version: 595f4532dc8e6f2fe4a510d39e7e017623ef1427
   subpackages:
@@ -94,18 +82,6 @@ imports:
   version: 743d6901e7ca8ab61ac533a8c49939ac8b560e72
 - name: github.com/visionmedia/go-debug
   version: ff4a55a20a86994118644bbddc6a216da193cc13
-- name: github.com/Yawning/obfs4
-  version: a7a2575cab8b916e33d4b85fda4bac41f2124eec
-  subpackages:
-  - transports/obfs4
-- name: golang.org/x/crypto
-  version: f3241ce8505855877cc8a9717bd61a0f7c4ea83c
-  subpackages:
-  - curve25519
-  - hkdf
-  - nacl/secretbox
-  - poly1305
-  - salsa20/salsa
 - name: gopkg.in/bsm/ratelimit.v1
   version: db14e161995a5177acef654cb0dd785e8ee8bc22
 - name: gopkg.in/redis.v3

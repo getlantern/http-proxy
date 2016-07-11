@@ -2,10 +2,9 @@ package: github.com/getlantern/http-proxy-lantern
 import:
 - package: git.torproject.org/pluggable-transports/goptlib.git
 - package: git.torproject.org/pluggable-transports/obfs4.git
+  version: 6205762
   subpackages:
   - transports/base
-- package: github.com/Yawning/obfs4
-  subpackages:
   - transports/obfs4
 - package: github.com/getlantern/borda
   subpackages:
