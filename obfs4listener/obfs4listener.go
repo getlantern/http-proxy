@@ -6,12 +6,12 @@ import (
 	"os"
 	"time"
 
-	"github.com/Yawning/obfs4/transports/obfs4"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/withtimeout"
 
 	"git.torproject.org/pluggable-transports/goptlib.git"
 	"git.torproject.org/pluggable-transports/obfs4.git/transports/base"
+	"git.torproject.org/pluggable-transports/obfs4.git/transports/obfs4"
 )
 
 var (
