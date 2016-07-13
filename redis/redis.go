@@ -49,6 +49,10 @@ type Options struct {
 	// TCPKeepAlive enables TCP keepalives on the connection to Redis.
 	// If set to 0, keepalives are disabled.
 	TCPKeepAlive time.Duration
+
+	// The maximum number of socket connections.
+	// Default is 3 connections.
+	PoolSize int
 }
 
 func GetClient(opts *Options) (*redis.Client, error) {
@@ -63,6 +67,11 @@ func GetClient(opts *Options) (*redis.Client, error) {
 
 	if rc, ok := rcs[u.Host]; ok {
 		return rc, nil
+	}
+
+	// Setting default PoolSize to 3.
+	if opts.PoolSize == 0 {
+		opts.PoolSize = 3
 	}
 
 	db := int64(0)
@@ -125,8 +134,9 @@ func GetClient(opts *Options) (*redis.Client, error) {
 	}
 
 	opt := redis.Options{
-		Dialer: dialFunc,
-		DB:     db,
+		Dialer:   dialFunc,
+		DB:       db,
+		PoolSize: opts.PoolSize,
 	}
 	if u.User != nil {
 		redisPass, _ := u.User.Password()
