@@ -1,22 +1,28 @@
 GLIDE_BIN    ?= $(shell which glide)
-GOOS         ?= linux
-GOARCH       ?= amd64
+UPX_BIN      ?= $(shell which upx)
+BUILD_DIR    ?= bin
 
 .PHONY: dist build require-glide
+
+build: require-glide
+	$(GLIDE_BIN) install && \
+	mkdir -p $(BUILD_DIR) && \
+	go build -o $(BUILD_DIR)/http-proxy-lantern github.com/getlantern/http-proxy-lantern/http-proxy && \
+	file $(BUILD_DIR)/http-proxy-lantern
 
 require-glide:
 	@if [ "$(GLIDE_BIN)" = "" ]; then \
 		echo 'Missing "glide" command. See https://github.com/Masterminds/glide' && exit 1; \
 	fi
 
-dist: require-glide
-	$(GLIDE_BIN) install && \
-	mkdir -p dist && \
-	go build -o bin/http-proxy-lantern && \
-	file bin/http-proxy-lantern
+require-upx:
+	@if [ "$(UPX_BIN)" = "" ]; then \
+		echo 'Missing "upx" command. See http://upx.sourceforge.net/' && exit 1; \
+	fi
 
-build:
-	go build -o bin/http-proxy-lantern
+dist: require-glide require-upx
+	GOOS=linux GOARCH=amd64 BUILD_DIR=dist $(MAKE) build && \
+	upx dist/http-proxy-lantern
 
 clean:
-	rm -rf dist
+	rm -rf dist bin

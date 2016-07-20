@@ -21,7 +21,7 @@ These are Lantern-specific middleware components for the HTTP Proxy in Go:
 
 ### Usage
 
-Build it with `glide install && go build`.
+Build it with `glide install && go build` or with `make build`.
 
 To get list of the command line options, please run `http-proxy-lantern -help`.
 
@@ -86,3 +86,15 @@ If you are using checkfallbacks, make sure that both the certificate and the tok
 With option `-pprofAddr=localhost:6060`, you can always access lots of debug information from http://localhost:6060/debug/pprof. Ref https://golang.org/pkg/net/http/pprof/.
 
 ***Be sure to only listen on localhost or private addresses for security reason.***
+
+## Building for distribution and deploying
+
+When building for distribution make sure you're creating a linux/amd64 binary
+and that the resulting binary is compressed with
+[upx](http://upx.sourceforge.net/).
+
+You can use the following command to do all this automatically:
+
+```
+make dist
+```
