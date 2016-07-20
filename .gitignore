@@ -39,3 +39,5 @@ obfs4_bridgeline.txt
 obfs4_state.json
 
 vendor
+bin
+*.sw?
