@@ -34,6 +34,8 @@ import (
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
 
+const timeoutToDialOriginSite = 10 * time.Second
+
 var (
 	log = golog.LoggerFor("lantern-proxy")
 )
@@ -150,7 +152,9 @@ func (p *Proxy) ListenAndServe() error {
 		}))
 	}
 
-	dialer := common.PreferIPV4Dialer(10 * time.Second)
+	// Google anomaly detection can be triggered very often over IPv6.
+	// Prefer IPv4 to mitigate, see issue #97
+	dialer := common.PreferIPV4Dialer(timeoutToDialOriginSite)
 	filterChain = filterChain.Append(
 		httpconnect.New(&httpconnect.Options{
 			IdleTimeout:  idleTimeout,
@@ -252,7 +256,7 @@ func PortsFromCSV(csv string) ([]int, error) {
 	fields := strings.Split(csv, ",")
 	ports := make([]int, len(fields))
 	for i, f := range fields {
-		p, err := strconv.Atoi(f)
+		p, err := strconv.Atoi(strings.TrimSpace(f))
 		if err != nil {
 			return nil, err
 		}
