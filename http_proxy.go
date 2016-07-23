@@ -3,6 +3,7 @@ package proxy
 import (
 	"net"
 	_ "net/http/pprof"
+	"strconv"
 	"strings"
 	"time"
 
@@ -31,6 +32,8 @@ import (
 	"github.com/getlantern/http-proxy-lantern/redis"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
+
+const timeoutToDialOriginSite = 10 * time.Second
 
 var (
 	log = golog.LoggerFor("lantern-proxy")
@@ -120,7 +123,7 @@ func (p *Proxy) ListenAndServe() error {
 	idleTimeout := time.Duration(p.IdleClose) * time.Second
 	var allowedPorts []int
 	if p.TunnelPorts != "" {
-		allowedPorts, err = httpconnect.AllowedPortsFromCSV(p.TunnelPorts)
+		allowedPorts, err = portsFromCSV(p.TunnelPorts)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -148,13 +151,18 @@ func (p *Proxy) ListenAndServe() error {
 		}))
 	}
 
+	// Google anomaly detection can be triggered very often over IPv6.
+	// Prefer IPv4 to mitigate, see issue #97
+	dialer := preferIPV4Dialer(timeoutToDialOriginSite)
 	filterChain = filterChain.Append(
 		httpconnect.New(&httpconnect.Options{
 			IdleTimeout:  idleTimeout,
 			AllowedPorts: allowedPorts,
+			Dialer:       dialer,
 		}),
 		forward.New(&forward.Options{
 			IdleTimeout: idleTimeout,
+			Dialer:      dialer,
 		}),
 	)
 
@@ -241,4 +249,17 @@ func (p *Proxy) ListenAndServe() error {
 		log.Errorf("Error serving HTTP(S): %v", err)
 	}
 	return err
+}
+
+func portsFromCSV(csv string) ([]int, error) {
+	fields := strings.Split(csv, ",")
+	ports := make([]int, len(fields))
+	for i, f := range fields {
+		p, err := strconv.Atoi(strings.TrimSpace(f))
+		if err != nil {
+			return nil, err
+		}
+		ports[i] = p
+	}
+	return ports, nil
 }

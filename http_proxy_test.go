@@ -588,6 +588,13 @@ func TestInvalidRequest(t *testing.T) {
 
 }
 
+func TestPortsFromCSV(t *testing.T) {
+	ports, err := portsFromCSV("1, 2, 3,4,5")
+	if assert.NoError(t, err, "should have no error parsing CSV") {
+		assert.Equal(t, []int{1, 2, 3, 4, 5}, ports, "should get correct ports")
+	}
+}
+
 //
 // Auxiliary functions
 //

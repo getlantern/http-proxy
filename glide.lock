@@ -1,5 +1,5 @@
 hash: a67c8e06db21c9646f8952283d989436e989a4599519e51a2fa2670cbfd9b75d
-updated: 2016-07-11T23:52:37.805315545+08:00
+updated: 2016-07-23T10:14:28.029233025+08:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 15d8df1cd780ddb0bb1710b08a5546f2a8f027bf
@@ -44,7 +44,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: 9e5c4afb2a06756abe03e631b10bedf8e2704e71
+  version: 2752cc6aa5ef69dae12c2e3d1ba0faec86b9646c
   subpackages:
   - commonfilter
   - filters
@@ -96,7 +96,7 @@ imports:
 - name: github.com/visionmedia/go-debug
   version: ff4a55a20a86994118644bbddc6a216da193cc13
 - name: golang.org/x/crypto
-  version: c2f4947f41766b144bb09066e919466da5eddeae
+  version: 911fafb28f4ee7c7bd483539a6c96190bbbccc3f
   subpackages:
   - curve25519
   - hkdf

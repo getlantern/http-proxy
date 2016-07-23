@@ -18,16 +18,16 @@ build:
     - wercker/setup-go-workspace:
       package-dir: github.com/getlantern/http-proxy-lantern
     - script:
-      name: glide install
+      name: get glide
       code: |
         cd /tmp
         curl -L https://github.com/Masterminds/glide/releases/download/0.10.2/glide-0.10.2-linux-amd64.tar.gz -o glide.tar.gz
         tar -xf glide.tar.gz
         sudo mv linux-amd64/glide /usr/local/bin/
     - script:
-      name: glide update
+      name: glide install
       code: |
-        glide update
+        glide install
     - script:
       name: get patched go
       code: |
