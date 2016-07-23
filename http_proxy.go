@@ -21,7 +21,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/analytics"
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/borda"
-	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
@@ -154,7 +153,7 @@ func (p *Proxy) ListenAndServe() error {
 
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97
-	dialer := common.PreferIPV4Dialer(timeoutToDialOriginSite)
+	dialer := preferIPV4Dialer(timeoutToDialOriginSite)
 	filterChain = filterChain.Append(
 		httpconnect.New(&httpconnect.Options{
 			IdleTimeout:  idleTimeout,

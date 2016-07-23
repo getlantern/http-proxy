@@ -1,4 +1,4 @@
-package common
+package proxy
 
 import (
 	"errors"
@@ -7,16 +7,10 @@ import (
 	"time"
 )
 
-var (
-	// Timeout is the error return by PreferIPV4Dialer when it is unable to
-	// return a connection within the specified timeout.
-	Timeout = errors.New("Dial timeout")
-)
-
-// PreferIPV4Dialer returns a function with same signature as net.Dial, but
+// preferIPV4Dialer returns a function with same signature as net.Dial, but
 // always dials the host to its IPv4 address, unless it's already in IP address
 // form.
-func PreferIPV4Dialer(timeout time.Duration) func(network, hostport string) (net.Conn, error) {
+func preferIPV4Dialer(timeout time.Duration) func(network, hostport string) (net.Conn, error) {
 	return func(network, hostport string) (net.Conn, error) {
 		tcpAddr, err := tcpAddrPrefer4(hostport)
 		if err != nil {
@@ -42,7 +36,7 @@ func PreferIPV4Dialer(timeout time.Duration) func(network, hostport string) (net
 		t := time.NewTimer(timeout)
 		select {
 		case <-t.C:
-			return nil, Timeout
+			return nil, errors.New("Dial timeout")
 		case res := <-chResult:
 			return res.conn, res.err
 		}
