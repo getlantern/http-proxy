@@ -124,7 +124,7 @@ func (p *Proxy) ListenAndServe() error {
 	idleTimeout := time.Duration(p.IdleClose) * time.Second
 	var allowedPorts []int
 	if p.TunnelPorts != "" {
-		allowedPorts, err = PortsFromCSV(p.TunnelPorts)
+		allowedPorts, err = portsFromCSV(p.TunnelPorts)
 		if err != nil {
 			log.Fatal(err)
 		}
@@ -252,7 +252,7 @@ func (p *Proxy) ListenAndServe() error {
 	return err
 }
 
-func PortsFromCSV(csv string) ([]int, error) {
+func portsFromCSV(csv string) ([]int, error) {
 	fields := strings.Split(csv, ",")
 	ports := make([]int, len(fields))
 	for i, f := range fields {
