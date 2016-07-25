@@ -15,7 +15,6 @@ import (
 	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/server"
 
-	"github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
@@ -93,26 +92,9 @@ type entryWithHeaders struct {
 	headers        []string
 }
 
-var invalidRequests = []entryWithHeaders{
-	// Without Host header, Apache will return 400
-	{"GET", "/", false, []string{}},
-	{"GET", "/index.html", false, []string{}},
-
-	// invalid request handled by go server
-	{"GET", "", false, []string{}},
-	{"GET", "/", true, []string{"Content-Length: 0", "Content-Length: 0"}},
-}
-
 func TestMimicApache(t *testing.T) {
 	tf := tokenfilter.New("arbitrary-token")
 	s := server.NewServer(filters.Join(tf))
-
-	s.AddListenerWrappers(
-		// Preprocess connection to issue custom errors before they are passed to the server
-		func(ls net.Listener) net.Listener {
-			return listeners.NewPreprocessorListener(ls)
-		},
-	)
 
 	chListenOn := make(chan string)
 	go func() {
@@ -164,12 +146,6 @@ func request(t *testing.T, addr string) *bytes.Buffer {
 
 	for _, c := range candidates {
 		requestItem(t, &buf, addr, c.method, c.path, []string{"Host: " + addr})
-	}
-	for _, r := range invalidRequests {
-		if r.withHostHeader {
-			r.headers = append(r.headers, "Host: "+addr)
-		}
-		requestItem(t, &buf, addr, "GET", r.path, r.headers)
 	}
 	return &buf
 }

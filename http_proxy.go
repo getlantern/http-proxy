@@ -211,10 +211,6 @@ func (p *Proxy) ListenAndServe() error {
 		func(ls net.Listener) net.Listener {
 			return listeners.NewIdleConnListener(ls, idleTimeout)
 		},
-		// Preprocess connection to issue custom errors before they are passed to the server
-		func(ls net.Listener) net.Listener {
-			return lanternlisteners.NewPreprocessorListener(ls)
-		},
 	)
 
 	onAddress := func(addr string) {
