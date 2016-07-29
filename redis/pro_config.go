@@ -8,6 +8,7 @@ import (
 )
 
 type UserTokens map[string]string
+type UserDevices map[string][]string
 
 type ProConfig struct {
 	redisClient *redis.Client
@@ -33,6 +34,23 @@ func (c *ProConfig) GetNextMessage() ([]string, error) {
 		// The returned result is [key, value]
 		return strings.Split(r[1], ","), nil
 	}
+}
+
+func (c *ProConfig) GetUserDevices(userID string) ([]string, error) {
+	rvals, err := c.redisClient.HGetAll("user->devices:" + userID).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	devices := make([]string, len(rvals)/2)
+	for i, val := range rvals {
+		if i%2 == 0 {
+			devices[i/2] = val
+		}
+	}
+
+	log.Debugf("User %s authorized devices: %v", userID, devices)
+	return devices, nil
 }
 
 func (c *ProConfig) GetUsersAndTokens() (UserTokens, error) {

@@ -7,10 +7,15 @@ import (
 	redislib "gopkg.in/redis.v3"
 )
 
+const (
+	maxDevicesPerUser = 3
+)
+
 type proConfig struct {
 	serverId    string
 	redisConfig *redis.ProConfig
 	userTokens  redis.UserTokens
+	userDevices redis.UserDevices
 	proFilter   *lanternProFilter
 }
 
@@ -19,6 +24,7 @@ func NewRedisProConfig(rc *redislib.Client, serverId string, proFilter *lanternP
 		serverId:    serverId,
 		redisConfig: redis.NewProConfig(rc, serverId),
 		userTokens:  make(redis.UserTokens),
+		userDevices: make(redis.UserDevices),
 		proFilter:   proFilter,
 	}
 }
@@ -48,6 +54,25 @@ func (c *proConfig) processUserRemoveMessage(msg []string) error {
 	return nil
 }
 
+func (c *proConfig) processUserUpdateDevicesMessage(msg []string) error {
+	// Should receive USER-UPDATE-DEVICES,<USER>
+	if len(msg) != 2 {
+		return errors.New("Malformed UPDATE-DEVICES message")
+	}
+	user := msg[1]
+	if _, ok := c.userTokens[user]; !ok {
+		return errors.New("User in UPDATE-DEVICES message was not assigned to server")
+	}
+
+	devs, err := c.redisConfig.GetUserDevices(user)
+	if err != nil {
+		return errors.New("Error retrieving user devices in UPDATE-DEVICES message")
+	}
+	c.userDevices[user] = devs
+
+	return nil
+}
+
 func (c *proConfig) getAllTokens() []string {
 	tokens := make([]string, len(c.userTokens))
 	i := 0
@@ -56,6 +81,16 @@ func (c *proConfig) getAllTokens() []string {
 		i++
 	}
 	return tokens
+}
+
+func (c *proConfig) getAllDevices() []string {
+	devices := make([]string, 0, len(c.userDevices)*maxDevicesPerUser)
+	for _, udevs := range c.userDevices {
+		for _, d := range udevs {
+			devices = append(devices, d)
+		}
+	}
+	return devices
 }
 
 func (c *proConfig) IsPro() (bool, error) {
@@ -76,10 +111,24 @@ func (c *proConfig) Run(initAsPro bool) error {
 			return
 		}
 
+		for user := range c.userTokens {
+			devices, err := c.redisConfig.GetUserDevices(user)
+			if err != nil {
+				log.Debugf("Error retrieving devices for user %d: %v", user, err)
+			} else {
+				c.userDevices[user] = devices
+			}
+		}
+
 		tks := c.getAllTokens()
 		c.proFilter.SetTokens(tks...)
+
+		devices := c.getAllDevices()
+		c.proFilter.SetDevices(devices...)
+
 		log.Debugf("The proxy has assigned users: Pro-only proxy.")
 		log.Debugf("Initializing with the following Pro tokens: %v", tks)
+		log.Debugf("Initializing with the following allowed devices: %v", devices)
 		return
 	}
 
@@ -118,6 +167,10 @@ func (c *proConfig) Run(initAsPro bool) error {
 				} else {
 					c.proFilter.SetTokens(c.getAllTokens()...)
 					log.Tracef("Removed user. Current set: %v", c.userTokens)
+				}
+			case "USER-UPDATE-DEVICES":
+				if err := c.processUserUpdateDevicesMessage(msg); err != nil {
+					log.Errorf("Error updating user devices: %v", err)
 				}
 			case "TURN-PRO":
 				initialize()

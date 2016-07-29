@@ -23,12 +23,15 @@ import (
 var log = golog.LoggerFor("profilter")
 
 type TokensMap map[string]bool
+type DevicesMap map[string]bool
 
 type lanternProFilter struct {
-	enabled   int32
-	proTokens *atomic.Value
+	enabled    int32
+	proTokens  *atomic.Value
+	proDevices *atomic.Value
 	// Tokens write-only mutex
 	tkwMutex            sync.Mutex
+	devsMutex           sync.Mutex
 	proConf             *proConfig
 	keepProTokenDomains []string
 }
@@ -42,6 +45,7 @@ type Options struct {
 func New(opts *Options) (filters.Filter, error) {
 	f := &lanternProFilter{
 		proTokens:           new(atomic.Value),
+		proDevices:          new(atomic.Value),
 		keepProTokenDomains: opts.KeepProTokenDomains,
 	}
 	// atomic.Value can't be copied after Store has been called
@@ -150,5 +154,33 @@ func (f *lanternProFilter) ClearTokens() {
 func (f *lanternProFilter) tokenExists(token string) bool {
 	tks := f.proTokens.Load().(TokensMap)
 	_, ok := tks[token]
+	return ok
+}
+
+// SetDevices sets the devcies to the provided list, removing
+// any previous devices
+func (f *lanternProFilter) SetDevices(devices ...string) {
+	// Copy-on-write.  Writes are far less common than reads.
+	f.devsMutex.Lock()
+	defer f.devsMutex.Unlock()
+
+	devs := make(DevicesMap)
+	for _, t := range devices {
+		devs[t] = true
+	}
+	f.proDevices.Store(devs)
+}
+
+func (f *lanternProFilter) ClearDevices() {
+	// Synchronize with writers
+	f.devsMutex.Lock()
+	defer f.devsMutex.Unlock()
+
+	f.proDevices.Store(make(DevicesMap))
+}
+
+func (f *lanternProFilter) deviceExists(device string) bool {
+	devs := f.proDevices.Load().(DevicesMap)
+	_, ok := devs[device]
 	return ok
 }
