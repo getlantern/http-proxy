@@ -37,6 +37,14 @@ func (c *proConfig) processUserSetMessage(msg []string) error {
 	user := msg[1]
 	token := msg[2]
 	c.userTokens[user] = token
+
+	// Get user devices too
+	devs, err := c.redisConfig.GetUserDevices(user)
+	if err != nil {
+		return errors.New("Error retrieving user devices in UPDATE-DEVICES message")
+	}
+	c.userDevices[user] = devs
+
 	return nil
 }
 
@@ -171,6 +179,7 @@ func (c *proConfig) Run(initAsPro bool) error {
 					// We need to update all tokens to avoid leaking old ones,
 					// in case of token update
 					c.proFilter.SetTokens(c.getAllTokens()...)
+					c.proFilter.SetDevices(c.getAllDevices()...)
 					log.Tracef("User added/updated. Complete set of users: %v", c.userTokens)
 				}
 			case "USER-REMOVE":
@@ -178,6 +187,7 @@ func (c *proConfig) Run(initAsPro bool) error {
 					log.Errorf("Error retrieving removed users/token: %v", err)
 				} else {
 					c.proFilter.SetTokens(c.getAllTokens()...)
+					c.proFilter.SetDevices(c.getAllDevices()...)
 					log.Tracef("Removed user. Current set: %v", c.userTokens)
 				}
 			case "USER-UPDATE-DEVICES":
