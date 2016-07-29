@@ -45,7 +45,15 @@ func (c *proConfig) processUserRemoveMessage(msg []string) error {
 	if len(msg) != 2 {
 		return errors.New("Malformed REMOVE message")
 	}
+
 	user := msg[1]
+
+	// Remove the user from the devices registry (don't care if the user has no
+	// device registered)
+	delete(c.userDevices, user)
+
+	// Remove the user from the tokens registry (the main one used for
+	// user->server assignation knowledge in proxies
 	if _, ok := c.userTokens[user]; !ok {
 		return errors.New("User in REMOVE message was not assigned to server")
 	}
@@ -71,6 +79,18 @@ func (c *proConfig) processUserUpdateDevicesMessage(msg []string) error {
 	c.userDevices[user] = devs
 
 	return nil
+}
+
+// updateAllDevices retrieves the devices from all proxy users
+func (c *proConfig) updateAllDevices() {
+	for user := range c.userTokens {
+		devices, err := c.redisConfig.GetUserDevices(user)
+		if err != nil {
+			log.Debugf("Error retrieving devices for user %d: %v", user, err)
+		} else {
+			c.userDevices[user] = devices
+		}
+	}
 }
 
 func (c *proConfig) getAllTokens() []string {
@@ -111,18 +131,10 @@ func (c *proConfig) Run(initAsPro bool) error {
 			return
 		}
 
-		for user := range c.userTokens {
-			devices, err := c.redisConfig.GetUserDevices(user)
-			if err != nil {
-				log.Debugf("Error retrieving devices for user %d: %v", user, err)
-			} else {
-				c.userDevices[user] = devices
-			}
-		}
-
 		tks := c.getAllTokens()
 		c.proFilter.SetTokens(tks...)
 
+		c.updateAllDevices()
 		devices := c.getAllDevices()
 		c.proFilter.SetDevices(devices...)
 
