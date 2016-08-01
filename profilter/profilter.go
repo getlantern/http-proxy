@@ -4,19 +4,23 @@
 package profilter
 
 import (
+	"fmt"
 	"net/http"
 	//"net/http/httputil"
 	"sync"
 	"sync/atomic"
 
 	"github.com/getlantern/golog"
+	"github.com/getlantern/ops"
+
 	"github.com/gorilla/context"
 
 	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/listeners"
 
-	//"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/getlantern/http-proxy-lantern/common"
 	throttle "github.com/getlantern/http-proxy-lantern/listeners"
+	"github.com/getlantern/http-proxy-lantern/mimic"
 	redislib "gopkg.in/redis.v3"
 )
 
@@ -58,9 +62,12 @@ func New(opts *Options) (filters.Filter, error) {
 }
 
 func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
-	// BEGIN of temporary fix: Do not throttle *any* connection if the proxy is Pro-only
+	op := ops.Begin("profilter")
+	defer op.End()
 
-	// lanternProToken := req.Header.Get(common.ProTokenHeader)
+	lanternProToken := req.Header.Get(common.ProTokenHeader)
+
+	// BEGIN of temporary fix: Do not throttle *any* connection if the proxy is Pro-only
 
 	// if log.IsTraceEnabled() {
 	// 	reqStr, _ := httputil.DumpRequest(req, true)
@@ -72,7 +79,7 @@ func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next 
 
 	// shouldDelete := true
 	// for _, domain := range f.keepProTokenDomains {
-	// 	if req.Host == domain {
+	// 	if req.Host == domain {nn
 	// 		shouldDelete = false
 	// 		break
 	// 	}
@@ -92,7 +99,25 @@ func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next 
 	}
 	// END of temporary fix
 
-	return next()
+	// Check for authorized device
+	device := req.Header.Get(common.DeviceIdHeader)
+
+	if device != "" && f.deviceExists(device) {
+		log.Tracef("Device ID %v is ALLOWED", device)
+		return next()
+	} else {
+		log.Tracef("Device ID %v is NOT ALLOWED", device)
+
+		// Make the response depending on the client being legit or not
+		if f.isEnabled() && lanternProToken != "" && f.tokenExists(lanternProToken) {
+			w.WriteHeader(http.StatusForbidden)
+		} else {
+			log.Error(errorf(op, "Non-authorized Pro user with token %v, mimicking apache", lanternProToken))
+			mimic.MimicApache(w, req)
+		}
+
+		return filters.Stop()
+	}
 }
 
 func (f *lanternProFilter) isEnabled() bool {
@@ -183,4 +208,8 @@ func (f *lanternProFilter) deviceExists(device string) bool {
 	devs := f.proDevices.Load().(DevicesMap)
 	_, ok := devs[device]
 	return ok
+}
+
+func errorf(op ops.Op, msg string, args ...interface{}) error {
+	return op.FailIf(fmt.Errorf(msg, args...))
 }
