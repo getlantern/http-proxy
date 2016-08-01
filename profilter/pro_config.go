@@ -193,6 +193,8 @@ func (c *proConfig) Run(initAsPro bool) error {
 			case "USER-UPDATE-DEVICES":
 				if err := c.processUserUpdateDevicesMessage(msg); err != nil {
 					log.Errorf("Error updating user devices: %v", err)
+				} else {
+					c.proFilter.SetDevices(c.getAllDevices()...)
 				}
 			case "TURN-PRO":
 				initialize()
