@@ -7,10 +7,6 @@ import (
 	redislib "gopkg.in/redis.v3"
 )
 
-const (
-	maxDevicesPerUser = 3
-)
-
 type proConfig struct {
 	serverId    string
 	redisConfig *redis.ProConfig
@@ -112,7 +108,8 @@ func (c *proConfig) getAllTokens() []string {
 }
 
 func (c *proConfig) getAllDevices() []string {
-	devices := make([]string, 0, len(c.userDevices)*maxDevicesPerUser)
+	// 3 is the number of max devices per user
+	devices := make([]string, 0, len(c.userDevices)*3)
 	for _, udevs := range c.userDevices {
 		for _, d := range udevs {
 			devices = append(devices, d)
