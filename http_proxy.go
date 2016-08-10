@@ -16,6 +16,7 @@ import (
 	"github.com/getlantern/http-proxy/forward"
 	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
+	"github.com/getlantern/http-proxy/ratelimiter"
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
@@ -67,12 +68,19 @@ type Proxy struct {
 	TunnelPorts                  string
 	Obfs4Addr                    string
 	Obfs4Dir                     string
+	Benchmark                    bool
 }
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
 	var err error
 	ops.SetGlobal("app", "http-proxy")
+
+	if p.Benchmark {
+		log.Debug("Putting proxy into benchmarking mode. Only a limited rate of requests to a specific set of domains will be allowed, no authentication token required.")
+		p.HTTPS = true
+		p.Token = "bench"
+	}
 
 	var m *measured.Measured
 	redisOpts := &redis.Options{
@@ -129,8 +137,19 @@ func (p *Proxy) ListenAndServe() error {
 		}
 	}
 
-	filterChain := filters.Join(
-		tokenfilter.New(p.Token),
+	var filterChain filters.Chain
+	if p.Benchmark {
+		filterChain = filterChain.Append(ratelimiter.New(5000, map[string]time.Duration{
+			"www.google.com":      30 * time.Minute,
+			"www.facebook.com":    30 * time.Minute,
+			"67.media.tumblr.com": 30 * time.Minute,
+			"i.ytimg.com":         30 * time.Minute, // YouTube play button
+			"149.154.167.91":      30 * time.Minute, // Telegram
+		}))
+	} else {
+		filterChain = filters.Join(tokenfilter.New(p.Token))
+	}
+	filterChain = filterChain.Append(
 		devicefilter.NewPre(redis.NewDeviceFetcher(rc), p.ThrottleThreshold),
 		analytics.New(&analytics.Options{
 			TrackingID:       p.ProxiedSitesTrackingID,
