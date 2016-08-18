@@ -143,11 +143,11 @@ func (p *Proxy) ListenAndServe() error {
 	var filterChain filters.Chain
 	if p.Benchmark {
 		filterChain = filterChain.Append(ratelimiter.New(5000, map[string]time.Duration{
-			"www.google.com":      30 * time.Minute,
-			"www.facebook.com":    30 * time.Minute,
-			"67.media.tumblr.com": 30 * time.Minute,
-			"i.ytimg.com":         30 * time.Minute, // YouTube play button
-			"149.154.167.91":      30 * time.Minute, // Telegram
+			"www.google.com":      30 * time.Second,
+			"www.facebook.com":    30 * time.Second,
+			"67.media.tumblr.com": 30 * time.Second,
+			"i.ytimg.com":         30 * time.Second, // YouTube play button
+			"149.154.167.91":      30 * time.Second, // Telegram
 		}))
 	} else {
 		filterChain = filters.Join(tokenfilter.New(p.Token))
