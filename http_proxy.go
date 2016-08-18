@@ -24,6 +24,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/borda"
 	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
+	"github.com/getlantern/http-proxy-lantern/kcplistener"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
@@ -68,6 +69,7 @@ type Proxy struct {
 	TunnelPorts                  string
 	Obfs4Addr                    string
 	Obfs4Dir                     string
+	KCPAddr                      string
 	Benchmark                    bool
 }
 
@@ -80,6 +82,7 @@ func (p *Proxy) ListenAndServe() error {
 		log.Debug("Putting proxy into benchmarking mode. Only a limited rate of requests to a specific set of domains will be allowed, no authentication token required.")
 		p.HTTPS = true
 		p.Token = "bench"
+		p.KCPAddr = ":10000"
 	}
 
 	var m *measured.Measured
@@ -251,7 +254,21 @@ func (p *Proxy) ListenAndServe() error {
 				log.Debugf("obfs4 listening at %v", addr)
 			})
 			if err != nil {
-				log.Fatalf("Error serving OBFS4: %v", err)
+				log.Fatalf("Error serving obfs4: %v", err)
+			}
+		}()
+	}
+	if p.KCPAddr != "" {
+		l, err := kcplistener.NewListener(p.KCPAddr, p.KeyFile, p.CertFile)
+		if err != nil {
+			log.Fatalf("Unable to listen with kcp: %v", err)
+		}
+		go func() {
+			err := srv.Serve(l, func(addr string) {
+				log.Debugf("kcp listening at %v", addr)
+			})
+			if err != nil {
+				log.Fatalf("Error serving kcp: %v", err)
 			}
 		}()
 	}

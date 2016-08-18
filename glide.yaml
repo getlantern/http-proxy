@@ -2,7 +2,7 @@ package: github.com/getlantern/http-proxy-lantern
 import:
 - package: git.torproject.org/pluggable-transports/goptlib.git
 - package: git.torproject.org/pluggable-transports/obfs4.git
-  version: 6205762
+  version: "6205762"
   subpackages:
   - transports/base
   - transports/obfs4
@@ -37,3 +37,5 @@ import:
 - package: github.com/stretchr/testify
   subpackages:
   - assert
+- package: github.com/xtaci/kcp-go
+- package: github.com/klauspost/cpuid
