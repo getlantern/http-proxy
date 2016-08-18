@@ -1,28 +1,28 @@
-hash: a67c8e06db21c9646f8952283d989436e989a4599519e51a2fa2670cbfd9b75d
-updated: 2016-07-23T10:14:28.029233025+08:00
+hash: af37f862988d0784a845ed2c151d37bfd3188cc3320ee149f421d56a5e63514d
+updated: 2016-08-18T11:18:45.84965747-05:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 15d8df1cd780ddb0bb1710b08a5546f2a8f027bf
 - name: git.torproject.org/pluggable-transports/obfs4.git
   version: 62057625eaba2a555967b9615039d43dda071360
   subpackages:
-  - transports/base
-  - transports/obfs4
   - common/csrand
   - common/drbg
   - common/ntor
   - common/probdist
   - common/replayfilter
+  - transports/base
+  - transports/obfs4
   - transports/obfs4/framing
 - name: github.com/agl/ed25519
   version: 278e1ec8e8a6e017cd07577924d6766039146ced
   subpackages:
-  - extra25519
   - edwards25519
+  - extra25519
 - name: github.com/dchest/siphash
   version: 6d8617816bb5d8268011ffbfb8720f17ce9af63c
 - name: github.com/getlantern/borda
-  version: 595f4532dc8e6f2fe4a510d39e7e017623ef1427
+  version: 6af58869de1e413c24bda8582a25335e389c19e4
   subpackages:
   - client
 - name: github.com/getlantern/byteexec
@@ -44,19 +44,20 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: 2752cc6aa5ef69dae12c2e3d1ba0faec86b9646c
+  version: 0a1e95a03c2af106b17b51751f417e9e5d44c8fe
   subpackages:
+  - buffers
   - commonfilter
   - filters
   - forward
   - httpconnect
   - listeners
   - logging
+  - ratelimiter
   - server
   - utils
-  - buffers
 - name: github.com/getlantern/idletiming
-  version: 81aae812ae5e5c9b39251ab8892f8100899761f4
+  version: d6b9d11062e07218571a436fbfa9be4aa689675d
 - name: github.com/getlantern/keyman
   version: 068a9b24f9af425a6f662a8fe5dcc032e4001897
   subpackages:
@@ -74,11 +75,19 @@ imports:
 - name: github.com/getlantern/withtimeout
   version: d1b4774e14fcd666db75611e08e7dc845b7e3dab
 - name: github.com/golang/groupcache
-  version: 02826c3e79038b59d737d3b1c0a1d937f71a4433
+  version: a6b377e3400b08991b80d6805d627f347f983866
   subpackages:
   - lru
 - name: github.com/gorilla/context
-  version: aed02d124ae4a0e94fea4541c8effd05bf0c8296
+  version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
+- name: github.com/hashicorp/golang-lru
+  version: 0a025b7e63adc15a622f29b0b2c4c3848243bbf6
+  subpackages:
+  - simplelru
+- name: github.com/klauspost/crc32
+  version: 19b0b332c9e4516a6370a0456e6182c3b5036720
+- name: github.com/klauspost/reedsolomon
+  version: 9b772b54b3bf0be1eec083c9669766a56332559a
 - name: github.com/mxk/go-flowrate
   version: cca7078d478f8520f85629ad7c68962d31ed7682
   subpackages:
@@ -86,7 +95,7 @@ imports:
 - name: github.com/oxtoacart/bpool
   version: 4e1c5567d7c2dd59fa4c7c83d34c2f3528b025d6
 - name: github.com/rcrowley/go-metrics
-  version: cfa5a85e9f0abbdf1701b59082c36fc7bff10759
+  version: bdb33529eca3e55eac7328e07c57012a797af602
 - name: github.com/stretchr/testify
   version: d77da356e56a7428ad25149ca77381849a6a5232
   subpackages:
@@ -95,18 +104,28 @@ imports:
   version: 743d6901e7ca8ab61ac533a8c49939ac8b560e72
 - name: github.com/visionmedia/go-debug
   version: ff4a55a20a86994118644bbddc6a216da193cc13
+- name: github.com/xtaci/kcp-go
+  version: 3d701d9575792cfe5d630cef02a77b0aa1245544
 - name: golang.org/x/crypto
-  version: 911fafb28f4ee7c7bd483539a6c96190bbbccc3f
+  version: 9fbab14f903f89e23047b5971369b86380230e56
   subpackages:
   - curve25519
   - hkdf
   - nacl/secretbox
+  - pbkdf2
   - poly1305
   - salsa20/salsa
+  - tea
+- name: golang.org/x/net
+  version: 07b51741c1d6423d4a6abab1c49940ec09cb1aaf
+  subpackages:
+  - bpf
+  - internal/iana
+  - ipv4
 - name: gopkg.in/bsm/ratelimit.v1
   version: db14e161995a5177acef654cb0dd785e8ee8bc22
 - name: gopkg.in/redis.v3
-  version: a905127dc89ca51a241eacf70757a40423ab93d0
+  version: b5e368500d0a508ef8f16e9c2d4025a8a46bcc29
   subpackages:
   - internal
   - internal/consistenthash
