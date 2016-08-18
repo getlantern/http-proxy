@@ -38,3 +38,4 @@ import:
   subpackages:
   - assert
 - package: github.com/xtaci/kcp-go
+- package: github.com/klauspost/cpuid
