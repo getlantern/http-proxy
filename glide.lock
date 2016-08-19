@@ -107,7 +107,7 @@ imports:
 - name: github.com/visionmedia/go-debug
   version: ff4a55a20a86994118644bbddc6a216da193cc13
 - name: github.com/xtaci/kcp-go
-  version: 3d701d9575792cfe5d630cef02a77b0aa1245544
+  version: 50597b1e10d70119caf6c6aadb33373fedf986fe
 - name: golang.org/x/crypto
   version: 9fbab14f903f89e23047b5971369b86380230e56
   subpackages:
