@@ -7,6 +7,8 @@ import (
 	"strings"
 	"time"
 
+	_redis "gopkg.in/redis.v3"
+
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
 	"github.com/getlantern/ops"
@@ -86,16 +88,20 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	var m *measured.Measured
-	redisOpts := &redis.Options{
-		RedisURL:       p.RedisAddr,
-		RedisCAFile:    p.RedisCA,
-		ClientPKFile:   p.RedisClientPK,
-		ClientCertFile: p.RedisClientCert,
-	}
 	// Get a Redis client
-	rc, err := redis.GetClient(redisOpts)
-	if err != nil {
-		log.Fatal(err)
+	var rc *_redis.Client
+	if p.RedisAddr != "" {
+		redisOpts := &redis.Options{
+			RedisURL:       p.RedisAddr,
+			RedisCAFile:    p.RedisCA,
+			ClientPKFile:   p.RedisClientPK,
+			ClientCertFile: p.RedisClientCert,
+		}
+		var err error
+		rc, err = redis.GetClient(redisOpts)
+		if err != nil {
+			log.Fatal(err)
+		}
 	}
 
 	// Reporting
@@ -152,8 +158,12 @@ func (p *Proxy) ListenAndServe() error {
 	} else {
 		filterChain = filters.Join(tokenfilter.New(p.Token))
 	}
+	if rc != nil {
+		filterChain = filterChain.Append(
+			devicefilter.NewPre(redis.NewDeviceFetcher(rc), p.ThrottleThreshold),
+		)
+	}
 	filterChain = filterChain.Append(
-		devicefilter.NewPre(redis.NewDeviceFetcher(rc), p.ThrottleThreshold),
 		analytics.New(&analytics.Options{
 			TrackingID:       p.ProxiedSitesTrackingID,
 			SamplePercentage: p.ProxiedSitesSamplePercentage,
