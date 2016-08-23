@@ -765,7 +765,6 @@ func newTargetHandler(msg string, tls bool) (string, *targetHandler) {
 	m := targetHandler{}
 	m.Msg(msg)
 	m.server = httptest.NewUnstartedServer(&m)
-	m.server.Config.AcceptAnyHostHeader = true
 	if tls {
 		m.server.StartTLS()
 	} else {
