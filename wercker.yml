@@ -3,7 +3,7 @@
 # If you want Google's container you would reference google/golang
 # Read more about containers on our dev center
 # http://devcenter.wercker.com/docs/containers/index.html
-box: golang:1.6.2
+box: golang:1.7
 # This is the build pipeline. Pipelines are the core of wercker
 # Read more about pipelines on our dev center
 # http://devcenter.wercker.com/docs/pipelines/index.html
@@ -28,12 +28,8 @@ build:
       name: glide install
       code: |
         glide install
-    - script:
-      name: get patched go
-      code: |
-        curl https://s3-eu-west-1.amazonaws.com/uaalto/go1.6.2_lantern_20160503_linux_amd64.tar.gz | tar -xz -C /tmp && rm -Rf /usr/local/go && mv /tmp/go /usr/local
     # Test the project
     - script:
       name: go test -race
       code: |
-        GOROOT=/usr/local/go go test -race $(glide novendor)
+        go test -race $(glide novendor)
