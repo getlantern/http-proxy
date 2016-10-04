@@ -86,6 +86,10 @@ func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next f
 		return filters.Stop()
 	}
 
+	return pm.cannedPing(w, ma, size)
+}
+
+func (pm *pingMiddleware) cannedPing(w http.ResponseWriter, ma metrics.MovingAverage, size int) error {
 	start := time.Now()
 	w.WriteHeader(200)
 	for i := 0; i < size; i++ {
