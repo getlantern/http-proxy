@@ -68,7 +68,7 @@ func TestGoodURL(t *testing.T) {
 	}
 	assert.Equal(t, firstTS, secondTS, "Should have used cached timing on 2nd request")
 
-	time.Sleep(timingExpiration)
+	time.Sleep(timingExpiration * 2)
 	statusCode, thirdTS := doTestURL(t, filter, goodURL)
 	if !assert.Equal(t, http.StatusOK, statusCode) {
 		return

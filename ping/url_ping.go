@@ -36,7 +36,7 @@ func (pm *pingMiddleware) urlPing(w http.ResponseWriter, pingURL string) error {
 	pm.urlTimingsMx.RLock()
 	timing, found := pm.urlTimings[pingURL]
 	pm.urlTimingsMx.RUnlock()
-	if found && time.Now().Sub(timing.ts) <= timingExpiration {
+	if found {
 		// Simulate latency by sleeping
 		time.Sleep(timing.latency)
 	} else {
