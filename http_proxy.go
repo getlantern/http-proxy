@@ -20,6 +20,7 @@ import (
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/http-proxy/ratelimiter"
 	"github.com/getlantern/http-proxy/server"
+	"github.com/getlantern/http-proxy/stateful"
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
 	"github.com/getlantern/http-proxy-lantern/blacklist"
@@ -187,11 +188,20 @@ func (p *Proxy) ListenAndServe() error {
 	// Prefer IPv4 to mitigate, see issue #97
 	dialer := preferIPV4Dialer(timeoutToDialOriginSite)
 	filterChain = filterChain.Append(
+		// This filter will look for CONNECT requests and hijack those connections
 		httpconnect.New(&httpconnect.Options{
 			IdleTimeout:  idleTimeout,
 			AllowedPorts: allowedPorts,
 			Dialer:       dialer,
 		}),
+		// This filter will look for GET requests with X-Lantern-Stateful: true and
+		// hijack those connections (new stateful HTTP connection management scheme).
+		stateful.New(&stateful.Options{
+			IdleTimeout: idleTimeout,
+			Dialer:      dialer,
+		}),
+		// This filter will handle all remaining HTTP requests (legacy HTTP
+		// connection management scheme).
 		forward.New(&forward.Options{
 			IdleTimeout: idleTimeout,
 			Dialer:      dialer,
