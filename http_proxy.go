@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"net"
+	"net/http"
 	_ "net/http/pprof"
 	"strconv"
 	"strings"
@@ -177,11 +178,14 @@ func (p *Proxy) ListenAndServe() error {
 		ping.New(),
 	)
 
+	var attachConfigServerHeader func(*http.Request)
 	if p.CfgSvrAuthToken != "" || p.CfgSvrDomains != "" {
-		filterChain = filterChain.Append(configserverfilter.New(&configserverfilter.Options{
+		csf := configserverfilter.New(&configserverfilter.Options{
 			AuthToken: p.CfgSvrAuthToken,
 			Domains:   strings.Split(p.CfgSvrDomains, ","),
-		}))
+		})
+		filterChain = filterChain.Append(csf)
+		attachConfigServerHeader = csf.AttachHeaderIfNecessary
 	}
 
 	// Google anomaly detection can be triggered very often over IPv6.
@@ -199,6 +203,7 @@ func (p *Proxy) ListenAndServe() error {
 		stateful.New(&stateful.Options{
 			IdleTimeout: idleTimeout,
 			Dialer:      dialer,
+			OnRequest:   attachConfigServerHeader,
 		}),
 		// This filter will handle all remaining HTTP requests (legacy HTTP
 		// connection management scheme).
