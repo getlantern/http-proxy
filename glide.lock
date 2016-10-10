@@ -80,7 +80,7 @@ imports:
 - name: github.com/getlantern/idletiming
   version: 7e0189052a9c7fec39114edd1b6e5f1093394415
 - name: github.com/getlantern/interceptor
-  version: 14754c30ee790ddec5db8749d1dad951d65da4ab
+  version: 9e4c17dd30a895e512b53041bb080f89fc62966a
 - name: github.com/getlantern/keyman
   version: 27a13a8da00afce6b6b7e4b4b486a440b4629718
   subpackages:
