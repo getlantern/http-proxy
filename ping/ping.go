@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"math/rand"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/getlantern/golog"
@@ -44,48 +45,61 @@ func randStringRunes(n int) string {
 
 // pingMiddleware intercepts ping requests and returns some random data
 type pingMiddleware struct {
-	SmallResponseTime  metrics.MovingAverage
-	MediumResponseTime metrics.MovingAverage
-	LargeResponseTime  metrics.MovingAverage
+	smallResponseTime  metrics.MovingAverage
+	mediumResponseTime metrics.MovingAverage
+	largeResponseTime  metrics.MovingAverage
+	urlTimings         map[string]*urlTiming
+	urlTimingsMx       sync.RWMutex
 }
 
 func New() filters.Filter {
 	pm := &pingMiddleware{
-		metrics.NewMovingAverage(),
-		metrics.NewMovingAverage(),
-		metrics.NewMovingAverage(),
+		smallResponseTime:  metrics.NewMovingAverage(),
+		mediumResponseTime: metrics.NewMovingAverage(),
+		largeResponseTime:  metrics.NewMovingAverage(),
+		urlTimings:         make(map[string]*urlTiming),
 	}
 	go pm.logTimings()
+	go pm.cleanupExpiredTimings()
 	return pm
 }
 
 func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
 	log.Trace("In ping")
 	pingSize := req.Header.Get(common.PingHeader)
-	if pingSize == "" {
+	pingURL := req.Header.Get(common.PingURLHeader)
+	if pingSize == "" && pingURL == "" {
 		log.Trace("Bypassing ping")
 		return next()
 	}
 	log.Trace("Processing ping")
+
+	if pingURL != "" {
+		return pm.urlPing(w, pingURL)
+	}
 
 	var size int
 	var ma metrics.MovingAverage
 	switch pingSize {
 	case "small":
 		size = 1
-		ma = pm.SmallResponseTime
+		ma = pm.smallResponseTime
 	case "medium":
 		size = 100
-		ma = pm.MediumResponseTime
+		ma = pm.mediumResponseTime
 	case "large":
 		size = 10000
-		ma = pm.LargeResponseTime
+		ma = pm.largeResponseTime
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "Invalid ping size %v\n", pingSize)
 		return filters.Stop()
 	}
 
+	return pm.cannedPing(w, ma, size)
+}
+
+func (pm *pingMiddleware) cannedPing(w http.ResponseWriter, ma metrics.MovingAverage, size int) error {
 	start := time.Now()
 	w.WriteHeader(200)
 	for i := 0; i < size; i++ {
@@ -107,9 +121,9 @@ func (pm *pingMiddleware) logTimings() {
 %v Small      (1 KB) - %v
 %v Medium   (100 KB) - %v
 %v Large (10,000 KB) - %v
-`, now, pm.SmallResponseTime,
-			now, pm.MediumResponseTime,
-			now, pm.LargeResponseTime)
+`, now, pm.smallResponseTime,
+			now, pm.mediumResponseTime,
+			now, pm.largeResponseTime)
 		log.Debug(msg)
 	}
 }
