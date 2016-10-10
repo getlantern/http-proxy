@@ -48,15 +48,20 @@ type pingMiddleware struct {
 	smallResponseTime  metrics.MovingAverage
 	mediumResponseTime metrics.MovingAverage
 	largeResponseTime  metrics.MovingAverage
+	timingExpiration   time.Duration
 	urlTimings         map[string]*urlTiming
 	urlTimingsMx       sync.RWMutex
 }
 
-func New() filters.Filter {
+func New(timingExpiration time.Duration) filters.Filter {
+	if timingExpiration <= 0 {
+		timingExpiration = defaultTimingExpiration
+	}
 	pm := &pingMiddleware{
 		smallResponseTime:  metrics.NewMovingAverage(),
 		mediumResponseTime: metrics.NewMovingAverage(),
 		largeResponseTime:  metrics.NewMovingAverage(),
+		timingExpiration:   timingExpiration,
 		urlTimings:         make(map[string]*urlTiming),
 	}
 	go pm.logTimings()

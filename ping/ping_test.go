@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 	"time"
 
@@ -19,38 +20,33 @@ var (
 )
 
 func TestBypass(t *testing.T) {
-	filter := New()
+	filter := New(0)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
 	n := &next{}
 	err := filter.Apply(w, req, n.do)
-	assert.True(t, n.called)
+	assert.True(t, n.wasCalled())
 	assert.Equal(t, errNext, err)
 }
 
 func TestInvalid(t *testing.T) {
-	filter := New()
+	filter := New(0)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
 	req.Header.Set(common.PingHeader, "invalid")
 	n := &next{}
 	err := filter.Apply(w, req, n.do)
-	assert.False(t, n.called)
+	assert.False(t, n.wasCalled())
 	if assert.NoError(t, err) {
 		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
 	}
 }
 
 func TestGoodURL(t *testing.T) {
-	origTimingExpiration := timingExpiration
-	defer func() {
-		timingExpiration = origTimingExpiration
-	}()
-	timingExpiration = 5 * time.Second
-
+	timingExpiration := 5 * time.Second
 	goodURL := "https://www.google.com/humans.txt"
 	badURL := "https://www.google.com/unknown.txt"
-	filter := New()
+	filter := New(timingExpiration)
 	statusCode, badTS := doTestURL(t, filter, badURL)
 	if !assert.Equal(t, http.StatusNotFound, statusCode) {
 		return
@@ -88,7 +84,7 @@ func doTestURL(t *testing.T, filter filters.Filter, url string) (statusCode int,
 	req.Header.Set(common.PingURLHeader, url)
 	n := &next{}
 	err := filter.Apply(w, req, n.do)
-	assert.False(t, n.called)
+	assert.False(t, n.wasCalled())
 	if assert.NoError(t, err) {
 		resp := w.Result()
 		statusCode = resp.StatusCode
@@ -116,13 +112,13 @@ func TestLarge(t *testing.T) {
 }
 
 func testSize(t *testing.T, size string, mult int) {
-	filter := New()
+	filter := New(0)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
 	req.Header.Set(common.PingHeader, size)
 	n := &next{}
 	err := filter.Apply(w, req, n.do)
-	assert.False(t, n.called)
+	assert.False(t, n.wasCalled())
 	if assert.NoError(t, err) {
 		resp := w.Result()
 		if assert.Equal(t, http.StatusOK, resp.StatusCode) {
@@ -134,9 +130,18 @@ func testSize(t *testing.T, size string, mult int) {
 
 type next struct {
 	called bool
+	mx     sync.Mutex
 }
 
 func (n *next) do() error {
+	n.mx.Lock()
 	n.called = true
+	n.mx.Unlock()
 	return errNext
+}
+
+func (n *next) wasCalled() bool {
+	n.mx.Lock()
+	defer n.mx.Unlock()
+	return n.called
 }

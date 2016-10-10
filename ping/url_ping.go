@@ -29,7 +29,7 @@ var (
 	// get up-to-date timings and don't leave outliers in the cache for too long,
 	// but large enough that we're not requesting resources at a rate that looks
 	// like a DDOS attack.
-	timingExpiration = 1 * time.Minute
+	defaultTimingExpiration = 1 * time.Minute
 )
 
 func (pm *pingMiddleware) urlPing(w http.ResponseWriter, pingURL string) error {
@@ -87,11 +87,11 @@ func (pm *pingMiddleware) timeURL(pingURL string) (*urlTiming, error) {
 
 func (pm *pingMiddleware) cleanupExpiredTimings() {
 	for {
-		time.Sleep(timingExpiration / 2)
+		time.Sleep(pm.timingExpiration / 2)
 		now := time.Now()
 		pm.urlTimingsMx.Lock()
 		for url, timing := range pm.urlTimings {
-			if now.Sub(timing.ts) > timingExpiration {
+			if now.Sub(timing.ts) > pm.timingExpiration {
 				delete(pm.urlTimings, url)
 			}
 		}

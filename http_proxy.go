@@ -173,7 +173,7 @@ func (p *Proxy) ListenAndServe() error {
 			AllowLocalhost: p.TestingLocal,
 			Exceptions:     []string{"127.0.0.1:7300"},
 		}),
-		ping.New(),
+		ping.New(0),
 	)
 
 	if p.CfgSvrAuthToken != "" || p.CfgSvrDomains != "" {
