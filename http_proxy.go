@@ -19,9 +19,9 @@ import (
 	"github.com/getlantern/http-proxy/forward"
 	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
+	"github.com/getlantern/http-proxy/pforward"
 	"github.com/getlantern/http-proxy/ratelimiter"
 	"github.com/getlantern/http-proxy/server"
-	"github.com/getlantern/http-proxy/stateful"
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
 	"github.com/getlantern/http-proxy-lantern/blacklist"
@@ -198,9 +198,9 @@ func (p *Proxy) ListenAndServe() error {
 			AllowedPorts: allowedPorts,
 			Dialer:       dialer,
 		}),
-		// This filter will look for GET requests with X-Lantern-Stateful: true and
+		// This filter will look for GET requests with X-Lantern-Persistent: true and
 		// hijack those connections (new stateful HTTP connection management scheme).
-		stateful.New(&stateful.Options{
+		pforward.New(&pforward.Options{
 			IdleTimeout: idleTimeout,
 			Dialer:      dialer,
 			OnRequest:   attachConfigServerHeader,
