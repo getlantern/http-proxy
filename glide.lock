@@ -1,8 +1,8 @@
 hash: 08d2e545ece8e488774bb2ba6cff2ce04cabf10da1d3cbe60c23c4ac4ceb8e22
-updated: 2016-08-18T11:35:52.760322402-05:00
+updated: 2016-10-19T15:04:30.139877229-05:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
-  version: 15d8df1cd780ddb0bb1710b08a5546f2a8f027bf
+  version: 50915b3ba5ee27c0b2fcdad9edd51156fb55192c
 - name: git.torproject.org/pluggable-transports/obfs4.git
   version: 62057625eaba2a555967b9615039d43dda071360
   subpackages:
@@ -20,31 +20,31 @@ imports:
   - edwards25519
   - extra25519
 - name: github.com/dchest/siphash
-  version: 6d8617816bb5d8268011ffbfb8720f17ce9af63c
+  version: 4ebf1de738443ea7f45f02dc394c4df1942a126d
 - name: github.com/getlantern/borda
-  version: 6af58869de1e413c24bda8582a25335e389c19e4
+  version: fbb1bc83cc7b0bc0f0406f786cbd84ee8814e2f5
   subpackages:
   - client
 - name: github.com/getlantern/byteexec
-  version: 431d6edd2151495029d77e1c510affa5d89fe168
+  version: 2e21fedeb225921a8dc40321cbd114ffd0a302f3
 - name: github.com/getlantern/context
   version: 624d99b1798d7c5375ea1d3ca4c5b04d58f7c775
 - name: github.com/getlantern/errors
-  version: 2cb9490e9d7173de46312139267791c8115f5e10
+  version: 99fa440517e8f3d1e4cd8d6dbed6b41f4c1ed3d6
 - name: github.com/getlantern/eventual
-  version: a1db8f0cde49e1f2a0cbf34879011e5eceeaac67
+  version: 8a3a062ff1605f65e4d710e016c39bb69e91b6f8
 - name: github.com/getlantern/filepersist
   version: c5f0cd24e7991579ba6f5f1bd20a1ad2c9f06cd4
 - name: github.com/getlantern/go-loggly
   version: d15e28ab7389ed5d644ccb891d9d54154e43cd27
 - name: github.com/getlantern/golog
-  version: 00277a46b6a621ee8868060f5bd4b0173d452c7b
+  version: e69a4a00c012e476efd814128cdcd4e04e641dc7
 - name: github.com/getlantern/hex
   version: 083fba3033ad473db3dd31c9bb368473d37581a7
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: da2afa8c115b66a1f2dc88a4ece6faa6f6469674
+  version: e7bb763c2a4fc53570f85797943eb5ac8292aba8
   subpackages:
   - buffers
   - commonfilter
@@ -53,27 +53,32 @@ imports:
   - httpconnect
   - listeners
   - logging
+  - pforward
   - ratelimiter
   - server
   - utils
 - name: github.com/getlantern/idletiming
-  version: d6b9d11062e07218571a436fbfa9be4aa689675d
+  version: 7e0189052a9c7fec39114edd1b6e5f1093394415
+- name: github.com/getlantern/interceptor
+  version: bc80946d4aa305ba155e0f3740d8d147ea63233c
 - name: github.com/getlantern/keyman
-  version: 068a9b24f9af425a6f662a8fe5dcc032e4001897
+  version: 27a13a8da00afce6b6b7e4b4b486a440b4629718
   subpackages:
   - certimporter
 - name: github.com/getlantern/measured
   version: 9abc2622c88edcbe1436a80e69f912b3ccfc73bf
+- name: github.com/getlantern/netx
+  version: 70375a276c57e76c1fe1e2fbdb4c2d2714a67b39
 - name: github.com/getlantern/ops
   version: b70875f5d689a9438bca72aefd7142a2af889b18
 - name: github.com/getlantern/rotator
-  version: 5aee54cb57ef80f856fb6a81dcc602398b536d2a
+  version: 013d4f8e36a2f6369b2435d89866056b5b74c69e
 - name: github.com/getlantern/stack
   version: 02f928aad224fbccd50d66edd776fc9d1e9f2f2b
 - name: github.com/getlantern/tlsdefaults
-  version: abd866d3287cc5c24175a5773997138d15b61889
+  version: e9da92daa10f62c8a1aa59188e64317cb3beebb0
 - name: github.com/getlantern/withtimeout
-  version: d1b4774e14fcd666db75611e08e7dc845b7e3dab
+  version: 511f017cd91361be75ad73fee96e466a5d790312
 - name: github.com/golang/groupcache
   version: a6b377e3400b08991b80d6805d627f347f983866
   subpackages:
@@ -89,17 +94,19 @@ imports:
 - name: github.com/klauspost/crc32
   version: 19b0b332c9e4516a6370a0456e6182c3b5036720
 - name: github.com/klauspost/reedsolomon
-  version: 9b772b54b3bf0be1eec083c9669766a56332559a
+  version: c54154da9e35cab25232314cf69ab9d78447f9a5
 - name: github.com/mxk/go-flowrate
   version: cca7078d478f8520f85629ad7c68962d31ed7682
   subpackages:
   - flowrate
 - name: github.com/oxtoacart/bpool
   version: 4e1c5567d7c2dd59fa4c7c83d34c2f3528b025d6
+- name: github.com/pkg/errors
+  version: 839d9e913e063e28dfd0e6c7b7512793e0a48be9
 - name: github.com/rcrowley/go-metrics
-  version: bdb33529eca3e55eac7328e07c57012a797af602
+  version: ab2277b1c5d15c3cba104e9cbddbdfc622df5ad8
 - name: github.com/stretchr/testify
-  version: d77da356e56a7428ad25149ca77381849a6a5232
+  version: 976c720a22c8eb4eb6a0b4348ad85ad12491a506
   subpackages:
   - assert
 - name: github.com/vharitonsky/iniflags
@@ -107,22 +114,28 @@ imports:
 - name: github.com/visionmedia/go-debug
   version: ff4a55a20a86994118644bbddc6a216da193cc13
 - name: github.com/xtaci/kcp-go
-  version: 3d701d9575792cfe5d630cef02a77b0aa1245544
+  version: e9c2f49ea6a99f8889f5c2ef192c499f8c0aa772
 - name: golang.org/x/crypto
-  version: 9fbab14f903f89e23047b5971369b86380230e56
+  version: 5f31782cfb2b6373211f8f9fbf31283fa234b570
   subpackages:
+  - blowfish
+  - cast5
   - curve25519
   - hkdf
   - nacl/secretbox
   - pbkdf2
   - poly1305
+  - salsa20
   - salsa20/salsa
   - tea
+  - twofish
+  - xtea
 - name: golang.org/x/net
-  version: 07b51741c1d6423d4a6abab1c49940ec09cb1aaf
+  version: 8b4af36cd21a1f85a7484b49feb7c79363106d8e
   subpackages:
   - bpf
   - internal/iana
+  - internal/netreflect
   - ipv4
 - name: gopkg.in/bsm/ratelimit.v1
   version: db14e161995a5177acef654cb0dd785e8ee8bc22
@@ -135,7 +148,7 @@ imports:
   - internal/pool
 testImports:
 - name: github.com/davecgh/go-spew
-  version: 5215b55f46b2b919f50a1df0eaa5886afe4e3b3d
+  version: 6d212800a42e8ab5c146b8ace3490ee17e5225f9
   subpackages:
   - spew
 - name: github.com/pmezard/go-difflib

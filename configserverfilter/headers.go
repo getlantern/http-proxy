@@ -22,42 +22,43 @@ type Options struct {
 	Domains   []string
 }
 
-type configServerFilter struct {
+type ConfigServerFilter struct {
 	*Options
 }
 
-func New(opts *Options) filters.Filter {
+func New(opts *Options) *ConfigServerFilter {
 	if opts.AuthToken == "" || len(opts.Domains) == 0 {
 		panic(errors.New("should set both config-server auth token and domains"))
 	}
 	log.Debugf("Will attach %s header on GET requests to %+v", common.CfgSvrAuthTokenHeader, opts.Domains)
-	return &configServerFilter{opts}
+	return &ConfigServerFilter{opts}
 }
 
-func (f *configServerFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
+func (f *ConfigServerFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
+	f.AttachHeaderIfNecessary(req)
+	return next()
+}
+
+func (f *ConfigServerFilter) AttachHeaderIfNecessary(req *http.Request) {
 	// It's unlikely that config-server will add non-GET public endpoint.
 	// Bypass all other methods, especially CONNECT (https).
 	if req.Method == "GET" {
 		for _, d := range f.Domains {
 			if req.Host == d {
-				req = f.attachHeader(req)
-				return next()
+				f.attachHeader(req)
 			}
 		}
 	}
-
-	return next()
 }
 
-func (f *configServerFilter) attachHeader(req *http.Request) *http.Request {
+func (f *ConfigServerFilter) attachHeader(req *http.Request) {
 	req.Header.Set(common.CfgSvrAuthTokenHeader, f.AuthToken)
 	log.Debugf("Attached %s header to \"GET %s\"", common.CfgSvrAuthTokenHeader, req.URL.String())
 	host, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
 		log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
-		return req
+		return
 	}
 	req.Header.Set(common.CfgSvrClientIPHeader, host)
 	log.Debugf("Set %s as %s to \"GET %s\"", common.CfgSvrClientIPHeader, host, req.URL.String())
-	return req
 }

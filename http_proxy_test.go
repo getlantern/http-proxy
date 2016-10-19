@@ -1,9 +1,11 @@
 package proxy
 
 import (
+	"bufio"
 	"crypto/tls"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
@@ -263,11 +265,9 @@ func TestIdleTargetConnections(t *testing.T) {
 
 		time.Sleep(150 * time.Millisecond)
 		conn.Write([]byte("GET / HTTP/1.1\r\n\r\n"))
-		_, err := conn.Read(buf[:])
+		_, err := http.ReadResponse(bufio.NewReader(conn), nil)
 
-		if assert.Error(t, err) {
-			assert.Equal(t, "EOF", err.Error())
-		}
+		assert.Error(t, err)
 	}
 
 	testRoundTrip(t, normalServerAddr, false, httpTargetServer, okForwardFn)
@@ -369,7 +369,6 @@ func TestConnectNoDevice(t *testing.T) {
 // X-Lantern-Auth-Token + X-Lantern-Device-Id -> 200 OK <- Tunneled request -> 200 OK
 func TestConnectOK(t *testing.T) {
 	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
-	connectResp := "HTTP/1.1 200 OK\r\n"
 
 	testHTTP := func(conn net.Conn, targetURL *url.URL) {
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, validToken, deviceId)
@@ -379,10 +378,9 @@ func TestConnectOK(t *testing.T) {
 			t.FailNow()
 		}
 
-		var buf [400]byte
-		_, err = conn.Read(buf[:])
-		if !assert.Contains(t, string(buf[:]), connectResp,
-			"should get 200 OK") {
+		resp, _ := http.ReadResponse(bufio.NewReader(conn), nil)
+		buf, _ := ioutil.ReadAll(resp.Body)
+		if !assert.Equal(t, 200, resp.StatusCode) {
 			t.FailNow()
 		}
 
@@ -391,8 +389,8 @@ func TestConnectOK(t *testing.T) {
 			t.FailNow()
 		}
 
-		buf = [400]byte{}
-		_, err = conn.Read(buf[:])
+		resp, _ = http.ReadResponse(bufio.NewReader(conn), nil)
+		buf, _ = ioutil.ReadAll(resp.Body)
 		assert.Contains(t, string(buf[:]), targetResponse, "should read tunneled response")
 	}
 
@@ -404,10 +402,9 @@ func TestConnectOK(t *testing.T) {
 			t.FailNow()
 		}
 
-		var buf [400]byte
-		_, err = conn.Read(buf[:])
-		if !assert.Contains(t, string(buf[:]), connectResp,
-			"should get 200 OK") {
+		resp, _ := http.ReadResponse(bufio.NewReader(conn), nil)
+		buf, _ := ioutil.ReadAll(resp.Body)
+		if !assert.Equal(t, 200, resp.StatusCode) {
 			t.FailNow()
 		}
 
@@ -422,8 +419,8 @@ func TestConnectOK(t *testing.T) {
 			t.FailNow()
 		}
 
-		buf = [400]byte{}
-		_, err = tunnConn.Read(buf[:])
+		resp, _ = http.ReadResponse(bufio.NewReader(tunnConn), nil)
+		buf, _ = ioutil.ReadAll(resp.Body)
 		assert.Contains(t, string(buf[:]), targetResponse, "should read tunneled response")
 	}
 
@@ -688,7 +685,7 @@ func setupNewHTTPServer(maxConns uint64, idleTimeout time.Duration) (string, err
 	}
 	go func(err *error) {
 		if *err = s.ListenAndServeHTTP("localhost:0", wait); err != nil {
-			log.Errorf("Unable to serve: %s", err)
+			log.Errorf("Unable to serve: %v", err)
 		}
 	}(&err)
 	return <-ready, err
@@ -703,7 +700,7 @@ func setupNewHTTPSServer(maxConns uint64, idleTimeout time.Duration) (string, er
 	}
 	go func(err *error) {
 		if *err = s.ListenAndServeHTTPS("localhost:0", "key.pem", "cert.pem", wait); err != nil {
-			log.Errorf("Unable to serve: %s", err)
+			log.Errorf("Unable to serve: %v", err)
 		}
 	}(&err)
 	addr := <-ready

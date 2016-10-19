@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"net"
+	"net/http"
 	_ "net/http/pprof"
 	"strconv"
 	"strings"
@@ -18,6 +19,7 @@ import (
 	"github.com/getlantern/http-proxy/forward"
 	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
+	"github.com/getlantern/http-proxy/pforward"
 	"github.com/getlantern/http-proxy/ratelimiter"
 	"github.com/getlantern/http-proxy/server"
 
@@ -176,22 +178,35 @@ func (p *Proxy) ListenAndServe() error {
 		ping.New(0),
 	)
 
+	var attachConfigServerHeader func(*http.Request)
 	if p.CfgSvrAuthToken != "" || p.CfgSvrDomains != "" {
-		filterChain = filterChain.Append(configserverfilter.New(&configserverfilter.Options{
+		csf := configserverfilter.New(&configserverfilter.Options{
 			AuthToken: p.CfgSvrAuthToken,
 			Domains:   strings.Split(p.CfgSvrDomains, ","),
-		}))
+		})
+		filterChain = filterChain.Append(csf)
+		attachConfigServerHeader = csf.AttachHeaderIfNecessary
 	}
 
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97
 	dialer := preferIPV4Dialer(timeoutToDialOriginSite)
 	filterChain = filterChain.Append(
+		// This filter will look for CONNECT requests and hijack those connections
 		httpconnect.New(&httpconnect.Options{
 			IdleTimeout:  idleTimeout,
 			AllowedPorts: allowedPorts,
 			Dialer:       dialer,
 		}),
+		// This filter will look for GET requests with X-Lantern-Persistent: true and
+		// hijack those connections (new stateful HTTP connection management scheme).
+		pforward.New(&pforward.Options{
+			IdleTimeout: idleTimeout,
+			Dialer:      dialer,
+			OnRequest:   attachConfigServerHeader,
+		}),
+		// This filter will handle all remaining HTTP requests (legacy HTTP
+		// connection management scheme).
 		forward.New(&forward.Options{
 			IdleTimeout: idleTimeout,
 			Dialer:      dialer,
