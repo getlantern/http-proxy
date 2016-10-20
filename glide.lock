@@ -1,10 +1,10 @@
-hash: 08d2e545ece8e488774bb2ba6cff2ce04cabf10da1d3cbe60c23c4ac4ceb8e22
-updated: 2016-10-19T15:04:30.139877229-05:00
+hash: cc332fdf2a5576d355337cb62a923e0cddd6f6959904f3f31b9bd9650d2cb9bd
+updated: 2016-10-19T21:27:20.224796094-05:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 50915b3ba5ee27c0b2fcdad9edd51156fb55192c
 - name: git.torproject.org/pluggable-transports/obfs4.git
-  version: 62057625eaba2a555967b9615039d43dda071360
+  version: a9e8a62f9b914d872f0b83528c60f22bada0fcd1
   subpackages:
   - common/csrand
   - common/drbg
@@ -22,7 +22,7 @@ imports:
 - name: github.com/dchest/siphash
   version: 4ebf1de738443ea7f45f02dc394c4df1942a126d
 - name: github.com/getlantern/borda
-  version: fbb1bc83cc7b0bc0f0406f786cbd84ee8814e2f5
+  version: 662f7e5913a464f1f1a76adb561e2b2dc656b5cf
   subpackages:
   - client
 - name: github.com/getlantern/byteexec
@@ -92,7 +92,7 @@ imports:
 - name: github.com/klauspost/cpuid
   version: 09cded8978dc9e80714c4d85b0322337b0a1e5e0
 - name: github.com/klauspost/crc32
-  version: 19b0b332c9e4516a6370a0456e6182c3b5036720
+  version: cb6bfca970f6908083f26f39a79009d608efd5cd
 - name: github.com/klauspost/reedsolomon
   version: c54154da9e35cab25232314cf69ab9d78447f9a5
 - name: github.com/mxk/go-flowrate
@@ -114,9 +114,9 @@ imports:
 - name: github.com/visionmedia/go-debug
   version: ff4a55a20a86994118644bbddc6a216da193cc13
 - name: github.com/xtaci/kcp-go
-  version: e9c2f49ea6a99f8889f5c2ef192c499f8c0aa772
+  version: 5c61c4984f4a70a4a140c0d791e460276a082527
 - name: golang.org/x/crypto
-  version: 5f31782cfb2b6373211f8f9fbf31283fa234b570
+  version: c367d6eeb7c6158125f2f47e049f7eb7e251c09a
   subpackages:
   - blowfish
   - cast5
@@ -131,7 +131,7 @@ imports:
   - twofish
   - xtea
 - name: golang.org/x/net
-  version: 8b4af36cd21a1f85a7484b49feb7c79363106d8e
+  version: 3bafa3320efdf0c95d056586aa9abdd05ad72ee1
   subpackages:
   - bpf
   - internal/iana
