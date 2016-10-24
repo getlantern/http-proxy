@@ -30,10 +30,20 @@ func TestRoundTrip(t *testing.T) {
 
 	b := []byte("Hi There")
 
-	_conn, err := kcp.DialWithOptions(l.Addr().String(), nil, 10, 3)
+	block, _ := kcp.NewNoneBlockCrypt(nil)
+	_conn, err := kcp.DialWithOptions(l.Addr().String(), block, 10, 3)
 	if !assert.NoError(t, err, "Unable to dial good conn") {
 		return
 	}
+	_conn.SetStreamMode(true)
+	_conn.SetNoDelay(0, 20, 2, 1)
+	_conn.SetWindowSize(128, 1024)
+	_conn.SetMtu(1350)
+	_conn.SetACKNoDelay(false)
+	_conn.SetKeepAlive(10)
+	_conn.SetDSCP(0)
+	_conn.SetReadBuffer(4194304)
+	_conn.SetWriteBuffer(4194304)
 	conn := tls.Client(_conn, &tls.Config{
 		InsecureSkipVerify: true,
 	})
