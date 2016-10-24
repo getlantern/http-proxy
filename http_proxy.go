@@ -270,9 +270,13 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if p.Obfs4Addr != "" {
-		l, err := obfs4listener.NewListener(p.Obfs4Addr, p.Obfs4Dir)
+		wrapped, err := net.Listen("tcp", p.Obfs4Addr)
 		if err != nil {
 			log.Fatalf("Unable to listen with obfs4: %v", err)
+		}
+		l, err := obfs4listener.Wrap(wrapped, p.Obfs4Dir)
+		if err != nil {
+			log.Fatalf("Unable to listen with obfs4 on tcp: %v", err)
 		}
 		go func() {
 			err := srv.Serve(l, func(addr string) {
@@ -282,20 +286,25 @@ func (p *Proxy) ListenAndServe() error {
 				log.Fatalf("Error serving obfs4: %v", err)
 			}
 		}()
-	}
-	if p.KCPAddr != "" {
-		l, err := kcplistener.NewListener(p.KCPAddr, p.KeyFile, p.CertFile)
-		if err != nil {
-			log.Fatalf("Unable to listen with kcp: %v", err)
-		}
-		go func() {
-			err := srv.Serve(l, func(addr string) {
-				log.Debugf("kcp listening at %v", addr)
-			})
+
+		if p.KCPAddr != "" {
+			kcpWrapped, err := kcplistener.NewListener(p.KCPAddr)
 			if err != nil {
-				log.Fatalf("Error serving kcp: %v", err)
+				log.Fatalf("Unable to listen with kcp: %v", err)
 			}
-		}()
+			kcpL, err := obfs4listener.Wrap(kcpWrapped, p.Obfs4Dir)
+			if err != nil {
+				log.Fatalf("Unable to listen with obfs4 on kcp: %v", err)
+			}
+			go func() {
+				err := srv.Serve(kcpL, func(addr string) {
+					log.Debugf("kobfs4 listening at %v", addr)
+				})
+				if err != nil {
+					log.Fatalf("Error serving kobfs4: %v", err)
+				}
+			}()
+		}
 	}
 	if p.HTTPS {
 		err = srv.ListenAndServeHTTPS(p.Addr, p.KeyFile, p.CertFile, onAddress)

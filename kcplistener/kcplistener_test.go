@@ -1,18 +1,18 @@
 package kcplistener
 
 import (
-	"crypto/tls"
 	"io"
+	"net"
 	"testing"
 
+	"github.com/getlantern/cmux"
+	"github.com/getlantern/snappyconn"
 	"github.com/stretchr/testify/assert"
 	"github.com/xtaci/kcp-go"
 )
 
 func TestRoundTrip(t *testing.T) {
-	pkfile := "pk.pem"
-	certfile := "cert.pem"
-	l, err := NewListener("localhost:0", pkfile, certfile)
+	l, err := NewListener("localhost:0")
 	if !assert.NoError(t, err, "Unable to create listener") {
 		return
 	}
@@ -31,23 +31,29 @@ func TestRoundTrip(t *testing.T) {
 	b := []byte("Hi There")
 
 	block, _ := kcp.NewNoneBlockCrypt(nil)
-	_conn, err := kcp.DialWithOptions(l.Addr().String(), block, 10, 3)
+	dialer := cmux.Dialer(&cmux.DialerOpts{
+		Dial: func(network, addr string) (net.Conn, error) {
+			conn, err := kcp.DialWithOptions(addr, block, 10, 3)
+			if err != nil {
+				return nil, err
+			}
+			conn.SetStreamMode(true)
+			conn.SetNoDelay(0, 20, 2, 1)
+			conn.SetWindowSize(128, 1024)
+			conn.SetMtu(1350)
+			conn.SetACKNoDelay(false)
+			conn.SetKeepAlive(10)
+			conn.SetDSCP(0)
+			conn.SetReadBuffer(4194304)
+			conn.SetWriteBuffer(4194304)
+			return snappyconn.Wrap(conn), nil
+		},
+	})
+
+	conn, err := dialer("tcp", l.Addr().String())
 	if !assert.NoError(t, err, "Unable to dial good conn") {
 		return
 	}
-	_conn.SetStreamMode(true)
-	_conn.SetNoDelay(0, 20, 2, 1)
-	_conn.SetWindowSize(128, 1024)
-	_conn.SetMtu(1350)
-	_conn.SetACKNoDelay(false)
-	_conn.SetKeepAlive(10)
-	_conn.SetDSCP(0)
-	_conn.SetReadBuffer(4194304)
-	_conn.SetWriteBuffer(4194304)
-	conn := tls.Client(_conn, &tls.Config{
-		InsecureSkipVerify: true,
-	})
-	defer conn.Close()
 
 	_, err = conn.Write(b)
 	if !assert.NoError(t, err, "Unable to write") {
