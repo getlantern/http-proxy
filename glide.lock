@@ -1,5 +1,5 @@
 hash: cc332fdf2a5576d355337cb62a923e0cddd6f6959904f3f31b9bd9650d2cb9bd
-updated: 2016-10-24T20:57:26.901939219-05:00
+updated: 2016-10-24T22:03:25.269580913-05:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 50915b3ba5ee27c0b2fcdad9edd51156fb55192c
@@ -28,7 +28,7 @@ imports:
 - name: github.com/getlantern/byteexec
   version: 2e21fedeb225921a8dc40321cbd114ffd0a302f3
 - name: github.com/getlantern/cmux
-  version: e40275a8dc441e11dbe7ad07c68ff6660207ed84
+  version: 5a083cd73164d269c91fd0fab052158f572ae8c5
 - name: github.com/getlantern/context
   version: 624d99b1798d7c5375ea1d3ca4c5b04d58f7c775
 - name: github.com/getlantern/errors
@@ -46,7 +46,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: 99205a78695e10fa1e3f04ea03255c2630e86139
+  version: e7bb763c2a4fc53570f85797943eb5ac8292aba8
   subpackages:
   - buffers
   - commonfilter
@@ -76,7 +76,7 @@ imports:
 - name: github.com/getlantern/rotator
   version: 013d4f8e36a2f6369b2435d89866056b5b74c69e
 - name: github.com/getlantern/snappyconn
-  version: 7a91380e185bef5f6bb80783ddd755bd2f30a59d
+  version: c416973f31b99654695a79328208cf3772ee5646
 - name: github.com/getlantern/stack
   version: 02f928aad224fbccd50d66edd776fc9d1e9f2f2b
 - name: github.com/getlantern/tlsdefaults
