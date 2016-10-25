@@ -72,8 +72,8 @@ type Proxy struct {
 	Token                        string
 	TunnelPorts                  string
 	Obfs4Addr                    string
+	Obfs4KCPAddr                 string
 	Obfs4Dir                     string
-	KCPAddr                      string
 	Benchmark                    bool
 }
 
@@ -86,7 +86,6 @@ func (p *Proxy) ListenAndServe() error {
 		log.Debug("Putting proxy into benchmarking mode. Only a limited rate of requests to a specific set of domains will be allowed, no authentication token required.")
 		p.HTTPS = true
 		p.Token = "bench"
-		p.KCPAddr = ":10000"
 	}
 
 	var m *measured.Measured
@@ -99,10 +98,10 @@ func (p *Proxy) ListenAndServe() error {
 			ClientPKFile:   p.RedisClientPK,
 			ClientCertFile: p.RedisClientCert,
 		}
-		var err error
-		rc, err = redis.GetClient(redisOpts)
-		if err != nil {
-			log.Fatal(err)
+		var redisErr error
+		rc, redisErr = redis.GetClient(redisOpts)
+		if redisErr != nil {
+			log.Fatal(redisErr)
 		}
 	}
 
@@ -219,13 +218,13 @@ func (p *Proxy) ListenAndServe() error {
 			log.Fatal("Enabling Pro requires setting the \"serverid\" flag")
 		}
 		log.Debug("This proxy is configured to support Lantern Pro")
-		proFilter, err := profilter.New(&profilter.Options{
+		proFilter, proErr := profilter.New(&profilter.Options{
 			RedisClient:         rc,
 			ServerID:            p.ServerID,
 			KeepProTokenDomains: strings.Split(p.CfgSvrDomains, ","),
 		})
-		if err != nil {
-			log.Fatal(err)
+		if proErr != nil {
+			log.Fatal(proErr)
 		}
 
 		// Put profilter at the beginning of the chain.
@@ -269,43 +268,37 @@ func (p *Proxy) ListenAndServe() error {
 		mimic.SetServerAddr(addr)
 	}
 
-	if p.Obfs4Addr != "" {
-		wrapped, err := net.Listen("tcp", p.Obfs4Addr)
+	serveOBFS4 := func(wrapped net.Listener) {
+		l, wrapErr := obfs4listener.Wrap(wrapped, p.Obfs4Dir)
 		if err != nil {
-			log.Fatalf("Unable to listen with obfs4: %v", err)
-		}
-		l, err := obfs4listener.Wrap(wrapped, p.Obfs4Dir)
-		if err != nil {
-			log.Fatalf("Unable to listen with obfs4 on tcp: %v", err)
+			log.Fatalf("Unable to listen with obfs4 at %v: %v", wrapped.Addr(), wrapErr)
 		}
 		go func() {
-			err := srv.Serve(l, func(addr string) {
-				log.Debugf("obfs4 listening at %v", addr)
+			serveErr := srv.Serve(l, func(addr string) {
+				log.Debugf("obfs4 serving at %v", addr)
 			})
-			if err != nil {
-				log.Fatalf("Error serving obfs4: %v", err)
+			if serveErr != nil {
+				log.Fatalf("Error serving obfs4 at %v: %v", wrapped.Addr(), serveErr)
 			}
 		}()
-
-		if p.KCPAddr != "" {
-			kcpWrapped, err := kcplistener.NewListener(p.KCPAddr)
-			if err != nil {
-				log.Fatalf("Unable to listen with kcp: %v", err)
-			}
-			kcpL, err := obfs4listener.Wrap(kcpWrapped, p.Obfs4Dir)
-			if err != nil {
-				log.Fatalf("Unable to listen with obfs4 on kcp: %v", err)
-			}
-			go func() {
-				err := srv.Serve(kcpL, func(addr string) {
-					log.Debugf("kobfs4 listening at %v", addr)
-				})
-				if err != nil {
-					log.Fatalf("Error serving kobfs4: %v", err)
-				}
-			}()
-		}
 	}
+
+	if p.Obfs4Addr != "" {
+		l, listenErr := net.Listen("tcp", p.Obfs4Addr)
+		if listenErr != nil {
+			log.Fatalf("Unable to listen with obfs4: %v", listenErr)
+		}
+		serveOBFS4(l)
+	}
+
+	if p.Obfs4KCPAddr != "" {
+		l, listenErr := kcplistener.NewListener(p.Obfs4KCPAddr)
+		if listenErr != nil {
+			log.Fatalf("Unable to listen with kcp: %v", listenErr)
+		}
+		serveOBFS4(l)
+	}
+
 	if p.HTTPS {
 		err = srv.ListenAndServeHTTPS(p.Addr, p.KeyFile, p.CertFile, onAddress)
 	} else {
