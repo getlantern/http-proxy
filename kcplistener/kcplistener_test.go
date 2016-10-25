@@ -37,12 +37,7 @@ func TestRoundTrip(t *testing.T) {
 			if err != nil {
 				return nil, err
 			}
-			conn.SetStreamMode(true)
-			conn.SetNoDelay(0, 20, 2, 1)
-			conn.SetWindowSize(128, 1024)
-			conn.SetMtu(1350)
-			conn.SetACKNoDelay(false)
-			conn.SetKeepAlive(10)
+			applyDefaultConnParameters(conn)
 			conn.SetDSCP(0)
 			conn.SetReadBuffer(4194304)
 			conn.SetWriteBuffer(4194304)

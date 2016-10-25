@@ -1,5 +1,5 @@
 hash: cc332fdf2a5576d355337cb62a923e0cddd6f6959904f3f31b9bd9650d2cb9bd
-updated: 2016-10-24T22:03:25.269580913-05:00
+updated: 2016-10-25T07:41:46.40652963-05:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 50915b3ba5ee27c0b2fcdad9edd51156fb55192c
@@ -28,7 +28,7 @@ imports:
 - name: github.com/getlantern/byteexec
   version: 2e21fedeb225921a8dc40321cbd114ffd0a302f3
 - name: github.com/getlantern/cmux
-  version: 5a083cd73164d269c91fd0fab052158f572ae8c5
+  version: f3db3bd29713a11b225b357650d7de1818442d26
 - name: github.com/getlantern/context
   version: 624d99b1798d7c5375ea1d3ca4c5b04d58f7c775
 - name: github.com/getlantern/errors
@@ -76,7 +76,7 @@ imports:
 - name: github.com/getlantern/rotator
   version: 013d4f8e36a2f6369b2435d89866056b5b74c69e
 - name: github.com/getlantern/snappyconn
-  version: c416973f31b99654695a79328208cf3772ee5646
+  version: d99ceb334e5503f023b658b83083aff6521d67ed
 - name: github.com/getlantern/stack
   version: 02f928aad224fbccd50d66edd776fc9d1e9f2f2b
 - name: github.com/getlantern/tlsdefaults
@@ -122,7 +122,7 @@ imports:
 - name: github.com/xtaci/kcp-go
   version: 5c61c4984f4a70a4a140c0d791e460276a082527
 - name: github.com/xtaci/smux
-  version: 3f1c00c8d60dfb42089107eeafbb33406bede830
+  version: 6250093011e71f1c87986c575cad1184c717c0ef
 - name: golang.org/x/crypto
   version: c367d6eeb7c6158125f2f47e049f7eb7e251c09a
   subpackages:
