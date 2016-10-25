@@ -20,7 +20,7 @@ var (
 	handshakeTimeout = 30 * time.Second
 )
 
-func NewListener(addr string, stateDir string) (net.Listener, error) {
+func Wrap(wrapped net.Listener, stateDir string) (net.Listener, error) {
 	err := os.MkdirAll(stateDir, 0700)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to make statedir at %v: %v", stateDir, err)
@@ -31,13 +31,9 @@ func NewListener(addr string, stateDir string) (net.Listener, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Unable to create obfs4 server factory: %v", err)
 	}
-	l, err := net.Listen("tcp", addr)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to listen at %v: %v", addr, err)
-	}
 
 	ol := &obfs4listener{
-		wrapped: l,
+		wrapped: wrapped,
 		sf:      sf,
 		ready:   make(chan *result, 1000),
 	}

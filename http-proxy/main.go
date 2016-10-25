@@ -47,8 +47,8 @@ var (
 	token                        = flag.String("token", "", "Lantern token")
 	tunnelPorts                  = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
 	obfs4Addr                    = flag.String("obfs4-addr", "", "Provide an address here in order to listen with obfs4")
+	obfs4KCPAddr                 = flag.String("obfs4-kcp-addr", "", "Provide an address here in order to listen with obfs4 over KCP (udp-based TCP accelerator)")
 	obfs4Dir                     = flag.String("obfs4-dir", ".", "Directory where obfs4 can store its files")
-	kcpAddr                      = flag.String("kcp-addr", "", "Provide an address here in order to listen with KCP (udp-based TCP accelerator)")
 	bench                        = flag.Bool("bench", false, "Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.")
 )
 
@@ -108,8 +108,8 @@ func main() {
 		Token:                        *token,
 		TunnelPorts:                  *tunnelPorts,
 		Obfs4Addr:                    *obfs4Addr,
+		Obfs4KCPAddr:                 *obfs4KCPAddr,
 		Obfs4Dir:                     *obfs4Dir,
-		KCPAddr:                      *kcpAddr,
 		Benchmark:                    *bench,
 	}
 

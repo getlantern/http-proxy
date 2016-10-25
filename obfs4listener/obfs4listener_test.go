@@ -19,8 +19,13 @@ func TestRoundTrip(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	l, err := NewListener("localhost:0", tmpDir)
+	wrapped, err := net.Listen("tcp", "localhost:0")
 	if !assert.NoError(t, err, "Unable to create listener") {
+		return
+	}
+
+	l, err := Wrap(wrapped, tmpDir)
+	if !assert.NoError(t, err, "Unable to wrap listener") {
 		return
 	}
 	defer l.Close()

@@ -1,5 +1,5 @@
 hash: cc332fdf2a5576d355337cb62a923e0cddd6f6959904f3f31b9bd9650d2cb9bd
-updated: 2016-10-19T21:27:20.224796094-05:00
+updated: 2016-10-25T07:41:46.40652963-05:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 50915b3ba5ee27c0b2fcdad9edd51156fb55192c
@@ -27,6 +27,8 @@ imports:
   - client
 - name: github.com/getlantern/byteexec
   version: 2e21fedeb225921a8dc40321cbd114ffd0a302f3
+- name: github.com/getlantern/cmux
+  version: f3db3bd29713a11b225b357650d7de1818442d26
 - name: github.com/getlantern/context
   version: 624d99b1798d7c5375ea1d3ca4c5b04d58f7c775
 - name: github.com/getlantern/errors
@@ -73,6 +75,8 @@ imports:
   version: b70875f5d689a9438bca72aefd7142a2af889b18
 - name: github.com/getlantern/rotator
   version: 013d4f8e36a2f6369b2435d89866056b5b74c69e
+- name: github.com/getlantern/snappyconn
+  version: d99ceb334e5503f023b658b83083aff6521d67ed
 - name: github.com/getlantern/stack
   version: 02f928aad224fbccd50d66edd776fc9d1e9f2f2b
 - name: github.com/getlantern/tlsdefaults
@@ -83,6 +87,8 @@ imports:
   version: a6b377e3400b08991b80d6805d627f347f983866
   subpackages:
   - lru
+- name: github.com/golang/snappy
+  version: d9eb7a3d35ec988b8585d4a0068e462c27d28380
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/hashicorp/golang-lru
@@ -115,6 +121,8 @@ imports:
   version: ff4a55a20a86994118644bbddc6a216da193cc13
 - name: github.com/xtaci/kcp-go
   version: 5c61c4984f4a70a4a140c0d791e460276a082527
+- name: github.com/xtaci/smux
+  version: 6250093011e71f1c87986c575cad1184c717c0ef
 - name: golang.org/x/crypto
   version: c367d6eeb7c6158125f2f47e049f7eb7e251c09a
   subpackages:
