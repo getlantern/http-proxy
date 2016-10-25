@@ -37,6 +37,9 @@ type kcplistener struct {
 
 func (l *kcplistener) Accept() (net.Conn, error) {
 	conn, err := l.wrapped.AcceptKCP()
+	if err != nil {
+		return nil, err
+	}
 	applyDefaultConnParameters(conn)
 	return snappyconn.Wrap(conn), err
 }
