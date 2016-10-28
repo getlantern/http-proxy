@@ -3,12 +3,19 @@ package kcplistener
 import (
 	"io"
 	"net"
+	"sync/atomic"
 	"testing"
+	"time"
 
 	"github.com/getlantern/cmux"
+	"github.com/getlantern/idletiming"
 	"github.com/getlantern/snappyconn"
 	"github.com/stretchr/testify/assert"
 	"github.com/xtaci/kcp-go"
+)
+
+var (
+	idleTimeout = 250 * time.Millisecond
 )
 
 func TestRoundTrip(t *testing.T) {
@@ -18,12 +25,19 @@ func TestRoundTrip(t *testing.T) {
 	}
 	defer l.Close()
 
+	openConns := int32(0)
 	go func() {
 		for {
 			conn, err := l.Accept()
 			if err == nil {
+				log.Debug("Accepted")
+				atomic.AddInt32(&openConns, 1)
+				conn = idletiming.Conn(conn, idleTimeout, func() {
+					log.Debug("Conn closed")
+				})
 				// Echo
 				io.Copy(conn, conn)
+				atomic.AddInt32(&openConns, -1)
 			}
 		}
 	}()
@@ -31,7 +45,7 @@ func TestRoundTrip(t *testing.T) {
 	b := []byte("Hi There")
 
 	block, _ := kcp.NewNoneBlockCrypt(nil)
-	dialer := cmux.Dialer(&cmux.DialerOpts{
+	dial := cmux.Dialer(&cmux.DialerOpts{
 		Dial: func(network, addr string) (net.Conn, error) {
 			conn, err := kcp.DialWithOptions(addr, block, 10, 3)
 			if err != nil {
@@ -45,10 +59,11 @@ func TestRoundTrip(t *testing.T) {
 		},
 	})
 
-	conn, err := dialer("tcp", l.Addr().String())
+	conn, err := dial("tcp", l.Addr().String())
 	if !assert.NoError(t, err, "Unable to dial good conn") {
 		return
 	}
+	defer conn.Close()
 
 	_, err = conn.Write(b)
 	if !assert.NoError(t, err, "Unable to write") {
@@ -60,4 +75,15 @@ func TestRoundTrip(t *testing.T) {
 		return
 	}
 	assert.Equal(t, string(b), string(e), "Echoed did not match written")
+
+	c2, err := dial("tcp", l.Addr().String())
+	if !assert.NoError(t, err) {
+		return
+	}
+	// Immediately close c2 before writing to test that idletiming on server works
+	// okay.
+	c2.Close()
+
+	time.Sleep(idleTimeout * 4)
+	assert.EqualValues(t, 0, atomic.LoadInt32(&openConns), "All connections should have been closed")
 }
