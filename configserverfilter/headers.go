@@ -43,9 +43,14 @@ func (f *ConfigServerFilter) AttachHeaderIfNecessary(req *http.Request) {
 	// It's unlikely that config-server will add non-GET public endpoint.
 	// Bypass all other methods, especially CONNECT (https).
 	if req.Method == "GET" {
+		origin, _, err := net.SplitHostPort(req.Host)
+		if err != nil {
+			origin = req.Host
+		}
 		for _, d := range f.Domains {
-			if req.Host == d {
+			if origin == d {
 				f.attachHeader(req)
+				return
 			}
 		}
 	}

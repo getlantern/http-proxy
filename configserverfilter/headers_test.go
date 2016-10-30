@@ -23,7 +23,7 @@ func TestAttachAuthToken(t *testing.T) {
 	dummy := &dummyHandler{}
 	chain := filters.Join(New(&Options{fakeToken, []string{"site1.com", "site2.org"}}), filters.Adapt(dummy))
 
-	req, _ := http.NewRequest("GET", "http://site1.com/abc.gz", nil)
+	req, _ := http.NewRequest("GET", "http://site1.com:80/abc.gz", nil)
 	req.RemoteAddr = dummyAddr
 	chain.ServeHTTP(nil, req)
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
@@ -35,7 +35,7 @@ func TestAttachAuthToken(t *testing.T) {
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
 	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should attach client ip")
 
-	req, _ = http.NewRequest("GET", "http://site2.org/abc.gz", nil)
+	req, _ = http.NewRequest("GET", "http://site2.org:443/abc.gz", nil)
 	req.RemoteAddr = "bad-addr"
 	chain.ServeHTTP(nil, req)
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
