@@ -1,5 +1,5 @@
 hash: cc332fdf2a5576d355337cb62a923e0cddd6f6959904f3f31b9bd9650d2cb9bd
-updated: 2016-10-28T06:23:19.376569049-07:00
+updated: 2016-10-29T23:46:31.456779234-05:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 50915b3ba5ee27c0b2fcdad9edd51156fb55192c
@@ -28,7 +28,7 @@ imports:
 - name: github.com/getlantern/byteexec
   version: 2e21fedeb225921a8dc40321cbd114ffd0a302f3
 - name: github.com/getlantern/cmux
-  version: f3db3bd29713a11b225b357650d7de1818442d26
+  version: 1eaddb98c7e2b48caa22bf2035a00126e2344bff
 - name: github.com/getlantern/context
   version: 624d99b1798d7c5375ea1d3ca4c5b04d58f7c775
 - name: github.com/getlantern/errors
@@ -46,7 +46,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: e7bb763c2a4fc53570f85797943eb5ac8292aba8
+  version: 0e79c8d01f68686df669834d1b0fda360c359335
   subpackages:
   - buffers
   - commonfilter
@@ -62,9 +62,9 @@ imports:
 - name: github.com/getlantern/idletiming
   version: 3fc7b11a989b5fe9a3a29f2f8d2e50c42a6e8a3f
 - name: github.com/getlantern/interceptor
-  version: 543a72df0938f2b5e8af43cf939dbee030f56d16
+  version: 66124c533914e43364f13708e59dddb4048055da
 - name: github.com/getlantern/keyman
-  version: 27a13a8da00afce6b6b7e4b4b486a440b4629718
+  version: 2920ae3bb58d86b9170877b7ba75d78857354b8a
   subpackages:
   - certimporter
 - name: github.com/getlantern/measured
@@ -100,7 +100,7 @@ imports:
 - name: github.com/klauspost/crc32
   version: cb6bfca970f6908083f26f39a79009d608efd5cd
 - name: github.com/klauspost/reedsolomon
-  version: c54154da9e35cab25232314cf69ab9d78447f9a5
+  version: d0a56f72c0d40a6cdde43a1575ad9686a0098b70
 - name: github.com/mxk/go-flowrate
   version: cca7078d478f8520f85629ad7c68962d31ed7682
   subpackages:
@@ -108,7 +108,7 @@ imports:
 - name: github.com/oxtoacart/bpool
   version: 4e1c5567d7c2dd59fa4c7c83d34c2f3528b025d6
 - name: github.com/pkg/errors
-  version: 839d9e913e063e28dfd0e6c7b7512793e0a48be9
+  version: 248dadf4e9068a0b3e79f02ed0a610d935de5302
 - name: github.com/rcrowley/go-metrics
   version: ab2277b1c5d15c3cba104e9cbddbdfc622df5ad8
 - name: github.com/stretchr/testify
@@ -120,11 +120,11 @@ imports:
 - name: github.com/visionmedia/go-debug
   version: ff4a55a20a86994118644bbddc6a216da193cc13
 - name: github.com/xtaci/kcp-go
-  version: 5c61c4984f4a70a4a140c0d791e460276a082527
+  version: 0721a11748e39dd517c8f288e0b80f82dc42f242
 - name: github.com/xtaci/smux
-  version: 6250093011e71f1c87986c575cad1184c717c0ef
+  version: 9d1cf796b3fb4b1a19d67b41d6660cd9d2d15c6f
 - name: golang.org/x/crypto
-  version: c367d6eeb7c6158125f2f47e049f7eb7e251c09a
+  version: b2fa06b6af4b7c9bfeb8569ab7b17f04550717bf
   subpackages:
   - blowfish
   - cast5
@@ -139,7 +139,7 @@ imports:
   - twofish
   - xtea
 - name: golang.org/x/net
-  version: 3bafa3320efdf0c95d056586aa9abdd05ad72ee1
+  version: 76c1a11e06a6d0fcd17b3830b8e1b87a2ade4a9c
   subpackages:
   - bpf
   - internal/iana
