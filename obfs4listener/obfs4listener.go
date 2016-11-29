@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync/atomic"
 	"time"
 
 	"github.com/getlantern/golog"
@@ -17,7 +18,7 @@ import (
 var (
 	log = golog.LoggerFor("obfs4listener")
 
-	handshakeTimeout = 30 * time.Second
+	handshakeTimeout = 10 * time.Second
 )
 
 func Wrap(wrapped net.Listener, stateDir string) (net.Listener, error) {
@@ -49,9 +50,10 @@ type result struct {
 }
 
 type obfs4listener struct {
-	wrapped net.Listener
-	sf      base.ServerFactory
-	ready   chan *result
+	wrapped     net.Listener
+	sf          base.ServerFactory
+	ready       chan *result
+	handshaking int64
 }
 
 func (l *obfs4listener) Accept() (net.Conn, error) {
@@ -81,9 +83,11 @@ func (l *obfs4listener) accept() {
 }
 
 func (l *obfs4listener) wrap(conn net.Conn) {
+	atomic.AddInt64(&l.handshaking, 1)
 	_wrapped, timedOut, err := withtimeout.Do(handshakeTimeout, func() (interface{}, error) {
 		return l.sf.WrapConn(conn)
 	})
+	atomic.AddInt64(&l.handshaking, -1)
 	if timedOut {
 		log.Debugf("Handshake with %v timed out", conn.RemoteAddr())
 		conn.Close()
@@ -98,6 +102,6 @@ func (l *obfs4listener) wrap(conn net.Conn) {
 func (l *obfs4listener) monitor() {
 	for {
 		time.Sleep(5 * time.Second)
-		log.Debugf("Currently handshaking connections: %d", len(l.ready))
+		log.Debugf("Currently handshaking connections: %d", atomic.LoadInt64(&l.handshaking))
 	}
 }
