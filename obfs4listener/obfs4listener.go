@@ -19,6 +19,9 @@ var (
 	log = golog.LoggerFor("obfs4listener")
 
 	handshakeTimeout = 10 * time.Second
+
+	maxPendingHandshakesPerClient = 128
+	maxHandshakesPerClient        = 16
 )
 
 func Wrap(wrapped net.Listener, stateDir string) (net.Listener, error) {
@@ -36,7 +39,7 @@ func Wrap(wrapped net.Listener, stateDir string) (net.Listener, error) {
 	ol := &obfs4listener{
 		wrapped: wrapped,
 		sf:      sf,
-		ready:   make(chan *result, 1000),
+		ready:   make(chan *result),
 	}
 
 	go ol.accept()
@@ -52,6 +55,7 @@ type result struct {
 type obfs4listener struct {
 	wrapped     net.Listener
 	sf          base.ServerFactory
+	newConns    map[string]chan net.Conn
 	ready       chan *result
 	handshaking int64
 }
@@ -76,18 +80,44 @@ func (l *obfs4listener) accept() {
 			l.ready <- &result{nil, err}
 		} else {
 			// WrapConn does a handshake with the client, which involves io operations
-			// and can time out
-			go l.wrap(conn)
+			// and can time out. We do it on a separate goroutine, but we limit it to
+			// one goroutine per remote address.
+			if l.newConns == nil {
+				l.newConns = make(map[string]chan net.Conn)
+			}
+			remoteAddr := conn.RemoteAddr().String()
+			newConns := l.newConns[remoteAddr]
+			if newConns == nil {
+				newConns = make(chan net.Conn, maxPendingHandshakesPerClient)
+				l.newConns[remoteAddr] = newConns
+				for i := 0; i < maxHandshakesPerClient; i++ {
+					go l.wrap(newConns)
+				}
+			}
+			select {
+			case newConns <- conn:
+				// will handshake
+			default:
+				log.Errorf("Too many pending handshakes for client at %v, ignoring new connections", remoteAddr)
+				conn.Close()
+			}
 		}
 	}
 }
 
-func (l *obfs4listener) wrap(conn net.Conn) {
+func (l *obfs4listener) wrap(newConns chan net.Conn) {
+	for conn := range newConns {
+		l.doWrap(conn)
+	}
+}
+
+func (l *obfs4listener) doWrap(conn net.Conn) {
 	atomic.AddInt64(&l.handshaking, 1)
+	defer atomic.AddInt64(&l.handshaking, -1)
 	_wrapped, timedOut, err := withtimeout.Do(handshakeTimeout, func() (interface{}, error) {
 		return l.sf.WrapConn(conn)
 	})
-	atomic.AddInt64(&l.handshaking, -1)
+
 	if timedOut {
 		log.Debugf("Handshake with %v timed out", conn.RemoteAddr())
 		conn.Close()
