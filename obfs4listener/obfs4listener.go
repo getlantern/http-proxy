@@ -37,9 +37,10 @@ func Wrap(wrapped net.Listener, stateDir string) (net.Listener, error) {
 	}
 
 	ol := &obfs4listener{
-		wrapped: wrapped,
-		sf:      sf,
-		ready:   make(chan *result),
+		wrapped:  wrapped,
+		sf:       sf,
+		newConns: make(map[string]chan net.Conn),
+		ready:    make(chan *result),
 	}
 
 	go ol.accept()
@@ -82,9 +83,6 @@ func (l *obfs4listener) accept() {
 			// WrapConn does a handshake with the client, which involves io operations
 			// and can time out. We do it on a separate goroutine, but we limit it to
 			// one goroutine per remote address.
-			if l.newConns == nil {
-				l.newConns = make(map[string]chan net.Conn)
-			}
 			remoteAddr := conn.RemoteAddr().String()
 			newConns := l.newConns[remoteAddr]
 			if newConns == nil {
