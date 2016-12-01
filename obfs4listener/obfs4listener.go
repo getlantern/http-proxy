@@ -85,9 +85,7 @@ func (l *obfs4listener) Close() error {
 		// Drain ready
 		for result := range l.ready {
 			if result.conn != nil {
-				log.Debug("Closing drained")
 				result.conn.Close()
-				log.Debug("Done closing drained")
 			}
 		}
 	}()
