@@ -27,7 +27,7 @@ var (
 	handshakeTimeout = 10 * time.Second
 
 	maxPendingHandshakesPerClient = 128
-	maxHandshakesPerClient        = 16
+	maxHandshakesPerClient        = 4
 )
 
 func Wrap(wrapped net.Listener, stateDir string) (net.Listener, error) {
