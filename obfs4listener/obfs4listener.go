@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"runtime"
 	"sync/atomic"
 	"time"
 
@@ -14,6 +15,11 @@ import (
 	"git.torproject.org/pluggable-transports/obfs4.git/transports/base"
 	"git.torproject.org/pluggable-transports/obfs4.git/transports/obfs4"
 )
+
+func init() {
+	// Enable block profiling
+	runtime.SetBlockProfileRate(1)
+}
 
 var (
 	log = golog.LoggerFor("obfs4listener")
@@ -84,10 +90,14 @@ func (l *obfs4listener) accept() {
 			// and can time out. We do it on a separate goroutine, but we limit it to
 			// one goroutine per remote address.
 			remoteAddr := conn.RemoteAddr().String()
-			newConns := l.newConns[remoteAddr]
+			remoteHost, _, err := net.SplitHostPort(remoteAddr)
+			if err != nil {
+				log.Errorf("Unable to determine host for address %v: %v", remoteAddr, err)
+			}
+			newConns := l.newConns[remoteHost]
 			if newConns == nil {
 				newConns = make(chan net.Conn, maxPendingHandshakesPerClient)
-				l.newConns[remoteAddr] = newConns
+				l.newConns[remoteHost] = newConns
 				for i := 0; i < maxHandshakesPerClient; i++ {
 					go l.wrap(newConns)
 				}
