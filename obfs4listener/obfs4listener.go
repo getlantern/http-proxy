@@ -93,6 +93,8 @@ func (l *obfs4listener) accept() {
 			remoteHost, _, err := net.SplitHostPort(remoteAddr)
 			if err != nil {
 				log.Errorf("Unable to determine host for address %v: %v", remoteAddr, err)
+				conn.Close()
+				continue
 			}
 			newConns := l.newConns[remoteHost]
 			if newConns == nil {
