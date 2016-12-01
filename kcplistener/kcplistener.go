@@ -40,13 +40,13 @@ func (l *kcplistener) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	applyDefaultConnParameters(conn)
+	ApplyDefaultConnParameters(conn)
 	return snappyconn.Wrap(conn), err
 }
 
 // applyDefaultConnParameters applies the defaults used in kcptun
 // See https://github.com/xtaci/kcptun/blob/75923fb08f3bd67acbc212f6b6aac0a445decf72/client/main.go#L276
-func applyDefaultConnParameters(conn *kcp.UDPSession) {
+func ApplyDefaultConnParameters(conn *kcp.UDPSession) {
 	conn.SetStreamMode(true)
 	conn.SetNoDelay(0, 20, 2, 1)
 	conn.SetWindowSize(128, 1024)

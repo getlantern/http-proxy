@@ -68,7 +68,10 @@ type obfs4listener struct {
 }
 
 func (l *obfs4listener) Accept() (net.Conn, error) {
-	r := <-l.ready
+	r, ok := <-l.ready
+	if !ok {
+		return nil, fmt.Errorf("Closed")
+	}
 	return r.conn, r.err
 }
 
@@ -77,40 +80,58 @@ func (l *obfs4listener) Addr() net.Addr {
 }
 
 func (l *obfs4listener) Close() error {
-	return l.wrapped.Close()
+	err := l.wrapped.Close()
+	go func() {
+		// Drain ready
+		for result := range l.ready {
+			if result.conn != nil {
+				log.Debug("Closing drained")
+				result.conn.Close()
+				log.Debug("Done closing drained")
+			}
+		}
+	}()
+	return err
 }
 
 func (l *obfs4listener) accept() {
+	defer func() {
+		for _, newConns := range l.newConns {
+			close(newConns)
+		}
+		close(l.ready)
+	}()
+
 	for {
 		conn, err := l.wrapped.Accept()
 		if err != nil {
 			l.ready <- &result{nil, err}
-		} else {
-			// WrapConn does a handshake with the client, which involves io operations
-			// and can time out. We do it on a separate goroutine, but we limit it to
-			// one goroutine per remote address.
-			remoteAddr := conn.RemoteAddr().String()
-			remoteHost, _, err := net.SplitHostPort(remoteAddr)
-			if err != nil {
-				log.Errorf("Unable to determine host for address %v: %v", remoteAddr, err)
-				conn.Close()
-				continue
+			return
+		}
+		// WrapConn does a handshake with the client, which involves io operations
+		// and can time out. We do it on a separate goroutine, but we limit it to
+		// one goroutine per remote address.
+		remoteAddr := conn.RemoteAddr().String()
+		remoteHost, _, err := net.SplitHostPort(remoteAddr)
+		if err != nil {
+			log.Errorf("Unable to determine host for address %v: %v", remoteAddr, err)
+			conn.Close()
+			continue
+		}
+		newConns := l.newConns[remoteHost]
+		if newConns == nil {
+			newConns = make(chan net.Conn, maxPendingHandshakesPerClient)
+			l.newConns[remoteHost] = newConns
+			for i := 0; i < maxHandshakesPerClient; i++ {
+				go l.wrap(newConns)
 			}
-			newConns := l.newConns[remoteHost]
-			if newConns == nil {
-				newConns = make(chan net.Conn, maxPendingHandshakesPerClient)
-				l.newConns[remoteHost] = newConns
-				for i := 0; i < maxHandshakesPerClient; i++ {
-					go l.wrap(newConns)
-				}
-			}
-			select {
-			case newConns <- conn:
-				// will handshake
-			default:
-				log.Errorf("Too many pending handshakes for client at %v, ignoring new connections", remoteAddr)
-				conn.Close()
-			}
+		}
+		select {
+		case newConns <- conn:
+			// will handshake
+		default:
+			log.Errorf("Too many pending handshakes for client at %v, ignoring new connections", remoteAddr)
+			conn.Close()
 		}
 	}
 }
