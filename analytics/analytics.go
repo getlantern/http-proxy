@@ -82,6 +82,9 @@ func (am *analyticsMiddleware) Apply(w http.ResponseWriter, req *http.Request, n
 func (am *analyticsMiddleware) track(req *http.Request) {
 	if rand.Float64() <= am.SamplePercentage {
 		host, port, _ := net.SplitHostPort(req.Host)
+		if hostExcluded(host) {
+			return
+		}
 		select {
 		case am.siteAccesses <- &siteAccess{
 			ip:        stripPort(req.RemoteAddr),
@@ -102,12 +105,12 @@ func (am *analyticsMiddleware) track(req *http.Request) {
 func (am *analyticsMiddleware) submitToGoogle() {
 	for sa := range am.siteAccesses {
 		for _, site := range am.normalizeSite(sa.site, sa.port) {
-			am.trackSession(am.sessionVals(sa, site))
+			am.trackSession(am.sessionVals(sa, site, sa.port))
 		}
 	}
 }
 
-func (am *analyticsMiddleware) sessionVals(sa *siteAccess, site string) string {
+func (am *analyticsMiddleware) sessionVals(sa *siteAccess, site string, port string) string {
 	vals := make(url.Values, 0)
 
 	// Version 1 of the API
@@ -127,6 +130,9 @@ func (am *analyticsMiddleware) sessionVals(sa *siteAccess, site string) string {
 
 	// Track this as a page view
 	vals.Add("t", "pageview")
+
+	// Track custom port dimension
+	vals.Add("cd1", port)
 
 	log.Tracef("Tracking view to site: %v", site)
 	vals.Add("dp", site)
@@ -236,4 +242,12 @@ func stripPort(addr string) string {
 		return addr
 	}
 	return addr[:lastColon]
+}
+
+func hostExcluded(host string) bool {
+	return host == "ping-chained-server" ||
+		host == "config.getiantem.org" ||
+		host == "logs-01.loggly.com" ||
+		host == "borda.getlantern.org" ||
+		host == "www.google-analytics.com"
 }
