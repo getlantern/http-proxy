@@ -37,6 +37,7 @@ type siteAccess struct {
 	ip        string
 	clientId  string
 	site      string
+	port      string
 	userAgent string
 }
 
@@ -80,11 +81,13 @@ func (am *analyticsMiddleware) Apply(w http.ResponseWriter, req *http.Request, n
 
 func (am *analyticsMiddleware) track(req *http.Request) {
 	if rand.Float64() <= am.SamplePercentage {
+		host, port, _ := net.SplitHostPort(req.Host)
 		select {
 		case am.siteAccesses <- &siteAccess{
 			ip:        stripPort(req.RemoteAddr),
 			clientId:  req.Header.Get(common.DeviceIdHeader),
-			site:      stripPort(req.Host),
+			site:      host,
+			port:      port,
 			userAgent: req.UserAgent(),
 		}:
 			// Submitted
@@ -98,7 +101,7 @@ func (am *analyticsMiddleware) track(req *http.Request) {
 // goroutine to avoid blocking the processing of actual requests
 func (am *analyticsMiddleware) submitToGoogle() {
 	for sa := range am.siteAccesses {
-		for _, site := range am.normalizeSite(sa.site) {
+		for _, site := range am.normalizeSite(sa.site, sa.port) {
 			am.trackSession(am.sessionVals(sa, site))
 		}
 	}
@@ -145,7 +148,7 @@ func (am *analyticsMiddleware) sessionVals(sa *siteAccess, site string) string {
 	return vals.Encode()
 }
 
-func (am *analyticsMiddleware) normalizeSite(site string) []string {
+func (am *analyticsMiddleware) normalizeSite(site string, port string) []string {
 	domain := site
 	result := make([]string, 0, 3)
 	isIP := net.ParseIP(site) != nil
@@ -181,6 +184,16 @@ func (am *analyticsMiddleware) normalizeSite(site string) []string {
 		}
 	}
 
+	switch port {
+	case "80":
+		result = append(result, "/protocol/http")
+	case "443":
+		result = append(result, "/protocol/https")
+	case "0", "":
+		result = append(result, "/protocol/unknown")
+	default:
+		result = append(result, "/protocol/other")
+	}
 	return result
 }
 
