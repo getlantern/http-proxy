@@ -85,6 +85,10 @@ func (am *analyticsMiddleware) track(req *http.Request) {
 		if hostExcluded(host) {
 			return
 		}
+		if (port == "0" || port == "") && req.Method != http.MethodConnect {
+			// Default port for HTTP
+			port = "80"
+		}
 		select {
 		case am.siteAccesses <- &siteAccess{
 			ip:        stripPort(req.RemoteAddr),
