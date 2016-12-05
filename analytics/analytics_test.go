@@ -2,6 +2,7 @@ package analytics
 
 import (
 	"net"
+	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -29,5 +30,21 @@ func TestNormalizeSite(t *testing.T) {
 			assert.Equal(t, "/generated/yahoo.com", normalized[2])
 			assert.Equal(t, "/protocol/"+proto, normalized[3])
 		}
+	}
+}
+
+func TestDefaultPort(t *testing.T) {
+	am := &analyticsMiddleware{
+		Options: &Options{
+			SamplePercentage: 1,
+		},
+		siteAccesses: make(chan *siteAccess, 1000),
+	}
+	req, _ := http.NewRequest(http.MethodGet, "www.google.com", nil)
+	for _, host := range []string{"www.google.com", "www.google.com:0"} {
+		req.Host = host
+		am.Apply(nil, req, func() error { return nil })
+		sa := <-am.siteAccesses
+		assert.Equal(t, "80", sa.port)
 	}
 }
