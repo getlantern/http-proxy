@@ -143,6 +143,7 @@ func (l *obfs4listener) wrap(newConns chan net.Conn) {
 func (l *obfs4listener) doWrap(conn net.Conn) {
 	atomic.AddInt64(&l.handshaking, 1)
 	defer atomic.AddInt64(&l.handshaking, -1)
+	start := time.Now()
 	_wrapped, timedOut, err := withtimeout.Do(handshakeTimeout, func() (interface{}, error) {
 		return l.sf.WrapConn(conn)
 	})
@@ -154,6 +155,7 @@ func (l *obfs4listener) doWrap(conn net.Conn) {
 		log.Debugf("Handshake error with %v: %v", conn.RemoteAddr(), err)
 		conn.Close()
 	} else {
+		log.Debugf("Successful obfs4 handshake in %v", time.Now().Sub(start))
 		l.ready <- &result{_wrapped.(net.Conn), err}
 	}
 }
