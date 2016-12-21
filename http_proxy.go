@@ -26,6 +26,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/analytics"
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/borda"
+	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/kcplistener"
@@ -159,9 +160,11 @@ func (p *Proxy) ListenAndServe() error {
 	} else {
 		filterChain = filters.Join(tokenfilter.New(p.Token))
 	}
+	domains := []string{"getiantem.org", "lantern-pro-server.herokuapp.com"}
+	wl := common.NewWhitelist(domains)
 	if rc != nil {
 		filterChain = filterChain.Append(
-			devicefilter.NewPre(redis.NewDeviceFetcher(rc), p.ThrottleThreshold),
+			devicefilter.NewPre(redis.NewDeviceFetcher(rc), p.ThrottleThreshold, wl),
 		)
 	}
 	filterChain = filterChain.Append(
@@ -222,6 +225,7 @@ func (p *Proxy) ListenAndServe() error {
 			RedisClient:         rc,
 			ServerID:            p.ServerID,
 			KeepProTokenDomains: strings.Split(p.CfgSvrDomains, ","),
+			Whitelist:           wl,
 		})
 		if proErr != nil {
 			log.Fatal(proErr)
