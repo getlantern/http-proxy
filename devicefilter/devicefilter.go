@@ -31,7 +31,7 @@ var (
 type deviceFilterPre struct {
 	throttleAfterBytes uint64
 	deviceFetcher      *redis.DeviceFetcher
-	whitelist          *common.Whitelist
+	domainlist         *common.DomainList
 }
 
 // deviceFilterPost cleans up
@@ -39,7 +39,7 @@ type deviceFilterPost struct {
 	bl *blacklist.Blacklist
 }
 
-func NewPre(df *redis.DeviceFetcher, throttleAfterBytes uint64, whitelist *common.Whitelist) filters.Filter {
+func NewPre(df *redis.DeviceFetcher, throttleAfterBytes uint64, domainlist *common.DomainList) filters.Filter {
 	if throttleAfterBytes > 0 {
 		log.Debugf("Throttling clients after %v MiB", throttleAfterBytes/(1024*1024))
 	}
@@ -47,7 +47,7 @@ func NewPre(df *redis.DeviceFetcher, throttleAfterBytes uint64, whitelist *commo
 	return &deviceFilterPre{
 		deviceFetcher:      df,
 		throttleAfterBytes: throttleAfterBytes,
-		whitelist:          whitelist,
+		domainlist:         domainlist,
 	}
 }
 
@@ -59,7 +59,7 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 
 	// If we're requesting a whitelisted domain, don't count it towards the
 	// bandwidth cap.
-	if f.whitelist.Whitelisted(req) {
+	if f.domainlist.Whitelisted(req) {
 		return next()
 	}
 

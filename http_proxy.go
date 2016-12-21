@@ -76,7 +76,7 @@ type Proxy struct {
 	Obfs4KCPAddr                 string
 	Obfs4Dir                     string
 	Benchmark                    bool
-	WhitelistDomains             string
+	DomainList                   string
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -161,10 +161,10 @@ func (p *Proxy) ListenAndServe() error {
 	} else {
 		filterChain = filters.Join(tokenfilter.New(p.Token))
 	}
-	wl := common.NewRawWhitelist(p.WhitelistDomains)
+	dl := common.NewRawDomainList(p.DomainList)
 	if rc != nil {
 		filterChain = filterChain.Append(
-			devicefilter.NewPre(redis.NewDeviceFetcher(rc), p.ThrottleThreshold, wl),
+			devicefilter.NewPre(redis.NewDeviceFetcher(rc), p.ThrottleThreshold, dl),
 		)
 	}
 	filterChain = filterChain.Append(
@@ -225,7 +225,7 @@ func (p *Proxy) ListenAndServe() error {
 			RedisClient:         rc,
 			ServerID:            p.ServerID,
 			KeepProTokenDomains: strings.Split(p.CfgSvrDomains, ","),
-			Whitelist:           wl,
+			DomainList:          dl,
 		})
 		if proErr != nil {
 			log.Fatal(proErr)
