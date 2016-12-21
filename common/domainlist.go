@@ -40,7 +40,7 @@ func NewDomainList(domains []string) *DomainList {
 // Whitelisted returns whether or not the given request should be whitelisted.
 func (f *DomainList) Whitelisted(req *http.Request) bool {
 	for _, d := range f.Domains {
-		if d == req.Host {
+		if strings.HasPrefix(req.Host, d) {
 			return true
 		}
 	}
