@@ -3,6 +3,7 @@ package common
 import (
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/getlantern/golog"
 )
@@ -17,6 +18,17 @@ type Whitelist struct {
 	Domains []string
 }
 
+// NewRawWhitelist creates a new Whitelist with the given whitelisted domains,
+// separated by commas.
+func NewRawWhitelist(raw string) *Whitelist {
+	domains := strings.Split(raw, ",")
+	// Allow whitespace from the command line.
+	for i, d := range domains {
+		domains[i] = strings.TrimSpace(d)
+	}
+	return NewWhitelist(domains)
+}
+
 // NewWhitelist creates a new Whitelist with the given whitelisted domains.
 func NewWhitelist(domains []string) *Whitelist {
 	return &Whitelist{Domains: domains}
@@ -26,7 +38,6 @@ func NewWhitelist(domains []string) *Whitelist {
 func (f *Whitelist) Whitelisted(req *http.Request) bool {
 	origin, _, err := net.SplitHostPort(req.Host)
 	if err != nil {
-		log.Debugf("Got error for host: %v", req.Host)
 		origin = req.Host
 	}
 	for _, d := range f.Domains {

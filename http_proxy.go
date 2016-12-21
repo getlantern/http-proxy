@@ -76,6 +76,7 @@ type Proxy struct {
 	Obfs4KCPAddr                 string
 	Obfs4Dir                     string
 	Benchmark                    bool
+	WhitelistDomains             string
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -160,8 +161,7 @@ func (p *Proxy) ListenAndServe() error {
 	} else {
 		filterChain = filters.Join(tokenfilter.New(p.Token))
 	}
-	domains := []string{"getiantem.org", "lantern-pro-server.herokuapp.com"}
-	wl := common.NewWhitelist(domains)
+	wl := common.NewRawWhitelist(p.WhitelistDomains)
 	if rc != nil {
 		filterChain = filterChain.Append(
 			devicefilter.NewPre(redis.NewDeviceFetcher(rc), p.ThrottleThreshold, wl),
