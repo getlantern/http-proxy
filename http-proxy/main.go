@@ -50,6 +50,7 @@ var (
 	obfs4KCPAddr                 = flag.String("obfs4-kcp-addr", "", "Provide an address here in order to listen with obfs4 over KCP (udp-based TCP accelerator)")
 	obfs4Dir                     = flag.String("obfs4-dir", ".", "Directory where obfs4 can store its files")
 	bench                        = flag.Bool("bench", false, "Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.")
+	fasttrackDomains             = flag.String("fasttrackdomains", "", "Whitelisted domains, such as the config server, pro server, etc, that should not count towards the bandwidth cap or be throttled, separated by comma")
 )
 
 func init() {
@@ -111,6 +112,7 @@ func main() {
 		Obfs4KCPAddr:                 *obfs4KCPAddr,
 		Obfs4Dir:                     *obfs4Dir,
 		Benchmark:                    *bench,
+		FasttrackDomains:             *fasttrackDomains,
 	}
 
 	p.ListenAndServe()

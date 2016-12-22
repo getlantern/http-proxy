@@ -15,7 +15,7 @@ import (
 	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/listeners"
 
-	//"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/getlantern/http-proxy-lantern/common"
 	throttle "github.com/getlantern/http-proxy-lantern/listeners"
 	redislib "gopkg.in/redis.v3"
 )
@@ -31,18 +31,21 @@ type lanternProFilter struct {
 	tkwMutex            sync.Mutex
 	proConf             *proConfig
 	keepProTokenDomains []string
+	fasttrackDomains    *common.FasttrackDomains
 }
 
 type Options struct {
 	RedisClient         *redislib.Client
 	ServerID            string
 	KeepProTokenDomains []string
+	FasttrackDomains    *common.FasttrackDomains
 }
 
 func New(opts *Options) (filters.Filter, error) {
 	f := &lanternProFilter{
 		proTokens:           new(atomic.Value),
 		keepProTokenDomains: opts.KeepProTokenDomains,
+		fasttrackDomains:    opts.FasttrackDomains,
 	}
 	// atomic.Value can't be copied after Store has been called
 	f.proTokens.Store(make(TokensMap))
@@ -82,7 +85,10 @@ func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next 
 	// 	wc.ControlMessage("throttle", throttle.Never)
 	// }
 
-	if f.isEnabled() {
+	// If this server is pro, don't throttle this connection. Also if this
+	// connection is hitting a whitelisted domain (one of our domains, for
+	// example, don't throttle that).
+	if f.isEnabled() || f.fasttrackDomains.Whitelisted(req) {
 		wc := context.Get(req, "conn").(listeners.WrapConn)
 		wc.ControlMessage("throttle", throttle.Never)
 	}
@@ -116,7 +122,7 @@ func (f *lanternProFilter) AddTokens(tokens ...string) {
 
 	tks1 := f.proTokens.Load().(TokensMap)
 	tks2 := make(TokensMap)
-	for k, _ := range tks1 {
+	for k := range tks1 {
 		tks2[k] = true
 	}
 	for _, t := range tokens {

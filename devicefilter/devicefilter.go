@@ -31,6 +31,7 @@ var (
 type deviceFilterPre struct {
 	throttleAfterBytes uint64
 	deviceFetcher      *redis.DeviceFetcher
+	fasttrackDomains   *common.FasttrackDomains
 }
 
 // deviceFilterPost cleans up
@@ -38,7 +39,7 @@ type deviceFilterPost struct {
 	bl *blacklist.Blacklist
 }
 
-func NewPre(df *redis.DeviceFetcher, throttleAfterBytes uint64) filters.Filter {
+func NewPre(df *redis.DeviceFetcher, throttleAfterBytes uint64, fasttrackDomains *common.FasttrackDomains) filters.Filter {
 	if throttleAfterBytes > 0 {
 		log.Debugf("Throttling clients after %v MiB", throttleAfterBytes/(1024*1024))
 	}
@@ -46,6 +47,7 @@ func NewPre(df *redis.DeviceFetcher, throttleAfterBytes uint64) filters.Filter {
 	return &deviceFilterPre{
 		deviceFetcher:      df,
 		throttleAfterBytes: throttleAfterBytes,
+		fasttrackDomains:   fasttrackDomains,
 	}
 }
 
@@ -53,6 +55,12 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 	if log.IsTraceEnabled() {
 		reqStr, _ := httputil.DumpRequest(req, true)
 		log.Tracef("DeviceFilter Middleware received request:\n%s", reqStr)
+	}
+
+	// If we're requesting a whitelisted domain, don't count it towards the
+	// bandwidth cap.
+	if f.fasttrackDomains.Whitelisted(req) {
+		return next()
 	}
 
 	lanternDeviceID := req.Header.Get(common.DeviceIdHeader)
