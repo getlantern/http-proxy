@@ -11,15 +11,15 @@ var (
 	log = golog.LoggerFor("common")
 )
 
-// DomainList contains domains we should whitelist both for throttling and for
+// FasttrackDomains contains domains we should whitelist both for throttling and for
 // not counting towards the bandwidth cap.
-type DomainList struct {
+type FasttrackDomains struct {
 	Domains []string
 }
 
-// NewRawDomainList creates a new DomainList with the given whitelisted domains,
+// NewRawFasttrackDomains creates a new DomainList with the given whitelisted domains,
 // separated by commas.
-func NewRawDomainList(raw string) *DomainList {
+func NewRawFasttrackDomains(raw string) *FasttrackDomains {
 	doms := strings.Split(raw, ",")
 	domains := make([]string, 0)
 	// Allow whitespace from the command line.
@@ -29,16 +29,16 @@ func NewRawDomainList(raw string) *DomainList {
 			domains = append(domains, d)
 		}
 	}
-	return NewDomainList(domains)
+	return NewFasttrackDomains(domains)
 }
 
-// NewDomainList creates a new Whitelist with the given whitelisted domains.
-func NewDomainList(domains []string) *DomainList {
-	return &DomainList{Domains: domains}
+// NewFasttrackDomains creates a new Whitelist with the given whitelisted domains.
+func NewFasttrackDomains(domains []string) *FasttrackDomains {
+	return &FasttrackDomains{Domains: domains}
 }
 
 // Whitelisted returns whether or not the given request should be whitelisted.
-func (f *DomainList) Whitelisted(req *http.Request) bool {
+func (f *FasttrackDomains) Whitelisted(req *http.Request) bool {
 	for _, d := range f.Domains {
 		if strings.HasPrefix(req.Host, d) {
 			return true

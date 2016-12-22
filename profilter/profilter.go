@@ -31,21 +31,21 @@ type lanternProFilter struct {
 	tkwMutex            sync.Mutex
 	proConf             *proConfig
 	keepProTokenDomains []string
-	domainlist          *common.DomainList
+	fasttrackDomains    *common.FasttrackDomains
 }
 
 type Options struct {
 	RedisClient         *redislib.Client
 	ServerID            string
 	KeepProTokenDomains []string
-	DomainList          *common.DomainList
+	FasttrackDomains    *common.FasttrackDomains
 }
 
 func New(opts *Options) (filters.Filter, error) {
 	f := &lanternProFilter{
 		proTokens:           new(atomic.Value),
 		keepProTokenDomains: opts.KeepProTokenDomains,
-		domainlist:          opts.DomainList,
+		fasttrackDomains:    opts.FasttrackDomains,
 	}
 	// atomic.Value can't be copied after Store has been called
 	f.proTokens.Store(make(TokensMap))
@@ -88,7 +88,7 @@ func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next 
 	// If this server is pro, don't throttle this connection. Also if this
 	// connection is hitting a whitelisted domain (one of our domains, for
 	// example, don't throttle that).
-	if f.isEnabled() || f.domainlist.Whitelisted(req) {
+	if f.isEnabled() || f.fasttrackDomains.Whitelisted(req) {
 		wc := context.Get(req, "conn").(listeners.WrapConn)
 		wc.ControlMessage("throttle", throttle.Never)
 	}
