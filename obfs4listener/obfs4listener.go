@@ -27,7 +27,7 @@ var (
 	handshakeTimeout = 10 * time.Second
 
 	maxPendingHandshakesPerClient = 128
-	maxHandshakesPerClient        = 16
+	maxHandshakesPerClient        = 4
 )
 
 func Wrap(wrapped net.Listener, stateDir string) (net.Listener, error) {
@@ -68,7 +68,10 @@ type obfs4listener struct {
 }
 
 func (l *obfs4listener) Accept() (net.Conn, error) {
-	r := <-l.ready
+	r, ok := <-l.ready
+	if !ok {
+		return nil, fmt.Errorf("Closed")
+	}
 	return r.conn, r.err
 }
 
@@ -77,40 +80,56 @@ func (l *obfs4listener) Addr() net.Addr {
 }
 
 func (l *obfs4listener) Close() error {
-	return l.wrapped.Close()
+	err := l.wrapped.Close()
+	go func() {
+		// Drain ready
+		for result := range l.ready {
+			if result.conn != nil {
+				result.conn.Close()
+			}
+		}
+	}()
+	return err
 }
 
 func (l *obfs4listener) accept() {
+	defer func() {
+		for _, newConns := range l.newConns {
+			close(newConns)
+		}
+		close(l.ready)
+	}()
+
 	for {
 		conn, err := l.wrapped.Accept()
 		if err != nil {
 			l.ready <- &result{nil, err}
-		} else {
-			// WrapConn does a handshake with the client, which involves io operations
-			// and can time out. We do it on a separate goroutine, but we limit it to
-			// one goroutine per remote address.
-			remoteAddr := conn.RemoteAddr().String()
-			remoteHost, _, err := net.SplitHostPort(remoteAddr)
-			if err != nil {
-				log.Errorf("Unable to determine host for address %v: %v", remoteAddr, err)
-				conn.Close()
-				continue
+			return
+		}
+		// WrapConn does a handshake with the client, which involves io operations
+		// and can time out. We do it on a separate goroutine, but we limit it to
+		// one goroutine per remote address.
+		remoteAddr := conn.RemoteAddr().String()
+		remoteHost, _, err := net.SplitHostPort(remoteAddr)
+		if err != nil {
+			log.Errorf("Unable to determine host for address %v: %v", remoteAddr, err)
+			conn.Close()
+			continue
+		}
+		newConns := l.newConns[remoteHost]
+		if newConns == nil {
+			newConns = make(chan net.Conn, maxPendingHandshakesPerClient)
+			l.newConns[remoteHost] = newConns
+			for i := 0; i < maxHandshakesPerClient; i++ {
+				go l.wrap(newConns)
 			}
-			newConns := l.newConns[remoteHost]
-			if newConns == nil {
-				newConns = make(chan net.Conn, maxPendingHandshakesPerClient)
-				l.newConns[remoteHost] = newConns
-				for i := 0; i < maxHandshakesPerClient; i++ {
-					go l.wrap(newConns)
-				}
-			}
-			select {
-			case newConns <- conn:
-				// will handshake
-			default:
-				log.Errorf("Too many pending handshakes for client at %v, ignoring new connections", remoteAddr)
-				conn.Close()
-			}
+		}
+		select {
+		case newConns <- conn:
+			// will handshake
+		default:
+			log.Errorf("Too many pending handshakes for client at %v, ignoring new connections", remoteAddr)
+			conn.Close()
 		}
 	}
 }
@@ -124,6 +143,7 @@ func (l *obfs4listener) wrap(newConns chan net.Conn) {
 func (l *obfs4listener) doWrap(conn net.Conn) {
 	atomic.AddInt64(&l.handshaking, 1)
 	defer atomic.AddInt64(&l.handshaking, -1)
+	start := time.Now()
 	_wrapped, timedOut, err := withtimeout.Do(handshakeTimeout, func() (interface{}, error) {
 		return l.sf.WrapConn(conn)
 	})
@@ -135,6 +155,7 @@ func (l *obfs4listener) doWrap(conn net.Conn) {
 		log.Debugf("Handshake error with %v: %v", conn.RemoteAddr(), err)
 		conn.Close()
 	} else {
+		log.Debugf("Successful obfs4 handshake in %v", time.Now().Sub(start))
 		l.ready <- &result{_wrapped.(net.Conn), err}
 	}
 }
