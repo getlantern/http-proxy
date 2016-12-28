@@ -8,15 +8,16 @@ import (
 	"crypto/rsa"
 	"crypto/sha256"
 	"encoding/base64"
-	"github.com/getlantern/errors"
-	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy/filters"
 	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/getlantern/errors"
+	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/getlantern/http-proxy/filters"
 )
 
 var (
@@ -117,7 +118,14 @@ func (f *lanternProFilter) tokenFrom(tokenWithSignature string) (*token, error) 
 		return nil, errors.New("Invalid token format, bad signature: %v", err)
 	}
 	hashed := sha256.Sum256([]byte(parts[0]))
-	verifyErr := rsa.VerifyPKCS1v15(f.Opts.PublicKey, crypto.SHA256, hashed[:], sig)
+
+	var opts rsa.PSSOptions
+
+	// This just lets the salt be as long as possible.
+	opts.SaltLength = rsa.PSSSaltLengthAuto
+
+	verifyErr := rsa.VerifyPSS(f.Opts.PublicKey, crypto.SHA512, hashed[:], sig, &opts)
+
 	if verifyErr != nil {
 		return nil, errors.New("Token failed signature verification: %v", verifyErr)
 	}
