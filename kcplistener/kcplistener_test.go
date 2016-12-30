@@ -51,7 +51,7 @@ func TestRoundTrip(t *testing.T) {
 			if err != nil {
 				return nil, err
 			}
-			applyDefaultConnParameters(conn)
+			ApplyDefaultConnParameters(conn)
 			conn.SetDSCP(0)
 			conn.SetReadBuffer(4194304)
 			conn.SetWriteBuffer(4194304)

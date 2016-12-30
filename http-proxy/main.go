@@ -39,7 +39,7 @@ var (
 	pprofAddr                    = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
 	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
-	redisAddr                    = flag.String("redis", "redis://localhost:6379", "Redis address in \"host:port\" format")
+	redisAddr                    = flag.String("redis", "", "Redis address in \"redis[s]://host:port\" format")
 	redisCA                      = flag.String("redisca", "", "Certificate for redislabs's CA")
 	redisClientPK                = flag.String("redisclientpk", "", "Private key for authenticating client to redis's stunnel")
 	redisClientCert              = flag.String("redisclientcert", "", "Certificate for authenticating client to redis's stunnel")

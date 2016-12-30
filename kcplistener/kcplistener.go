@@ -44,7 +44,7 @@ func (l *kcplistener) Accept() (net.Conn, error) {
 	return snappyconn.Wrap(conn), err
 }
 
-// applyDefaultConnParameters applies the defaults used in kcptun
+// ApplyDefaultConnParameters applies the defaults used in kcptun
 // See https://github.com/xtaci/kcptun/blob/75923fb08f3bd67acbc212f6b6aac0a445decf72/client/main.go#L276
 func ApplyDefaultConnParameters(conn *kcp.UDPSession) {
 	conn.SetStreamMode(true)
