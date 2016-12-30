@@ -107,8 +107,10 @@ func (p *Proxy) ListenAndServe() error {
 		}
 	}
 
+	shouldReport := p.EnableReports && rc != nil
+
 	// Reporting
-	if p.EnableReports {
+	if shouldReport {
 		rp := redis.NewMeasuredReporter(rc)
 		m = measured.New(5000)
 		m.Start(time.Minute, rp)
@@ -117,10 +119,11 @@ func (p *Proxy) ListenAndServe() error {
 
 	// Throttling
 	if p.ThrottleBPS > 0 && p.ThrottleThreshold > 0 {
-		if !p.EnableReports {
-			log.Fatal("Throttling requires reporting enabled")
+		if !shouldReport {
+			log.Debug("Not throttling because reporting is not enabled")
+		} else {
+			log.Debugf("Throttling to %d bps after %d bytes", p.ThrottleBPS, p.ThrottleThreshold)
 		}
-		log.Debugf("Throttling to %d bps after %d bytes", p.ThrottleBPS, p.ThrottleThreshold)
 	} else if (p.ThrottleBPS > 0) != (p.ThrottleThreshold > 0) {
 		log.Fatal("Throttling requires both throttlebps and throttlethreshold > 0")
 	} else {
@@ -217,22 +220,26 @@ func (p *Proxy) ListenAndServe() error {
 
 	// Pro support
 	if p.EnablePro {
-		if p.ServerID == "" {
-			log.Fatal("Enabling Pro requires setting the \"serverid\" flag")
-		}
-		log.Debug("This proxy is configured to support Lantern Pro")
-		proFilter, proErr := profilter.New(&profilter.Options{
-			RedisClient:         rc,
-			ServerID:            p.ServerID,
-			KeepProTokenDomains: strings.Split(p.CfgSvrDomains, ","),
-			FasttrackDomains:    fd,
-		})
-		if proErr != nil {
-			log.Fatal(proErr)
-		}
+		if rc == nil {
+			log.Debug("Not enabling pro because redis is not configured")
+		} else {
+			if p.ServerID == "" {
+				log.Fatal("Enabling Pro requires setting the \"serverid\" flag")
+			}
+			log.Debug("This proxy is configured to support Lantern Pro")
+			proFilter, proErr := profilter.New(&profilter.Options{
+				RedisClient:         rc,
+				ServerID:            p.ServerID,
+				KeepProTokenDomains: strings.Split(p.CfgSvrDomains, ","),
+				FasttrackDomains:    fd,
+			})
+			if proErr != nil {
+				log.Fatal(proErr)
+			}
 
-		// Put profilter at the beginning of the chain.
-		filterChain = filterChain.Prepend(proFilter)
+			// Put profilter at the beginning of the chain.
+			filterChain = filterChain.Prepend(proFilter)
+		}
 	}
 
 	srv := server.NewServer(filterChain.Prepend(opsfilter.New()))
@@ -248,7 +255,7 @@ func (p *Proxy) ListenAndServe() error {
 			},
 		)
 	}
-	if p.EnableReports {
+	if shouldReport {
 		srv.AddListenerWrappers(
 			// Measure connections
 			func(ls net.Listener) net.Listener {
