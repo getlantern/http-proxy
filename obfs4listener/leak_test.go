@@ -24,14 +24,13 @@ import (
 
 // Capitalize the T to run theses test. Look at the heap and blocking
 // profiles at end of test to see if there's any memory leaking.
-
-func TestTCPOBFS4ManyClients(t *testing.T) {
+func testTCPOBFS4ManyClients(t *testing.T) {
 	doTestMany(t, true, func() (net.Listener, error) {
 		return net.Listen("tcp", "localhost:0")
 	}, net.Dial)
 }
 
-func TestKCPOBFS4ManyClients(t *testing.T) {
+func testKCPOBFS4ManyClients(t *testing.T) {
 	block, _ := kcp.NewNoneBlockCrypt(nil)
 	dial := cmux.Dialer(&cmux.DialerOpts{
 		Dial: func(network, addr string) (net.Conn, error) {
@@ -54,7 +53,7 @@ func TestKCPOBFS4ManyClients(t *testing.T) {
 	})
 }
 
-func TestKCPManyClients(t *testing.T) {
+func testKCPManyClients(t *testing.T) {
 	block, _ := kcp.NewNoneBlockCrypt(nil)
 	dial := cmux.Dialer(&cmux.DialerOpts{
 		Dial: func(network, addr string) (net.Conn, error) {
