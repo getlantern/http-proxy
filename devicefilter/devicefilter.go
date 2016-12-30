@@ -63,14 +63,17 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 		return next()
 	}
 
+	// Attached the uid to connection to report stats to redis correctly
+	// "conn" in context is previously attached in server.go
+	wc := context.Get(req, "conn").(listeners.WrapConn)
+
 	lanternDeviceID := req.Header.Get(common.DeviceIdHeader)
 
 	if lanternDeviceID == "" {
-		log.Debugf("No %s header found from %s for request to %v", common.DeviceIdHeader, req.RemoteAddr, req.Host)
+		log.Debugf("No %s header found from %s for request to %v. Throttling unknown connection.",
+			common.DeviceIdHeader, req.RemoteAddr, req.Host)
+		wc.ControlMessage("throttle", throttle.On)
 	} else {
-		// Attached the uid to connection to report stats to redis correctly
-		// "conn" in context is previously attached in server.go
-		wc := context.Get(req, "conn").(listeners.WrapConn)
 		// Sets the ID to the provided key. This message is captured only
 		// by the measured wrapper
 		wc.ControlMessage("measured", lanternDeviceID)
