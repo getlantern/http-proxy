@@ -154,7 +154,7 @@ func doTestMany(t *testing.T, useOBFS4 bool, listen func() (net.Listener, error)
 		}
 	}
 
-	var danglingConns []net.Conn
+	var allConns []net.Conn
 	numClients := maxPendingHandshakesPerClient
 	var wg sync.WaitGroup
 	wg.Add(numClients)
@@ -171,6 +171,7 @@ func doTestMany(t *testing.T, useOBFS4 bool, listen func() (net.Listener, error)
 				if err != nil {
 					t.Fatal(err)
 				}
+				allConns = append(allConns, conn)
 				atomic.AddInt64(&pendingDials, -1)
 
 				atomic.AddInt64(&pendingWrites, 1)
@@ -187,7 +188,6 @@ func doTestMany(t *testing.T, useOBFS4 bool, listen func() (net.Listener, error)
 				}
 				if rand.Float64() > 0.5 {
 					// Half of the time, we leave the connection dangling
-					danglingConns = append(danglingConns, conn)
 					continue
 				}
 				conn.Close()
@@ -224,7 +224,7 @@ func doTestMany(t *testing.T, useOBFS4 bool, listen func() (net.Listener, error)
 	}()
 
 	time.Sleep(1 * time.Minute)
-	for _, conn := range danglingConns {
+	for _, conn := range allConns {
 		conn.Close()
 	}
 	log.Debug("Closed dangling conns")
