@@ -46,7 +46,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: dfb6e25419435357f4fbaffc5aab4041caee5038
+  version: 80fe020621503a9bdc241dd2c20c34088926b4a0
   subpackages:
   - buffers
   - commonfilter
@@ -68,11 +68,11 @@ imports:
 - name: github.com/getlantern/measured
   version: 9abc2622c88edcbe1436a80e69f912b3ccfc73bf
 - name: github.com/getlantern/netx
-  version: 70375a276c57e76c1fe1e2fbdb4c2d2714a67b39
+  version: ea33fe66744c0da3cc939893acc5962da35fbd9c
 - name: github.com/getlantern/ops
   version: b70875f5d689a9438bca72aefd7142a2af889b18
 - name: github.com/getlantern/proxy
-  version: 24caf02f302602f57f8202834d5c87e1203b29f3
+  version: 876829e39cf8243d123b02f02efe8da1266effb4
 - name: github.com/getlantern/rotator
   version: 013d4f8e36a2f6369b2435d89866056b5b74c69e
 - name: github.com/getlantern/snappyconn
