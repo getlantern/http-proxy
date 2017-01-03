@@ -17,6 +17,16 @@ var (
 	errNext = errors.New("nexterror")
 )
 
+func TestMathisThroughput(t *testing.T) {
+	s := &stats{
+		rtt: 115 * time.Millisecond,
+		plr: 1.2,
+	}
+	assert.Equal(t, 927, int(s.mathisThroughput()))
+	s.plr = 0
+	assert.Equal(t, 45421, int(s.mathisThroughput()))
+}
+
 func TestBypass(t *testing.T) {
 	filter, err := New()
 	if !assert.NoError(t, err) {
@@ -44,7 +54,7 @@ func TestGood(t *testing.T) {
 	}()
 
 	// Give the filter some time to pick up new timings
-	time.Sleep(30 * time.Second)
+	time.Sleep(1 * time.Minute)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
@@ -60,19 +70,12 @@ func TestGood(t *testing.T) {
 		return
 	}
 	defer resp.Body.Close()
-	rtt, err := time.ParseDuration(resp.Header.Get(common.PingRTTHeader))
+	throughput, err := strconv.ParseFloat(resp.Header.Get(common.PingThroughputHeader), 64)
 	if !assert.NoError(t, err) {
 		return
 	}
-	plr, err := strconv.ParseFloat(resp.Header.Get(common.PingPLRHeader), 64)
-	if !assert.NoError(t, err) {
-		return
-	}
-	log.Debug(rtt)
-	log.Debug(plr)
-	assert.True(t, rtt > 0)
-	assert.True(t, plr >= 0)
-	assert.NotEqual(t, defaultStats.rtt, rtt, "Should have gotten non-default rtt")
+	assert.True(t, throughput > 0)
+	assert.NotEqual(t, defaultThroughput, throughput, "Should have gotten non-default throughput")
 }
 
 type next struct {

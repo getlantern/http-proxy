@@ -4,6 +4,7 @@ package ping
 
 import (
 	"fmt"
+	"math"
 	"math/rand"
 	"net/http"
 	"net/url"
@@ -20,6 +21,9 @@ import (
 
 const (
 	pingInterval = 5 * time.Minute
+
+	// assume maximum segment size of 1460 for Mathis throughput calculation
+	mss = 1460
 )
 
 var (
@@ -30,12 +34,32 @@ var (
 		rtt: 10 * time.Millisecond,
 		plr: 0,
 	}
+
+	defaultThroughput = defaultStats.mathisThroughput()
 )
 
 type stats struct {
 	origin string
 	rtt    time.Duration
 	plr    float64
+}
+
+const ()
+
+// mathisThroughput estimates throughput using the Mathis equation
+// See https://www.switch.ch/network/tools/tcp_throughput/?do+new+calculation=do+new+calculation
+// for example.
+// Returns value in Kbps
+func (s *stats) mathisThroughput() float64 {
+	rtt := s.rtt
+	plr := s.plr / 100
+	if plr == 0 {
+		// Assume small but measurable packet loss
+		// I came up with this number by comparing the result for
+		// download.thinkbroadband.com to actual download speeds.
+		plr = 0.000005
+	}
+	return 8 * (mss / rtt.Seconds()) * (1.0 / math.Sqrt(plr)) / 1000
 }
 
 type pingMiddleware struct {
@@ -98,8 +122,7 @@ func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next f
 		// This is an old-style ping, simulate latency by sleeping
 		time.Sleep(s.rtt * 50)
 	}
-	w.Header().Set(common.PingRTTHeader, fmt.Sprint(s.rtt))
-	w.Header().Set(common.PingPLRHeader, fmt.Sprint(s.plr))
+	w.Header().Set(common.PingThroughputHeader, fmt.Sprint(s.mathisThroughput()))
 	w.WriteHeader(http.StatusOK)
 	return filters.Stop()
 }
@@ -134,7 +157,7 @@ func (pm *pingMiddleware) ping() {
 	}
 
 	for s := range resultCh {
-		log.Debugf("ping results for %v  rtt: %4dms  plr: %3.2f%%", s.origin, s.rtt.Nanoseconds()/1000000, s.plr)
+		log.Debugf("ping results for %v  rtt: %4dms  plr: %3.2f%%  tput: %5.0fKpbs", s.origin, s.rtt.Nanoseconds()/1000000, s.plr, s.mathisThroughput())
 		pm.mx.Lock()
 		// Copy stats map
 		statsByOrigin := make(map[string]*stats, len(origins))
@@ -158,8 +181,8 @@ func (pm *pingMiddleware) pingOrigin(origin string, resultCh chan *stats) {
 	for {
 		log.Debugf("pinging %v", origin)
 		st, err := pm.pinger.Ping(origin,
-			// Ping 100 times to get a decent resolution
-			100,
+			// Ping 200 times to get a decent resolution
+			200,
 			// Ping every 200 milliseconds, which is the lowest amount that OS ping
 			// command allows without root (to avoid ICMP flooding)
 			200*time.Millisecond,
