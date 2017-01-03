@@ -44,7 +44,7 @@ func TestGood(t *testing.T) {
 	}()
 
 	// Give the filter some time to pick up new timings
-	time.Sleep(5 * time.Minute)
+	time.Sleep(30 * time.Second)
 
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
