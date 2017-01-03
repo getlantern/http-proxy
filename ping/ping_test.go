@@ -75,7 +75,7 @@ func TestGood(t *testing.T) {
 		return
 	}
 	assert.True(t, throughput > 0)
-	assert.NotEqual(t, defaultThroughput, throughput, "Should have gotten non-default throughput")
+	assert.NotEqual(t, defaultStats.mathisThroughput(), throughput, "Should have gotten non-default throughput")
 }
 
 type next struct {

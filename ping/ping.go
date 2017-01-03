@@ -10,9 +10,9 @@ import (
 	"net/url"
 	"runtime"
 	"strings"
-	"sync"
 	"time"
 
+	"github.com/getlantern/ema"
 	"github.com/getlantern/go-ping"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/common"
@@ -24,6 +24,8 @@ const (
 
 	// assume maximum segment size of 1460 for Mathis throughput calculation
 	mss = 1460
+
+	emaAlpha = 0.5
 )
 
 var (
@@ -35,7 +37,10 @@ var (
 		plr: 0,
 	}
 
-	defaultThroughput = defaultStats.mathisThroughput()
+	defaultEMAStats = &emaStats{
+		rtt: ema.NewDuration(defaultStats.rtt, emaAlpha),
+		plr: ema.New(defaultStats.plr, emaAlpha),
+	}
 )
 
 type stats struct {
@@ -44,15 +49,25 @@ type stats struct {
 	plr    float64
 }
 
-const ()
+type emaStats struct {
+	rtt *ema.EMA
+	plr *ema.EMA
+}
+
+func (s *stats) mathisThroughput() float64 {
+	return mathisThroughput(s.rtt, s.plr)
+}
+
+func (s *emaStats) mathisThroughput() float64 {
+	return mathisThroughput(s.rtt.GetDuration(), s.plr.Get())
+}
 
 // mathisThroughput estimates throughput using the Mathis equation
 // See https://www.switch.ch/network/tools/tcp_throughput/?do+new+calculation=do+new+calculation
 // for example.
 // Returns value in Kbps
-func (s *stats) mathisThroughput() float64 {
-	rtt := s.rtt
-	plr := s.plr / 100
+func mathisThroughput(rtt time.Duration, plr float64) float64 {
+	plr = plr / 100
 	if plr == 0 {
 		// Assume small but measurable packet loss
 		// I came up with this number by comparing the result for
@@ -64,9 +79,39 @@ func (s *stats) mathisThroughput() float64 {
 
 type pingMiddleware struct {
 	pinger        *ping.Pinger
-	statsByOrigin map[string]*stats
+	statsByOrigin map[string]*emaStats
 	httpClient    *http.Client
-	mx            sync.RWMutex
+}
+
+func New() (filters.Filter, error) {
+	// Run privileged on Windows where this doesn't require root and where udp
+	// encapsulation doesn't work
+	privileged := runtime.GOOS == "windows"
+	pinger, err := ping.NewPinger(privileged)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to initialize pinger: %v", err)
+	}
+
+	sbo := make(map[string]*emaStats, len(origins))
+	for _, origin := range origins {
+		sbo[origin] = &emaStats{
+			rtt: ema.NewDuration(defaultStats.rtt, emaAlpha),
+			plr: ema.New(defaultStats.plr, emaAlpha),
+		}
+	}
+
+	pm := &pingMiddleware{
+		pinger:        pinger,
+		statsByOrigin: sbo,
+		httpClient: &http.Client{
+			Transport: &http.Transport{
+				DisableKeepAlives: true,
+			},
+		},
+	}
+	go pm.ping()
+
+	return pm, nil
 }
 
 func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
@@ -87,11 +132,7 @@ func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next f
 		}
 	}
 
-	pm.mx.RLock()
-	statsByOrigin := pm.statsByOrigin
-	pm.mx.RUnlock()
-
-	var s *stats
+	var s *emaStats
 	// Go through subsub.sub.domain.tld, stripping away subdomains until we get
 	// a result or run out of domain.
 	parts := strings.Split(strings.ToLower(pingOrigin), ".")
@@ -101,7 +142,7 @@ func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next f
 		}
 		origin := strings.Join(parts, ".")
 		log.Debugf("Checking %v", origin)
-		s = statsByOrigin[origin]
+		s = pm.statsByOrigin[origin]
 		if s != nil {
 			log.Debugf("Got data for %v", origin)
 			break
@@ -111,43 +152,20 @@ func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next f
 
 	if s == nil {
 		// Use googlevideo.com by default
-		s = statsByOrigin["googlevideo.com"]
+		s = pm.statsByOrigin["googlevideo.com"]
 	}
 
 	if s == nil {
-		s = defaultStats
+		s = defaultEMAStats
 	}
 
 	if pingURL != "" {
 		// This is an old-style ping, simulate latency by sleeping
-		time.Sleep(s.rtt * 50)
+		time.Sleep(s.rtt.GetDuration() * 50)
 	}
 	w.Header().Set(common.PingThroughputHeader, fmt.Sprint(s.mathisThroughput()))
 	w.WriteHeader(http.StatusOK)
 	return filters.Stop()
-}
-
-func New() (filters.Filter, error) {
-	// Run privileged on Windows where this doesn't require root and where udp
-	// encapsulation doesn't work
-	privileged := runtime.GOOS == "windows"
-	pinger, err := ping.NewPinger(privileged)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to initialize pinger: %v", err)
-	}
-
-	pm := &pingMiddleware{
-		pinger:        pinger,
-		statsByOrigin: make(map[string]*stats, len(origins)),
-		httpClient: &http.Client{
-			Transport: &http.Transport{
-				DisableKeepAlives: true,
-			},
-		},
-	}
-	go pm.ping()
-
-	return pm, nil
 }
 
 func (pm *pingMiddleware) ping() {
@@ -158,16 +176,9 @@ func (pm *pingMiddleware) ping() {
 
 	for s := range resultCh {
 		log.Debugf("ping results for %v  rtt: %4dms  plr: %3.2f%%  tput: %5.0fKpbs", s.origin, s.rtt.Nanoseconds()/1000000, s.plr, s.mathisThroughput())
-		pm.mx.Lock()
-		// Copy stats map
-		statsByOrigin := make(map[string]*stats, len(origins))
-		for key, value := range pm.statsByOrigin {
-			statsByOrigin[key] = value
-		}
-		// Update stats for this origin
-		statsByOrigin[s.origin] = s
-		pm.statsByOrigin = statsByOrigin
-		pm.mx.Unlock()
+		es := pm.statsByOrigin[s.origin]
+		es.rtt.UpdateDuration(s.rtt)
+		es.plr.Update(s.plr)
 	}
 }
 
@@ -190,6 +201,8 @@ func (pm *pingMiddleware) pingOrigin(origin string, resultCh chan *stats) {
 			1*time.Minute)
 		if err != nil {
 			log.Errorf("Error pinging %v: %v", origin, err)
+		} else if st.PacketsSent == 0 {
+			log.Debugf("No packets sent to %v, ignoring results", origin)
 		} else {
 			resultCh <- &stats{
 				origin: origin,
