@@ -178,7 +178,7 @@ func (pm *pingMiddleware) ping() {
 		es := pm.statsByOrigin[s.origin]
 		es.rtt.UpdateDuration(s.rtt)
 		es.plr.Update(s.plr)
-		log.Debugf("ping stats for %v  rtt: %4dms  plr: %3.2f%%  tput: %5.0fKpbs", s.origin, es.rtt.GetDuration().Nanoseconds()/1000000, es.plr.Get(), es.mathisThroughput())
+		log.Debugf("ping stats for %v  rtt: %4v  plr: %3.2f%%  tput: %5.0fKpbs", s.origin, es.rtt.GetDuration(), es.plr.Get(), es.mathisThroughput())
 	}
 }
 
