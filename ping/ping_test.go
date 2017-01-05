@@ -9,6 +9,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getlantern/ema"
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/stretchr/testify/assert"
 )
@@ -18,12 +19,12 @@ var (
 )
 
 func TestMathisThroughput(t *testing.T) {
-	s := &stats{
-		rtt: 115 * time.Millisecond,
-		plr: 1.2,
+	s := &emaStats{
+		rtt: ema.NewDuration(115*time.Millisecond, 0.5),
+		plr: ema.New(1.2, 0.5),
 	}
 	assert.Equal(t, 927, int(s.mathisThroughput()))
-	s.plr = 0
+	s.plr.Set(0)
 	assert.Equal(t, 45421, int(s.mathisThroughput()))
 }
 
@@ -75,7 +76,7 @@ func TestGood(t *testing.T) {
 		return
 	}
 	assert.True(t, throughput > 0)
-	assert.NotEqual(t, defaultStats.mathisThroughput(), throughput, "Should have gotten non-default throughput")
+	assert.NotEqual(t, defaultEMAStats.mathisThroughput(), throughput, "Should have gotten non-default throughput")
 }
 
 type next struct {

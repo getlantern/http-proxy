@@ -20,11 +20,17 @@ import (
 )
 
 const (
-	pingInterval = 5 * time.Minute
+	// Ping 200 times to get a decent resolution
+	pingBatch = 200
+
+	// Ping every 200 milliseconds, which is the lowest amount that OS ping
+	// command allows without root (to avoid ICMP flooding)
+	pingInterval = 200 * time.Millisecond
 
 	// assume maximum segment size of 1460 for Mathis throughput calculation
 	mss = 1460
 
+	// evolve exponential moving averages fairly quickly
 	emaAlpha = 0.5
 )
 
@@ -54,20 +60,13 @@ type emaStats struct {
 	plr *ema.EMA
 }
 
-func (s *stats) mathisThroughput() float64 {
-	return mathisThroughput(s.rtt, s.plr)
-}
-
-func (s *emaStats) mathisThroughput() float64 {
-	return mathisThroughput(s.rtt.GetDuration(), s.plr.Get())
-}
-
 // mathisThroughput estimates throughput using the Mathis equation
 // See https://www.switch.ch/network/tools/tcp_throughput/?do+new+calculation=do+new+calculation
 // for example.
 // Returns value in Kbps
-func mathisThroughput(rtt time.Duration, plr float64) float64 {
-	plr = plr / 100
+func (s *emaStats) mathisThroughput() float64 {
+	rtt := s.rtt.GetDuration()
+	plr := s.plr.Get() / 100
 	if plr == 0 {
 		// Assume small but measurable packet loss
 		// I came up with this number by comparing the result for
@@ -85,8 +84,9 @@ type pingMiddleware struct {
 
 func New() (filters.Filter, error) {
 	// Run privileged on Windows where this doesn't require root and where udp
-	// encapsulation doesn't work
-	privileged := runtime.GOOS == "windows"
+	// encapsulation doesn't work. Also run as privileged on linux where we have
+	// to deal with a firewall.
+	privileged := runtime.GOOS == "windows" || runtime.GOOS == "linux"
 	pinger, err := ping.NewPinger(privileged)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to initialize pinger: %v", err)
@@ -175,10 +175,10 @@ func (pm *pingMiddleware) ping() {
 	}
 
 	for s := range resultCh {
-		log.Debugf("ping results for %v  rtt: %4dms  plr: %3.2f%%  tput: %5.0fKpbs", s.origin, s.rtt.Nanoseconds()/1000000, s.plr, s.mathisThroughput())
 		es := pm.statsByOrigin[s.origin]
 		es.rtt.UpdateDuration(s.rtt)
 		es.plr.Update(s.plr)
+		log.Debugf("ping stats for %v  rtt: %4dms  plr: %3.2f%%  tput: %5.0fKpbs", s.origin, es.rtt.GetDuration().Nanoseconds()/1000000, es.plr.Get(), es.mathisThroughput())
 	}
 }
 
@@ -189,16 +189,13 @@ func (pm *pingMiddleware) doUpdateTimings(resultCh chan *stats) {
 }
 
 func (pm *pingMiddleware) pingOrigin(origin string, resultCh chan *stats) {
+	log.Debugf("monitoring %v", origin)
 	for {
-		log.Debugf("pinging %v", origin)
 		st, err := pm.pinger.Ping(origin,
-			// Ping 200 times to get a decent resolution
-			200,
-			// Ping every 200 milliseconds, which is the lowest amount that OS ping
-			// command allows without root (to avoid ICMP flooding)
-			200*time.Millisecond,
-			// Don't let pinging take more than 1 minute total
-			1*time.Minute)
+			pingBatch,
+			pingInterval,
+			// Don't let pinging take more than twice pingBatch * pingInterval
+			time.Duration(pingBatch)*pingInterval*2)
 		if err != nil {
 			log.Errorf("Error pinging %v: %v", origin, err)
 		} else if st.PacketsSent == 0 {
