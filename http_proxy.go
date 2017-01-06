@@ -130,9 +130,11 @@ func (p *Proxy) ListenAndServe() error {
 		log.Debug("Throttling is disabled")
 	}
 
+	var reportToBorda func(map[string]float64, map[string]interface{}) error
+
 	// Configure borda
 	if p.BordaReportInterval > 0 {
-		borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage)
+		reportToBorda = borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage)
 	}
 
 	// Set up a blacklist
@@ -170,6 +172,10 @@ func (p *Proxy) ListenAndServe() error {
 			devicefilter.NewPre(redis.NewDeviceFetcher(rc), p.ThrottleThreshold, fd),
 		)
 	}
+	pingFilter, err := ping.New(reportToBorda)
+	if err != nil {
+		log.Fatalf("Unable to set up ping filter: %v", err)
+	}
 	filterChain = filterChain.Append(
 		analytics.New(&analytics.Options{
 			TrackingID:       p.ProxiedSitesTrackingID,
@@ -180,7 +186,7 @@ func (p *Proxy) ListenAndServe() error {
 			AllowLocalhost: p.TestingLocal,
 			Exceptions:     []string{"127.0.0.1:7300"},
 		}),
-		ping.New(0),
+		pingFilter,
 	)
 
 	var attachConfigServerHeader func(*http.Request)

@@ -32,7 +32,7 @@ func TestMathisThroughput(t *testing.T) {
 }
 
 func TestBypass(t *testing.T) {
-	filter, err := New()
+	filter, err := New(nil)
 	if !assert.NoError(t, err) {
 		return
 	}

@@ -18,6 +18,7 @@ import (
 	"github.com/getlantern/go-ping"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy/filters"
+	"github.com/getlantern/ops"
 )
 
 const (
@@ -73,15 +74,16 @@ func (s *emaStats) mathisThroughput() float64 {
 }
 
 type pingMiddleware struct {
-	pinger        *ping.Pinger
-	statsByOrigin map[string]*emaStats
-	summary       []byte
-	summaryGZ     []byte
-	summaryMX     sync.RWMutex
-	httpClient    *http.Client
+	pinger          *ping.Pinger
+	statsByOrigin   map[string]*emaStats
+	summary         []byte
+	summaryGZ       []byte
+	summaryMX       sync.RWMutex
+	httpClient      *http.Client
+	doReportToBorda func(map[string]float64, map[string]interface{}) error
 }
 
-func New() (filters.Filter, error) {
+func New(reportToBorda func(map[string]float64, map[string]interface{}) error) (filters.Filter, error) {
 	// Run privileged on Windows where this doesn't require root and where udp
 	// encapsulation doesn't work. Also run as privileged on linux where we have
 	// to deal with a firewall.
@@ -107,6 +109,7 @@ func New() (filters.Filter, error) {
 				DisableKeepAlives: true,
 			},
 		},
+		doReportToBorda: reportToBorda,
 	}
 	go pm.ping()
 
@@ -135,6 +138,10 @@ func (pm *pingMiddleware) ping() {
 		pm.summary = summary
 		pm.summaryGZ = summaryGZ
 		pm.summaryMX.Unlock()
+
+		if pm.doReportToBorda != nil {
+			pm.reportToBorda(s.origin, es)
+		}
 	}
 }
 
@@ -168,6 +175,20 @@ func (pm *pingMiddleware) generateSummary() ([]byte, []byte, error) {
 
 	summaryGZ := buf.Bytes()
 	return summary, summaryGZ, nil
+}
+
+func (pm *pingMiddleware) reportToBorda(origin string, es *emaStats) {
+	dims := ops.AsMap(nil, true)
+	dims["origin_host"] = origin
+	dims["op"] = "ping_origin"
+	err := pm.doReportToBorda(map[string]float64{
+		"ping_rtt":  es.rtt.GetDuration().Seconds(),
+		"ping_plr":  es.plr.Get(),
+		"ping_tput": es.mathisThroughput(),
+	}, dims)
+	if err != nil {
+		log.Errorf("Unable to submit to borda: %v", err)
+	}
 }
 
 func (pm *pingMiddleware) pingOrigin(origin string, resultCh chan *stats) {

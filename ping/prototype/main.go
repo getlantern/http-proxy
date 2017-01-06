@@ -9,6 +9,6 @@ import (
 )
 
 func main() {
-	ping.New()
+	ping.New(nil)
 	time.Sleep(168 * time.Hour)
 }
