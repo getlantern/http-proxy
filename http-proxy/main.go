@@ -30,6 +30,7 @@ var (
 	throttlethreshold            = flag.Uint64("throttlethreshold", 0, "If > 0, throttling will be activated at the given threshold (in bytes) in all connections of the throttled device")
 	bordaReportInterval          = flag.Duration("borda-report-interval", 0*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
 	bordaSamplePercentage        = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
+	externalIP                   = flag.String("externalip", "", "The external IP of this proxy, used for reporting to Borda")
 	help                         = flag.Bool("help", false, "Get usage help")
 	https                        = flag.Bool("https", false, "Use TLS for client to proxy communication")
 	idleClose                    = flag.Uint64("idleclose", 70, "Time in seconds that an idle connection will be allowed before closing it")
@@ -85,16 +86,17 @@ func main() {
 	}
 
 	p := &proxy.Proxy{
-		Addr:                  *addr,
-		CertFile:              *certfile,
-		CfgSvrAuthToken:       *cfgSvrAuthToken,
-		CfgSvrDomains:         *cfgSvrDomains,
-		EnablePro:             *enablePro,
-		EnableReports:         *enableReports,
-		ThrottleBPS:           *throttlebps,
-		ThrottleThreshold:     *throttlethreshold,
-		BordaReportInterval:   *bordaReportInterval,
-		BordaSamplePercentage: *bordaSamplePercentage,
+		Addr:                         *addr,
+		CertFile:                     *certfile,
+		CfgSvrAuthToken:              *cfgSvrAuthToken,
+		CfgSvrDomains:                *cfgSvrDomains,
+		EnablePro:                    *enablePro,
+		EnableReports:                *enableReports,
+		ThrottleBPS:                  *throttlebps,
+		ThrottleThreshold:            *throttlethreshold,
+		BordaReportInterval:          *bordaReportInterval,
+		BordaSamplePercentage:        *bordaSamplePercentage,
+		ExternalIP:                   *externalIP,
 		HTTPS:                        *https,
 		IdleClose:                    *idleClose,
 		KeyFile:                      *keyfile,
