@@ -85,6 +85,7 @@ func (p *Proxy) ListenAndServe() error {
 	var err error
 	ops.SetGlobal("app", "http-proxy")
 	if p.ExternalIP != "" {
+		log.Debugf("Will report with proxy_host: %v", p.ExternalIP)
 		ops.SetGlobal("proxy_host", p.ExternalIP)
 	}
 
