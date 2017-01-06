@@ -1,8 +1,10 @@
 package ping
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	"errors"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -10,8 +12,8 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getlantern/ema"
 	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy/filters"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -19,113 +21,114 @@ var (
 	errNext = errors.New("nexterror")
 )
 
+func TestMathisThroughput(t *testing.T) {
+	s := &emaStats{
+		rtt: ema.NewDuration(115*time.Millisecond, 0.5),
+		plr: ema.New(1.2, 0.5),
+	}
+	assert.EqualValues(t, 0.927, int(s.mathisThroughput()))
+	s.plr.Set(0)
+	assert.EqualValues(t, 45.421, int(s.mathisThroughput()))
+}
+
 func TestBypass(t *testing.T) {
-	filter := New(0)
+	filter, err := New(nil)
+	if !assert.NoError(t, err) {
+		return
+	}
+	defer func() {
+		filter.(*pingMiddleware).pinger.Close()
+	}()
+
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
 	n := &next{}
-	err := filter.Apply(w, req, n.do)
+	err = filter.Apply(w, req, n.do)
 	assert.True(t, n.wasCalled())
 	assert.Equal(t, errNext, err)
 }
 
-func TestInvalid(t *testing.T) {
-	filter := New(0)
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
-	req.Header.Set(common.PingHeader, "invalid")
-	n := &next{}
-	err := filter.Apply(w, req, n.do)
-	assert.False(t, n.wasCalled())
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
-	}
+func TestGoodPlain(t *testing.T) {
+	doTestGood(t, false)
 }
 
-func TestGoodURL(t *testing.T) {
-	timingExpiration := 5 * time.Second
-	goodURL := "https://www.google.com/humans.txt"
-	badURL := "https://www.google.com/unknown.txt"
-	filter := New(timingExpiration)
-	statusCode, badTS := doTestURL(t, filter, badURL)
-	if !assert.Equal(t, http.StatusNotFound, statusCode) {
-		return
-	}
-
-	statusCode, firstTS := doTestURL(t, filter, goodURL)
-	if !assert.Equal(t, http.StatusOK, statusCode) {
-		return
-	}
-	assert.NotEqual(t, badTS, firstTS, "Bad timing should not have been cached")
-
-	statusCode, secondTS := doTestURL(t, filter, goodURL)
-	if !assert.Equal(t, http.StatusOK, statusCode) {
-		return
-	}
-	assert.Equal(t, firstTS, secondTS, "Should have used cached timing on 2nd request")
-
-	time.Sleep(timingExpiration * 2)
-	statusCode, thirdTS := doTestURL(t, filter, goodURL)
-	if !assert.Equal(t, http.StatusOK, statusCode) {
-		return
-	}
-	assert.NotEqual(t, secondTS, thirdTS, "Should have gotten new timing on 3rd request")
-
-	time.Sleep(timingExpiration * 2)
-	pingFilter := filter.(*pingMiddleware)
-	pingFilter.urlTimingsMx.RLock()
-	defer pingFilter.urlTimingsMx.RUnlock()
-	assert.Empty(t, pingFilter.urlTimings)
+func TestGoodGZ(t *testing.T) {
+	doTestGood(t, true)
 }
 
-func doTestURL(t *testing.T, filter filters.Filter, url string) (statusCode int, ts string) {
+func doTestGood(t *testing.T, acceptGZ bool) {
+	filter, err := New()
+	if !assert.NoError(t, err) {
+		return
+	}
+	defer func() {
+		log.Debug("Closing")
+		filter.(*pingMiddleware).pinger.Close()
+	}()
+
+	// Give the filter some time to pick up new timings
+	time.Sleep(15 * time.Second)
+
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
-	req.Header.Set(common.PingURLHeader, url)
+	// Note - the actual value of this header doesn't matter, it just needs to be
+	// set to something.
+	req.Header.Set(common.PingHeader, "summary")
+	if acceptGZ {
+		// Add multiple accept-encoding headers to make sure it doesn't confuse
+		// server
+		req.Header.Add("Accept-Encoding", "compress")
+		req.Header.Add("Accept-Encoding", "gzip")
+		req.Header.Add("Accept-Encoding", "deflate")
+	}
 	n := &next{}
-	err := filter.Apply(w, req, n.do)
+	err = filter.Apply(w, req, n.do)
 	assert.False(t, n.wasCalled())
-	if assert.NoError(t, err) {
-		resp := w.Result()
-		statusCode = resp.StatusCode
-		if resp.StatusCode == http.StatusOK {
-			n, _ := io.Copy(ioutil.Discard, w.Result().Body)
-			assert.EqualValues(t, 0, n)
-			ts = resp.Header.Get(common.PingTSHeader)
-			assert.NotEmpty(t, ts)
+	if !assert.NoError(t, err) {
+		return
+	}
+	resp := w.Result()
+	if !assert.Equal(t, http.StatusOK, resp.StatusCode) {
+		return
+	}
+	defer resp.Body.Close()
+	body, err := ioutil.ReadAll(resp.Body)
+	if !assert.NoError(t, err) {
+		return
+	}
+	if acceptGZ {
+		if !assert.Equal(t, "gzip", resp.Header.Get("Content-Encoding")) {
+			return
+		}
+		// Decompress
+		r, err := gzip.NewReader(bytes.NewReader(body))
+		if !assert.NoError(t, err) {
+			return
+		}
+		body, err = ioutil.ReadAll(r)
+		if !assert.NoError(t, err) {
+			return
 		}
 	}
 
-	return
-}
-
-func TestSmall(t *testing.T) {
-	testSize(t, "small", 1)
-}
-
-func TestMedium(t *testing.T) {
-	testSize(t, "medium", 100)
-}
-
-func TestLarge(t *testing.T) {
-	testSize(t, "large", 10000)
-}
-
-func testSize(t *testing.T, size string, mult int) {
-	filter := New(0)
-	w := httptest.NewRecorder()
-	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
-	req.Header.Set(common.PingHeader, size)
-	n := &next{}
-	err := filter.Apply(w, req, n.do)
-	assert.False(t, n.wasCalled())
-	if assert.NoError(t, err) {
-		resp := w.Result()
-		if assert.Equal(t, http.StatusOK, resp.StatusCode) {
-			n, _ := io.Copy(ioutil.Discard, w.Result().Body)
-			assert.EqualValues(t, mult*len(data), n)
-		}
+	summary := make(map[string]map[string]interface{})
+	err = json.Unmarshal(body, &summary)
+	if !assert.NoError(t, err) {
+		return
 	}
+
+	if !assert.True(t, len(summary) > 0) {
+		return
+	}
+	gvid := summary["googlevideo.com"]
+	if !assert.NotNil(t, gvid) {
+		return
+	}
+	tput := gvid["tput"]
+	if !assert.NotNil(t, tput) {
+		return
+	}
+	assert.NotEqual(t, defaultEMAStats.mathisThroughput(), tput, "Should have gotten non-default throughput")
 }
 
 type next struct {

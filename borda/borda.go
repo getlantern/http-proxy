@@ -15,7 +15,7 @@ var (
 )
 
 // Enable enables borda reporting
-func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) {
+func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) func(map[string]float64, map[string]interface{}) error {
 	bordaClient := borda.NewClient(&borda.Options{
 		BatchInterval: bordaReportInterval,
 	})
@@ -63,4 +63,6 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) {
 			log.Errorf("Error reporting error to borda: %v", reportErr)
 		}
 	})
+
+	return reportToBorda
 }
