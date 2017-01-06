@@ -44,3 +44,4 @@ dist
 *.sw?
 
 ping/prototype/prototype
+ping/prototype/pinger_linux_amd64

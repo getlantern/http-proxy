@@ -3,35 +3,31 @@
 package ping
 
 import (
+	"bytes"
+	"compress/gzip"
+	"encoding/json"
 	"fmt"
 	"math"
 	"math/rand"
 	"net/http"
-	"net/url"
 	"runtime"
-	"strings"
+	"sync"
 	"time"
 
 	"github.com/getlantern/ema"
 	"github.com/getlantern/go-ping"
 	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy/filters"
 )
 
 const (
-	// Ping 200 times to get a decent resolution
-	pingBatch = 200
-
-	// Ping every 200 milliseconds, which is the lowest amount that OS ping
-	// command allows without root (to avoid ICMP flooding)
-	pingInterval = 200 * time.Millisecond
-
 	// assume maximum segment size of 1460 for Mathis throughput calculation
 	mss = 1460
 
 	// evolve exponential moving averages fairly quickly
 	emaAlpha = 0.5
+
+	nanosPerMilli = 1000000
 )
 
 var (
@@ -63,7 +59,7 @@ type emaStats struct {
 // mathisThroughput estimates throughput using the Mathis equation
 // See https://www.switch.ch/network/tools/tcp_throughput/?do+new+calculation=do+new+calculation
 // for example.
-// Returns value in Kbps
+// Returns value in Mbps
 func (s *emaStats) mathisThroughput() float64 {
 	rtt := s.rtt.GetDuration()
 	plr := s.plr.Get() / 100
@@ -73,12 +69,15 @@ func (s *emaStats) mathisThroughput() float64 {
 		// download.thinkbroadband.com to actual download speeds.
 		plr = 0.000005
 	}
-	return 8 * (mss / rtt.Seconds()) * (1.0 / math.Sqrt(plr)) / 1000
+	return 8 * (mss / rtt.Seconds()) * (1.0 / math.Sqrt(plr)) / nanosPerMilli
 }
 
 type pingMiddleware struct {
 	pinger        *ping.Pinger
 	statsByOrigin map[string]*emaStats
+	summary       []byte
+	summaryGZ     []byte
+	summaryMX     sync.RWMutex
 	httpClient    *http.Client
 }
 
@@ -114,60 +113,6 @@ func New() (filters.Filter, error) {
 	return pm, nil
 }
 
-func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
-	log.Trace("In ping")
-	pingSize := req.Header.Get(common.PingHeader)
-	pingURL := req.Header.Get(common.PingURLHeader)
-	pingOrigin := req.Header.Get(common.PingOriginHeader)
-	if pingSize == "" && pingURL == "" && pingOrigin == "" {
-		log.Trace("Bypassing ping")
-		return next()
-	}
-	log.Trace("Processing ping")
-
-	if pingOrigin == "" && pingURL != "" {
-		parsed, err := url.Parse(pingURL)
-		if err != nil {
-			pingOrigin = parsed.Host
-		}
-	}
-
-	var s *emaStats
-	// Go through subsub.sub.domain.tld, stripping away subdomains until we get
-	// a result or run out of domain.
-	parts := strings.Split(strings.ToLower(pingOrigin), ".")
-	for {
-		if len(parts) < 2 {
-			break
-		}
-		origin := strings.Join(parts, ".")
-		log.Debugf("Checking %v", origin)
-		s = pm.statsByOrigin[origin]
-		if s != nil {
-			log.Debugf("Got data for %v", origin)
-			break
-		}
-		parts = parts[1:]
-	}
-
-	if s == nil {
-		// Use googlevideo.com by default
-		s = pm.statsByOrigin["googlevideo.com"]
-	}
-
-	if s == nil {
-		s = defaultEMAStats
-	}
-
-	if pingURL != "" {
-		// This is an old-style ping, simulate latency by sleeping
-		time.Sleep(s.rtt.GetDuration() * 50)
-	}
-	w.Header().Set(common.PingThroughputHeader, fmt.Sprint(s.mathisThroughput()))
-	w.WriteHeader(http.StatusOK)
-	return filters.Stop()
-}
-
 func (pm *pingMiddleware) ping() {
 	resultCh := make(chan *stats, len(origins))
 	for _, origin := range origins {
@@ -178,37 +123,81 @@ func (pm *pingMiddleware) ping() {
 		es := pm.statsByOrigin[s.origin]
 		es.rtt.UpdateDuration(s.rtt)
 		es.plr.Update(s.plr)
-		log.Debugf("ping stats for %v  rtt: %4v  plr: %3.2f%%  tput: %5.0fKpbs", s.origin, es.rtt.GetDuration(), es.plr.Get(), es.mathisThroughput())
+		log.Debugf("ping stats for %v  rtt: %4v  plr: %3.2f%%  tput: %5.0fMpbs", s.origin, es.rtt.GetDuration(), es.plr.Get(), es.mathisThroughput())
+
+		// Generate summary
+		summary, summaryGZ, err := pm.generateSummary()
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		pm.summaryMX.Lock()
+		pm.summary = summary
+		pm.summaryGZ = summaryGZ
+		pm.summaryMX.Unlock()
 	}
 }
 
-func (pm *pingMiddleware) doUpdateTimings(resultCh chan *stats) {
-	// With current number of origins and settings, each loop of this will take
-	// between 10 and 30 minutes, so there's no need to have an artificial pause.
+func (pm *pingMiddleware) generateSummary() ([]byte, []byte, error) {
+	statsByOrigin := make(map[string]map[string]interface{}, len(pm.statsByOrigin))
+	for origin, st := range pm.statsByOrigin {
+		statsByOrigin[origin] = map[string]interface{}{
+			"rtt":  float64(st.rtt.GetDuration().Nanoseconds()) / nanosPerMilli,
+			"plr":  st.plr.Get(),
+			"tput": st.mathisThroughput(),
+		}
+	}
+	summary, err := json.Marshal(statsByOrigin)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Unable to marshal stats to json: %v", err)
+	}
 
+	buf := &bytes.Buffer{}
+	w, err := gzip.NewWriterLevel(buf, gzip.BestCompression)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Unable to create gzip writer: %v", err)
+	}
+	_, err = w.Write(summary)
+	if err != nil {
+		return nil, nil, fmt.Errorf("Unable to write gzip: %v", err)
+	}
+	err = w.Close()
+	if err != nil {
+		return nil, nil, fmt.Errorf("Unable to finish writing gzip: %v", err)
+	}
+
+	summaryGZ := buf.Bytes()
+	return summary, summaryGZ, nil
 }
 
 func (pm *pingMiddleware) pingOrigin(origin string, resultCh chan *stats) {
 	log.Debugf("monitoring %v", origin)
-	for {
-		st, err := pm.pinger.Ping(origin,
-			pingBatch,
-			pingInterval,
-			// Don't let pinging take more than twice pingBatch * pingInterval
-			time.Duration(pingBatch)*pingInterval*2)
-		if err != nil {
-			log.Errorf("Error pinging %v: %v", origin, err)
-		} else if st.PacketsSent == 0 {
-			log.Debugf("No packets sent to %v, ignoring results", origin)
-		} else {
-			resultCh <- &stats{
-				origin: origin,
-				rtt:    st.AvgRtt,
-				plr:    st.PacketLoss,
+	pm.pinger.Loop(origin,
+		// Start with a batch of 4 to get a quick initial result
+		4,
+		// Use batches of 256 to get a decent resolution
+		256,
+		// Ping every 200 milliseconds, which is the lowest amount that OS ping
+		// command allows without root (to avoid ICMP flooding)
+		200*time.Millisecond,
+		// Set timeout assuming that RTT will be less than 400ms
+		400*time.Millisecond,
+		func(st *ping.Statistics, err error) bool {
+			if err != nil {
+				log.Errorf("Error pinging %v: %v", origin, err)
+			} else if st.PacketsSent == 0 {
+				log.Debugf("No packets sent to %v, ignoring results", origin)
+			} else {
+				resultCh <- &stats{
+					origin: origin,
+					rtt:    st.AvgRtt,
+					plr:    st.PacketLoss,
+				}
 			}
-		}
-		time.Sleep(randomize(pingInterval))
-	}
+
+			// Always continue looping
+			return true
+		})
 }
 
 // adds randomization to make requests less distinguishable on the network.
