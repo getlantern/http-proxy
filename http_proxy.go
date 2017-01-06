@@ -52,6 +52,7 @@ type Proxy struct {
 	Addr                         string
 	BordaReportInterval          time.Duration
 	BordaSamplePercentage        float64
+	ExternalIP                   string
 	CertFile                     string
 	CfgSvrAuthToken              string
 	CfgSvrDomains                string
@@ -83,6 +84,9 @@ type Proxy struct {
 func (p *Proxy) ListenAndServe() error {
 	var err error
 	ops.SetGlobal("app", "http-proxy")
+	if p.ExternalIP != "" {
+		ops.SetGlobal("proxy_host", p.ExternalIP)
+	}
 
 	if p.Benchmark {
 		log.Debug("Putting proxy into benchmarking mode. Only a limited rate of requests to a specific set of domains will be allowed, no authentication token required.")
@@ -277,11 +281,6 @@ func (p *Proxy) ListenAndServe() error {
 	)
 
 	onAddress := func(addr string) {
-		proxyHost, proxyPort, err2 := net.SplitHostPort(addr)
-		if err2 == nil {
-			ops.SetGlobal("proxy_host", proxyHost)
-			ops.SetGlobal("proxy_port", proxyPort)
-		}
 		mimic.SetServerAddr(addr)
 	}
 
