@@ -7,6 +7,8 @@ import (
 
 	borda "github.com/getlantern/borda/client"
 	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy/listeners"
+	"github.com/getlantern/measured"
 	"github.com/getlantern/ops"
 )
 
@@ -15,7 +17,7 @@ var (
 )
 
 // Enable enables borda reporting
-func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) {
+func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) listeners.MeasuredReportFN {
 	bordaClient := borda.NewClient(&borda.Options{
 		BatchInterval: bordaReportInterval,
 	})
@@ -63,4 +65,24 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) {
 			log.Errorf("Error reporting error to borda: %v", reportErr)
 		}
 	})
+
+	return func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
+		if !final {
+			// We report only the final values
+			return
+		}
+
+		ctx["op"] = "xfer"
+		vals := map[string]float64{
+			"server_bytes_sent":   float64(stats.SentTotal),
+			"server_bps_sent_min": stats.SentMin,
+			"server_bps_sent_max": stats.SentMax,
+			"server_bps_sent_avg": stats.SentAvg,
+			"server_bytes_recv":   float64(stats.RecvTotal),
+			"server_bps_recv_min": stats.RecvMin,
+			"server_bps_recv_max": stats.RecvMax,
+			"server_bps_recv_avg": stats.RecvAvg,
+		}
+		reportToBorda(vals, ctx)
+	}
 }

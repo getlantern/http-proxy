@@ -75,10 +75,6 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 		log.Debugf("No %s header found from %s for request to %v. Closing.",
 			common.DeviceIdHeader, req.RemoteAddr, req.Host)
 	} else {
-		// Sets the ID to the provided key. This message is captured only
-		// by the measured wrapper
-		wc.ControlMessage("measured", lanternDeviceID)
-
 		if f.throttleAfterBytes > 0 {
 			// Throttling enabled
 			u := usage.Get(lanternDeviceID)

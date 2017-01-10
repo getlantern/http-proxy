@@ -40,7 +40,10 @@ import (
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
 
-const timeoutToDialOriginSite = 10 * time.Second
+const (
+	timeoutToDialOriginSite   = 10 * time.Second
+	measuredReportingInterval = 10 * time.Second
+)
 
 var (
 	log = golog.LoggerFor("lantern-proxy")
@@ -95,7 +98,10 @@ func (p *Proxy) ListenAndServe() error {
 		p.Token = "bench"
 	}
 
-	var m *measured.Measured
+	reportMeasured := func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
+		// do nothing by default
+	}
+
 	// Get a Redis client
 	var rc *_redis.Client
 	if p.RedisAddr != "" {
@@ -116,10 +122,7 @@ func (p *Proxy) ListenAndServe() error {
 
 	// Reporting
 	if shouldReport {
-		rp := redis.NewMeasuredReporter(rc)
-		m = measured.New(5000)
-		m.Start(time.Minute, rp)
-		defer m.Stop()
+		reportMeasured = redis.NewMeasuredReporter(rc, measuredReportingInterval)
 	}
 
 	// Throttling
@@ -137,7 +140,12 @@ func (p *Proxy) ListenAndServe() error {
 
 	// Configure borda
 	if p.BordaReportInterval > 0 {
-		borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage)
+		oldReportMeasured := reportMeasured
+		bordaReportMeasured := borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage)
+		reportMeasured = func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
+			oldReportMeasured(ctx, stats, deltaStats, final)
+			bordaReportMeasured(ctx, stats, deltaStats, final)
+		}
 	}
 
 	// Set up a blacklist
@@ -260,11 +268,11 @@ func (p *Proxy) ListenAndServe() error {
 			},
 		)
 	}
-	if shouldReport {
+	if shouldReport || p.BordaReportInterval > 0 {
 		srv.AddListenerWrappers(
 			// Measure connections
 			func(ls net.Listener) net.Listener {
-				return listeners.NewMeasuredListener(ls, 10*time.Second, m)
+				return listeners.NewMeasuredListener(ls, measuredReportingInterval, reportMeasured)
 			},
 		)
 	}
