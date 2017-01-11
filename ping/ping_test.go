@@ -12,6 +12,7 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy/filters"
+	"github.com/getlantern/mtime"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -45,18 +46,11 @@ func TestInvalid(t *testing.T) {
 func TestGoodURL(t *testing.T) {
 	timingExpiration := 5 * time.Second
 	goodURL := "https://www.google.com/humans.txt"
-	badURL := "https://www.google.com/unknown.txt"
 	filter := New(timingExpiration)
-	statusCode, badTS := doTestURL(t, filter, badURL)
-	if !assert.Equal(t, http.StatusNotFound, statusCode) {
-		return
-	}
-
 	statusCode, firstTS := doTestURL(t, filter, goodURL)
 	if !assert.Equal(t, http.StatusOK, statusCode) {
 		return
 	}
-	assert.NotEqual(t, badTS, firstTS, "Bad timing should not have been cached")
 
 	statusCode, secondTS := doTestURL(t, filter, goodURL)
 	if !assert.Equal(t, http.StatusOK, statusCode) {
@@ -104,14 +98,15 @@ func TestSmall(t *testing.T) {
 }
 
 func TestMedium(t *testing.T) {
-	testSize(t, "medium", 100)
+	testSize(t, "medium", 5)
 }
 
 func TestLarge(t *testing.T) {
-	testSize(t, "large", 10000)
+	testSize(t, "large", 10)
 }
 
 func testSize(t *testing.T, size string, mult int) {
+	elapsed := mtime.Stopwatch()
 	filter := New(0)
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
@@ -122,8 +117,7 @@ func testSize(t *testing.T, size string, mult int) {
 	if assert.NoError(t, err) {
 		resp := w.Result()
 		if assert.Equal(t, http.StatusOK, resp.StatusCode) {
-			n, _ := io.Copy(ioutil.Discard, w.Result().Body)
-			assert.EqualValues(t, mult*len(data), n)
+			assert.True(t, elapsed() > time.Duration(mult)*time.Second)
 		}
 	}
 }

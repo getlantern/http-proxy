@@ -14,7 +14,6 @@ import (
 	"github.com/getlantern/http-proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy-lantern/metrics"
 )
 
 var (
@@ -45,12 +44,9 @@ func randStringRunes(n int) string {
 
 // pingMiddleware intercepts ping requests and returns some random data
 type pingMiddleware struct {
-	smallResponseTime  metrics.MovingAverage
-	mediumResponseTime metrics.MovingAverage
-	largeResponseTime  metrics.MovingAverage
-	timingExpiration   time.Duration
-	urlTimings         map[string]*urlTiming
-	urlTimingsMx       sync.RWMutex
+	timingExpiration time.Duration
+	urlTimings       map[string]*urlTiming
+	urlTimingsMx     sync.RWMutex
 }
 
 func New(timingExpiration time.Duration) filters.Filter {
@@ -58,13 +54,9 @@ func New(timingExpiration time.Duration) filters.Filter {
 		timingExpiration = defaultTimingExpiration
 	}
 	pm := &pingMiddleware{
-		smallResponseTime:  metrics.NewMovingAverage(),
-		mediumResponseTime: metrics.NewMovingAverage(),
-		largeResponseTime:  metrics.NewMovingAverage(),
-		timingExpiration:   timingExpiration,
-		urlTimings:         make(map[string]*urlTiming),
+		timingExpiration: timingExpiration,
+		urlTimings:       make(map[string]*urlTiming),
 	}
-	go pm.logTimings()
 	go pm.cleanupExpiredTimings()
 	return pm
 }
@@ -80,55 +72,32 @@ func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next f
 	log.Trace("Processing ping")
 
 	if pingURL != "" {
+		// For now, we force all ping URLs to YouTube
+		pingURL = "https://www.youtube.com"
 		return pm.urlPing(w, pingURL)
 	}
 
 	var size int
-	var ma metrics.MovingAverage
 	switch pingSize {
 	case "small":
 		size = 1
-		ma = pm.smallResponseTime
 	case "medium":
-		size = 100
-		ma = pm.mediumResponseTime
+		size = 5
 	case "large":
-		size = 10000
-		ma = pm.largeResponseTime
+		size = 10
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 		fmt.Fprintf(w, "Invalid ping size %v\n", pingSize)
 		return filters.Stop()
 	}
 
-	return pm.cannedPing(w, ma, size)
+	return pm.cannedPing(w, size)
 }
 
-func (pm *pingMiddleware) cannedPing(w http.ResponseWriter, ma metrics.MovingAverage, size int) error {
-	start := time.Now()
+func (pm *pingMiddleware) cannedPing(w http.ResponseWriter, size int) error {
 	w.WriteHeader(200)
-	for i := 0; i < size; i++ {
-		w.Write(data)
-	}
+	// Simulate latency by sleeping
+	time.Sleep(time.Duration(size) * time.Second)
 	// Flush to the client to make sure we're getting a comprehensive timing
-	w.(http.Flusher).Flush()
-	delta := time.Now().Sub(start)
-	ma.Update(delta.Nanoseconds() / 1000)
-
 	return filters.Stop()
-}
-
-func (pm *pingMiddleware) logTimings() {
-	for {
-		time.Sleep(1 * time.Minute)
-		now := time.Now()
-		msg := fmt.Sprintf(`**** Average Ping Response Times in µs, moving average (1 min, 5 min, 15 min) ****
-%v Small      (1 KB) - %v
-%v Medium   (100 KB) - %v
-%v Large (10,000 KB) - %v
-`, now, pm.smallResponseTime,
-			now, pm.mediumResponseTime,
-			now, pm.largeResponseTime)
-		log.Debug(msg)
-	}
 }

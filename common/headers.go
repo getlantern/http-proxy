@@ -4,7 +4,7 @@ const (
 	DeviceIdHeader        = "X-Lantern-Device-Id"
 	TokenHeader           = "X-Lantern-Auth-Token"
 	PingHeader            = "X-Lantern-Ping"
-	PingURLHeader         = "X-Lantern-Ping-Url"
+	PingURLHeader         = "X-Lantern-PingURL"
 	PingTSHeader          = "X-Lantern-Ping-Ts"
 	ProTokenHeader        = "X-Lantern-Pro-Token"
 	CfgSvrAuthTokenHeader = "X-Lantern-Config-Auth-Token"
