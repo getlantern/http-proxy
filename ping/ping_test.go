@@ -46,18 +46,11 @@ func TestInvalid(t *testing.T) {
 func TestGoodURL(t *testing.T) {
 	timingExpiration := 5 * time.Second
 	goodURL := "https://www.google.com/humans.txt"
-	badURL := "https://www.google.com/unknown.txt"
 	filter := New(timingExpiration)
-	statusCode, badTS := doTestURL(t, filter, badURL)
-	if !assert.Equal(t, http.StatusNotFound, statusCode) {
-		return
-	}
-
 	statusCode, firstTS := doTestURL(t, filter, goodURL)
 	if !assert.Equal(t, http.StatusOK, statusCode) {
 		return
 	}
-	assert.NotEqual(t, badTS, firstTS, "Bad timing should not have been cached")
 
 	statusCode, secondTS := doTestURL(t, filter, goodURL)
 	if !assert.Equal(t, http.StatusOK, statusCode) {

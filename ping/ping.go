@@ -72,6 +72,8 @@ func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next f
 	log.Trace("Processing ping")
 
 	if pingURL != "" {
+		// For now, we force all ping URLs to YouTube
+		pingURL = "https://www.youtube.com"
 		return pm.urlPing(w, pingURL)
 	}
 
