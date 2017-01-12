@@ -1,5 +1,5 @@
 hash: cc332fdf2a5576d355337cb62a923e0cddd6f6959904f3f31b9bd9650d2cb9bd
-updated: 2017-01-11T11:32:27.283698171-06:00
+updated: 2017-01-11T20:22:31.152426367-06:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 50915b3ba5ee27c0b2fcdad9edd51156fb55192c
@@ -50,7 +50,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: 80fe020621503a9bdc241dd2c20c34088926b4a0
+  version: 6b3649cc75edab96e1a5cc522c6168314573104b
   subpackages:
   - buffers
   - commonfilter
