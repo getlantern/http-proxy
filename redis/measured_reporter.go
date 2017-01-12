@@ -22,11 +22,11 @@ type statsAndContext struct {
 func NewMeasuredReporter(rc *redis.Client, reportInterval time.Duration) listeners.MeasuredReportFN {
 	// Provide some buffering so that we don't lose data while submitting to Redis
 	statsCh := make(chan *statsAndContext, 10000)
-	log.Debug("Will report traffic")
+	go reportPeriodically(rc, reportInterval, statsCh)
 	return func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 		select {
 		case statsCh <- &statsAndContext{ctx, deltaStats}:
-			// submitted successfull
+			// submitted successfully
 		default:
 			// data lost, probably because Redis submission is taking longer than expected
 		}
@@ -34,7 +34,7 @@ func NewMeasuredReporter(rc *redis.Client, reportInterval time.Duration) listene
 }
 
 func reportPeriodically(rc *redis.Client, reportInterval time.Duration, statsCh chan (*statsAndContext)) {
-	log.Debug("Reporting traffic")
+	log.Debug("Will report traffic")
 	ticker := time.NewTicker(reportInterval)
 	statsByDeviceID := make(map[string]*measured.Stats)
 
@@ -50,11 +50,15 @@ func reportPeriodically(rc *redis.Client, reportInterval time.Duration, statsCh 
 			existing := statsByDeviceID[deviceID]
 			if existing == nil {
 				existing = sac.stats
+				statsByDeviceID[deviceID] = existing
 			} else {
 				existing.SentTotal += sac.stats.SentTotal
 				existing.RecvTotal += sac.stats.RecvTotal
 			}
 		case <-ticker.C:
+			if log.IsTraceEnabled() {
+				log.Tracef("Submitting %d stats", len(statsByDeviceID))
+			}
 			err := submit(rc, statsByDeviceID)
 			if err != nil {
 				log.Errorf("Unable to submit stats: %v", err)
