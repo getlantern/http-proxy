@@ -21,11 +21,7 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) li
 	bordaClient := borda.NewClient(&borda.Options{
 		BatchInterval: bordaReportInterval,
 	})
-	reportToBorda := bordaClient.ReducingSubmitter("proxy_results", 10000, func(existingValues map[string]float64, newValues map[string]float64) {
-		for key, value := range newValues {
-			existingValues[key] += value
-		}
-	})
+	reportToBorda := bordaClient.ReducingSubmitter("proxy_results", 10000)
 	ops.RegisterReporter(func(failure error, ctx map[string]interface{}) {
 		// Sample a subset of device ids
 		deviceID := ctx["device_id"]
@@ -54,11 +50,11 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) li
 			return
 		}
 
-		values := map[string]float64{}
+		values := map[string]borda.Val{}
 		if failure != nil {
-			values["error_count"] = 1
+			values["error_count"] = borda.Float(1)
 		} else {
-			values["success_count"] = 1
+			values["success_count"] = borda.Float(1)
 		}
 		reportErr := reportToBorda(values, ctx)
 		if reportErr != nil {
@@ -73,15 +69,15 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) li
 		}
 
 		ctx["op"] = "xfer"
-		vals := map[string]float64{
-			"server_bytes_sent":   float64(stats.SentTotal),
-			"server_bps_sent_min": stats.SentMin,
-			"server_bps_sent_max": stats.SentMax,
-			"server_bps_sent_avg": stats.SentAvg,
-			"server_bytes_recv":   float64(stats.RecvTotal),
-			"server_bps_recv_min": stats.RecvMin,
-			"server_bps_recv_max": stats.RecvMax,
-			"server_bps_recv_avg": stats.RecvAvg,
+		vals := map[string]borda.Val{
+			"server_bytes_sent":   borda.Float(stats.SentTotal),
+			"server_bps_sent_min": borda.Min(stats.SentMin),
+			"server_bps_sent_max": borda.Max(stats.SentMax),
+			"server_bps_sent_avg": borda.WeightedAvg(stats.SentAvg, float64(stats.SentTotal)),
+			"server_bytes_recv":   borda.Float(stats.RecvTotal),
+			"server_bps_recv_min": borda.Min(stats.RecvMin),
+			"server_bps_recv_max": borda.Max(stats.RecvMax),
+			"server_bps_recv_avg": borda.WeightedAvg(stats.RecvAvg, float64(stats.RecvTotal)),
 		}
 		reportToBorda(vals, ctx)
 	}
