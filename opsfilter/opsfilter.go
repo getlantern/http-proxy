@@ -3,6 +3,7 @@ package opsfilter
 import (
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
@@ -30,6 +31,9 @@ func (f *opsfilter) Apply(resp http.ResponseWriter, req *http.Request, next filt
 	if (originPort == "0" || originPort == "") && req.Method != http.MethodConnect {
 		// Default port for HTTP
 		originPort = "80"
+	}
+	if originHost == "" && !strings.Contains(req.Host, ":") {
+		originHost = req.Host
 	}
 
 	op := ops.
