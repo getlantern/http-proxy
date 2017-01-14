@@ -1,5 +1,5 @@
 hash: cc332fdf2a5576d355337cb62a923e0cddd6f6959904f3f31b9bd9650d2cb9bd
-updated: 2017-01-13T19:07:02.956438455-06:00
+updated: 2017-01-14T05:54:03.084492774-06:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 50915b3ba5ee27c0b2fcdad9edd51156fb55192c
@@ -50,7 +50,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: 6b3649cc75edab96e1a5cc522c6168314573104b
+  version: e5e037ec3ba762ed256624c9f73411d4e56c0bc5
   subpackages:
   - buffers
   - commonfilter
@@ -128,7 +128,7 @@ imports:
 - name: github.com/visionmedia/go-debug
   version: ff4a55a20a86994118644bbddc6a216da193cc13
 - name: github.com/xtaci/kcp-go
-  version: 1e82838baba5be74485c42872b2325f7b34423fe
+  version: 44fe2c2d60bd88dc68f2f5b6eb18978a8816536f
 - name: golang.org/x/crypto
   version: 2f8be38b9a7533b8763d48273737ff6e90428a96
   subpackages:
@@ -145,7 +145,7 @@ imports:
   - twofish
   - xtea
 - name: golang.org/x/net
-  version: 0ab64c594a6a5489089faa1e7b2b541110f31eb5
+  version: f2499483f923065a842d38eb4c7f1927e6fc6e6d
   repo: https://github.com/golang/net
   vcs: git
   subpackages:
