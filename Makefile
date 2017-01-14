@@ -7,8 +7,8 @@ BUILD_DIR    ?= bin
 build: require-glide
 	$(GLIDE_BIN) install && \
 	mkdir -p $(BUILD_DIR) && \
-	go build -o $(BUILD_DIR)/http-proxy-lantern github.com/getlantern/http-proxy-lantern/http-proxy && \
-	file $(BUILD_DIR)/http-proxy-lantern
+	go build -o $(BUILD_DIR)/http-proxy github.com/getlantern/http-proxy-lantern/http-proxy && \
+	file $(BUILD_DIR)/http-proxy
 
 require-glide:
 	@if [ "$(GLIDE_BIN)" = "" ]; then \
@@ -21,8 +21,8 @@ require-upx:
 	fi
 
 dist: require-glide require-upx
-	GOOS=linux GOARCH=amd64 BUILD_DIR=dist $(MAKE) build && \
-	upx dist/http-proxy-lantern
+	GOOS=linux GOARCH=amd64 BUILD_DIR=dist $(MAKE) build -o http-proxy && \
+	upx dist/http-proxy
 
 clean:
 	rm -rf dist bin
