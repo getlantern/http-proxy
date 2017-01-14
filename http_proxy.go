@@ -42,7 +42,7 @@ import (
 
 const (
 	timeoutToDialOriginSite   = 10 * time.Second
-	measuredReportingInterval = 10 * time.Second
+	measuredReportingInterval = 1 * time.Minute
 )
 
 var (
