@@ -1,33 +1,75 @@
 package redis
 
 import (
-	"net"
 	"time"
 
 	"gopkg.in/redis.v3"
 
-	"github.com/getlantern/measured"
-
 	"github.com/getlantern/http-proxy-lantern/usage"
+	"github.com/getlantern/http-proxy/listeners"
+	"github.com/getlantern/measured"
 )
 
 var (
 	keysExpiration = time.Hour * 24 * 31
 )
 
-type measuredReporter struct {
-	redisClient *redis.Client
+type statsAndContext struct {
+	ctx   map[string]interface{}
+	stats *measured.Stats
 }
 
-func NewMeasuredReporter(rc *redis.Client) measured.Reporter {
-	log.Debug("Will report traffic")
-	return &measuredReporter{
-		redisClient: rc,
+func NewMeasuredReporter(rc *redis.Client, reportInterval time.Duration) listeners.MeasuredReportFN {
+	// Provide some buffering so that we don't lose data while submitting to Redis
+	statsCh := make(chan *statsAndContext, 10000)
+	go reportPeriodically(rc, reportInterval, statsCh)
+	return func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
+		select {
+		case statsCh <- &statsAndContext{ctx, deltaStats}:
+			// submitted successfully
+		default:
+			// data lost, probably because Redis submission is taking longer than expected
+		}
 	}
 }
 
-func (rp *measuredReporter) ReportTraffic(tt map[string]*measured.TrafficTracker) error {
-	log.Debug("Reporting traffic")
+func reportPeriodically(rc *redis.Client, reportInterval time.Duration, statsCh chan (*statsAndContext)) {
+	log.Debug("Will report traffic")
+	ticker := time.NewTicker(reportInterval)
+	statsByDeviceID := make(map[string]*measured.Stats)
+
+	for {
+		select {
+		case sac := <-statsCh:
+			_deviceID := sac.ctx["deviceid"]
+			if _deviceID == nil {
+				// ignore
+				continue
+			}
+			deviceID := _deviceID.(string)
+			existing := statsByDeviceID[deviceID]
+			if existing == nil {
+				existing = sac.stats
+				statsByDeviceID[deviceID] = existing
+			} else {
+				existing.SentTotal += sac.stats.SentTotal
+				existing.RecvTotal += sac.stats.RecvTotal
+			}
+		case <-ticker.C:
+			if log.IsTraceEnabled() {
+				log.Tracef("Submitting %d stats", len(statsByDeviceID))
+			}
+			err := submit(rc, statsByDeviceID)
+			if err != nil {
+				log.Errorf("Unable to submit stats: %v", err)
+			}
+			// Reset stats
+			statsByDeviceID = make(map[string]*measured.Stats)
+		}
+	}
+}
+
+func submit(rc *redis.Client, statsByDeviceID map[string]*measured.Stats) error {
 	now := time.Now()
 	nextMonth := now.Month() + 1
 	nextYear := now.Year()
@@ -37,23 +79,17 @@ func (rp *measuredReporter) ReportTraffic(tt map[string]*measured.TrafficTracker
 	}
 	beginningOfNextMonth := time.Date(nextYear, nextMonth, 1, 0, 0, 0, 0, now.Location())
 	endOfThisMonth := beginningOfNextMonth.Add(-1 * time.Nanosecond)
-	for key, t := range tt {
-		// Don't report IDs in the form ip:port, so no connection that isn't
-		// associated to a request that passes through devicefilter gets reported
-		if _, _, err := net.SplitHostPort(key); err == nil {
-			continue
-		}
-
-		multi := rp.redisClient.Multi()
+	for deviceID, stats := range statsByDeviceID {
+		multi := rc.Multi()
 		var bytesInOp *redis.IntCmd
 		var bytesOutOp *redis.IntCmd
 		_, merr := multi.Exec(func() error {
-			clientKey := "_client:" + key
+			clientKey := "_client:" + deviceID
 			// If any of these commands fails, the error will be immediately returned by Exec,
 			// so we shouldn't be checking them here. Also, reifying the values should be done
 			// after the Exec is done and we've checked for errors running it.
-			bytesInOp = multi.HIncrBy(clientKey, "bytesIn", int64(t.TotalIn))
-			bytesOutOp = multi.HIncrBy(clientKey, "bytesOut", int64(t.TotalOut))
+			bytesInOp = multi.HIncrBy(clientKey, "bytesIn", int64(stats.RecvTotal))
+			bytesOutOp = multi.HIncrBy(clientKey, "bytesOut", int64(stats.SentTotal))
 			multi.ExpireAt(clientKey, endOfThisMonth)
 			return nil
 		})
@@ -64,7 +100,7 @@ func (rp *measuredReporter) ReportTraffic(tt map[string]*measured.TrafficTracker
 
 		bytesIn := bytesInOp.Val()
 		bytesOut := bytesOutOp.Val()
-		usage.Set(key, uint64(bytesIn+bytesOut), now)
+		usage.Set(deviceID, uint64(bytesIn+bytesOut), now)
 	}
 	return nil
 }

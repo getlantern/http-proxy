@@ -37,7 +37,7 @@ const (
 )
 
 var (
-	m = measured.New(5000)
+	mr = &mockReporter{traffic: make(map[string]*measured.Stats)}
 
 	httpProxyAddr    string
 	tlsProxyAddr     string
@@ -96,9 +96,6 @@ func TestMain(m *testing.M) {
 func TestReportStats(t *testing.T) {
 	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 	connectResp := "HTTP/1.1 400 Bad Request\r\n"
-	mr := &mockReporter{traffic: make(map[string]*measured.TrafficTracker)}
-	m.Start(100*time.Millisecond, mr)
-	defer m.Stop()
 	testFn := func(conn net.Conn, targetURL *url.URL) {
 		var err error
 		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, deviceId)
@@ -120,11 +117,13 @@ func TestReportStats(t *testing.T) {
 	testRoundTrip(t, tlsProxyAddr, true, httpTargetServer, testFn)
 	time.Sleep(200 * time.Millisecond)
 	mr.tmtx.Lock()
-	assert.Equal(t, 2, len(mr.traffic))
-	if len(mr.traffic) > 0 {
-		t.Logf("%+v", mr.traffic)
+	defer mr.tmtx.Unlock()
+	if assert.True(t, len(mr.traffic) > 0) {
+		stats := mr.traffic[""]
+		if assert.NotNil(t, stats) {
+			log.Debug(stats)
+		}
 	}
-	mr.tmtx.Unlock()
 }
 
 func TestMaxConnections(t *testing.T) {
@@ -669,7 +668,7 @@ func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
 		},
 		// Measure connections
 		func(ls net.Listener) net.Listener {
-			return listeners.NewMeasuredListener(ls, 100*time.Millisecond, m)
+			return listeners.NewMeasuredListener(ls, 100*time.Millisecond, mr.Report)
 		},
 	)
 
@@ -777,16 +776,18 @@ func newTargetHandler(msg string, tls bool) (string, *targetHandler) {
 //
 
 type mockReporter struct {
-	traffic map[string]*measured.TrafficTracker
+	traffic map[string]*measured.Stats
 	lmtx    sync.Mutex
 	tmtx    sync.Mutex
 }
 
-func (mr *mockReporter) ReportTraffic(t map[string]*measured.TrafficTracker) error {
+func (mr *mockReporter) Report(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 	mr.tmtx.Lock()
 	defer mr.tmtx.Unlock()
-	for key, value := range t {
-		mr.traffic[key] = value
+	_deviceID := ctx["deviceid"]
+	deviceID := ""
+	if _deviceID != nil {
+		deviceID = _deviceID.(string)
 	}
-	return nil
+	mr.traffic[deviceID] = stats
 }
