@@ -1,5 +1,5 @@
 hash: cc332fdf2a5576d355337cb62a923e0cddd6f6959904f3f31b9bd9650d2cb9bd
-updated: 2017-01-11T20:22:31.152426367-06:00
+updated: 2017-01-13T19:07:02.956438455-06:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 50915b3ba5ee27c0b2fcdad9edd51156fb55192c
@@ -20,13 +20,13 @@ imports:
   - edwards25519
   - extra25519
 - name: github.com/aristanetworks/goarista
-  version: e3c7442614fc56ddc05675ed475a3a8d03bbb027
+  version: c8d7f36ed1f3022edfdf6031c2f2a844cf8bf04d
   subpackages:
   - monotime
 - name: github.com/dchest/siphash
   version: 4ebf1de738443ea7f45f02dc394c4df1942a126d
 - name: github.com/getlantern/borda
-  version: 57b5e227e09ee47cdf60d524fc10dd5cb98ea11e
+  version: 69d041e1e70333ec46db79fcdd18136deeca9d2f
   subpackages:
   - client
 - name: github.com/getlantern/byteexec
@@ -128,9 +128,9 @@ imports:
 - name: github.com/visionmedia/go-debug
   version: ff4a55a20a86994118644bbddc6a216da193cc13
 - name: github.com/xtaci/kcp-go
-  version: f019b1da0e9ec314d16ea3a82f25b302c364ed06
+  version: 1e82838baba5be74485c42872b2325f7b34423fe
 - name: golang.org/x/crypto
-  version: 7c6cc321c680f03b9ef0764448e780704f486b51
+  version: 2f8be38b9a7533b8763d48273737ff6e90428a96
   subpackages:
   - blowfish
   - cast5
@@ -145,7 +145,7 @@ imports:
   - twofish
   - xtea
 - name: golang.org/x/net
-  version: 60c41d1de8da134c05b7b40154a9a82bf5b7edb9
+  version: 0ab64c594a6a5489089faa1e7b2b541110f31eb5
   repo: https://github.com/golang/net
   vcs: git
   subpackages:
