@@ -1,5 +1,5 @@
 hash: cc332fdf2a5576d355337cb62a923e0cddd6f6959904f3f31b9bd9650d2cb9bd
-updated: 2017-01-14T23:17:43.32553312-06:00
+updated: 2017-01-14T23:27:53.138609496-06:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 50915b3ba5ee27c0b2fcdad9edd51156fb55192c
@@ -30,7 +30,7 @@ imports:
 - name: github.com/dustin/go-humanize
   version: 7a41df006ff9af79a29f0ffa9c5f21fbe6314a2d
 - name: github.com/getlantern/borda
-  version: 69d041e1e70333ec46db79fcdd18136deeca9d2f
+  version: fbcf081371738667df6ea6fffa00a0bb3ac70510
   subpackages:
   - client
 - name: github.com/getlantern/byteexec
@@ -172,7 +172,7 @@ imports:
 - name: github.com/visionmedia/go-debug
   version: ff4a55a20a86994118644bbddc6a216da193cc13
 - name: github.com/xtaci/kcp-go
-  version: 44fe2c2d60bd88dc68f2f5b6eb18978a8816536f
+  version: 2375cf611f981974b6cb456cd45d97d114c12328
 - name: github.com/xwb1989/sqlparser
   version: dbfc8580724c42e86a20e9586b75a65b806cd88b
   subpackages:
