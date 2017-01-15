@@ -36,7 +36,7 @@ imports:
 - name: github.com/getlantern/byteexec
   version: 2e21fedeb225921a8dc40321cbd114ffd0a302f3
 - name: github.com/getlantern/bytemap
-  version: 699a6a91e4cb66ca2580b050480619c867f1c17d
+  version: bfc6af00248c88cc5ce23537579f81226489a037
 - name: github.com/getlantern/cmux
   version: 28e8bb95109fb227116226ae6f3a0890a3bd78e3
 - name: github.com/getlantern/context
