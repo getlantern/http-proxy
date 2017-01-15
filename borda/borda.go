@@ -9,6 +9,7 @@ import (
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/measured"
 	"github.com/getlantern/ops"
+	"github.com/getlantern/zenodb/rpc"
 )
 
 var (
@@ -21,9 +22,19 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) li
 		return rand.Float64() < bordaSamplePercentage
 	}
 
-	bordaClient := borda.NewClient(&borda.Options{
+	opts := &borda.Options{
 		BatchInterval: bordaReportInterval,
-	})
+	}
+
+	rc, err := rpc.Dial("borda.getlantern.org:17712", &rpc.ClientOpts{})
+	if err != nil {
+		log.Errorf("Unable to dial borda, will not use gRPC: %v", err)
+	} else {
+		log.Debug("Using RPC to communicate with borda")
+		opts.RPCClient = rc
+	}
+
+	bordaClient := borda.NewClient(opts)
 	reportToBorda := bordaClient.ReducingSubmitter("proxy_results", 10000)
 
 	ops.RegisterReporter(func(failure error, ctx map[string]interface{}) {
