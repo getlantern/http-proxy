@@ -4,12 +4,15 @@
 package profilter
 
 import (
+	"fmt"
 	"net/http"
 	//"net/http/httputil"
 	"sync"
 	"sync/atomic"
 
 	"github.com/getlantern/golog"
+	"github.com/getlantern/ops"
+
 	"github.com/gorilla/context"
 
 	"github.com/getlantern/http-proxy/filters"
@@ -17,18 +20,22 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/common"
 	throttle "github.com/getlantern/http-proxy-lantern/listeners"
+	"github.com/getlantern/http-proxy-lantern/mimic"
 	redislib "gopkg.in/redis.v3"
 )
 
 var log = golog.LoggerFor("profilter")
 
 type TokensMap map[string]bool
+type DevicesMap map[string]bool
 
 type lanternProFilter struct {
-	enabled   int32
-	proTokens *atomic.Value
+	enabled    int32
+	proTokens  *atomic.Value
+	proDevices *atomic.Value
 	// Tokens write-only mutex
 	tkwMutex            sync.Mutex
+	devsMutex           sync.Mutex
 	proConf             *proConfig
 	keepProTokenDomains []string
 	fasttrackDomains    *common.FasttrackDomains
@@ -44,6 +51,7 @@ type Options struct {
 func New(opts *Options) (filters.Filter, error) {
 	f := &lanternProFilter{
 		proTokens:           new(atomic.Value),
+		proDevices:          new(atomic.Value),
 		keepProTokenDomains: opts.KeepProTokenDomains,
 		fasttrackDomains:    opts.FasttrackDomains,
 	}
@@ -57,9 +65,12 @@ func New(opts *Options) (filters.Filter, error) {
 }
 
 func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
-	// BEGIN of temporary fix: Do not throttle *any* connection if the proxy is Pro-only
+	op := ops.Begin("profilter")
+	defer op.End()
 
-	// lanternProToken := req.Header.Get(common.ProTokenHeader)
+	lanternProToken := req.Header.Get(common.ProTokenHeader)
+
+	// BEGIN of temporary fix: Do not throttle *any* connection if the proxy is Pro-only
 
 	// if log.IsTraceEnabled() {
 	// 	reqStr, _ := httputil.DumpRequest(req, true)
@@ -71,7 +82,7 @@ func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next 
 
 	// shouldDelete := true
 	// for _, domain := range f.keepProTokenDomains {
-	// 	if req.Host == domain {
+	// 	if req.Host == domain {nn
 	// 		shouldDelete = false
 	// 		break
 	// 	}
@@ -94,7 +105,25 @@ func (f *lanternProFilter) Apply(w http.ResponseWriter, req *http.Request, next 
 	}
 	// END of temporary fix
 
-	return next()
+	// Check for authorized device
+	device := req.Header.Get(common.DeviceIdHeader)
+
+	if device != "" && f.deviceExists(device) {
+		log.Tracef("Device ID %v is ALLOWED", device)
+		return next()
+	} else {
+		log.Tracef("Device ID %v is NOT ALLOWED", device)
+
+		// Make the response depending on the client being legit or not
+		if f.isEnabled() && lanternProToken != "" && f.tokenExists(lanternProToken) {
+			w.WriteHeader(http.StatusForbidden)
+		} else {
+			log.Error(errorf(op, "Non-authorized Pro user with token %v, mimicking apache", lanternProToken))
+			mimic.MimicApache(w, req)
+		}
+
+		return filters.Stop()
+	}
 }
 
 func (f *lanternProFilter) isEnabled() bool {
@@ -157,4 +186,36 @@ func (f *lanternProFilter) tokenExists(token string) bool {
 	tks := f.proTokens.Load().(TokensMap)
 	_, ok := tks[token]
 	return ok
+}
+
+// SetDevices sets the devcies to the provided list, removing
+// any previous devices
+func (f *lanternProFilter) SetDevices(devices ...string) {
+	// Copy-on-write.  Writes are far less common than reads.
+	f.devsMutex.Lock()
+	defer f.devsMutex.Unlock()
+
+	devs := make(DevicesMap)
+	for _, t := range devices {
+		devs[t] = true
+	}
+	f.proDevices.Store(devs)
+}
+
+func (f *lanternProFilter) ClearDevices() {
+	// Synchronize with writers
+	f.devsMutex.Lock()
+	defer f.devsMutex.Unlock()
+
+	f.proDevices.Store(make(DevicesMap))
+}
+
+func (f *lanternProFilter) deviceExists(device string) bool {
+	devs := f.proDevices.Load().(DevicesMap)
+	_, ok := devs[device]
+	return ok
+}
+
+func errorf(op ops.Op, msg string, args ...interface{}) error {
+	return op.FailIf(fmt.Errorf(msg, args...))
 }

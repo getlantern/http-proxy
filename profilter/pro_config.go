@@ -11,6 +11,7 @@ type proConfig struct {
 	serverId    string
 	redisConfig *redis.ProConfig
 	userTokens  redis.UserTokens
+	userDevices redis.UserDevices
 	proFilter   *lanternProFilter
 }
 
@@ -19,6 +20,7 @@ func NewRedisProConfig(rc *redislib.Client, serverId string, proFilter *lanternP
 		serverId:    serverId,
 		redisConfig: redis.NewProConfig(rc, serverId),
 		userTokens:  make(redis.UserTokens),
+		userDevices: make(redis.UserDevices),
 		proFilter:   proFilter,
 	}
 }
@@ -31,6 +33,14 @@ func (c *proConfig) processUserSetMessage(msg []string) error {
 	user := msg[1]
 	token := msg[2]
 	c.userTokens[user] = token
+
+	// Get user devices too
+	devs, err := c.redisConfig.GetUserDevices(user)
+	if err != nil {
+		return errors.New("Error retrieving user devices in UPDATE-DEVICES message")
+	}
+	c.userDevices[user] = devs
+
 	return nil
 }
 
@@ -39,13 +49,52 @@ func (c *proConfig) processUserRemoveMessage(msg []string) error {
 	if len(msg) != 2 {
 		return errors.New("Malformed REMOVE message")
 	}
+
 	user := msg[1]
+
+	// Remove the user from the devices registry (don't care if the user has no
+	// device registered)
+	delete(c.userDevices, user)
+
+	// Remove the user from the tokens registry (the main one used for
+	// user->server assignation knowledge in proxies
 	if _, ok := c.userTokens[user]; !ok {
 		return errors.New("User in REMOVE message was not assigned to server")
 	}
 
 	delete(c.userTokens, user)
 	return nil
+}
+
+func (c *proConfig) processUserUpdateDevicesMessage(msg []string) error {
+	// Should receive USER-UPDATE-DEVICES,<USER>
+	if len(msg) != 2 {
+		return errors.New("Malformed UPDATE-DEVICES message")
+	}
+	user := msg[1]
+	if _, ok := c.userTokens[user]; !ok {
+		return errors.New("User in UPDATE-DEVICES message was not assigned to server")
+	}
+
+	devs, err := c.redisConfig.GetUserDevices(user)
+	if err != nil {
+		return errors.New("Error retrieving user devices in UPDATE-DEVICES message")
+	}
+	c.userDevices[user] = devs
+
+	return nil
+}
+
+// updateAllDevices retrieves the devices from all proxy users
+func (c *proConfig) updateAllDevices() {
+	for user := range c.userTokens {
+		devices, err := c.redisConfig.GetUserDevices(user)
+		if err != nil {
+			log.Debugf("Error retrieving devices for user %d: %v", user, err)
+		} else {
+			c.userDevices[user] = devices
+		}
+	}
 }
 
 func (c *proConfig) getAllTokens() []string {
@@ -56,6 +105,17 @@ func (c *proConfig) getAllTokens() []string {
 		i++
 	}
 	return tokens
+}
+
+func (c *proConfig) getAllDevices() []string {
+	// 3 is the number of max devices per user
+	devices := make([]string, 0, len(c.userDevices)*3)
+	for _, udevs := range c.userDevices {
+		for _, d := range udevs {
+			devices = append(devices, d)
+		}
+	}
+	return devices
 }
 
 func (c *proConfig) IsPro() (bool, error) {
@@ -78,8 +138,14 @@ func (c *proConfig) Run(initAsPro bool) error {
 
 		tks := c.getAllTokens()
 		c.proFilter.SetTokens(tks...)
+
+		c.updateAllDevices()
+		devices := c.getAllDevices()
+		c.proFilter.SetDevices(devices...)
+
 		log.Debugf("The proxy has assigned users: Pro-only proxy.")
 		log.Debugf("Initializing with the following Pro tokens: %v", tks)
+		log.Debugf("Initializing with the following allowed devices: %v", devices)
 		return
 	}
 
@@ -110,6 +176,7 @@ func (c *proConfig) Run(initAsPro bool) error {
 					// We need to update all tokens to avoid leaking old ones,
 					// in case of token update
 					c.proFilter.SetTokens(c.getAllTokens()...)
+					c.proFilter.SetDevices(c.getAllDevices()...)
 					log.Tracef("User added/updated. Complete set of users: %v", c.userTokens)
 				}
 			case "USER-REMOVE":
@@ -117,7 +184,14 @@ func (c *proConfig) Run(initAsPro bool) error {
 					log.Errorf("Error retrieving removed users/token: %v", err)
 				} else {
 					c.proFilter.SetTokens(c.getAllTokens()...)
+					c.proFilter.SetDevices(c.getAllDevices()...)
 					log.Tracef("Removed user. Current set: %v", c.userTokens)
+				}
+			case "USER-UPDATE-DEVICES":
+				if err := c.processUserUpdateDevicesMessage(msg); err != nil {
+					log.Errorf("Error updating user devices: %v", err)
+				} else {
+					c.proFilter.SetDevices(c.getAllDevices()...)
 				}
 			case "TURN-PRO":
 				initialize()
