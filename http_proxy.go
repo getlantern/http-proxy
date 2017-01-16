@@ -55,6 +55,7 @@ type Proxy struct {
 	Addr                         string
 	BordaReportInterval          time.Duration
 	BordaSamplePercentage        float64
+	BordaBufferSize              int
 	ExternalIP                   string
 	CertFile                     string
 	CfgSvrAuthToken              string
@@ -141,7 +142,7 @@ func (p *Proxy) ListenAndServe() error {
 	// Configure borda
 	if p.BordaReportInterval > 0 {
 		oldReportMeasured := reportMeasured
-		bordaReportMeasured := borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage)
+		bordaReportMeasured := borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
 		reportMeasured = func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 			oldReportMeasured(ctx, stats, deltaStats, final)
 			bordaReportMeasured(ctx, stats, deltaStats, final)

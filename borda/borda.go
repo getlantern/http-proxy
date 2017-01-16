@@ -1,7 +1,9 @@
 package borda
 
 import (
+	"crypto/tls"
 	"math/rand"
+	"net"
 	"time"
 
 	borda "github.com/getlantern/borda/client"
@@ -17,7 +19,7 @@ var (
 )
 
 // Enable enables borda reporting
-func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) listeners.MeasuredReportFN {
+func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, maxBufferSize int) listeners.MeasuredReportFN {
 	inSample := func() bool {
 		return rand.Float64() < bordaSamplePercentage
 	}
@@ -26,7 +28,22 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) li
 		BatchInterval: bordaReportInterval,
 	}
 
-	rc, err := rpc.Dial("borda.getlantern.org:17712", &rpc.ClientOpts{})
+	clientSessionCache := tls.NewLRUClientSessionCache(10000)
+	clientTLSConfig := &tls.Config{
+		ServerName:         "borda.getlantern.org",
+		ClientSessionCache: clientSessionCache,
+	}
+
+	rc, err := rpc.Dial("borda.getlantern.org:17712", &rpc.ClientOpts{
+		Dialer: func(addr string, timeout time.Duration) (net.Conn, error) {
+			conn, dialErr := net.DialTimeout("tcp", addr, timeout)
+			if dialErr != nil {
+				return nil, dialErr
+			}
+			tlsConn := tls.Client(conn, clientTLSConfig)
+			return tlsConn, tlsConn.Handshake()
+		},
+	})
 	if err != nil {
 		log.Errorf("Unable to dial borda, will not use gRPC: %v", err)
 	} else {
@@ -35,7 +52,7 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) li
 	}
 
 	bordaClient := borda.NewClient(opts)
-	reportToBorda := bordaClient.ReducingSubmitter("proxy_results", 10000)
+	reportToBorda := bordaClient.ReducingSubmitter("proxy_results", maxBufferSize)
 
 	ops.RegisterReporter(func(failure error, ctx map[string]interface{}) {
 		if !inSample() {
@@ -76,6 +93,9 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64) li
 			"server_bps_recv_max": borda.Max(stats.RecvMax),
 			"server_bps_recv_avg": borda.WeightedAvg(stats.RecvAvg, float64(stats.RecvTotal)),
 		}
-		reportToBorda(vals, ctx)
+		reportErr := reportToBorda(vals, ctx)
+		if reportErr != nil {
+			log.Errorf("Error reporting error to borda: %v", reportErr)
+		}
 	}
 }
