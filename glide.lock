@@ -1,5 +1,5 @@
 hash: cc332fdf2a5576d355337cb62a923e0cddd6f6959904f3f31b9bd9650d2cb9bd
-updated: 2017-01-14T23:27:53.138609496-06:00
+updated: 2017-01-16T10:04:57.039087309-06:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 50915b3ba5ee27c0b2fcdad9edd51156fb55192c
@@ -30,13 +30,13 @@ imports:
 - name: github.com/dustin/go-humanize
   version: 7a41df006ff9af79a29f0ffa9c5f21fbe6314a2d
 - name: github.com/getlantern/borda
-  version: fbcf081371738667df6ea6fffa00a0bb3ac70510
+  version: 717e4a696bd56a0cf2cd4e78635feade82a489a1
   subpackages:
   - client
 - name: github.com/getlantern/byteexec
   version: 2e21fedeb225921a8dc40321cbd114ffd0a302f3
 - name: github.com/getlantern/bytemap
-  version: bfc6af00248c88cc5ce23537579f81226489a037
+  version: 4dd4ecae18588644add452f16e5c5aa41a90bd00
 - name: github.com/getlantern/cmux
   version: 28e8bb95109fb227116226ae6f3a0890a3bd78e3
 - name: github.com/getlantern/context
@@ -112,7 +112,7 @@ imports:
 - name: github.com/getlantern/yaml
   version: 97d86b60f57eeca9d70c02763ed2565bafc17585
 - name: github.com/getlantern/zenodb
-  version: 517cdbbe6d8d9c2edee30e1f0e02ac6e76cf3925
+  version: bc4a757d7df7115992badcab51ecedf8afd00b1a
   subpackages:
   - bytetree
   - core
@@ -139,8 +139,6 @@ imports:
   - simplelru
 - name: github.com/klauspost/cpuid
   version: 09cded8978dc9e80714c4d85b0322337b0a1e5e0
-- name: github.com/klauspost/crc32
-  version: cb6bfca970f6908083f26f39a79009d608efd5cd
 - name: github.com/klauspost/reedsolomon
   version: c056598956acbb4a085b3c23914415937b3335e5
 - name: github.com/mxk/go-flowrate
@@ -172,7 +170,7 @@ imports:
 - name: github.com/visionmedia/go-debug
   version: ff4a55a20a86994118644bbddc6a216da193cc13
 - name: github.com/xtaci/kcp-go
-  version: 2375cf611f981974b6cb456cd45d97d114c12328
+  version: 63b16f6040c9f8ac5c55c1c6818eca2d9b586fa4
 - name: github.com/xwb1989/sqlparser
   version: dbfc8580724c42e86a20e9586b75a65b806cd88b
   subpackages:
@@ -181,7 +179,7 @@ imports:
   - dependency/hack
   - dependency/sqltypes
 - name: golang.org/x/crypto
-  version: 2f8be38b9a7533b8763d48273737ff6e90428a96
+  version: 2e74c773682f59dc50a56475f7918dd8fa6dcaf8
   subpackages:
   - blowfish
   - cast5
@@ -252,7 +250,7 @@ imports:
   - internal/hashtag
   - internal/pool
 - name: gopkg.in/redis.v5
-  version: 6da05abbaa03e90e5878f0ab711478698609fe96
+  version: 8829ddcd8bdb333e477cc845946c4b9b2ef66280
   subpackages:
   - internal
   - internal/consistenthash
