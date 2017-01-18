@@ -172,8 +172,9 @@ func (p *Proxy) ListenAndServe() error {
 			"www.google.com":      30 * time.Minute,
 			"www.facebook.com":    30 * time.Minute,
 			"67.media.tumblr.com": 30 * time.Minute,
-			"i.ytimg.com":         30 * time.Minute, // YouTube play button
-			"149.154.167.91":      30 * time.Minute, // Telegram
+			"i.ytimg.com":         30 * time.Minute,     // YouTube play button
+			"149.154.167.91":      30 * time.Minute,     // Telegram
+			"ping-chained-server": 1 * time.Millisecond, // Internal ping-chained-server protocol
 		}))
 	} else {
 		filterChain = filters.Join(tokenfilter.New(p.Token))
