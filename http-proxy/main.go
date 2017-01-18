@@ -30,6 +30,7 @@ var (
 	throttlethreshold            = flag.Uint64("throttlethreshold", 0, "If > 0, throttling will be activated at the given threshold (in bytes) in all connections of the throttled device")
 	bordaReportInterval          = flag.Duration("borda-report-interval", 0*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
 	bordaSamplePercentage        = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
+	bordaBufferSize              = flag.Int("borda-buffer-size", 10000, "Size of borda buffer, caps how many distinct measurements to keep during each submit interval")
 	externalIP                   = flag.String("externalip", "", "The external IP of this proxy, used for reporting to Borda")
 	help                         = flag.Bool("help", false, "Get usage help")
 	https                        = flag.Bool("https", false, "Use TLS for client to proxy communication")
@@ -96,6 +97,7 @@ func main() {
 		ThrottleThreshold:            *throttlethreshold,
 		BordaReportInterval:          *bordaReportInterval,
 		BordaSamplePercentage:        *bordaSamplePercentage,
+		BordaBufferSize:              *bordaBufferSize,
 		ExternalIP:                   *externalIP,
 		HTTPS:                        *https,
 		IdleClose:                    *idleClose,
