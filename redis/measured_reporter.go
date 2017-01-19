@@ -90,6 +90,11 @@ func submit(rc *redis.Client, statsByDeviceID map[string]*measured.Stats) error 
 			// after the Exec is done and we've checked for errors running it.
 			bytesInOp = multi.HIncrBy(clientKey, "bytesIn", int64(stats.RecvTotal))
 			bytesOutOp = multi.HIncrBy(clientKey, "bytesOut", int64(stats.SentTotal))
+			// If the time of proxy is ahead of Redis, this may sets the expiry
+			// to end of the next month before Redis expires the key.
+			// As a supplement, lantern_aws has a cronjob
+			// salt/cronner/reset_bandwidth_data.py to delete all client keys
+			// at the beginning of each month.
 			multi.ExpireAt(clientKey, endOfThisMonth)
 			return nil
 		})
