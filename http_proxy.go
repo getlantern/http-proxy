@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -24,6 +25,7 @@ import (
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
+	"github.com/getlantern/http-proxy-lantern/bbr"
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/borda"
 	"github.com/getlantern/http-proxy-lantern/common"
@@ -308,6 +310,12 @@ func (p *Proxy) ListenAndServe() error {
 		l, listenErr := net.Listen("tcp", p.Obfs4Addr)
 		if listenErr != nil {
 			log.Fatalf("Unable to listen with obfs4: %v", listenErr)
+		}
+		if runtime.GOOS == "linux" {
+			log.Debug("Adding bbr listener wrapper")
+			l = bbr.Wrap(l)
+		} else {
+			log.Debugf("OS is %v, not adding bbr listener wrapper: %v", runtime.GOOS)
 		}
 		serveOBFS4(l)
 	}
