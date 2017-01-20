@@ -169,6 +169,15 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	var filterChain filters.Chain
+	var bbrfilter bbr.Filter
+	if runtime.GOOS == "linux" {
+		log.Debug("Tracking bbr metrics")
+		bbrfilter = bbr.New()
+		filterChain = filterChain.Append(bbrfilter)
+	} else {
+		log.Debugf("OS is %v, not tracking bbr metrics: %v", runtime.GOOS)
+	}
+
 	if p.Benchmark {
 		filterChain = filterChain.Append(ratelimiter.New(5000, map[string]time.Duration{
 			"www.google.com":      30 * time.Minute,
@@ -311,11 +320,8 @@ func (p *Proxy) ListenAndServe() error {
 		if listenErr != nil {
 			log.Fatalf("Unable to listen with obfs4: %v", listenErr)
 		}
-		if runtime.GOOS == "linux" {
-			log.Debug("Adding bbr listener wrapper")
-			l = bbr.Wrap(l)
-		} else {
-			log.Debugf("OS is %v, not adding bbr listener wrapper: %v", runtime.GOOS)
+		if bbrfilter != nil {
+			l = bbrfilter.Wrap(l)
 		}
 		serveOBFS4(l)
 	}
@@ -324,6 +330,9 @@ func (p *Proxy) ListenAndServe() error {
 		l, listenErr := kcplistener.NewListener(p.Obfs4KCPAddr)
 		if listenErr != nil {
 			log.Fatalf("Unable to listen with kcp: %v", listenErr)
+		}
+		if bbrfilter != nil {
+			l = bbrfilter.Wrap(l)
 		}
 		serveOBFS4(l)
 	}

@@ -9,4 +9,6 @@ const (
 	ProTokenHeader        = "X-Lantern-Pro-Token"
 	CfgSvrAuthTokenHeader = "X-Lantern-Config-Auth-Token"
 	CfgSvrClientIPHeader  = "X-Lantern-Config-Client-IP"
+	MinRTTHeader          = "X-MinRTT"
+	EstBandwidthHeader    = "X-EstBW"
 )

@@ -1,23 +1,66 @@
 package bbr
 
 import (
+	"fmt"
 	"net"
+	"net/http"
+	"sync"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/getlantern/bbrconn"
+	"github.com/getlantern/ema"
 	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/getlantern/http-proxy/filters"
+	"github.com/golang/groupcache/lru"
 )
 
 var (
 	log = golog.LoggerFor("bbrlistener")
 )
 
-type bbrlistener struct {
-	wrapped net.Listener
+type stat struct {
+	minRTT       *ema.EMA
+	estBandwidth *ema.EMA
 }
 
-func Wrap(l net.Listener) net.Listener {
-	return &bbrlistener{l}
+type Filter interface {
+	filters.Filter
+	Wrap(net.Listener) net.Listener
+}
+
+type bbrMiddleware struct {
+	stats *lru.Cache
+	mx    sync.RWMutex
+}
+
+func New() Filter {
+	return &bbrMiddleware{
+		stats: lru.New(5000),
+	}
+}
+
+func (bm *bbrMiddleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
+	remoteHost, _, _ := net.SplitHostPort(req.RemoteAddr)
+	bm.mx.RLock()
+	_stat, statFound := bm.stats.Get(remoteHost)
+	bm.mx.RUnlock()
+	if statFound {
+		stat := _stat.(*stat)
+		w.Header().Set(common.MinRTTHeader, stat.minRTT.GetDuration().String())
+		w.Header().Set(common.EstBandwidthHeader, fmt.Sprint(stat.estBandwidth.Get()))
+	}
+	return next()
+}
+
+func (bm *bbrMiddleware) Wrap(l net.Listener) net.Listener {
+	return &bbrlistener{l, bm}
+}
+
+type bbrlistener struct {
+	wrapped net.Listener
+	bm      *bbrMiddleware
 }
 
 func (l *bbrlistener) Accept() (net.Conn, error) {
@@ -29,7 +72,7 @@ func (l *bbrlistener) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &wrappedConn{Conn: bbr}, nil
+	return &wrappedConn{Conn: bbr, bm: l.bm}, nil
 }
 
 func (l *bbrlistener) Addr() net.Addr {
@@ -42,6 +85,7 @@ func (l *bbrlistener) Close() error {
 
 type wrappedConn struct {
 	bbrconn.Conn
+	bm        *bbrMiddleware
 	bytesSent uint64
 }
 
@@ -56,7 +100,25 @@ func (c *wrappedConn) Close() error {
 	if err != nil {
 		log.Errorf("Unable to get bbr info: %v", err)
 	} else {
-		log.Debugf("Estimated bandwidth to %v after sending %v: %v/s", c.RemoteAddr(), humanize.Bytes(c.bytesSent), humanize.Bytes(uint64(info.EstBandwidth)))
+		remoteHost, _, _ := net.SplitHostPort(c.RemoteAddr().String())
+		log.Debugf("Estimated bandwidth to %v after sending %v: %v/s", remoteHost, humanize.Bytes(c.bytesSent), humanize.Bytes(uint64(info.EstBandwidth)))
+		nextRTT := time.Duration(info.MinRTT)
+		nextEstBandwidth := float64(info.EstBandwidth) * 8 / 1000 / 1000
+		c.bm.mx.Lock()
+		_stat, found := c.bm.stats.Get(remoteHost)
+		if !found {
+			stat := &stat{
+				minRTT:       ema.NewDuration(nextRTT*time.Microsecond, 0.5),
+				estBandwidth: ema.New(nextEstBandwidth, 0.5),
+			}
+			c.bm.stats.Add(remoteHost, stat)
+			c.bm.mx.Unlock()
+		} else {
+			c.bm.mx.Unlock()
+			stat := _stat.(*stat)
+			stat.minRTT.UpdateDuration(nextRTT)
+			stat.estBandwidth.Update(nextEstBandwidth)
+		}
 	}
 	return c.Conn.Close()
 }
