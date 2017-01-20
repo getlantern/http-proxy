@@ -16,6 +16,14 @@ import (
 	"github.com/golang/groupcache/lru"
 )
 
+const (
+	// don't record BBR info unless we've transferred at least 1 MB worth of data
+	recordThreshold = 1024768
+
+	// TODO: it probably makes sense to record BBR info at a few defined points,
+	// like 10 KB, 1 MB, 10 MB
+)
+
 var (
 	log = golog.LoggerFor("bbrlistener")
 )
@@ -102,22 +110,24 @@ func (c *wrappedConn) Close() error {
 	} else {
 		remoteHost, _, _ := net.SplitHostPort(c.RemoteAddr().String())
 		log.Debugf("Estimated bandwidth to %v after sending %v: %v/s", remoteHost, humanize.Bytes(c.bytesSent), humanize.Bytes(uint64(info.EstBandwidth)))
-		nextRTT := time.Duration(info.MinRTT)
-		nextEstBandwidth := float64(info.EstBandwidth) * 8 / 1000 / 1000
-		c.bm.mx.Lock()
-		_stat, found := c.bm.stats.Get(remoteHost)
-		if !found {
-			stat := &stat{
-				minRTT:       ema.NewDuration(nextRTT*time.Microsecond, 0.5),
-				estBandwidth: ema.New(nextEstBandwidth, 0.5),
+		if c.bytesSent > recordThreshold {
+			nextRTT := time.Duration(info.MinRTT)
+			nextEstBandwidth := float64(info.EstBandwidth) * 8 / 1000 / 1000
+			c.bm.mx.Lock()
+			_stat, found := c.bm.stats.Get(remoteHost)
+			if !found {
+				stat := &stat{
+					minRTT:       ema.NewDuration(nextRTT*time.Microsecond, 0.5),
+					estBandwidth: ema.New(nextEstBandwidth, 0.5),
+				}
+				c.bm.stats.Add(remoteHost, stat)
+				c.bm.mx.Unlock()
+			} else {
+				c.bm.mx.Unlock()
+				stat := _stat.(*stat)
+				stat.minRTT.UpdateDuration(nextRTT)
+				stat.estBandwidth.Update(nextEstBandwidth)
 			}
-			c.bm.stats.Add(remoteHost, stat)
-			c.bm.mx.Unlock()
-		} else {
-			c.bm.mx.Unlock()
-			stat := _stat.(*stat)
-			stat.minRTT.UpdateDuration(nextRTT)
-			stat.estBandwidth.Update(nextEstBandwidth)
 		}
 	}
 	return c.Conn.Close()
