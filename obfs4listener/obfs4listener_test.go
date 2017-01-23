@@ -9,11 +9,8 @@ import (
 	"testing"
 
 	"git.torproject.org/pluggable-transports/obfs4.git/transports/obfs4"
-	"github.com/getlantern/cmux"
-	"github.com/getlantern/http-proxy-lantern/kcplistener"
-	"github.com/getlantern/snappyconn"
+	"github.com/getlantern/connmux"
 	"github.com/stretchr/testify/assert"
-	"github.com/xtaci/kcp-go"
 )
 
 func TestRoundTrip(t *testing.T) {
@@ -23,15 +20,18 @@ func TestRoundTrip(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpDir)
 
-	wrapped, err := kcplistener.NewListener("localhost:0")
+	wrapped, err := net.Listen("tcp", "localhost:0")
 	if !assert.NoError(t, err, "Unable to create listener") {
 		return
 	}
 
-	l, err := Wrap(wrapped, tmpDir)
+	ol, err := Wrap(wrapped, tmpDir)
 	if !assert.NoError(t, err, "Unable to wrap listener") {
 		return
 	}
+
+	pool := connmux.NewBufferPool(100)
+	l := connmux.WrapListener(ol, 2, pool)
 	defer l.Close()
 
 	go func() {
@@ -52,38 +52,25 @@ func TestRoundTrip(t *testing.T) {
 		return
 	}
 
-	args, err := cf.ParseArgs(l.(*obfs4listener).sf.Args())
+	args, err := cf.ParseArgs(ol.(*obfs4listener).sf.Args())
 	if !assert.NoError(t, err, "Unable to parse client args") {
 		return
 	}
 
-	block, _ := kcp.NewNoneBlockCrypt(nil)
-	dial := cmux.Dialer(&cmux.DialerOpts{
-		Dial: func(network, addr string) (net.Conn, error) {
-			conn, err := kcp.DialWithOptions(addr, block, 10, 3)
-			if err != nil {
-				return nil, err
-			}
-			kcplistener.ApplyDefaultConnParameters(conn)
-			conn.SetDSCP(0)
-			conn.SetReadBuffer(4194304)
-			conn.SetWriteBuffer(4194304)
-			return snappyconn.Wrap(conn), nil
-		},
+	dial := connmux.Dialer(2, pool, func() (net.Conn, error) {
+		return cf.Dial("tcp", l.Addr().String(), net.Dial, args)
 	})
 
 	// Dial with a regular dialer that won't handshake. This makes sure that we're
 	// handling this case correctly and not interfering with successful
 	// connections afterwards
-	badConn, err := dial("tcp", l.Addr().String())
+	badConn, err := net.Dial("tcp", l.Addr().String())
 	if !assert.NoError(t, err, "Unable to dial bad conn") {
 		return
 	}
 	defer badConn.Close()
 
-	conn, err := cf.Dial("tcp", l.Addr().String(), func(network, addr string) (net.Conn, error) {
-		return dial(network, addr)
-	}, args)
+	conn, err := dial()
 	if !assert.NoError(t, err, "Unable to dial good conn") {
 		return
 	}
