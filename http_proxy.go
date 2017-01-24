@@ -307,7 +307,7 @@ func (p *Proxy) ListenAndServe() error {
 		if err != nil {
 			log.Fatalf("Unable to listen with obfs4 at %v: %v", wrapped.Addr(), wrapErr)
 		}
-		l = connmux.WrapListener(l, 10, buffers.Pool())
+		l = connmux.WrapListener(l, buffers.Pool())
 		go func() {
 			serveErr := srv.Serve(l, func(addr string) {
 				log.Debugf("obfs4 serving at %v", addr)
