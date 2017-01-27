@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -13,6 +14,7 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
 	"github.com/getlantern/ops"
+	"github.com/getlantern/tlsdefaults"
 
 	"github.com/getlantern/http-proxy/commonfilter"
 	"github.com/getlantern/http-proxy/filters"
@@ -82,6 +84,7 @@ type Proxy struct {
 	Obfs4Dir                     string
 	Benchmark                    bool
 	FasttrackDomains             string
+	DiffServTOS                  int
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -320,11 +323,17 @@ func (p *Proxy) ListenAndServe() error {
 		serveOBFS4(l)
 	}
 
-	if p.HTTPS {
-		err = srv.ListenAndServeHTTPS(p.Addr, p.KeyFile, p.CertFile, onAddress)
-	} else {
-		err = srv.ListenAndServeHTTP(p.Addr, onAddress)
+	l, err := net.Listen("tcp", p.Addr)
+	if err != nil {
+		return fmt.Errorf("Unable to listen HTTP: %v", err)
 	}
+	if p.HTTPS {
+		l, err = tlsdefaults.NewListener(l, p.KeyFile, p.CertFile)
+		if err != nil {
+			return err
+		}
+	}
+	err = srv.Serve(l, onAddress)
 	if err != nil {
 		log.Errorf("Error serving HTTP(S): %v", err)
 	}
