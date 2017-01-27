@@ -31,6 +31,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
+	"github.com/getlantern/http-proxy-lantern/diffserv"
 	"github.com/getlantern/http-proxy-lantern/kcplistener"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
@@ -308,7 +309,7 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if p.Obfs4Addr != "" {
-		l, listenErr := net.Listen("tcp", p.Obfs4Addr)
+		l, listenErr := p.listenTCP(p.Obfs4Addr)
 		if listenErr != nil {
 			log.Fatalf("Unable to listen with obfs4: %v", listenErr)
 		}
@@ -323,7 +324,7 @@ func (p *Proxy) ListenAndServe() error {
 		serveOBFS4(l)
 	}
 
-	l, err := net.Listen("tcp", p.Addr)
+	l, err := p.listenTCP(p.Addr)
 	if err != nil {
 		return fmt.Errorf("Unable to listen HTTP: %v", err)
 	}
@@ -338,6 +339,18 @@ func (p *Proxy) ListenAndServe() error {
 		log.Errorf("Error serving HTTP(S): %v", err)
 	}
 	return err
+}
+
+func (p *Proxy) listenTCP(addr string) (net.Listener, error) {
+	l, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	if p.DiffServTOS > 0 {
+		log.Debugf("Setting diffserv TOS to %d", p.DiffServTOS)
+		l = diffserv.Wrap(l, p.DiffServTOS)
+	}
+	return l, nil
 }
 
 func portsFromCSV(csv string) ([]int, error) {
