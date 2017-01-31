@@ -11,11 +11,13 @@ import (
 
 	_redis "gopkg.in/redis.v3"
 
+	"github.com/getlantern/connmux"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/tlsdefaults"
 
+	"github.com/getlantern/http-proxy/buffers"
 	"github.com/getlantern/http-proxy/commonfilter"
 	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/forward"
@@ -295,9 +297,11 @@ func (p *Proxy) ListenAndServe() error {
 
 	serveOBFS4 := func(wrapped net.Listener) {
 		l, wrapErr := obfs4listener.Wrap(wrapped, p.Obfs4Dir)
-		if err != nil {
+		if wrapErr != nil {
 			log.Fatalf("Unable to listen with obfs4 at %v: %v", wrapped.Addr(), wrapErr)
 		}
+		log.Debug("Enabling connmux for OBFS4")
+		l = connmux.WrapListener(l, buffers.Pool())
 		go func() {
 			serveErr := srv.Serve(l, func(addr string) {
 				log.Debugf("obfs4 serving at %v", addr)

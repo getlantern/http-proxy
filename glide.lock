@@ -39,6 +39,8 @@ imports:
   version: 4dd4ecae18588644add452f16e5c5aa41a90bd00
 - name: github.com/getlantern/cmux
   version: 28e8bb95109fb227116226ae6f3a0890a3bd78e3
+- name: github.com/getlantern/connmux
+  version: 70f3961155047e2569dbb08625fdc47bcad0dc5a
 - name: github.com/getlantern/context
   version: 624d99b1798d7c5375ea1d3ca4c5b04d58f7c775
 - name: github.com/getlantern/errors
@@ -62,7 +64,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: e5e037ec3ba762ed256624c9f73411d4e56c0bc5
+  version: 2dad08ec418e97d53e0477d2018e935eb2e13259
   subpackages:
   - buffers
   - commonfilter
@@ -90,7 +92,7 @@ imports:
 - name: github.com/getlantern/ops
   version: b70875f5d689a9438bca72aefd7142a2af889b18
 - name: github.com/getlantern/proxy
-  version: 876829e39cf8243d123b02f02efe8da1266effb4
+  version: c69e444b5546d0af2224694ca34224df86be4c08
 - name: github.com/getlantern/rotator
   version: 013d4f8e36a2f6369b2435d89866056b5b74c69e
 - name: github.com/getlantern/smux
