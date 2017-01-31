@@ -312,7 +312,6 @@ func (p *Proxy) ListenAndServe() error {
 			log.Fatalf("Unable to listen with obfs4 at %v: %v", wrapped.Addr(), wrapErr)
 		}
 		log.Debug("Enabling connmux for OBFS4")
-		l = connmux.WrapListener(l, buffers.Pool())
 		go func() {
 			serveErr := srv.Serve(l, func(addr string) {
 				log.Debugf("obfs4 serving at %v", addr)
@@ -324,12 +323,9 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if p.Obfs4Addr != "" {
-		l, listenErr := p.listenTCP(p.Obfs4Addr)
+		l, listenErr := p.listenTCP(p.Obfs4Addr, bbrfilter)
 		if listenErr != nil {
 			log.Fatalf("Unable to listen with obfs4: %v", listenErr)
-		}
-		if bbrfilter != nil {
-			l = bbrfilter.Wrap(l)
 		}
 		serveOBFS4(l)
 	}
@@ -339,13 +335,10 @@ func (p *Proxy) ListenAndServe() error {
 		if listenErr != nil {
 			log.Fatalf("Unable to listen with kcp: %v", listenErr)
 		}
-		if bbrfilter != nil {
-			l = bbrfilter.Wrap(l)
-		}
 		serveOBFS4(l)
 	}
 
-	l, err := p.listenTCP(p.Addr)
+	l, err := p.listenTCP(p.Addr, bbrfilter)
 	if err != nil {
 		return fmt.Errorf("Unable to listen HTTP: %v", err)
 	}
@@ -362,15 +355,21 @@ func (p *Proxy) ListenAndServe() error {
 	return err
 }
 
-func (p *Proxy) listenTCP(addr string) (net.Listener, error) {
+func (p *Proxy) listenTCP(addr string, bbrfilter bbr.Filter) (net.Listener, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 	if p.DiffServTOS > 0 {
 		log.Debugf("Setting diffserv TOS to %d", p.DiffServTOS)
+		// Note - this doesn't actually wrap the underlying connection, it'll still
+		// be a net.TCPConn
 		l = diffserv.Wrap(l, p.DiffServTOS)
 	}
+	if bbrfilter != nil {
+		l = bbrfilter.Wrap(l)
+	}
+	l = connmux.WrapListener(l, buffers.Pool())
 	return l, nil
 }
 
