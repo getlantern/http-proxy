@@ -20,6 +20,7 @@ var (
 type Filter interface {
 	filters.Filter
 	Wrap(net.Listener) net.Listener
+	OnResponse(resp *http.Response) *http.Response
 }
 
 type bbrMiddleware struct {
@@ -37,6 +38,11 @@ func (bm *bbrMiddleware) Apply(w http.ResponseWriter, req *http.Request, next fi
 
 func (bm *bbrMiddleware) Wrap(l net.Listener) net.Listener {
 	return &bbrlistener{l, bm}
+}
+
+func (bm *bbrMiddleware) OnResponse(resp *http.Response) *http.Response {
+	bm.addMetrics(resp.Request, resp.Header)
+	return resp
 }
 
 func (bm *bbrMiddleware) addMetrics(req *http.Request, header http.Header) {

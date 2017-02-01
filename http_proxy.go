@@ -176,9 +176,11 @@ func (p *Proxy) ListenAndServe() error {
 
 	var filterChain filters.Chain
 	var bbrfilter bbr.Filter
+	var bbrOnResponse func(*http.Response) *http.Response
 	if runtime.GOOS == "linux" {
 		log.Debug("Tracking bbr metrics")
 		bbrfilter = bbr.New()
+		bbrOnResponse = bbrfilter.OnResponse
 		filterChain = filterChain.Append(bbrfilter)
 	} else {
 		log.Debugf("OS is %v, not tracking bbr metrics", runtime.GOOS)
@@ -241,6 +243,7 @@ func (p *Proxy) ListenAndServe() error {
 			IdleTimeout: idleTimeout,
 			Dialer:      dialer,
 			OnRequest:   attachConfigServerHeader,
+			OnResponse:  bbrOnResponse,
 		}),
 		// This filter will handle all remaining HTTP requests (legacy HTTP
 		// connection management scheme).
