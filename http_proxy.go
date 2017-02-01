@@ -16,7 +16,6 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
 	"github.com/getlantern/ops"
-	"github.com/getlantern/tlsdefaults"
 
 	"github.com/getlantern/http-proxy/buffers"
 	"github.com/getlantern/http-proxy/commonfilter"
@@ -44,6 +43,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/profilter"
 	"github.com/getlantern/http-proxy-lantern/redis"
+	"github.com/getlantern/http-proxy-lantern/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
 
@@ -181,7 +181,7 @@ func (p *Proxy) ListenAndServe() error {
 		bbrfilter = bbr.New()
 		filterChain = filterChain.Append(bbrfilter)
 	} else {
-		log.Debugf("OS is %v, not tracking bbr metrics: %v", runtime.GOOS)
+		log.Debugf("OS is %v, not tracking bbr metrics", runtime.GOOS)
 	}
 
 	if p.Benchmark {
@@ -194,7 +194,7 @@ func (p *Proxy) ListenAndServe() error {
 			"ping-chained-server": 1 * time.Millisecond, // Internal ping-chained-server protocol
 		}))
 	} else {
-		filterChain = filters.Join(tokenfilter.New(p.Token))
+		filterChain = filterChain.Append(tokenfilter.New(p.Token))
 	}
 	fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
 	if rc != nil {
@@ -312,6 +312,10 @@ func (p *Proxy) ListenAndServe() error {
 			log.Fatalf("Unable to listen with obfs4 at %v: %v", wrapped.Addr(), wrapErr)
 		}
 		log.Debug("Enabling connmux for OBFS4")
+		l = connmux.WrapListener(l, buffers.Pool())
+
+		log.Debugf("Listening for OBFS4 at %v", l.Addr())
+
 		go func() {
 			serveErr := srv.Serve(l, func(addr string) {
 				log.Debugf("obfs4 serving at %v", addr)
@@ -342,12 +346,19 @@ func (p *Proxy) ListenAndServe() error {
 	if err != nil {
 		return fmt.Errorf("Unable to listen HTTP: %v", err)
 	}
+
+	protocol := "HTTP"
 	if p.HTTPS {
-		l, err = tlsdefaults.NewListener(l, p.KeyFile, p.CertFile)
+		protocol = "HTTPS"
+		l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile)
 		if err != nil {
 			return err
 		}
 	}
+	log.Debugf("Enabling connmux for %v", protocol)
+	l = connmux.WrapListener(l, buffers.Pool())
+
+	log.Debugf("Listening for %v at %v", protocol, l.Addr())
 	err = srv.Serve(l, onAddress)
 	if err != nil {
 		log.Errorf("Error serving HTTP(S): %v", err)
@@ -367,9 +378,9 @@ func (p *Proxy) listenTCP(addr string, bbrfilter bbr.Filter) (net.Listener, erro
 		l = diffserv.Wrap(l, p.DiffServTOS)
 	}
 	if bbrfilter != nil {
+		log.Debugf("Enabling bbr metrics on %v", l.Addr())
 		l = bbrfilter.Wrap(l)
 	}
-	l = connmux.WrapListener(l, buffers.Pool())
 	return l, nil
 }
 
