@@ -65,7 +65,6 @@ type Proxy struct {
 	CertFile                     string
 	CfgSvrAuthToken              string
 	CfgSvrDomains                string
-	EnablePro                    bool
 	EnableReports                bool
 	HTTPS                        bool
 	IdleClose                    uint64
@@ -121,7 +120,7 @@ func (p *Proxy) ListenAndServe() error {
 		var redisErr error
 		rc, redisErr = redis.GetClient(redisOpts)
 		if redisErr != nil {
-			log.Fatal(redisErr)
+			log.Error(redisErr)
 		}
 	}
 
@@ -239,28 +238,25 @@ func (p *Proxy) ListenAndServe() error {
 		}),
 	)
 
-	// Pro support
-	if p.EnablePro {
-		if rc == nil {
-			log.Debug("Not enabling pro because redis is not configured")
-		} else {
-			if p.ServerID == "" {
-				log.Fatal("Enabling Pro requires setting the \"serverid\" flag")
-			}
-			log.Debug("This proxy is configured to support Lantern Pro")
-			proFilter, proErr := profilter.New(&profilter.Options{
-				RedisClient:         rc,
-				ServerID:            p.ServerID,
-				KeepProTokenDomains: strings.Split(p.CfgSvrDomains, ","),
-				FasttrackDomains:    fd,
-			})
-			if proErr != nil {
-				log.Fatal(proErr)
-			}
-
-			// Put profilter at the beginning of the chain.
-			filterChain = filterChain.Prepend(proFilter)
+	if rc == nil {
+		log.Debug("Not enabling pro because redis is not configured")
+	} else {
+		if p.ServerID == "" {
+			log.Fatal("Enabling Pro requires setting the \"serverid\" flag")
 		}
+		log.Debug("This proxy is configured to support Lantern Pro")
+		proFilter, proErr := profilter.New(&profilter.Options{
+			RedisClient:         rc,
+			ServerID:            p.ServerID,
+			KeepProTokenDomains: strings.Split(p.CfgSvrDomains, ","),
+			FasttrackDomains:    fd,
+		})
+		if proErr != nil {
+			log.Fatal(proErr)
+		}
+
+		// Put profilter at the beginning of the chain.
+		filterChain = filterChain.Prepend(proFilter)
 	}
 
 	srv := server.NewServer(filterChain.Prepend(opsfilter.New()))
