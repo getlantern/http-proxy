@@ -177,11 +177,16 @@ func (p *Proxy) ListenAndServe() error {
 	var filterChain filters.Chain
 	var bbrfilter bbr.Filter
 	var bbrOnResponse func(*http.Response) *http.Response
+	wrapBBR := func(l net.Listener) net.Listener {
+		return l
+	}
+
 	if runtime.GOOS == "linux" {
 		log.Debug("Tracking bbr metrics")
 		bbrfilter = bbr.New()
 		bbrOnResponse = bbrfilter.OnResponse
 		filterChain = filterChain.Append(bbrfilter)
+		wrapBBR = bbrfilter.Wrap
 	} else {
 		log.Debugf("OS is %v, not tracking bbr metrics", runtime.GOOS)
 	}
@@ -191,9 +196,9 @@ func (p *Proxy) ListenAndServe() error {
 			"www.google.com":      30 * time.Minute,
 			"www.facebook.com":    30 * time.Minute,
 			"67.media.tumblr.com": 30 * time.Minute,
-			"i.ytimg.com":         30 * time.Minute,     // YouTube play button
-			"149.154.167.91":      30 * time.Minute,     // Telegram
-			"ping-chained-server": 1 * time.Millisecond, // Internal ping-chained-server protocol
+			"i.ytimg.com":         30 * time.Minute,    // YouTube play button
+			"149.154.167.91":      30 * time.Minute,    // Telegram
+			"ping-chained-server": 1 * time.Nanosecond, // Internal ping-chained-server protocol
 		}))
 	} else {
 		filterChain = filterChain.Append(tokenfilter.New(p.Token))
@@ -316,6 +321,7 @@ func (p *Proxy) ListenAndServe() error {
 		}
 		log.Debug("Enabling connmux for OBFS4")
 		l = connmux.WrapListener(l, buffers.Pool())
+		l = wrapBBR(l)
 
 		log.Debugf("Listening for OBFS4 at %v", l.Addr())
 
@@ -330,7 +336,7 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if p.Obfs4Addr != "" {
-		l, listenErr := p.listenTCP(p.Obfs4Addr, bbrfilter)
+		l, listenErr := p.listenTCP(p.Obfs4Addr)
 		if listenErr != nil {
 			log.Fatalf("Unable to listen with obfs4: %v", listenErr)
 		}
@@ -345,7 +351,7 @@ func (p *Proxy) ListenAndServe() error {
 		serveOBFS4(l)
 	}
 
-	l, err := p.listenTCP(p.Addr, bbrfilter)
+	l, err := p.listenTCP(p.Addr)
 	if err != nil {
 		return fmt.Errorf("Unable to listen HTTP: %v", err)
 	}
@@ -360,6 +366,7 @@ func (p *Proxy) ListenAndServe() error {
 	}
 	log.Debugf("Enabling connmux for %v", protocol)
 	l = connmux.WrapListener(l, buffers.Pool())
+	l = wrapBBR(l)
 
 	log.Debugf("Listening for %v at %v", protocol, l.Addr())
 	err = srv.Serve(l, onAddress)
@@ -369,7 +376,7 @@ func (p *Proxy) ListenAndServe() error {
 	return err
 }
 
-func (p *Proxy) listenTCP(addr string, bbrfilter bbr.Filter) (net.Listener, error) {
+func (p *Proxy) listenTCP(addr string) (net.Listener, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -379,10 +386,6 @@ func (p *Proxy) listenTCP(addr string, bbrfilter bbr.Filter) (net.Listener, erro
 		// Note - this doesn't actually wrap the underlying connection, it'll still
 		// be a net.TCPConn
 		l = diffserv.Wrap(l, p.DiffServTOS)
-	}
-	if bbrfilter != nil {
-		log.Debugf("Enabling bbr metrics on %v", l.Addr())
-		l = bbrfilter.Wrap(l)
 	}
 	return l, nil
 }

@@ -37,6 +37,7 @@ func (bm *bbrMiddleware) Apply(w http.ResponseWriter, req *http.Request, next fi
 }
 
 func (bm *bbrMiddleware) Wrap(l net.Listener) net.Listener {
+	log.Debugf("Enabling bbr metrics on %v", l.Addr())
 	return &bbrlistener{l, bm}
 }
 
@@ -46,7 +47,13 @@ func (bm *bbrMiddleware) OnResponse(resp *http.Response) *http.Response {
 }
 
 func (bm *bbrMiddleware) addMetrics(req *http.Request, header http.Header) {
-	conn := context.Get(req, "conn").(net.Conn)
+	_conn := context.Get(req, "conn")
+	if _conn == nil {
+		// TODO: for some reason, conn is nil when proxying HTTP requests. Figure
+		// out why
+		return
+	}
+	conn := _conn.(net.Conn)
 	netx.WalkWrapped(conn, func(conn net.Conn) bool {
 		switch t := conn.(type) {
 		case bbrconn.Conn:
