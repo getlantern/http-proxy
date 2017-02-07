@@ -12,12 +12,10 @@ import (
 
 	_redis "gopkg.in/redis.v3"
 
-	"github.com/getlantern/connmux"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
 	"github.com/getlantern/ops"
 
-	"github.com/getlantern/http-proxy/buffers"
 	"github.com/getlantern/http-proxy/commonfilter"
 	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/forward"
@@ -36,6 +34,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/diffserv"
 	"github.com/getlantern/http-proxy-lantern/kcplistener"
+	"github.com/getlantern/http-proxy-lantern/lampshade"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
@@ -90,6 +89,7 @@ type Proxy struct {
 	Benchmark                    bool
 	FasttrackDomains             string
 	DiffServTOS                  int
+	LampshadeAddr                string
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -177,16 +177,12 @@ func (p *Proxy) ListenAndServe() error {
 	var filterChain filters.Chain
 	var bbrfilter bbr.Filter
 	var bbrOnResponse func(*http.Response) *http.Response
-	wrapBBR := func(l net.Listener) net.Listener {
-		return l
-	}
 
 	if runtime.GOOS == "linux" {
 		log.Debug("Tracking bbr metrics")
 		bbrfilter = bbr.New()
 		bbrOnResponse = bbrfilter.OnResponse
 		filterChain = filterChain.Append(bbrfilter)
-		wrapBBR = bbrfilter.Wrap
 	} else {
 		log.Debugf("OS is %v, not tracking bbr metrics", runtime.GOOS)
 	}
@@ -319,10 +315,6 @@ func (p *Proxy) ListenAndServe() error {
 		if wrapErr != nil {
 			log.Fatalf("Unable to listen with obfs4 at %v: %v", wrapped.Addr(), wrapErr)
 		}
-		log.Debug("Enabling connmux for OBFS4")
-		l = connmux.WrapListener(l, buffers.Pool())
-		l = wrapBBR(l)
-
 		log.Debugf("Listening for OBFS4 at %v", l.Addr())
 
 		go func() {
@@ -336,9 +328,9 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if p.Obfs4Addr != "" {
-		l, listenErr := p.listenTCP(p.Obfs4Addr)
+		l, listenErr := p.listenTCP(p.Obfs4Addr, bbrfilter)
 		if listenErr != nil {
-			log.Fatalf("Unable to listen with obfs4: %v", listenErr)
+			log.Fatalf("Unable to listen for OBFS4 with tcp: %v", listenErr)
 		}
 		serveOBFS4(l)
 	}
@@ -346,12 +338,12 @@ func (p *Proxy) ListenAndServe() error {
 	if p.Obfs4KCPAddr != "" {
 		l, listenErr := kcplistener.NewListener(p.Obfs4KCPAddr)
 		if listenErr != nil {
-			log.Fatalf("Unable to listen with kcp: %v", listenErr)
+			log.Fatalf("Unable to listen for OBFS4 with kcp: %v", listenErr)
 		}
 		serveOBFS4(l)
 	}
 
-	l, err := p.listenTCP(p.Addr)
+	l, err := p.listenTCP(p.Addr, bbrfilter)
 	if err != nil {
 		return fmt.Errorf("Unable to listen HTTP: %v", err)
 	}
@@ -363,10 +355,22 @@ func (p *Proxy) ListenAndServe() error {
 		if err != nil {
 			return err
 		}
+
+		// We initialize lampshade here because it uses the same keypair as HTTPS
+		if p.LampshadeAddr != "" {
+			ll, listenErr := p.listenTCP(p.LampshadeAddr, bbrfilter)
+			if listenErr != nil {
+				log.Fatalf("Unable to listen for lampshade with tcp: %v", listenErr)
+			}
+			ll, listenErr = lampshade.Wrap(ll, p.CertFile, p.KeyFile)
+			if listenErr != nil {
+				log.Fatalf("Unable to initialize lampshade with tcp: %v", listenErr)
+			}
+			go srv.Serve(ll, func(addr string) {
+				log.Debugf("lampshade serving at %v", addr)
+			})
+		}
 	}
-	log.Debugf("Enabling connmux for %v", protocol)
-	l = connmux.WrapListener(l, buffers.Pool())
-	l = wrapBBR(l)
 
 	log.Debugf("Listening for %v at %v", protocol, l.Addr())
 	err = srv.Serve(l, onAddress)
@@ -376,7 +380,7 @@ func (p *Proxy) ListenAndServe() error {
 	return err
 }
 
-func (p *Proxy) listenTCP(addr string) (net.Listener, error) {
+func (p *Proxy) listenTCP(addr string, bbrfilter bbr.Filter) (net.Listener, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -386,6 +390,10 @@ func (p *Proxy) listenTCP(addr string) (net.Listener, error) {
 		// Note - this doesn't actually wrap the underlying connection, it'll still
 		// be a net.TCPConn
 		l = diffserv.Wrap(l, p.DiffServTOS)
+	}
+	if bbrfilter != nil {
+		log.Debugf("Wrapping listener with BBR metrics support: %v", l.Addr())
+		l = bbrfilter.Wrap(l)
 	}
 	return l, nil
 }
