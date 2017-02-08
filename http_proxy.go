@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -15,7 +16,6 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
 	"github.com/getlantern/ops"
-	"github.com/getlantern/tlsdefaults"
 
 	"github.com/getlantern/http-proxy/buffers"
 	"github.com/getlantern/http-proxy/commonfilter"
@@ -28,6 +28,7 @@ import (
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
+	"github.com/getlantern/http-proxy-lantern/bbr"
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/borda"
 	"github.com/getlantern/http-proxy-lantern/common"
@@ -42,6 +43,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/profilter"
 	"github.com/getlantern/http-proxy-lantern/redis"
+	"github.com/getlantern/http-proxy-lantern/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
 
@@ -172,17 +174,33 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	var filterChain filters.Chain
+	var bbrfilter bbr.Filter
+	var bbrOnResponse func(*http.Response) *http.Response
+	wrapBBR := func(l net.Listener) net.Listener {
+		return l
+	}
+
+	if runtime.GOOS == "linux" {
+		log.Debug("Tracking bbr metrics")
+		bbrfilter = bbr.New()
+		bbrOnResponse = bbrfilter.OnResponse
+		filterChain = filterChain.Append(bbrfilter)
+		wrapBBR = bbrfilter.Wrap
+	} else {
+		log.Debugf("OS is %v, not tracking bbr metrics", runtime.GOOS)
+	}
+
 	if p.Benchmark {
 		filterChain = filterChain.Append(ratelimiter.New(5000, map[string]time.Duration{
 			"www.google.com":      30 * time.Minute,
 			"www.facebook.com":    30 * time.Minute,
 			"67.media.tumblr.com": 30 * time.Minute,
-			"i.ytimg.com":         30 * time.Minute,     // YouTube play button
-			"149.154.167.91":      30 * time.Minute,     // Telegram
-			"ping-chained-server": 1 * time.Millisecond, // Internal ping-chained-server protocol
+			"i.ytimg.com":         30 * time.Minute,    // YouTube play button
+			"149.154.167.91":      30 * time.Minute,    // Telegram
+			"ping-chained-server": 1 * time.Nanosecond, // Internal ping-chained-server protocol
 		}))
 	} else {
-		filterChain = filters.Join(tokenfilter.New(p.Token))
+		filterChain = filterChain.Append(tokenfilter.New(p.Token))
 	}
 	fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
 	if rc != nil {
@@ -229,6 +247,7 @@ func (p *Proxy) ListenAndServe() error {
 			IdleTimeout: idleTimeout,
 			Dialer:      dialer,
 			OnRequest:   attachConfigServerHeader,
+			OnResponse:  bbrOnResponse,
 		}),
 		// This filter will handle all remaining HTTP requests (legacy HTTP
 		// connection management scheme).
@@ -298,6 +317,10 @@ func (p *Proxy) ListenAndServe() error {
 		}
 		log.Debug("Enabling connmux for OBFS4")
 		l = connmux.WrapListener(l, buffers.Pool())
+		l = wrapBBR(l)
+
+		log.Debugf("Listening for OBFS4 at %v", l.Addr())
+
 		go func() {
 			serveErr := srv.Serve(l, func(addr string) {
 				log.Debugf("obfs4 serving at %v", addr)
@@ -328,12 +351,20 @@ func (p *Proxy) ListenAndServe() error {
 	if err != nil {
 		return fmt.Errorf("Unable to listen HTTP: %v", err)
 	}
+
+	protocol := "HTTP"
 	if p.HTTPS {
-		l, err = tlsdefaults.NewListener(l, p.KeyFile, p.CertFile)
+		protocol = "HTTPS"
+		l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile)
 		if err != nil {
 			return err
 		}
 	}
+	log.Debugf("Enabling connmux for %v", protocol)
+	l = connmux.WrapListener(l, buffers.Pool())
+	l = wrapBBR(l)
+
+	log.Debugf("Listening for %v at %v", protocol, l.Addr())
 	err = srv.Serve(l, onAddress)
 	if err != nil {
 		log.Errorf("Error serving HTTP(S): %v", err)
@@ -348,6 +379,8 @@ func (p *Proxy) listenTCP(addr string) (net.Listener, error) {
 	}
 	if p.DiffServTOS > 0 {
 		log.Debugf("Setting diffserv TOS to %d", p.DiffServTOS)
+		// Note - this doesn't actually wrap the underlying connection, it'll still
+		// be a net.TCPConn
 		l = diffserv.Wrap(l, p.DiffServTOS)
 	}
 	return l, nil

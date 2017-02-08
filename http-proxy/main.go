@@ -119,5 +119,8 @@ func main() {
 		DiffServTOS:                  *tos,
 	}
 
-	p.ListenAndServe()
+	err = p.ListenAndServe()
+	if err != nil {
+		log.Error(err)
+	}
 }
