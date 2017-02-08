@@ -40,7 +40,7 @@ imports:
 - name: github.com/getlantern/cmux
   version: 28e8bb95109fb227116226ae6f3a0890a3bd78e3
 - name: github.com/getlantern/connmux
-  version: 70f3961155047e2569dbb08625fdc47bcad0dc5a
+  version: ca69ca34d7d7f1efae4ea1490247c4a73f7a689b
 - name: github.com/getlantern/context
   version: 624d99b1798d7c5375ea1d3ca4c5b04d58f7c775
 - name: github.com/getlantern/errors
