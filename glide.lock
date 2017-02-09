@@ -64,7 +64,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: 2dad08ec418e97d53e0477d2018e935eb2e13259
+  version: fe43773b7173f9caede4750ee1e72ec4be57b78f
   subpackages:
   - buffers
   - commonfilter
@@ -83,16 +83,18 @@ imports:
   version: 10caeb5133f874e91d12e9b256f6e316dfaa5ae0
   subpackages:
   - certimporter
+- name: github.com/getlantern/lampshade
+  version: f3d10ec54458374a5bf5dfdd6919f0b06acf12e0
 - name: github.com/getlantern/measured
   version: 0bc4cd76a00cf14e0d82d90b46d5cc1a12f8857e
 - name: github.com/getlantern/mtime
   version: 71f584d474c0cafc89ee919784b44e4ca79c124e
 - name: github.com/getlantern/netx
-  version: ea33fe66744c0da3cc939893acc5962da35fbd9c
+  version: c704f69db48c8406d722f6e9ea9b0ad266975fe6
 - name: github.com/getlantern/ops
   version: b70875f5d689a9438bca72aefd7142a2af889b18
 - name: github.com/getlantern/proxy
-  version: c69e444b5546d0af2224694ca34224df86be4c08
+  version: 346e6df86a86beb8add113b3bc18db120ae1b426
 - name: github.com/getlantern/rotator
   version: 013d4f8e36a2f6369b2435d89866056b5b74c69e
 - name: github.com/getlantern/smux
@@ -104,7 +106,7 @@ imports:
 - name: github.com/getlantern/stack
   version: 02f928aad224fbccd50d66edd776fc9d1e9f2f2b
 - name: github.com/getlantern/tlsdefaults
-  version: f047fcda194525bddaa2d26da43c1b5400aaed6c
+  version: 55d0dd468a195a4c8cb99ee0c1a2878cb7e72155
 - name: github.com/getlantern/vtime
   version: dc1e573cf9918131774034baa8eade77ef901ea3
 - name: github.com/getlantern/wal

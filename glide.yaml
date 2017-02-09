@@ -20,6 +20,7 @@ import:
   - logging
   - server
 - package: github.com/getlantern/keyman
+- package: github.com/getlantern/lampshade
 - package: github.com/getlantern/measured
 - package: github.com/getlantern/ops
 - package: github.com/getlantern/withtimeout
