@@ -17,6 +17,15 @@ build:
     # at the right place in the workspace tree
     - wercker/setup-go-workspace:
       package-dir: github.com/getlantern/http-proxy-lantern
+    - add-ssh-key:
+      keyname: flashlight_key
+      host: github.com
+    - add-to-known_hosts:
+      hostname: github.com
+      fingerprint: 16:27:ac:a5:76:28:2d:36:63:1b:56:4d:eb:df:a6:48
+    - script:
+      name: force git paths
+      code: git config --global url."git@github.com:".insteadOf "https://github.com/"
     - script:
       name: get glide
       code: |
