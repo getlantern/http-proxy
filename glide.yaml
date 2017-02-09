@@ -40,3 +40,4 @@ import:
   - assert
 - package: github.com/xtaci/kcp-go
 - package: github.com/klauspost/cpuid
+- package: github.com/Yawning/chacha20

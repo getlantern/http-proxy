@@ -265,6 +265,8 @@ imports:
   version: a1382b1ce0c749733b814157c245e02cc1f41076
   subpackages:
   - codes
+- name: github.com/Yawning/chacha20
+  version: c91e78db502ff629614837aacb7aa4efa61c651a
 testImports:
 - name: github.com/davecgh/go-spew
   version: 04cdfd42973bb9c8589fd6a731800cf222fde1a9
