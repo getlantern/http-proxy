@@ -29,6 +29,8 @@ imports:
   version: 4ebf1de738443ea7f45f02dc394c4df1942a126d
 - name: github.com/dustin/go-humanize
   version: 7a41df006ff9af79a29f0ffa9c5f21fbe6314a2d
+- name: github.com/getlantern/bbrconn
+  version: 7027edcb96a30afe6e446146fa6b7237853364a6
 - name: github.com/getlantern/borda
   version: 717e4a696bd56a0cf2cd4e78635feade82a489a1
   subpackages:
@@ -39,8 +41,6 @@ imports:
   version: 4dd4ecae18588644add452f16e5c5aa41a90bd00
 - name: github.com/getlantern/cmux
   version: 28e8bb95109fb227116226ae6f3a0890a3bd78e3
-- name: github.com/getlantern/connmux
-  version: 70f3961155047e2569dbb08625fdc47bcad0dc5a
 - name: github.com/getlantern/context
   version: 624d99b1798d7c5375ea1d3ca4c5b04d58f7c775
 - name: github.com/getlantern/errors

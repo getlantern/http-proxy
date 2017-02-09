@@ -8,7 +8,7 @@ import:
 - package: github.com/getlantern/borda
   subpackages:
   - client
-- package: github.com/getlantern/connmux
+- package: github.com/getlantern/bbrconn
 - package: github.com/getlantern/golog
 - package: github.com/getlantern/http-proxy
   subpackages:
