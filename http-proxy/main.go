@@ -127,6 +127,6 @@ func main() {
 
 	err = p.ListenAndServe()
 	if err != nil {
-		log.Error(err)
+		log.Fatal(err)
 	}
 }
