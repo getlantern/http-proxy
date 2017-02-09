@@ -63,7 +63,7 @@ func TestRoundTrip(t *testing.T) {
 	if !assert.NoError(t, err) {
 		return
 	}
-	dial := lampshade.Dialer(50, 0, buffers.Pool(), certRT.X509().PublicKey.(*rsa.PublicKey), func() (net.Conn, error) {
+	dial := lampshade.Dialer(50, 32, 0, buffers.Pool(), lampshade.AES128CTR, certRT.X509().PublicKey.(*rsa.PublicKey), func() (net.Conn, error) {
 		return net.Dial("tcp", l.Addr().String())
 	})
 
