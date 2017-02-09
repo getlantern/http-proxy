@@ -24,7 +24,6 @@ var (
 	certfile                     = flag.String("cert", "", "Certificate file name")
 	cfgSvrAuthToken              = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
 	cfgSvrDomains                = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
-	enablePro                    = flag.Bool("enablepro", false, "Enable Lantern Pro support")
 	enableReports                = flag.Bool("enablereports", false, "Enable stats reporting")
 	throttlebps                  = flag.Uint64("throttlebps", 0, "If > 0, enables throttling at the given bps (needs stats reporting enabled)")
 	throttlethreshold            = flag.Uint64("throttlethreshold", 0, "If > 0, throttling will be activated at the given threshold (in bytes) in all connections of the throttled device")
@@ -97,7 +96,6 @@ func main() {
 		CertFile:                     *certfile,
 		CfgSvrAuthToken:              *cfgSvrAuthToken,
 		CfgSvrDomains:                *cfgSvrDomains,
-		EnablePro:                    *enablePro,
 		EnableReports:                *enableReports,
 		ThrottleBPS:                  *throttlebps,
 		ThrottleThreshold:            *throttlethreshold,
