@@ -33,7 +33,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/diffserv"
-	"github.com/getlantern/http-proxy-lantern/kcplistener"
 	"github.com/getlantern/http-proxy-lantern/lampshade"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
@@ -83,7 +82,6 @@ type Proxy struct {
 	Token                        string
 	TunnelPorts                  string
 	Obfs4Addr                    string
-	Obfs4KCPAddr                 string
 	Obfs4Dir                     string
 	Benchmark                    bool
 	FasttrackDomains             string
@@ -327,14 +325,6 @@ func (p *Proxy) ListenAndServe() error {
 		l, listenErr := p.listenTCP(p.Obfs4Addr, bbrfilter)
 		if listenErr != nil {
 			log.Fatalf("Unable to listen for OBFS4 with tcp: %v", listenErr)
-		}
-		serveOBFS4(l)
-	}
-
-	if p.Obfs4KCPAddr != "" {
-		l, listenErr := kcplistener.NewListener(p.Obfs4KCPAddr)
-		if listenErr != nil {
-			log.Fatalf("Unable to listen for OBFS4 with kcp: %v", listenErr)
 		}
 		serveOBFS4(l)
 	}

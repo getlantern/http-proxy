@@ -37,10 +37,6 @@ imports:
   version: 2e21fedeb225921a8dc40321cbd114ffd0a302f3
 - name: github.com/getlantern/bytemap
   version: 4dd4ecae18588644add452f16e5c5aa41a90bd00
-- name: github.com/getlantern/cmux
-  version: 28e8bb95109fb227116226ae6f3a0890a3bd78e3
-- name: github.com/getlantern/connmux
-  version: ca69ca34d7d7f1efae4ea1490247c4a73f7a689b
 - name: github.com/getlantern/context
   version: 624d99b1798d7c5375ea1d3ca4c5b04d58f7c775
 - name: github.com/getlantern/errors
@@ -64,7 +60,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: c4dc93898fff0e614cfb4694f245cb1a2de8589e
+  version: b617417c38a996a004fc497d57857db6c1ad3f21
   subpackages:
   - buffers
   - commonfilter
@@ -84,7 +80,7 @@ imports:
   subpackages:
   - certimporter
 - name: github.com/getlantern/lampshade
-  version: 40c6a1d89f1be806aead41b6b8da2d7f50faeea6
+  version: edfb6b6ad3b382a38d0b91092fd562f636d1454b
 - name: github.com/getlantern/measured
   version: 0bc4cd76a00cf14e0d82d90b46d5cc1a12f8857e
 - name: github.com/getlantern/mtime
@@ -99,8 +95,6 @@ imports:
   version: 013d4f8e36a2f6369b2435d89866056b5b74c69e
 - name: github.com/getlantern/smux
   version: c1f29b44d895837d941715ec7248896693c177fc
-- name: github.com/getlantern/snappyconn
-  version: d99ceb334e5503f023b658b83083aff6521d67ed
 - name: github.com/getlantern/sqlparser
   version: 813d09d4d8b3d70f253bc5b84bbb86e9407d8f04
 - name: github.com/getlantern/stack
@@ -132,8 +126,6 @@ imports:
   version: 8ee79997227bf9b34611aee7946ae64735e6fd93
   subpackages:
   - proto
-- name: github.com/golang/snappy
-  version: 7db9049039a047d955fe8c19b83c8ff5abd765c7
 - name: github.com/gorilla/context
   version: 08b5f424b9271eedf6f9f0ce86cb9396ed337a42
 - name: github.com/hashicorp/golang-lru
@@ -170,8 +162,6 @@ imports:
   version: 94db042d45d83a94a8cfc494a6800ce1b5edd5e4
 - name: github.com/visionmedia/go-debug
   version: ff4a55a20a86994118644bbddc6a216da193cc13
-- name: github.com/xtaci/kcp-go
-  version: 6afc7fdf264eb75dcc3027e5a0c952e2e9e1d73c
 - name: github.com/xtaci/reedsolomon
   version: 7bbd3662bdabfaafbe1552513e42a976fe7e7f55
 - name: github.com/xwb1989/sqlparser
