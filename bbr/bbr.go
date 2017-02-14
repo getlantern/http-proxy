@@ -17,36 +17,30 @@ var (
 	log = golog.LoggerFor("bbrlistener")
 )
 
-type Filter interface {
-	filters.Filter
-	Wrap(net.Listener) net.Listener
-	OnResponse(resp *http.Response) *http.Response
-}
-
 type bbrMiddleware struct {
 }
 
-func New() Filter {
+func NewFilter() filters.Filter {
 	return &bbrMiddleware{}
 }
 
 // Apply implements the interface filters.Filter.
 func (bm *bbrMiddleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
-	bm.addMetrics(req, w.Header())
+	addMetrics(req, w.Header())
 	return next()
 }
 
-func (bm *bbrMiddleware) Wrap(l net.Listener) net.Listener {
+func Wrap(l net.Listener) net.Listener {
 	log.Debugf("Enabling bbr metrics on %v", l.Addr())
-	return &bbrlistener{l, bm}
+	return &bbrlistener{l}
 }
 
-func (bm *bbrMiddleware) OnResponse(resp *http.Response) *http.Response {
-	bm.addMetrics(resp.Request, resp.Header)
+func AddMetrics(resp *http.Response) *http.Response {
+	addMetrics(resp.Request, resp.Header)
 	return resp
 }
 
-func (bm *bbrMiddleware) addMetrics(req *http.Request, header http.Header) {
+func addMetrics(req *http.Request, header http.Header) {
 	_conn := context.Get(req, "conn")
 	if _conn == nil {
 		// TODO: for some reason, conn is nil when proxying HTTP requests. Figure
@@ -76,22 +70,13 @@ func (bm *bbrMiddleware) addMetrics(req *http.Request, header http.Header) {
 }
 
 type bbrlistener struct {
-	wrapped net.Listener
-	bm      *bbrMiddleware
+	net.Listener
 }
 
 func (l *bbrlistener) Accept() (net.Conn, error) {
-	conn, err := l.wrapped.Accept()
+	conn, err := l.Listener.Accept()
 	if err != nil {
 		return nil, err
 	}
 	return bbrconn.Wrap(conn)
-}
-
-func (l *bbrlistener) Addr() net.Addr {
-	return l.wrapped.Addr()
-}
-
-func (l *bbrlistener) Close() error {
-	return l.wrapped.Close()
 }

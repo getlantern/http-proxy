@@ -172,14 +172,10 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	var filterChain filters.Chain
-	var bbrfilter bbr.Filter
-	var bbrOnResponse func(*http.Response) *http.Response
-
-	if runtime.GOOS == "linux" {
+	bbrEnabled := runtime.GOOS == "linux"
+	if bbrEnabled {
 		log.Debug("Tracking bbr metrics")
-		bbrfilter = bbr.New()
-		bbrOnResponse = bbrfilter.OnResponse
-		filterChain = filterChain.Append(bbrfilter)
+		filterChain = filterChain.Append(bbr.NewFilter())
 	} else {
 		log.Debugf("OS is %v, not tracking bbr metrics", runtime.GOOS)
 	}
@@ -228,6 +224,14 @@ func (p *Proxy) ListenAndServe() error {
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97
 	dialer := preferIPV4Dialer(timeoutToDialOriginSite)
+	pforwardOpts := &pforward.Options{
+		IdleTimeout: idleTimeout,
+		Dialer:      dialer,
+		OnRequest:   attachConfigServerHeader,
+	}
+	if bbrEnabled {
+		pforwardOpts.OnResponse = bbr.AddMetrics
+	}
 	filterChain = filterChain.Append(
 		// This filter will look for CONNECT requests and hijack those connections
 		httpconnect.New(&httpconnect.Options{
@@ -237,12 +241,7 @@ func (p *Proxy) ListenAndServe() error {
 		}),
 		// This filter will look for GET requests with X-Lantern-Persistent: true and
 		// hijack those connections (new stateful HTTP connection management scheme).
-		pforward.New(&pforward.Options{
-			IdleTimeout: idleTimeout,
-			Dialer:      dialer,
-			OnRequest:   attachConfigServerHeader,
-			OnResponse:  bbrOnResponse,
-		}),
+		pforward.New(pforwardOpts),
 		// This filter will handle all remaining HTTP requests (legacy HTTP
 		// connection management scheme).
 		forward.New(&forward.Options{
@@ -322,14 +321,14 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if p.Obfs4Addr != "" {
-		l, listenErr := p.listenTCP(p.Obfs4Addr, bbrfilter)
+		l, listenErr := p.listenTCP(p.Obfs4Addr, bbrEnabled)
 		if listenErr != nil {
 			log.Fatalf("Unable to listen for OBFS4 with tcp: %v", listenErr)
 		}
 		serveOBFS4(l)
 	}
 
-	l, err := p.listenTCP(p.Addr, bbrfilter)
+	l, err := p.listenTCP(p.Addr, bbrEnabled)
 	if err != nil {
 		return fmt.Errorf("Unable to listen HTTP: %v", err)
 	}
@@ -344,7 +343,7 @@ func (p *Proxy) ListenAndServe() error {
 
 		// We initialize lampshade here because it uses the same keypair as HTTPS
 		if p.LampshadeAddr != "" {
-			ll, listenErr := p.listenTCP(p.LampshadeAddr, bbrfilter)
+			ll, listenErr := p.listenTCP(p.LampshadeAddr, bbrEnabled)
 			if listenErr != nil {
 				log.Fatalf("Unable to listen for lampshade with tcp: %v", listenErr)
 			}
@@ -366,7 +365,7 @@ func (p *Proxy) ListenAndServe() error {
 	return err
 }
 
-func (p *Proxy) listenTCP(addr string, bbrfilter bbr.Filter) (net.Listener, error) {
+func (p *Proxy) listenTCP(addr string, bbrEnabled bool) (net.Listener, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -377,9 +376,9 @@ func (p *Proxy) listenTCP(addr string, bbrfilter bbr.Filter) (net.Listener, erro
 		// be a net.TCPConn
 		l = diffserv.Wrap(l, p.DiffServTOS)
 	}
-	if bbrfilter != nil {
+	if bbrEnabled {
 		log.Debugf("Wrapping listener with BBR metrics support: %v", l.Addr())
-		l = bbrfilter.Wrap(l)
+		l = bbr.Wrap(l)
 	}
 	return l, nil
 }
