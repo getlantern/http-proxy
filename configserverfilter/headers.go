@@ -1,4 +1,4 @@
-// Add required headers to config-server requests.
+// Add required headers to config-server requests and change the scheme to HTTPS.
 // Ref https://github.com/getlantern/config-server/issues/4
 
 package configserverfilter
@@ -7,6 +7,7 @@ import (
 	"errors"
 	"net"
 	"net/http"
+	"strings"
 
 	"github.com/getlantern/golog"
 
@@ -35,30 +36,26 @@ func New(opts *Options) *ConfigServerFilter {
 }
 
 func (f *ConfigServerFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
-	f.AttachHeaderIfNecessary(req)
+	f.RewriteIfNecessary(req)
 	return next()
 }
 
-func (f *ConfigServerFilter) AttachHeaderIfNecessary(req *http.Request) {
+func (f *ConfigServerFilter) RewriteIfNecessary(req *http.Request) {
 	// It's unlikely that config-server will add non-GET public endpoint.
 	// Bypass all other methods, especially CONNECT (https).
-	if req.Method == "GET" {
-		origin, _, err := net.SplitHostPort(req.Host)
-		if err != nil {
-			origin = req.Host
-		}
-		for _, d := range f.Domains {
-			if origin == d {
-				f.attachHeader(req)
-				return
-			}
-		}
+	if req.Method == "GET" && in(req.Host, f.Domains) {
+		f.rewrite(req)
 	}
 }
 
-func (f *ConfigServerFilter) attachHeader(req *http.Request) {
+func (f *ConfigServerFilter) rewrite(req *http.Request) {
+	// use https between proxy and config-servers.
+	req.URL.Scheme = "https"
+	if !strings.HasSuffix(req.Host, ":443") {
+		req.Host = strings.TrimSuffix(req.Host, ":80") + ":443"
+	}
 	req.Header.Set(common.CfgSvrAuthTokenHeader, f.AuthToken)
-	log.Debugf("Attached %s header to \"GET %s\"", common.CfgSvrAuthTokenHeader, req.URL.String())
+	log.Debugf("Attached %s header to \"GET %s\", host %s", common.CfgSvrAuthTokenHeader, req.URL.String(), req.Host)
 	host, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
 		log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
@@ -66,4 +63,17 @@ func (f *ConfigServerFilter) attachHeader(req *http.Request) {
 	}
 	req.Header.Set(common.CfgSvrClientIPHeader, host)
 	log.Debugf("Set %s as %s to \"GET %s\"", common.CfgSvrClientIPHeader, host, req.URL.String())
+}
+
+func in(host string, domains []string) bool {
+	domain, _, err := net.SplitHostPort(host)
+	if err != nil {
+		domain = host
+	}
+	for _, d := range domains {
+		if domain == d {
+			return true
+		}
+	}
+	return false
 }

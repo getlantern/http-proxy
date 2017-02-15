@@ -203,19 +203,22 @@ func (p *Proxy) ListenAndServe() error {
 		ping.New(0),
 	)
 
-	var attachConfigServerHeader func(*http.Request)
-	if p.CfgSvrAuthToken != "" || p.CfgSvrDomains != "" {
-		csf := configserverfilter.New(&configserverfilter.Options{
-			AuthToken: p.CfgSvrAuthToken,
-			Domains:   strings.Split(p.CfgSvrDomains, ","),
-		})
-		filterChain = filterChain.Append(csf)
-		attachConfigServerHeader = csf.AttachHeaderIfNecessary
-	}
-
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97
 	dialer := preferIPV4Dialer(timeoutToDialOriginSite)
+
+	var rewriteConfigServerRequests func(*http.Request)
+	if p.CfgSvrAuthToken != "" || p.CfgSvrDomains != "" {
+		cfg := &configserverfilter.Options{
+			AuthToken: p.CfgSvrAuthToken,
+			Domains:   strings.Split(p.CfgSvrDomains, ","),
+		}
+		dialer = configserverfilter.Dialer(dialer, cfg)
+		csf := configserverfilter.New(cfg)
+		filterChain = filterChain.Append(csf)
+		rewriteConfigServerRequests = csf.RewriteIfNecessary
+	}
+
 	filterChain = filterChain.Append(
 		// This filter will look for CONNECT requests and hijack those connections
 		httpconnect.New(&httpconnect.Options{
@@ -228,7 +231,7 @@ func (p *Proxy) ListenAndServe() error {
 		pforward.New(&pforward.Options{
 			IdleTimeout: idleTimeout,
 			Dialer:      dialer,
-			OnRequest:   attachConfigServerHeader,
+			OnRequest:   rewriteConfigServerRequests,
 		}),
 		// This filter will handle all remaining HTTP requests (legacy HTTP
 		// connection management scheme).

@@ -1,6 +1,8 @@
 package configserverfilter
 
 import (
+	"errors"
+	"net"
 	"net/http"
 	"testing"
 
@@ -16,7 +18,7 @@ func (h *dummyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.req = r
 }
 
-func TestAttachAuthToken(t *testing.T) {
+func TestModifyRequest(t *testing.T) {
 	fakeToken := "fake-token"
 	dummyClientIP := "1.1.1.1"
 	dummyAddr := dummyClientIP + ":12345"
@@ -26,26 +28,50 @@ func TestAttachAuthToken(t *testing.T) {
 	req, _ := http.NewRequest("GET", "http://site1.com:80/abc.gz", nil)
 	req.RemoteAddr = dummyAddr
 	chain.ServeHTTP(nil, req)
+	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
+	assert.Equal(t, "site1.com:443", dummy.req.Host, "should use port 443")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
 	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should attach client ip")
 
 	req, _ = http.NewRequest("GET", "http://site2.org/abc.gz", nil)
 	req.RemoteAddr = dummyAddr
 	chain.ServeHTTP(nil, req)
+	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
+	assert.Equal(t, "site2.org:443", dummy.req.Host, "should use port 443")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
 	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should attach client ip")
 
 	req, _ = http.NewRequest("GET", "http://site2.org:443/abc.gz", nil)
 	req.RemoteAddr = "bad-addr"
 	chain.ServeHTTP(nil, req)
+	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
+	assert.Equal(t, "site2.org:443", dummy.req.Host, "should use port 443")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
 	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should not attach client ip if remote address is invalid")
 
 	req, _ = http.NewRequest("GET", "http://not-config-server.org/abc.gz", nil)
 	req.RemoteAddr = dummyAddr
 	chain.ServeHTTP(nil, req)
+	assert.Equal(t, "http", dummy.req.URL.Scheme, "should not rewrite to https for other sites")
+	assert.Equal(t, "not-config-server.org", dummy.req.Host, "should not use port 443 for other sites")
 	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should not attach token for other sites")
 	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should not attach client ip for other sites")
+}
+
+func TestDialer(t *testing.T) {
+	var address string
+	dummyDial := func(net, addr string) (net.Conn, error) {
+		address = addr
+		return nil, errors.New("fail intentionally")
+	}
+	d := Dialer(dummyDial, &Options{"", []string{"site1", "site2"}})
+
+	_, e := d("tcp", "site1")
+	assert.Equal(t, "", address, "should override dialer if site is in list")
+	assert.NotContains(t, e.Error(), "fail intentionally", "should get dial error")
+	_, e = d("tcp", "other")
+	assert.Equal(t, "other", address, "should not override dialer for other dialers")
+	assert.Contains(t, e.Error(), "fail intentionally", "should get fake error")
 }
 
 func TestInitializeNoDomains(t *testing.T) {
