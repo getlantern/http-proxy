@@ -1,7 +1,7 @@
 package configserverfilter
 
 import (
-	"errors"
+	"crypto/tls"
 	"net"
 	"net/http"
 	"testing"
@@ -10,6 +10,7 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy/filters"
+	"github.com/getlantern/mockconn"
 )
 
 type dummyHandler struct{ req *http.Request }
@@ -62,16 +63,16 @@ func TestDialer(t *testing.T) {
 	var address string
 	dummyDial := func(net, addr string) (net.Conn, error) {
 		address = addr
-		return nil, errors.New("fail intentionally")
+		return mockconn.SucceedingDialer([]byte{}).Dial(net, addr)
 	}
 	d := Dialer(dummyDial, &Options{"", []string{"site1", "site2"}})
 
-	_, e := d("tcp", "site1")
-	assert.Equal(t, "", address, "should override dialer if site is in list")
-	assert.NotContains(t, e.Error(), "fail intentionally", "should get dial error")
-	_, e = d("tcp", "other")
-	assert.Equal(t, "other", address, "should not override dialer for other dialers")
-	assert.Contains(t, e.Error(), "fail intentionally", "should get fake error")
+	c, _ := d("tcp", "site1")
+	_, ok := c.(*tls.Conn)
+	assert.True(t, ok, "should override dialer if site is in list")
+	c, _ = d("tcp", "other")
+	_, ok = c.(*tls.Conn)
+	assert.False(t, ok, "should not override dialer for other dialers")
 }
 
 func TestInitializeNoDomains(t *testing.T) {

@@ -7,7 +7,6 @@ import (
 	"errors"
 	"net"
 	"net/http"
-	"strings"
 
 	"github.com/getlantern/golog"
 
@@ -43,37 +42,37 @@ func (f *ConfigServerFilter) Apply(w http.ResponseWriter, req *http.Request, nex
 func (f *ConfigServerFilter) RewriteIfNecessary(req *http.Request) {
 	// It's unlikely that config-server will add non-GET public endpoint.
 	// Bypass all other methods, especially CONNECT (https).
-	if req.Method == "GET" && in(req.Host, f.Domains) {
-		f.rewrite(req)
+	if req.Method == "GET" {
+		if matched := in(req.Host, f.Domains); matched != "" {
+			f.rewrite(matched, req)
+		}
 	}
 }
 
-func (f *ConfigServerFilter) rewrite(req *http.Request) {
-	// use https between proxy and config-servers.
+func (f *ConfigServerFilter) rewrite(host string, req *http.Request) {
 	req.URL.Scheme = "https"
-	if !strings.HasSuffix(req.Host, ":443") {
-		req.Host = strings.TrimSuffix(req.Host, ":80") + ":443"
-	}
+	prevHost := req.Host
+	req.Host = host + ":443"
 	req.Header.Set(common.CfgSvrAuthTokenHeader, f.AuthToken)
-	log.Debugf("Attached %s header to \"GET %s\", host %s", common.CfgSvrAuthTokenHeader, req.URL.String(), req.Host)
-	host, _, err := net.SplitHostPort(req.RemoteAddr)
+	ip, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
 		log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
 		return
 	}
-	req.Header.Set(common.CfgSvrClientIPHeader, host)
-	log.Debugf("Set %s as %s to \"GET %s\"", common.CfgSvrClientIPHeader, host, req.URL.String())
+	req.Header.Set(common.CfgSvrClientIPHeader, ip)
+	log.Debugf("Rewrote request from %s to %s as \"GET %s\", host %s", ip, prevHost, req.URL.String(), req.Host)
 }
 
-func in(host string, domains []string) bool {
-	domain, _, err := net.SplitHostPort(host)
+// in returns the host portion if it's is in the domains list, or returns ""
+func in(hostport string, domains []string) string {
+	host, _, err := net.SplitHostPort(hostport)
 	if err != nil {
-		domain = host
+		host = hostport
 	}
 	for _, d := range domains {
-		if domain == d {
-			return true
+		if host == d {
+			return d
 		}
 	}
-	return false
+	return ""
 }
