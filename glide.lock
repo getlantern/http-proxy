@@ -85,6 +85,8 @@ imports:
   - certimporter
 - name: github.com/getlantern/measured
   version: 0bc4cd76a00cf14e0d82d90b46d5cc1a12f8857e
+- name: github.com/getlantern/mockconn
+  version: 422a5afd4432dd82b1389333d5352da003d898a6
 - name: github.com/getlantern/mtime
   version: 71f584d474c0cafc89ee919784b44e4ca79c124e
 - name: github.com/getlantern/netx

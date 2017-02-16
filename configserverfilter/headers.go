@@ -1,4 +1,4 @@
-// Add required headers to config-server requests.
+// Add required headers to config-server requests and change the scheme to HTTPS.
 // Ref https://github.com/getlantern/config-server/issues/4
 
 package configserverfilter
@@ -35,35 +35,44 @@ func New(opts *Options) *ConfigServerFilter {
 }
 
 func (f *ConfigServerFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
-	f.AttachHeaderIfNecessary(req)
+	f.RewriteIfNecessary(req)
 	return next()
 }
 
-func (f *ConfigServerFilter) AttachHeaderIfNecessary(req *http.Request) {
+func (f *ConfigServerFilter) RewriteIfNecessary(req *http.Request) {
 	// It's unlikely that config-server will add non-GET public endpoint.
 	// Bypass all other methods, especially CONNECT (https).
 	if req.Method == "GET" {
-		origin, _, err := net.SplitHostPort(req.Host)
-		if err != nil {
-			origin = req.Host
-		}
-		for _, d := range f.Domains {
-			if origin == d {
-				f.attachHeader(req)
-				return
-			}
+		if matched := in(req.Host, f.Domains); matched != "" {
+			f.rewrite(matched, req)
 		}
 	}
 }
 
-func (f *ConfigServerFilter) attachHeader(req *http.Request) {
+func (f *ConfigServerFilter) rewrite(host string, req *http.Request) {
+	req.URL.Scheme = "https"
+	prevHost := req.Host
+	req.Host = host + ":443"
 	req.Header.Set(common.CfgSvrAuthTokenHeader, f.AuthToken)
-	log.Debugf("Attached %s header to \"GET %s\"", common.CfgSvrAuthTokenHeader, req.URL.String())
-	host, _, err := net.SplitHostPort(req.RemoteAddr)
+	ip, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
 		log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
 		return
 	}
-	req.Header.Set(common.CfgSvrClientIPHeader, host)
-	log.Debugf("Set %s as %s to \"GET %s\"", common.CfgSvrClientIPHeader, host, req.URL.String())
+	req.Header.Set(common.CfgSvrClientIPHeader, ip)
+	log.Debugf("Rewrote request from %s to %s as \"GET %s\", host %s", ip, prevHost, req.URL.String(), req.Host)
+}
+
+// in returns the host portion if it's is in the domains list, or returns ""
+func in(hostport string, domains []string) string {
+	host, _, err := net.SplitHostPort(hostport)
+	if err != nil {
+		host = hostport
+	}
+	for _, d := range domains {
+		if host == d {
+			return d
+		}
+	}
+	return ""
 }
