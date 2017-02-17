@@ -83,6 +83,8 @@ imports:
   version: edfb6b6ad3b382a38d0b91092fd562f636d1454b
 - name: github.com/getlantern/measured
   version: 0bc4cd76a00cf14e0d82d90b46d5cc1a12f8857e
+- name: github.com/getlantern/mockconn
+  version: 422a5afd4432dd82b1389333d5352da003d898a6
 - name: github.com/getlantern/mtime
   version: ba114e4a82b0d453c15c505073a5896453b5cbd2
 - name: github.com/getlantern/netx
