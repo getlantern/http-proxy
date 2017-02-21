@@ -8,9 +8,10 @@ import:
 - package: github.com/getlantern/borda
   subpackages:
   - client
-- package: github.com/getlantern/connmux
+- package: github.com/getlantern/bbrconn
 - package: github.com/getlantern/golog
 - package: github.com/getlantern/http-proxy
+  version: b617417c38a996a004fc497d57857db6c1ad3f21
   subpackages:
   - commonfilter
   - filters
@@ -20,9 +21,12 @@ import:
   - logging
   - server
 - package: github.com/getlantern/keyman
+- package: github.com/getlantern/lampshade
 - package: github.com/getlantern/measured
 - package: github.com/getlantern/mockconn
 - package: github.com/getlantern/ops
+- package: github.com/getlantern/proxy
+  version: 876829e39cf8243d123b02f02efe8da1266effb4
 - package: github.com/getlantern/withtimeout
 - package: github.com/golang/groupcache
   subpackages:
@@ -38,5 +42,5 @@ import:
 - package: github.com/stretchr/testify
   subpackages:
   - assert
-- package: github.com/xtaci/kcp-go
 - package: github.com/klauspost/cpuid
+- package: github.com/Yawning/chacha20

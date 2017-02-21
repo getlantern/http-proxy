@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"runtime"
 	"sync/atomic"
 	"time"
 
@@ -15,11 +14,6 @@ import (
 	"git.torproject.org/pluggable-transports/obfs4.git/transports/base"
 	"git.torproject.org/pluggable-transports/obfs4.git/transports/obfs4"
 )
-
-func init() {
-	// Enable block profiling
-	runtime.SetBlockProfileRate(1)
-}
 
 var (
 	log = golog.LoggerFor("obfs4listener")
@@ -145,7 +139,11 @@ func (l *obfs4listener) doWrap(conn net.Conn) {
 	defer atomic.AddInt64(&l.handshaking, -1)
 	start := time.Now()
 	_wrapped, timedOut, err := withtimeout.Do(handshakeTimeout, func() (interface{}, error) {
-		return l.sf.WrapConn(conn)
+		o, err := l.sf.WrapConn(conn)
+		if err != nil {
+			return nil, err
+		}
+		return &obfs4Conn{Conn: o, wrapped: conn}, nil
 	})
 
 	if timedOut {
@@ -165,4 +163,13 @@ func (l *obfs4listener) monitor() {
 		time.Sleep(5 * time.Second)
 		log.Debugf("Currently handshaking connections: %d", atomic.LoadInt64(&l.handshaking))
 	}
+}
+
+type obfs4Conn struct {
+	net.Conn
+	wrapped net.Conn
+}
+
+func (conn *obfs4Conn) Wrapped() net.Conn {
+	return conn.wrapped
 }

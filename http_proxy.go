@@ -5,19 +5,17 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof"
+	"runtime"
 	"strconv"
 	"strings"
 	"time"
 
 	_redis "gopkg.in/redis.v3"
 
-	"github.com/getlantern/connmux"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/measured"
 	"github.com/getlantern/ops"
-	"github.com/getlantern/tlsdefaults"
 
-	"github.com/getlantern/http-proxy/buffers"
 	"github.com/getlantern/http-proxy/commonfilter"
 	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/forward"
@@ -28,13 +26,14 @@ import (
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
+	"github.com/getlantern/http-proxy-lantern/bbr"
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/borda"
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/diffserv"
-	"github.com/getlantern/http-proxy-lantern/kcplistener"
+	"github.com/getlantern/http-proxy-lantern/lampshade"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
@@ -42,6 +41,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/profilter"
 	"github.com/getlantern/http-proxy-lantern/redis"
+	"github.com/getlantern/http-proxy-lantern/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
 
@@ -82,11 +82,11 @@ type Proxy struct {
 	Token                        string
 	TunnelPorts                  string
 	Obfs4Addr                    string
-	Obfs4KCPAddr                 string
 	Obfs4Dir                     string
 	Benchmark                    bool
 	FasttrackDomains             string
 	DiffServTOS                  int
+	LampshadeAddr                string
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -172,17 +172,25 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	var filterChain filters.Chain
+	bbrEnabled := runtime.GOOS == "linux"
+	if bbrEnabled {
+		log.Debug("Tracking bbr metrics")
+		filterChain = filterChain.Append(bbr.NewFilter())
+	} else {
+		log.Debugf("OS is %v, not tracking bbr metrics", runtime.GOOS)
+	}
+
 	if p.Benchmark {
 		filterChain = filterChain.Append(ratelimiter.New(5000, map[string]time.Duration{
 			"www.google.com":      30 * time.Minute,
 			"www.facebook.com":    30 * time.Minute,
 			"67.media.tumblr.com": 30 * time.Minute,
-			"i.ytimg.com":         30 * time.Minute,     // YouTube play button
-			"149.154.167.91":      30 * time.Minute,     // Telegram
-			"ping-chained-server": 1 * time.Millisecond, // Internal ping-chained-server protocol
+			"i.ytimg.com":         30 * time.Minute,    // YouTube play button
+			"149.154.167.91":      30 * time.Minute,    // Telegram
+			"ping-chained-server": 1 * time.Nanosecond, // Internal ping-chained-server protocol
 		}))
 	} else {
-		filterChain = filters.Join(tokenfilter.New(p.Token))
+		filterChain = filterChain.Append(tokenfilter.New(p.Token))
 	}
 	fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
 	if rc != nil {
@@ -220,6 +228,15 @@ func (p *Proxy) ListenAndServe() error {
 		rewriteConfigServerRequests = csf.RewriteIfNecessary
 	}
 
+	pforwardOpts := &pforward.Options{
+		IdleTimeout: idleTimeout,
+		Dialer:      dialerForPforward,
+		OnRequest:   rewriteConfigServerRequests,
+	}
+	if bbrEnabled {
+		pforwardOpts.OnResponse = bbr.AddMetrics
+	}
+
 	filterChain = filterChain.Append(
 		// This filter will look for CONNECT requests and hijack those connections
 		httpconnect.New(&httpconnect.Options{
@@ -229,11 +246,7 @@ func (p *Proxy) ListenAndServe() error {
 		}),
 		// This filter will look for GET requests with X-Lantern-Persistent: true and
 		// hijack those connections (new stateful HTTP connection management scheme).
-		pforward.New(&pforward.Options{
-			IdleTimeout: idleTimeout,
-			Dialer:      dialerForPforward,
-			OnRequest:   rewriteConfigServerRequests,
-		}),
+		pforward.New(pforwardOpts),
 		// This filter will handle all remaining HTTP requests (legacy HTTP
 		// connection management scheme).
 		forward.New(&forward.Options{
@@ -300,8 +313,8 @@ func (p *Proxy) ListenAndServe() error {
 		if wrapErr != nil {
 			log.Fatalf("Unable to listen with obfs4 at %v: %v", wrapped.Addr(), wrapErr)
 		}
-		log.Debug("Enabling connmux for OBFS4")
-		l = connmux.WrapListener(l, buffers.Pool())
+		log.Debugf("Listening for OBFS4 at %v", l.Addr())
+
 		go func() {
 			serveErr := srv.Serve(l, func(addr string) {
 				log.Debugf("obfs4 serving at %v", addr)
@@ -313,31 +326,43 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if p.Obfs4Addr != "" {
-		l, listenErr := p.listenTCP(p.Obfs4Addr)
+		l, listenErr := p.listenTCP(p.Obfs4Addr, bbrEnabled)
 		if listenErr != nil {
-			log.Fatalf("Unable to listen with obfs4: %v", listenErr)
+			log.Fatalf("Unable to listen for OBFS4 with tcp: %v", listenErr)
 		}
 		serveOBFS4(l)
 	}
 
-	if p.Obfs4KCPAddr != "" {
-		l, listenErr := kcplistener.NewListener(p.Obfs4KCPAddr)
-		if listenErr != nil {
-			log.Fatalf("Unable to listen with kcp: %v", listenErr)
-		}
-		serveOBFS4(l)
-	}
-
-	l, err := p.listenTCP(p.Addr)
+	l, err := p.listenTCP(p.Addr, bbrEnabled)
 	if err != nil {
 		return fmt.Errorf("Unable to listen HTTP: %v", err)
 	}
+
+	protocol := "HTTP"
 	if p.HTTPS {
-		l, err = tlsdefaults.NewListener(l, p.KeyFile, p.CertFile)
+		protocol = "HTTPS"
+		l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile)
 		if err != nil {
 			return err
 		}
+
+		// We initialize lampshade here because it uses the same keypair as HTTPS
+		if p.LampshadeAddr != "" {
+			ll, listenErr := p.listenTCP(p.LampshadeAddr, bbrEnabled)
+			if listenErr != nil {
+				log.Fatalf("Unable to listen for lampshade with tcp: %v", listenErr)
+			}
+			ll, listenErr = lampshade.Wrap(ll, p.CertFile, p.KeyFile)
+			if listenErr != nil {
+				log.Fatalf("Unable to initialize lampshade with tcp: %v", listenErr)
+			}
+			go srv.Serve(ll, func(addr string) {
+				log.Debugf("lampshade serving at %v", addr)
+			})
+		}
 	}
+
+	log.Debugf("Listening for %v at %v", protocol, l.Addr())
 	err = srv.Serve(l, onAddress)
 	if err != nil {
 		log.Errorf("Error serving HTTP(S): %v", err)
@@ -345,14 +370,20 @@ func (p *Proxy) ListenAndServe() error {
 	return err
 }
 
-func (p *Proxy) listenTCP(addr string) (net.Listener, error) {
+func (p *Proxy) listenTCP(addr string, bbrEnabled bool) (net.Listener, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
 	}
 	if p.DiffServTOS > 0 {
 		log.Debugf("Setting diffserv TOS to %d", p.DiffServTOS)
+		// Note - this doesn't actually wrap the underlying connection, it'll still
+		// be a net.TCPConn
 		l = diffserv.Wrap(l, p.DiffServTOS)
+	}
+	if bbrEnabled {
+		log.Debugf("Wrapping listener with BBR metrics support: %v", l.Addr())
+		l = bbr.Wrap(l)
 	}
 	return l, nil
 }

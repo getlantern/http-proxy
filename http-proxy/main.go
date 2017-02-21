@@ -36,7 +36,7 @@ var (
 	idleClose                    = flag.Uint64("idleclose", 70, "Time in seconds that an idle connection will be allowed before closing it")
 	keyfile                      = flag.String("key", "", "Private key file name")
 	logglyToken                  = flag.String("logglytoken", "", "Token used to report to loggly.com, not reporting if empty")
-	maxConns                     = flag.Uint64("maxconns", 0, "Max number of simultaneous connections allowed connections")
+	maxConns                     = flag.Uint64("maxconns", 0, "Max number of simultaneous allowed connections")
 	pprofAddr                    = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
 	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
@@ -48,11 +48,11 @@ var (
 	token                        = flag.String("token", "", "Lantern token")
 	tunnelPorts                  = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
 	obfs4Addr                    = flag.String("obfs4-addr", "", "Provide an address here in order to listen with obfs4")
-	obfs4KCPAddr                 = flag.String("obfs4-kcp-addr", "", "Provide an address here in order to listen with obfs4 over KCP (udp-based TCP accelerator)")
 	obfs4Dir                     = flag.String("obfs4-dir", ".", "Directory where obfs4 can store its files")
 	bench                        = flag.Bool("bench", false, "Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.")
 	fasttrackDomains             = flag.String("fasttrackdomains", "", "Whitelisted domains, such as the config server, pro server, etc, that should not count towards the bandwidth cap or be throttled, separated by comma")
 	tos                          = flag.Int("tos", 0xB8, "Specify a diffserv TOS to prioritize traffic. Defaults to 0xB8 (equivalent to DSCP EF)")
+	lampshadeAddr                = flag.String("lampshade-addr", "", "Address at which to listen for lampshade connections. Requires https to be true.")
 )
 
 func init() {
@@ -68,6 +68,10 @@ func main() {
 	if *help {
 		flag.Usage()
 		return
+	}
+
+	if *lampshadeAddr != "" && !*https {
+		log.Fatal("Use of lampshade requires https flag to be true")
 	}
 
 	// Logging
@@ -112,12 +116,15 @@ func main() {
 		Token:                        *token,
 		TunnelPorts:                  *tunnelPorts,
 		Obfs4Addr:                    *obfs4Addr,
-		Obfs4KCPAddr:                 *obfs4KCPAddr,
 		Obfs4Dir:                     *obfs4Dir,
 		Benchmark:                    *bench,
 		FasttrackDomains:             *fasttrackDomains,
 		DiffServTOS:                  *tos,
+		LampshadeAddr:                *lampshadeAddr,
 	}
 
-	p.ListenAndServe()
+	err = p.ListenAndServe()
+	if err != nil {
+		log.Fatal(err)
+	}
 }
