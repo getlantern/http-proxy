@@ -2,6 +2,7 @@ package ping
 
 import (
 	"errors"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -116,6 +117,23 @@ func testSize(t *testing.T, size string, mult int) {
 	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
 	req.Header.Set(common.PingHeader, size)
+	n := &next{}
+	err := filter.Apply(w, req, n.do)
+	assert.False(t, n.wasCalled())
+	if assert.NoError(t, err) {
+		resp := w.Result()
+		if assert.Equal(t, http.StatusOK, resp.StatusCode) {
+			n, _ := io.Copy(ioutil.Discard, w.Result().Body)
+			assert.EqualValues(t, mult*len(data), n)
+		}
+	}
+}
+
+func TestPingURL(t *testing.T) {
+	mult := 20
+	filter := New(0)
+	w := httptest.NewRecorder()
+	req := httptest.NewRequest("GET", fmt.Sprintf("http://ping-chained-server?%d", mult), nil)
 	n := &next{}
 	err := filter.Apply(w, req, n.do)
 	assert.False(t, n.wasCalled())

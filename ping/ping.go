@@ -64,7 +64,8 @@ func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next f
 	log.Trace("In ping")
 	pingSize := req.Header.Get(common.PingHeader)
 	pingURL := req.Header.Get(common.PingURLHeader)
-	if pingSize == "" && pingURL == "" {
+	isPingURL := req.Host == "ping-chained-server"
+	if pingSize == "" && pingURL == "" && !isPingURL {
 		log.Trace("Bypassing ping")
 		return next()
 	}
@@ -85,6 +86,9 @@ func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next f
 	default:
 		var parseErr error
 		size, parseErr = strconv.Atoi(pingSize)
+		if parseErr != nil && isPingURL {
+			size, parseErr = strconv.Atoi(req.URL.RawQuery)
+		}
 		if parseErr != nil {
 			w.WriteHeader(http.StatusBadRequest)
 			fmt.Fprintf(w, "Invalid ping size %v\n", pingSize)
