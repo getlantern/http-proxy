@@ -380,6 +380,8 @@ func (p *Proxy) listenTCP(addr string, bbrEnabled bool) (net.Listener, error) {
 		// Note - this doesn't actually wrap the underlying connection, it'll still
 		// be a net.TCPConn
 		l = diffserv.Wrap(l, p.DiffServTOS)
+	} else {
+		log.Debugf("Not setting diffserv TOS")
 	}
 	if bbrEnabled {
 		log.Debugf("Wrapping listener with BBR metrics support: %v", l.Addr())

@@ -51,7 +51,7 @@ var (
 	obfs4Dir                     = flag.String("obfs4-dir", ".", "Directory where obfs4 can store its files")
 	bench                        = flag.Bool("bench", false, "Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.")
 	fasttrackDomains             = flag.String("fasttrackdomains", "", "Whitelisted domains, such as the config server, pro server, etc, that should not count towards the bandwidth cap or be throttled, separated by comma")
-	tos                          = flag.Int("tos", 0xB8, "Specify a diffserv TOS to prioritize traffic. Defaults to 0xB8 (equivalent to DSCP EF)")
+	tos                          = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")
 	lampshadeAddr                = flag.String("lampshade-addr", "", "Address at which to listen for lampshade connections. Requires https to be true.")
 )
 
