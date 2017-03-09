@@ -1,5 +1,5 @@
 hash: 410a6f902f93ba1219861fbb836a7ed26a272ee0ddb96e235f4c03d643b99d8f
-updated: 2017-02-22T06:00:15.093995087-06:00
+updated: 2017-03-09T10:41:26.369995611-06:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: f1569079ca898d54e52a26b0bd1b5cc869310608
@@ -20,17 +20,17 @@ imports:
   - edwards25519
   - extra25519
 - name: github.com/aristanetworks/goarista
-  version: dca1f2e385a50308f3cb170826e6270ff6488bf1
+  version: bb27273187064031dca80a5a9d9ef2c3c661b11e
   subpackages:
   - monotime
 - name: github.com/dchest/siphash
   version: 4ebf1de738443ea7f45f02dc394c4df1942a126d
 - name: github.com/dustin/go-humanize
-  version: 7a41df006ff9af79a29f0ffa9c5f21fbe6314a2d
+  version: 259d2a102b871d17f30e3cd9881a642961a1e486
 - name: github.com/getlantern/bbrconn
   version: 7027edcb96a30afe6e446146fa6b7237853364a6
 - name: github.com/getlantern/borda
-  version: ec7a62735a251a96e5e72769174681bee7e5fb0b
+  version: f16cda244caaee4f337228243fad209c3edc41b3
   subpackages:
   - client
 - name: github.com/getlantern/byteexec
@@ -39,6 +39,8 @@ imports:
   version: 4dd4ecae18588644add452f16e5c5aa41a90bd00
 - name: github.com/getlantern/context
   version: 624d99b1798d7c5375ea1d3ca4c5b04d58f7c775
+- name: github.com/getlantern/ema
+  version: dc05f6bb97276a219b5766209d734561b54ff505
 - name: github.com/getlantern/errors
   version: 99fa440517e8f3d1e4cd8d6dbed6b41f4c1ed3d6
 - name: github.com/getlantern/eventual
@@ -80,9 +82,9 @@ imports:
   subpackages:
   - certimporter
 - name: github.com/getlantern/lampshade
-  version: 178f19cfd971b3219a9049183fa70d494675b871
+  version: 18cb0b0fa9632079650321fe2caf46ba697f140b
 - name: github.com/getlantern/measured
-  version: 0bc4cd76a00cf14e0d82d90b46d5cc1a12f8857e
+  version: 0582bf799783fba9a890459155817f1cbcf00f17
 - name: github.com/getlantern/mockconn
   version: 422a5afd4432dd82b1389333d5352da003d898a6
 - name: github.com/getlantern/mtime
@@ -108,7 +110,7 @@ imports:
 - name: github.com/getlantern/withtimeout
   version: 511f017cd91361be75ad73fee96e466a5d790312
 - name: github.com/getlantern/zenodb
-  version: 36712e75a2f9eee8a2bc8f7d6bd5f14d7b59ff10
+  version: 01847b750ffce11f3a332379e4a93d81d2a855c5
   subpackages:
   - bytetree
   - common
@@ -123,7 +125,7 @@ imports:
   subpackages:
   - lru
 - name: github.com/golang/protobuf
-  version: 69b215d01a5606c843240eab4937eab3acee6530
+  version: c9c7427a2a70d2eb3bafa0ab2dc163e45f143317
   subpackages:
   - proto
 - name: github.com/golang/snappy
@@ -172,15 +174,17 @@ imports:
 - name: github.com/Yawning/chacha20
   version: c91e78db502ff629614837aacb7aa4efa61c651a
 - name: golang.org/x/crypto
-  version: 453249f01cfeb54c3d549ddb75ff152ca243f9d8
+  version: 728b753d0135da6801d45a38e6f43ff55779c5c2
   subpackages:
+  - chacha20poly1305
+  - chacha20poly1305/internal/chacha20
   - curve25519
   - hkdf
   - nacl/secretbox
   - poly1305
   - salsa20/salsa
 - name: golang.org/x/net
-  version: 6b27048ae5e6ad1ef927e72e437531493de612fe
+  version: a6577fac2d73be281a500b310739095313165611
   repo: https://github.com/golang/net
   vcs: git
   subpackages:
@@ -196,14 +200,14 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/sys
-  version: 075e574b89e4c2d22f2286a7e2b919519c6f3547
+  version: 99f16d856c9836c42d24e7ab64ea72916925fa97
   repo: https://github.com/golang/sys
   vcs: git
   subpackages:
   - unix
   - windows
 - name: google.golang.org/appengine
-  version: 2e4a801b39fc199db615bfca7d0b9f8cd9580599
+  version: b79c28f0197795b4050bfcd7c4c2209136c594b1
   subpackages:
   - datastore
   - internal
@@ -214,12 +218,13 @@ imports:
   - internal/modules
   - internal/remote_api
 - name: google.golang.org/grpc
-  version: 20633fa172ac711ac6a77fd573ed13f23ec56dcb
+  version: 4eaacfed9779ee7568c9e72e9f763dbd3af8e0b4
   subpackages:
   - codes
   - credentials
   - grpclog
   - internal
+  - keepalive
   - metadata
   - naming
   - peer
@@ -236,7 +241,7 @@ imports:
   - internal/hashtag
   - internal/pool
 - name: gopkg.in/redis.v5
-  version: 135cb12c7689ffe92338baf677a1e0d2086144dc
+  version: a16aeec10ff407b1e7be6dd35797ccf5426ef0f0
   subpackages:
   - internal
   - internal/consistenthash
