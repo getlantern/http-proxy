@@ -88,3 +88,7 @@ func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 		c.WrapConnEmbeddable.ControlMessage(msgType, data)
 	}
 }
+
+func (c *bitrateConn) Wrapped() net.Conn {
+	return c.Conn
+}

@@ -173,9 +173,11 @@ func (p *Proxy) ListenAndServe() error {
 
 	var filterChain filters.Chain
 	bbrEnabled := runtime.GOOS == "linux"
+	var bm *bbr.Middleware
 	if bbrEnabled {
+		bm = bbr.New()
 		log.Debug("Tracking bbr metrics")
-		filterChain = filterChain.Append(bbr.NewFilter())
+		filterChain = filterChain.Append(bm)
 	} else {
 		log.Debugf("OS is %v, not tracking bbr metrics", runtime.GOOS)
 	}
@@ -234,7 +236,7 @@ func (p *Proxy) ListenAndServe() error {
 		OnRequest:   rewriteConfigServerRequests,
 	}
 	if bbrEnabled {
-		pforwardOpts.OnResponse = bbr.AddMetrics
+		pforwardOpts.OnResponse = bm.AddMetrics
 	}
 
 	filterChain = filterChain.Append(
@@ -326,14 +328,14 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if p.Obfs4Addr != "" {
-		l, listenErr := p.listenTCP(p.Obfs4Addr, bbrEnabled)
+		l, listenErr := p.listenTCP(p.Obfs4Addr, bm)
 		if listenErr != nil {
 			log.Fatalf("Unable to listen for OBFS4 with tcp: %v", listenErr)
 		}
 		serveOBFS4(l)
 	}
 
-	l, err := p.listenTCP(p.Addr, bbrEnabled)
+	l, err := p.listenTCP(p.Addr, bm)
 	if err != nil {
 		return fmt.Errorf("Unable to listen HTTP: %v", err)
 	}
@@ -348,7 +350,7 @@ func (p *Proxy) ListenAndServe() error {
 
 		// We initialize lampshade here because it uses the same keypair as HTTPS
 		if p.LampshadeAddr != "" {
-			ll, listenErr := p.listenTCP(p.LampshadeAddr, bbrEnabled)
+			ll, listenErr := p.listenTCP(p.LampshadeAddr, bm)
 			if listenErr != nil {
 				log.Fatalf("Unable to listen for lampshade with tcp: %v", listenErr)
 			}
@@ -370,7 +372,7 @@ func (p *Proxy) ListenAndServe() error {
 	return err
 }
 
-func (p *Proxy) listenTCP(addr string, bbrEnabled bool) (net.Listener, error) {
+func (p *Proxy) listenTCP(addr string, bm *bbr.Middleware) (net.Listener, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -383,9 +385,9 @@ func (p *Proxy) listenTCP(addr string, bbrEnabled bool) (net.Listener, error) {
 	} else {
 		log.Debugf("Not setting diffserv TOS")
 	}
-	if bbrEnabled {
+	if bm != nil {
 		log.Debugf("Wrapping listener with BBR metrics support: %v", l.Addr())
-		l = bbr.Wrap(l)
+		l = bm.Wrap(l)
 	}
 	return l, nil
 }
