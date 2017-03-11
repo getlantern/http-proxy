@@ -1,6 +1,7 @@
 package common
 
 const (
+	VersionHeader                       = "X-Lantern-Version"
 	DeviceIdHeader                      = "X-Lantern-Device-Id"
 	TokenHeader                         = "X-Lantern-Auth-Token"
 	PingHeader                          = "X-Lantern-Ping"

@@ -39,6 +39,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/redis"
 	"github.com/getlantern/http-proxy-lantern/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
+	"github.com/getlantern/http-proxy-lantern/versioncheck"
 )
 
 const (
@@ -51,41 +52,46 @@ var (
 
 // Proxy is an HTTP proxy.
 type Proxy struct {
-	TestingLocal                 bool
-	Addr                         string
-	BordaReportInterval          time.Duration
-	BordaSamplePercentage        float64
-	BordaBufferSize              int
-	ExternalIP                   string
-	CertFile                     string
-	CfgSvrAuthToken              string
-	CfgSvrDomains                string
-	EnableReports                bool
-	HTTPS                        bool
-	IdleTimeout                  time.Duration
-	KeyFile                      string
-	ProxiedSitesSamplePercentage float64
-	ProxiedSitesTrackingID       string
-	RedisAddr                    string
-	RedisCA                      string
-	RedisClientPK                string
-	RedisClientCert              string
-	ReportingRedisAddr           string
-	ReportingRedisCA             string
-	ReportingRedisClientPK       string
-	ReportingRedisClientCert     string
-	ServerID                     string
-	ThrottleBPS                  uint64
-	ThrottleThreshold            uint64
-	Token                        string
-	TunnelPorts                  string
-	Obfs4Addr                    string
-	Obfs4Dir                     string
-	Benchmark                    bool
-	FasttrackDomains             string
-	DiffServTOS                  int
-	LampshadeAddr                string
-	bm                           bbr.Middleware
+	TestingLocal                   bool
+	Addr                           string
+	BordaReportInterval            time.Duration
+	BordaSamplePercentage          float64
+	BordaBufferSize                int
+	ExternalIP                     string
+	CertFile                       string
+	CfgSvrAuthToken                string
+	CfgSvrDomains                  string
+	EnableReports                  bool
+	HTTPS                          bool
+	IdleTimeout                    time.Duration
+	KeyFile                        string
+	ProxiedSitesSamplePercentage   float64
+	ProxiedSitesTrackingID         string
+	RedisAddr                      string
+	RedisCA                        string
+	RedisClientPK                  string
+	RedisClientCert                string
+	ReportingRedisAddr             string
+	ReportingRedisCA               string
+	ReportingRedisClientPK         string
+	ReportingRedisClientCert       string
+	ServerID                       string
+	ThrottleBPS                    uint64
+	ThrottleThreshold              uint64
+	Token                          string
+	TunnelPorts                    string
+	Obfs4Addr                      string
+	Obfs4Dir                       string
+	Benchmark                      bool
+	FasttrackDomains               string
+	DiffServTOS                    int
+	LampshadeAddr                  string
+	VersionCheck                   bool
+	VersionCheckMinVersion         string
+	VersionCheckRedirectURL        string
+	VersionCheckRedirectPercentage float64
+
+	bm bbr.Middleware
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -206,6 +212,14 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 		}),
 		ping.New(0),
 	)
+
+	// check if the client is running below a certain version, and if true,
+	// redirect certain percentage of the pages to an URL to notify user.
+	if p.VersionCheck {
+		filterChain = filterChain.Append(
+			versioncheck.New(p.VersionCheckMinVersion, p.VersionCheckRedirectURL, p.VersionCheckRedirectPercentage),
+		)
+	}
 
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97

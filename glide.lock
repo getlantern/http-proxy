@@ -1,8 +1,8 @@
-hash: 311468661fd242d84f5f6a91d10583c013d1c4293dfb0b7746df1055107390fb
-updated: 2017-03-31T13:31:38.360607963-05:00
+hash: d6ee3fb7d66306f18bba54aaf371ce07a88383ffff263ba9591ddadb22e06e8a
+updated: 2017-04-05T14:24:03.543446994+08:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
-  version: fcc1d072d63b3e843495d4af4c0f522ddbb9fefc
+  version: a6aba3a6314be3a8ef518d5d4269a8459af9c789
 - name: git.torproject.org/pluggable-transports/obfs4.git
   version: 97a875ec3c0afa629405c78e750d27e4e1f851ca
   subpackages:
@@ -23,6 +23,8 @@ imports:
   version: 79baa1b1fe5f0e1dd4e6920d35180192939678c4
   subpackages:
   - monotime
+- name: github.com/blang/semver
+  version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
 - name: github.com/dchest/siphash
   version: 4ebf1de738443ea7f45f02dc394c4df1942a126d
 - name: github.com/dustin/go-humanize
@@ -30,11 +32,11 @@ imports:
 - name: github.com/getlantern/bbrconn
   version: 02b1f22722cfc5afd58f9234e65c18a401a1ad22
 - name: github.com/getlantern/borda
-  version: 9342480e72c6d26c3af9153aa9c787fc237529b7
+  version: c274d74dbc96b6aacdd03d6a5da26e48db4b0cd3
   subpackages:
   - client
 - name: github.com/getlantern/byteexec
-  version: 2e21fedeb225921a8dc40321cbd114ffd0a302f3
+  version: 4cfb26ec74f460fda433dc06fddfbad7ddee3072
 - name: github.com/getlantern/bytemap
   version: 807aefefeb0978ae9572ddfe7ec99b68f3da03e2
 - name: github.com/getlantern/context
@@ -50,7 +52,7 @@ imports:
 - name: github.com/getlantern/go-loggly
   version: d15e28ab7389ed5d644ccb891d9d54154e43cd27
 - name: github.com/getlantern/goexpr
-  version: 5d0d42bc7cb5cb4c2bdfb4a33e8447865ec715ec
+  version: a4345ba5a35ce5984002caa6a0b7ad80f0c46456
   subpackages:
   - geo
   - isp
@@ -110,7 +112,7 @@ imports:
 - name: github.com/getlantern/withtimeout
   version: 511f017cd91361be75ad73fee96e466a5d790312
 - name: github.com/getlantern/zenodb
-  version: 817671111b51543082c3f4dab5e6166c9fe69a29
+  version: c452511af33de19403db20ee2be4b7db633e02d7
   subpackages:
   - bytetree
   - common
@@ -149,7 +151,7 @@ imports:
   - lapack64
   - native
 - name: github.com/gonum/matrix
-  version: 1b010f5792b7006e929e4833b43628e6115c8988
+  version: 7f732c54d49e291d30b59aa907efb80add8d794d
   subpackages:
   - mat64
 - name: github.com/gonum/stat
@@ -198,7 +200,7 @@ imports:
 - name: github.com/Yawning/chacha20
   version: c91e78db502ff629614837aacb7aa4efa61c651a
 - name: golang.org/x/crypto
-  version: 3cb07270c9455e8ad27956a70891c962d121a228
+  version: c78caca803c95773f48a844d3dcab04b9bc4d6dd
   subpackages:
   - chacha20poly1305
   - chacha20poly1305/internal/chacha20
@@ -224,14 +226,14 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/sys
-  version: 9a7256cb28ed514b4e1e5f68959914c4c28a92e0
+  version: 493114f68206f85e7e333beccfabc11e98cba8dd
   repo: https://github.com/golang/sys
   vcs: git
   subpackages:
   - unix
   - windows
 - name: golang.org/x/text
-  version: c3b0cbb40eb9a862fdc91f79bed8c7ac8e7a36e8
+  version: f4b4367115ec2de254587813edaa901bc1c723a8
   subpackages:
   - secure/bidirule
   - transform
@@ -249,7 +251,7 @@ imports:
   - internal/modules
   - internal/remote_api
 - name: google.golang.org/grpc
-  version: 7fc29d0caa400efc53212b222356f99efe87d7d5
+  version: f45e6e3b301d8eaacc87dc7242ae8b1a43595528
   subpackages:
   - codes
   - credentials
