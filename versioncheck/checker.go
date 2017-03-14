@@ -91,12 +91,15 @@ func (c *VersionChecker) RewriteIfNecessary(req *http.Request) {
 }
 
 func (c *VersionChecker) shouldRewrite(req *http.Request) bool {
+	version := req.Header.Get(common.VersionHeader)
+	req.Header.Del(common.VersionHeader)
+
 	// the first request from browser should always be GET
 	if req.Method != http.MethodGet {
 		return false
 	}
 	// typical browsers always have this as the first value
-	if req.Header.Get("Accept") != "text/html" {
+	if !strings.HasPrefix(req.Header.Get("Accept"), "text/html") {
 		return false
 	}
 	// This covers almost all browsers
@@ -107,7 +110,6 @@ func (c *VersionChecker) shouldRewrite(req *http.Request) bool {
 	if req.Host == c.rewriteURL.Host {
 		return false
 	}
-	version := req.Header.Get(common.VersionHeader)
 	v, e := semver.Make(version)
 	if e == nil && v.GTE(c.minVersion) {
 		return false
