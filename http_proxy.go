@@ -213,20 +213,12 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 		ping.New(0),
 	)
 
-	// check if the client is running below a certain version, and if true,
-	// redirect certain percentage of the pages to an URL to notify user.
-	if p.VersionCheck {
-		filterChain = filterChain.Append(
-			versioncheck.New(p.VersionCheckMinVersion, p.VersionCheckRedirectURL, p.VersionCheckRedirectPercentage),
-		)
-	}
-
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97
 	dialer := preferIPV4Dialer(timeoutToDialOriginSite)
 	dialerForPforward := dialer
 
-	var rewriteConfigServerRequests func(*http.Request)
+	var requestRewriters []func(*http.Request)
 	if p.CfgSvrAuthToken != "" || p.CfgSvrDomains != "" {
 		cfg := &configserverfilter.Options{
 			AuthToken: p.CfgSvrAuthToken,
@@ -235,9 +227,31 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 		dialerForPforward = configserverfilter.Dialer(dialerForPforward, cfg)
 		csf := configserverfilter.New(cfg)
 		filterChain = filterChain.Append(csf)
-		rewriteConfigServerRequests = csf.RewriteIfNecessary
+		requestRewriters = append(requestRewriters, csf.RewriteIfNecessary)
 	}
 
+	// check if the client is running below a certain version, and if true,
+	// rewrite certain percentage of the requests to an URL to notify user.
+	if p.VersionCheck {
+		log.Debugf("versioncheck: Will redirect %.4f%% of browser requests from clients below %s to %s",
+			p.VersionCheckRedirectPercentage*100,
+			p.VersionCheckMinVersion,
+			p.VersionCheckRedirectURL,
+		)
+		vc := versioncheck.New(p.VersionCheckMinVersion, p.VersionCheckRedirectURL, p.VersionCheckRedirectPercentage)
+		requestRewriters = append(requestRewriters, vc.RewriteIfNecessary)
+		dialerForPforward = vc.Dialer(dialerForPforward)
+		filterChain = filterChain.Append(vc.Filter())
+	}
+
+	var rewrite func(req *http.Request)
+	if len(requestRewriters) > 0 {
+		rewrite = func(req *http.Request) {
+			for _, rw := range requestRewriters {
+				rw(req)
+			}
+		}
+	}
 	filterChain = filterChain.Append(
 		// This filter will look for CONNECT requests and hijack those connections
 		httpconnect.New(&httpconnect.Options{
@@ -250,7 +264,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 		pforward.New(&pforward.Options{
 			IdleTimeout: p.IdleTimeout,
 			Dialer:      dialerForPforward,
-			OnRequest:   rewriteConfigServerRequests,
+			OnRequest:   rewrite,
 			OnResponse:  p.bm.AddMetrics,
 		}),
 		// This filter will handle all remaining HTTP requests (legacy HTTP
