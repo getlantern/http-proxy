@@ -3,20 +3,23 @@ package bbr
 import (
 	"math"
 	"sync"
+	"time"
 
 	"github.com/getlantern/ema"
 	"github.com/gonum/stat"
 )
 
 const (
-	limit        = 25
-	abeThreshold = 2500000
+	limit             = 25
+	abeThreshold      = 2500000
+	minBytesThreshold = 10000
 )
 
 type stats struct {
 	sent    []float64
 	abe     []float64
 	weights []float64
+	times   []time.Time
 	emaABE  *ema.EMA
 	size    int
 	idx     int
@@ -28,21 +31,25 @@ func newStats() *stats {
 		sent:    make([]float64, limit),
 		abe:     make([]float64, limit),
 		weights: make([]float64, limit),
-		emaABE:  ema.New(0, 0.5),
+		times:   make([]time.Time, limit),
+		emaABE:  ema.New(0, 0.1),
 	}
 }
 
 func (s *stats) update(sent float64, abe float64) {
-	if sent < 1024 {
-		// Don't bother recording values below 1 KB
+	if sent < minBytesThreshold {
+		// Don't bother recording values with too little data on connection
 		return
 	}
+
+	now := time.Now()
 	logOfSent := math.Log1p(sent)
 	logOfABE := math.Log1p(abe)
 	s.mx.Lock()
 	s.sent[s.idx] = logOfSent
 	s.abe[s.idx] = logOfABE
 	s.weights[s.idx] = sent // give more weight to measurements from larger bytes sent
+	s.times[s.idx] = now
 	s.idx++
 	if s.idx == limit {
 		// Wrap
@@ -64,8 +71,15 @@ func (s *stats) update(sent float64, abe float64) {
 		return
 	}
 
+	weights := make([]float64, 0, s.size)
+	for i := 0; i < s.size; i++ {
+		// Give more weight to more recent values
+		age := now.Sub(s.times[i]).Seconds() + 1
+		weights = append(weights, s.weights[i]/age)
+	}
+
 	// Estimate by applying a linear regression
-	alpha, beta := stat.LinearRegression(s.sent, s.abe, s.weights, false)
+	alpha, beta := stat.LinearRegression(s.sent[:s.size], s.abe[:s.size], weights, false)
 	s.mx.Unlock()
 	newEstimate := math.Expm1(alpha + beta*math.Log1p(abeThreshold))
 	if math.IsNaN(newEstimate) {
@@ -76,6 +90,7 @@ func (s *stats) update(sent float64, abe float64) {
 		newEstimate = 0
 	}
 	updated := s.emaABE.Update(newEstimate)
+	log.Debugf("%.0f at %.2f -> %.2f", sent, abe, updated)
 	if updated <= 0 {
 		// Set estimate to a small value to show that we have something
 		s.emaABE.Set(0.01)

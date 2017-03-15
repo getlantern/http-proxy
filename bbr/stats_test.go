@@ -10,10 +10,15 @@ func TestEstimate(t *testing.T) {
 	s := newStats()
 	est := s.estABE()
 	assert.EqualValues(t, 0, est)
+	ignored := 0
 	for i, d := range data {
-		s.update(d[0]*1024, d[1])
+		bytes := d[0] * 1024
+		s.update(bytes, d[1])
+		if bytes < minBytesThreshold {
+			ignored++
+		}
 		assert.True(t, s.size <= limit)
-		if i >= limit-1 {
+		if i-ignored >= limit-1 {
 			assert.Equal(t, limit, s.size)
 		}
 		est = s.estABE()
