@@ -43,10 +43,12 @@ func (bm *Middleware) AddMetrics(resp *http.Response) *http.Response {
 }
 
 func (bm *Middleware) addMetrics(req *http.Request, header http.Header) {
-	if req.Header.Get(common.BBRRequested) == "" {
+	bbrRequested := req.Header.Get(common.BBRRequested)
+	if bbrRequested == "" {
 		// BBR info not requested, ignore
 		return
 	}
+
 	_conn := context.Get(req, "conn")
 	if _conn == nil {
 		// TODO: for some reason, conn is nil when proxying HTTP requests. Figure
@@ -55,12 +57,19 @@ func (bm *Middleware) addMetrics(req *http.Request, header http.Header) {
 	}
 	conn := _conn.(net.Conn)
 	s := bm.statsFor(conn)
+
+	clear := bbrRequested == "clear"
+	if clear {
+		log.Debugf("Clearing stats for %v", conn.RemoteAddr())
+		s.clear()
+	}
+
 	netx.WalkWrapped(conn, func(conn net.Conn) bool {
 		switch t := conn.(type) {
 		case bbrconn.Conn:
 			// Found bbr conn, get info
 			bytesSent, info, infoErr := t.Info()
-			bm.track(s, bytesSent, info, infoErr)
+			bm.track(s, conn.RemoteAddr(), bytesSent, info, infoErr)
 			return false
 		}
 
@@ -83,13 +92,13 @@ func (bm *Middleware) statsFor(conn net.Conn) *stats {
 	return s
 }
 
-func (bm *Middleware) track(s *stats, bytesSent int, info *tcpinfo.BBRInfo, err error) {
+func (bm *Middleware) track(s *stats, remoteAddr net.Addr, bytesSent int, info *tcpinfo.BBRInfo, err error) {
 	if err != nil {
 		log.Debugf("Unable to get BBR info (this happens when connections are closed unexpectedly): %v", err)
 		return
 	}
 	s.update(float64(bytesSent), float64(info.EstBandwidth)*8/1000/1000)
-	log.Debugf("Bytes sent: %v   BBR-ABE: %v   EMA BBR-ABE: %v", humanize.Bytes(uint64(bytesSent)), float64(info.EstBandwidth)*8/1000/1000, s.estABE())
+	log.Debugf("%v : Bytes sent: %v   BBR-ABE: %v   EMA BBR-ABE: %v   Min RTT: %d", remoteAddr, humanize.Bytes(uint64(bytesSent)), float64(info.EstBandwidth)*8/1000/1000, s.estABE(), info.MinRTT)
 }
 
 func (bm *Middleware) Wrap(l net.Listener) net.Listener {
@@ -108,6 +117,6 @@ func (l *bbrlistener) Accept() (net.Conn, error) {
 		return nil, err
 	}
 	return bbrconn.Wrap(conn, func(bytesSent int, info *tcpinfo.BBRInfo, err error) {
-		l.bm.track(l.bm.statsFor(conn), bytesSent, info, err)
+		l.bm.track(l.bm.statsFor(conn), conn.RemoteAddr(), bytesSent, info, err)
 	})
 }

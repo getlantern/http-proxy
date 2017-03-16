@@ -97,6 +97,14 @@ func (s *stats) update(sent float64, abe float64) {
 	}
 }
 
+func (s *stats) clear() {
+	s.mx.Lock()
+	s.emaABE.Clear()
+	s.size = 0
+	s.idx = 0
+	s.mx.Unlock()
+}
+
 // estABE estimates the ABE at bytes_sent = 2.5 MB using a logarithmic
 // regression on the most recent measurements
 func (s *stats) estABE() float64 {
