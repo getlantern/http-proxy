@@ -11,8 +11,9 @@ import (
 
 const (
 	limit             = 25
+	minSamples        = 5
 	abeThreshold      = 2500000
-	minBytesThreshold = 10000
+	minBytesThreshold = 4096
 )
 
 type stats struct {
@@ -23,7 +24,7 @@ type stats struct {
 	emaABE  *ema.EMA
 	size    int
 	idx     int
-	mx      sync.Mutex
+	mx      sync.RWMutex
 }
 
 func newStats() *stats {
@@ -108,5 +109,11 @@ func (s *stats) clear() {
 // estABE estimates the ABE at bytes_sent = 2.5 MB using a logarithmic
 // regression on the most recent measurements
 func (s *stats) estABE() float64 {
+	s.mx.RLock()
+	enoughData := s.size >= minSamples
+	s.mx.RUnlock()
+	if !enoughData {
+		return 0
+	}
 	return s.emaABE.Get()
 }
