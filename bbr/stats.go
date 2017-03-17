@@ -13,7 +13,7 @@ const (
 	limit             = 25
 	minSamples        = 5
 	abeThreshold      = 2500000
-	minBytesThreshold = 4096
+	minBytesThreshold = 2048
 )
 
 type stats struct {
