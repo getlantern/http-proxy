@@ -71,6 +71,10 @@ type Proxy struct {
 	RedisCA                      string
 	RedisClientPK                string
 	RedisClientCert              string
+	ReportingRedisAddr           string
+	ReportingRedisCA             string
+	ReportingRedisClientPK       string
+	ReportingRedisClientCert     string
 	ServerID                     string
 	ThrottleBPS                  uint64
 	ThrottleThreshold            uint64
@@ -341,14 +345,14 @@ func (p *Proxy) redisClientForPro() (redis.Client, error) {
 }
 
 func (p *Proxy) redisClientForReporting() (redis.Client, error) {
-	if p.RedisAddr == "" {
+	if p.ReportingRedisAddr == "" {
 		return nil, errors.New("no redis address configured for bandwidth reporting")
 	}
 	redisOpts := &redis.Options{
-		RedisURL:       p.RedisAddr,
-		RedisCAFile:    p.RedisCA,
-		ClientPKFile:   p.RedisClientPK,
-		ClientCertFile: p.RedisClientCert,
+		RedisURL:       p.ReportingRedisAddr,
+		RedisCAFile:    p.ReportingRedisCA,
+		ClientPKFile:   p.ReportingRedisClientPK,
+		ClientCertFile: p.ReportingRedisClientCert,
 	}
 	return redis.GetClient(redisOpts)
 }

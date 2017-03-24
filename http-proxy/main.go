@@ -40,10 +40,14 @@ var (
 	pprofAddr                    = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
 	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
-	redisAddr                    = flag.String("redis", "", "Redis address in \"redis[s]://host:port\" format")
-	redisCA                      = flag.String("redisca", "", "Certificate for redislabs's CA")
-	redisClientPK                = flag.String("redisclientpk", "", "Private key for authenticating client to redis's stunnel")
-	redisClientCert              = flag.String("redisclientcert", "", "Certificate for authenticating client to redis's stunnel")
+	redisAddr                    = flag.String("redis", "", "The address of main Redis in \"redis[s]://host:port\" format")
+	redisCA                      = flag.String("redisca", "", "Certificate for main Redis's CA")
+	redisClientPK                = flag.String("redisclientpk", "", "Private key for authenticating client to main Redis")
+	redisClientCert              = flag.String("redisclientcert", "", "Certificate for authenticating client to main Redis")
+	reportingRedisAddr           = flag.String("reportingredis", "", "The address of the reporting Redis instance in \"redis[s]://host:port\" format")
+	reportingRedisCA             = flag.String("reportingredisca", "", "Certificate for the CA of Redis instance for reporting")
+	reportingRedisClientPK       = flag.String("reportingredisclientpk", "", "Private key for authenticating client to the Redis instance for reporting")
+	reportingRedisClientCert     = flag.String("reportingredisclientcert", "", "Certificate for authenticating client to the Redis instance for reporting")
 	serverId                     = flag.String("serverid", hostname, "Server Id required for Pro-supporting servers")
 	token                        = flag.String("token", "", "Lantern token")
 	tunnelPorts                  = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
@@ -111,6 +115,10 @@ func main() {
 		RedisCA:                      *redisCA,
 		RedisClientPK:                *redisClientPK,
 		RedisClientCert:              *redisClientCert,
+		ReportingRedisAddr:           *reportingRedisAddr,
+		ReportingRedisCA:             *reportingRedisCA,
+		ReportingRedisClientPK:       *reportingRedisClientPK,
+		ReportingRedisClientCert:     *reportingRedisClientCert,
 		ServerID:                     *serverId,
 		Token:                        *token,
 		TunnelPorts:                  *tunnelPorts,
