@@ -36,7 +36,7 @@ var (
 	idleClose                    = flag.Uint64("idleclose", 70, "Time in seconds that an idle connection will be allowed before closing it")
 	keyfile                      = flag.String("key", "", "Private key file name")
 	logglyToken                  = flag.String("logglytoken", "", "Token used to report to loggly.com, not reporting if empty")
-	maxConns                     = flag.Uint64("maxconns", 0, "Max number of simultaneous allowed connections")
+	_                            = flag.Uint64("maxconns", 0, "Max number of simultaneous allowed connections, unused")
 	pprofAddr                    = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
 	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
@@ -91,21 +91,20 @@ func main() {
 	}
 
 	p := &proxy.Proxy{
-		Addr:                         *addr,
-		CertFile:                     *certfile,
-		CfgSvrAuthToken:              *cfgSvrAuthToken,
-		CfgSvrDomains:                *cfgSvrDomains,
-		EnableReports:                *enableReports,
-		ThrottleBPS:                  *throttlebps,
-		ThrottleThreshold:            *throttlethreshold,
-		BordaReportInterval:          *bordaReportInterval,
-		BordaSamplePercentage:        *bordaSamplePercentage,
-		BordaBufferSize:              *bordaBufferSize,
-		ExternalIP:                   *externalIP,
-		HTTPS:                        *https,
-		IdleClose:                    *idleClose,
-		KeyFile:                      *keyfile,
-		MaxConns:                     *maxConns,
+		Addr:                  *addr,
+		CertFile:              *certfile,
+		CfgSvrAuthToken:       *cfgSvrAuthToken,
+		CfgSvrDomains:         *cfgSvrDomains,
+		EnableReports:         *enableReports,
+		ThrottleBPS:           *throttlebps,
+		ThrottleThreshold:     *throttlethreshold,
+		BordaReportInterval:   *bordaReportInterval,
+		BordaSamplePercentage: *bordaSamplePercentage,
+		BordaBufferSize:       *bordaBufferSize,
+		ExternalIP:            *externalIP,
+		HTTPS:                 *https,
+		IdleTimeout:           time.Duration(*idleClose) * time.Second,
+		KeyFile:               *keyfile,
 		ProxiedSitesSamplePercentage: *proxiedSitesSamplePercentage,
 		ProxiedSitesTrackingID:       *proxiedSitesTrackingId,
 		RedisAddr:                    *redisAddr,
