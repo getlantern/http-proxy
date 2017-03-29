@@ -8,7 +8,7 @@
 //    connection and then maintain an exponential moving average (EMA) of these
 //    estimates per remote (client) IP.
 // 2. If a client includes HTTP header X-BBR: <anything>, we include header
-//    X-BBR-ABE: <EMA bandwidth in mbps>.
+//    X-BBR-ABE: <EMA bandwidth in Mbps>.
 // 3. If a client includes HTTP header X-BBR: clear, we clear stored estimate
 //    data for the client's IP.
 //
