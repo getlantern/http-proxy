@@ -55,7 +55,9 @@ type Options struct {
 	PoolSize int
 }
 
-func GetClient(opts *Options) (*redis.Client, error) {
+type Client *redis.Client
+
+func GetClient(opts *Options) (Client, error) {
 	u, err := url.Parse(opts.RedisURL)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to parse Redis address: %s", err)
