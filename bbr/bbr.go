@@ -44,11 +44,6 @@ func (bm *Middleware) AddMetrics(resp *http.Response) *http.Response {
 
 func (bm *Middleware) addMetrics(req *http.Request, header http.Header) {
 	bbrRequested := req.Header.Get(common.BBRRequested)
-	if bbrRequested == "" {
-		// BBR info not requested, ignore
-		return
-	}
-
 	_conn := context.Get(req, "conn")
 	if _conn == nil {
 		// TODO: for some reason, conn is nil when proxying HTTP requests. Figure
@@ -76,6 +71,11 @@ func (bm *Middleware) addMetrics(req *http.Request, header http.Header) {
 		// Keep looking
 		return true
 	})
+
+	if bbrRequested == "" {
+		// BBR info not requested, ignore
+		return
+	}
 	header.Set(common.BBRAvailableBandwidthEstimateHeader, fmt.Sprint(s.estABE()))
 }
 

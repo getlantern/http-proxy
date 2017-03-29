@@ -14,6 +14,7 @@ const (
 	minSamples        = 5
 	abeThreshold      = 2500000
 	minBytesThreshold = 2048
+	maxABE            = 100
 )
 
 type stats struct {
@@ -89,6 +90,10 @@ func (s *stats) update(sent float64, abe float64) {
 	}
 	if newEstimate < 0 {
 		newEstimate = 0
+	}
+	if newEstimate > maxABE {
+		// Cap estimate to 100 Mbps
+		newEstimate = maxABE
 	}
 	updated := s.emaABE.Update(newEstimate)
 	log.Debugf("%.0f at %.2f -> %.2f", sent, abe, updated)
