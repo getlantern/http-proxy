@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -10,10 +9,8 @@ import (
 	"strings"
 	"time"
 
-	_redis "gopkg.in/redis.v3"
-
+	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
-	"github.com/getlantern/measured"
 	"github.com/getlantern/ops"
 
 	"github.com/getlantern/http-proxy/commonfilter"
@@ -46,8 +43,7 @@ import (
 )
 
 const (
-	timeoutToDialOriginSite   = 10 * time.Second
-	measuredReportingInterval = 1 * time.Minute
+	timeoutToDialOriginSite = 10 * time.Second
 )
 
 var (
@@ -67,15 +63,18 @@ type Proxy struct {
 	CfgSvrDomains                string
 	EnableReports                bool
 	HTTPS                        bool
-	IdleClose                    uint64
+	IdleTimeout                  time.Duration
 	KeyFile                      string
-	MaxConns                     uint64
 	ProxiedSitesSamplePercentage float64
 	ProxiedSitesTrackingID       string
 	RedisAddr                    string
 	RedisCA                      string
 	RedisClientPK                string
 	RedisClientCert              string
+	ReportingRedisAddr           string
+	ReportingRedisCA             string
+	ReportingRedisClientPK       string
+	ReportingRedisClientCert     string
 	ServerID                     string
 	ThrottleBPS                  uint64
 	ThrottleThreshold            uint64
@@ -87,97 +86,99 @@ type Proxy struct {
 	FasttrackDomains             string
 	DiffServTOS                  int
 	LampshadeAddr                string
+	bbrEnabled                   bool
+	bbr                          *bbr.Middleware
 }
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
-	var err error
+	p.setupOpsContext()
+	p.setBenchmarkMode()
+
+	p.bbrEnabled = runtime.GOOS == "linux"
+	if p.bbrEnabled {
+		p.bbr = bbr.New()
+	}
+	// Only allow connections from remote IPs that are not blacklisted
+	blacklist := p.createBlacklist()
+	filterChain, err := p.createFilterChain(blacklist)
+	if err != nil {
+		return err
+	}
+
+	bwReporting := p.configureBandwidthReporting()
+	srv := server.NewServer(filterChain.Prepend(opsfilter.New()))
+	srv.Allow = blacklist.OnConnect
+	if err := p.applyThrottling(srv, bwReporting); err != nil {
+		return err
+	}
+	srv.AddListenerWrappers(bwReporting.wrapper)
+	srv.AddListenerWrappers(
+		// Close connections after 30 seconds of no activity
+		func(ls net.Listener) net.Listener {
+			return listeners.NewIdleConnListener(ls, p.IdleTimeout)
+		},
+	)
+
+	if p.Obfs4Addr != "" {
+		p.serveOBFS4(srv)
+	}
+
+	l, err := p.listenTCP(p.Addr)
+	if err != nil {
+		return errors.New("Unable to listen tcp at %s: %v", p.Addr, err)
+	}
+	protocol := "HTTP"
+	if p.HTTPS {
+		protocol = "HTTPS"
+		l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile)
+		if err != nil {
+			return err
+		}
+		// We initialize lampshade here because it uses the same keypair as HTTPS
+		if p.LampshadeAddr != "" {
+			p.serveLampshade(srv)
+		}
+	}
+
+	log.Debugf("Listening for %v at %v", protocol, l.Addr())
+	err = srv.Serve(l, mimic.SetServerAddr)
+	if err != nil {
+		return errors.New("Error serving HTTP(S): %v", err)
+	}
+	return nil
+}
+
+func (p *Proxy) setupOpsContext() {
 	ops.SetGlobal("app", "http-proxy")
 	if p.ExternalIP != "" {
 		log.Debugf("Will report with proxy_host: %v", p.ExternalIP)
 		ops.SetGlobal("proxy_host", p.ExternalIP)
 	}
+}
 
+func (p *Proxy) setBenchmarkMode() {
 	if p.Benchmark {
 		log.Debug("Putting proxy into benchmarking mode. Only a limited rate of requests to a specific set of domains will be allowed, no authentication token required.")
 		p.HTTPS = true
 		p.Token = "bench"
 	}
+}
 
-	reportMeasured := func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
-		// do nothing by default
-	}
-
-	// Get a Redis client
-	var rc *_redis.Client
-	if p.RedisAddr != "" {
-		redisOpts := &redis.Options{
-			RedisURL:       p.RedisAddr,
-			RedisCAFile:    p.RedisCA,
-			ClientPKFile:   p.RedisClientPK,
-			ClientCertFile: p.RedisClientCert,
-		}
-		var redisErr error
-		rc, redisErr = redis.GetClient(redisOpts)
-		if redisErr != nil {
-			log.Error(redisErr)
-		}
-	}
-
-	shouldReport := p.EnableReports && rc != nil
-
-	// Reporting
-	if shouldReport {
-		reportMeasured = redis.NewMeasuredReporter(rc, measuredReportingInterval)
-	}
-
-	// Throttling
-	if p.ThrottleBPS > 0 && p.ThrottleThreshold > 0 {
-		if !shouldReport {
-			log.Debug("Not throttling because reporting is not enabled")
-		} else {
-			log.Debugf("Throttling to %d bps after %d bytes", p.ThrottleBPS, p.ThrottleThreshold)
-		}
-	} else if (p.ThrottleBPS > 0) != (p.ThrottleThreshold > 0) {
-		log.Fatal("Throttling requires both throttlebps and throttlethreshold > 0")
-	} else {
-		log.Debug("Throttling is disabled")
-	}
-
-	// Configure borda
-	if p.BordaReportInterval > 0 {
-		oldReportMeasured := reportMeasured
-		bordaReportMeasured := borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
-		reportMeasured = func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
-			oldReportMeasured(ctx, stats, deltaStats, final)
-			bordaReportMeasured(ctx, stats, deltaStats, final)
-		}
-	}
-
-	// Set up a blacklist
-	bl := blacklist.New(blacklist.Options{
+func (p *Proxy) createBlacklist() *blacklist.Blacklist {
+	return blacklist.New(blacklist.Options{
 		MaxIdleTime:        30 * time.Second,
 		MaxConnectInterval: 5 * time.Second,
 		AllowedFailures:    10,
 		Expiration:         6 * time.Hour,
 	})
+}
 
-	idleTimeout := time.Duration(p.IdleClose) * time.Second
-	var allowedPorts []int
-	if p.TunnelPorts != "" {
-		allowedPorts, err = portsFromCSV(p.TunnelPorts)
-		if err != nil {
-			log.Fatal(err)
-		}
-	}
-
+func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error) {
 	var filterChain filters.Chain
-	bbrEnabled := runtime.GOOS == "linux"
-	var bm *bbr.Middleware
-	if bbrEnabled {
-		bm = bbr.New()
+	if p.bbrEnabled {
 		log.Debug("Tracking bbr metrics")
-		filterChain = filterChain.Append(bm)
+		filterChain = filterChain.Append(p.bbr)
 	} else {
 		log.Debugf("OS is %v, not tracking bbr metrics", runtime.GOOS)
 	}
@@ -195,6 +196,10 @@ func (p *Proxy) ListenAndServe() error {
 		filterChain = filterChain.Append(tokenfilter.New(p.Token))
 	}
 	fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
+	rc, err := p.redisClientForPro()
+	if err != nil {
+		log.Debug("Not enabling pro because redis is not configured")
+	}
 	if rc != nil {
 		filterChain = filterChain.Append(
 			devicefilter.NewPre(redis.NewDeviceFetcher(rc), p.ThrottleThreshold, fd),
@@ -231,19 +236,19 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	pforwardOpts := &pforward.Options{
-		IdleTimeout: idleTimeout,
+		IdleTimeout: p.IdleTimeout,
 		Dialer:      dialerForPforward,
 		OnRequest:   rewriteConfigServerRequests,
 	}
-	if bbrEnabled {
-		pforwardOpts.OnResponse = bm.AddMetrics
+	if p.bbrEnabled {
+		pforwardOpts.OnResponse = p.bbr.AddMetrics
 	}
 
 	filterChain = filterChain.Append(
 		// This filter will look for CONNECT requests and hijack those connections
 		httpconnect.New(&httpconnect.Options{
-			IdleTimeout:  idleTimeout,
-			AllowedPorts: allowedPorts,
+			IdleTimeout:  p.IdleTimeout,
+			AllowedPorts: p.allowedTunnelPorts(),
 			Dialer:       dialer,
 		}),
 		// This filter will look for GET requests with X-Lantern-Persistent: true and
@@ -252,127 +257,149 @@ func (p *Proxy) ListenAndServe() error {
 		// This filter will handle all remaining HTTP requests (legacy HTTP
 		// connection management scheme).
 		forward.New(&forward.Options{
-			IdleTimeout: idleTimeout,
+			IdleTimeout: p.IdleTimeout,
 			Dialer:      dialer,
 		}),
 	)
 
-	if rc == nil {
+	rc, err = p.redisClientForPro()
+	if err != nil {
 		log.Debug("Not enabling pro because redis is not configured")
-	} else {
-		if p.ServerID == "" {
-			log.Fatal("Enabling Pro requires setting the \"serverid\" flag")
-		}
-		log.Debug("This proxy is configured to support Lantern Pro")
-		proFilter, proErr := profilter.New(&profilter.Options{
-			RedisClient:         rc,
-			ServerID:            p.ServerID,
-			KeepProTokenDomains: strings.Split(p.CfgSvrDomains, ","),
-			FasttrackDomains:    fd,
-		})
-		if proErr != nil {
-			log.Fatal(proErr)
-		}
-
-		// Put profilter at the beginning of the chain.
-		filterChain = filterChain.Prepend(proFilter)
+		return filterChain, nil
 	}
 
-	srv := server.NewServer(filterChain.Prepend(opsfilter.New()))
-	// Only allow connections from remote IPs that are not blacklisted
-	srv.Allow = bl.OnConnect
-
-	// Add net.Listener wrappers for inbound connections
-	if p.ThrottleBPS > 0 {
-		srv.AddListenerWrappers(
-			// Throttle connections when signaled
-			func(ls net.Listener) net.Listener {
-				return lanternlisteners.NewBitrateListener(ls, p.ThrottleBPS)
-			},
-		)
+	if p.ServerID == "" {
+		return nil, errors.New("Enabling Pro requires setting the \"serverid\" flag")
 	}
-	if shouldReport || p.BordaReportInterval > 0 {
-		srv.AddListenerWrappers(
-			// Measure connections
-			func(ls net.Listener) net.Listener {
-				return listeners.NewMeasuredListener(ls, measuredReportingInterval, reportMeasured)
-			},
-		)
+	log.Debug("This proxy is configured to support Lantern Pro")
+	proFilter, proErr := profilter.New(&profilter.Options{
+		RedisClient:         rc,
+		ServerID:            p.ServerID,
+		KeepProTokenDomains: strings.Split(p.CfgSvrDomains, ","),
+		FasttrackDomains:    fd,
+	})
+	if proErr != nil {
+		return nil, errors.Wrap(proErr)
 	}
-	srv.AddListenerWrappers(
-		// Close connections after 30 seconds of no activity
-		func(ls net.Listener) net.Listener {
-			return listeners.NewIdleConnListener(ls, idleTimeout)
-		},
-	)
-
-	onAddress := func(addr string) {
-		mimic.SetServerAddr(addr)
-	}
-
-	serveOBFS4 := func(wrapped net.Listener) {
-		l, wrapErr := obfs4listener.Wrap(wrapped, p.Obfs4Dir)
-		if wrapErr != nil {
-			log.Fatalf("Unable to listen with obfs4 at %v: %v", wrapped.Addr(), wrapErr)
-		}
-		log.Debugf("Listening for OBFS4 at %v", l.Addr())
-
-		go func() {
-			serveErr := srv.Serve(l, func(addr string) {
-				log.Debugf("obfs4 serving at %v", addr)
-			})
-			if serveErr != nil {
-				log.Fatalf("Error serving obfs4 at %v: %v", wrapped.Addr(), serveErr)
-			}
-		}()
-	}
-
-	if p.Obfs4Addr != "" {
-		l, listenErr := p.listenTCP(p.Obfs4Addr, bm)
-		if listenErr != nil {
-			log.Fatalf("Unable to listen for OBFS4 with tcp: %v", listenErr)
-		}
-		serveOBFS4(l)
-	}
-
-	l, err := p.listenTCP(p.Addr, bm)
-	if err != nil {
-		return fmt.Errorf("Unable to listen HTTP: %v", err)
-	}
-
-	protocol := "HTTP"
-	if p.HTTPS {
-		protocol = "HTTPS"
-		l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile)
-		if err != nil {
-			return err
-		}
-
-		// We initialize lampshade here because it uses the same keypair as HTTPS
-		if p.LampshadeAddr != "" {
-			ll, listenErr := p.listenTCP(p.LampshadeAddr, bm)
-			if listenErr != nil {
-				log.Fatalf("Unable to listen for lampshade with tcp: %v", listenErr)
-			}
-			ll, listenErr = lampshade.Wrap(ll, p.CertFile, p.KeyFile)
-			if listenErr != nil {
-				log.Fatalf("Unable to initialize lampshade with tcp: %v", listenErr)
-			}
-			go srv.Serve(ll, func(addr string) {
-				log.Debugf("lampshade serving at %v", addr)
-			})
-		}
-	}
-
-	log.Debugf("Listening for %v at %v", protocol, l.Addr())
-	err = srv.Serve(l, onAddress)
-	if err != nil {
-		log.Errorf("Error serving HTTP(S): %v", err)
-	}
-	return err
+	// Put profilter at the beginning of the chain.
+	return filterChain.Prepend(proFilter), nil
 }
 
-func (p *Proxy) listenTCP(addr string, bm *bbr.Middleware) (net.Listener, error) {
+func (p *Proxy) configureBandwidthReporting() *reportingConfig {
+	rc, err := p.redisClientForReporting()
+	if err != nil {
+		log.Error(err)
+	}
+	var bordaReporter listeners.MeasuredReportFN
+	if p.BordaReportInterval > 0 {
+		bordaReporter = borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
+	}
+	return newReportingConfig(rc, p.EnableReports, bordaReporter)
+}
+
+func (p *Proxy) applyThrottling(srv *server.Server, rc *reportingConfig) error {
+	if p.ThrottleBPS <= 0 && p.ThrottleThreshold <= 0 {
+		log.Debug("Throttling is disabled")
+		return nil
+	}
+	if p.ThrottleBPS <= 0 || p.ThrottleThreshold <= 0 {
+		return errors.New("Throttling requires both throttlebps and throttlethreshold > 0")
+	}
+	if !rc.enabled {
+		log.Debug("Not throttling because reporting is not enabled")
+		return nil
+	}
+
+	log.Debugf("Throttling to %d bps after %d bytes", p.ThrottleBPS, p.ThrottleThreshold)
+	// Add net.Listener wrappers for inbound connections
+	srv.AddListenerWrappers(
+		// Throttle connections when signaled
+		func(ls net.Listener) net.Listener {
+			return lanternlisteners.NewBitrateListener(ls, p.ThrottleBPS)
+		},
+	)
+	return nil
+}
+
+func (p *Proxy) allowedTunnelPorts() []int {
+	if p.TunnelPorts == "" {
+		log.Debug("tunnelling all ports")
+		return nil
+	}
+	ports, err := portsFromCSV(p.TunnelPorts)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return ports
+}
+
+func (p *Proxy) redisClientForPro() (redis.Client, error) {
+	if p.RedisAddr == "" {
+		return nil, errors.New("no redis address configured for pro")
+	}
+	redisOpts := &redis.Options{
+		RedisURL:       p.RedisAddr,
+		RedisCAFile:    p.RedisCA,
+		ClientPKFile:   p.RedisClientPK,
+		ClientCertFile: p.RedisClientCert,
+	}
+	return redis.GetClient(redisOpts)
+}
+
+func (p *Proxy) redisClientForReporting() (redis.Client, error) {
+	if p.ReportingRedisAddr == "" {
+		return nil, errors.New("no redis address configured for bandwidth reporting")
+	}
+	redisOpts := &redis.Options{
+		RedisURL:       p.ReportingRedisAddr,
+		RedisCAFile:    p.ReportingRedisCA,
+		ClientPKFile:   p.ReportingRedisClientPK,
+		ClientCertFile: p.ReportingRedisClientCert,
+	}
+	return redis.GetClient(redisOpts)
+}
+
+func (p *Proxy) serveOBFS4(srv *server.Server) {
+	l, listenErr := p.listenTCP(p.Obfs4Addr)
+	if listenErr != nil {
+		log.Fatalf("Unable to listen for OBFS4 with tcp: %v", listenErr)
+	}
+	wrapped, wrapErr := obfs4listener.Wrap(l, p.Obfs4Dir)
+	if wrapErr != nil {
+		log.Fatalf("Unable to listen with obfs4 at %v: %v", l.Addr(), wrapErr)
+	}
+	log.Debugf("Listening for OBFS4 at %v", wrapped.Addr())
+
+	go func() {
+		serveErr := srv.Serve(wrapped, func(addr string) {
+			log.Debugf("obfs4 serving at %v", addr)
+		})
+		if serveErr != nil {
+			log.Fatalf("Error serving obfs4 at %v: %v", wrapped.Addr(), serveErr)
+		}
+	}()
+}
+
+func (p *Proxy) serveLampshade(srv *server.Server) {
+	l, err := p.listenTCP(p.LampshadeAddr)
+	if err != nil {
+		log.Fatalf("Unable to listen for lampshade with tcp: %v", err)
+	}
+	wrapped, wrapErr := lampshade.Wrap(l, p.CertFile, p.KeyFile)
+	if wrapErr != nil {
+		log.Fatalf("Unable to initialize lampshade with tcp: %v", wrapErr)
+	}
+	go func() {
+		serveErr := srv.Serve(wrapped, func(addr string) {
+			log.Debugf("lampshade serving at %v", addr)
+		})
+		if serveErr != nil {
+			log.Fatalf("Error serving lampshade at %v: %v", wrapped.Addr(), serveErr)
+		}
+	}()
+}
+
+func (p *Proxy) listenTCP(addr string) (net.Listener, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -385,9 +412,9 @@ func (p *Proxy) listenTCP(addr string, bm *bbr.Middleware) (net.Listener, error)
 	} else {
 		log.Debugf("Not setting diffserv TOS")
 	}
-	if bm != nil {
+	if p.bbrEnabled {
 		log.Debugf("Wrapping listener with BBR metrics support: %v", l.Addr())
-		l = bm.Wrap(l)
+		l = p.bbr.Wrap(l)
 	}
 	return l, nil
 }
