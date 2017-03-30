@@ -97,7 +97,7 @@ func (s *stats) update(sent float64, abe float64) {
 	}
 	updated := s.emaABE.Update(newEstimate)
 	if updated <= 0 {
-		log.Debugf("Calculated negative EBA of %.2f?!, setting to small value instead")
+		log.Debugf("Calculated negative EBA of %.2f?!, setting to small value instead", updated)
 		// Set estimate to a small value to show that we have something
 		s.emaABE.Set(0.01)
 	}

@@ -4,7 +4,6 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -86,8 +85,7 @@ type Proxy struct {
 	FasttrackDomains             string
 	DiffServTOS                  int
 	LampshadeAddr                string
-	bbrEnabled                   bool
-	bbr                          *bbr.Middleware
+	bbr                          bbr.Middleware
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -95,10 +93,7 @@ func (p *Proxy) ListenAndServe() error {
 	p.setupOpsContext()
 	p.setBenchmarkMode()
 
-	p.bbrEnabled = runtime.GOOS == "linux"
-	if p.bbrEnabled {
-		p.bbr = bbr.New()
-	}
+	p.bbr = bbr.New()
 	// Only allow connections from remote IPs that are not blacklisted
 	blacklist := p.createBlacklist()
 	filterChain, err := p.createFilterChain(blacklist)
@@ -175,13 +170,7 @@ func (p *Proxy) createBlacklist() *blacklist.Blacklist {
 }
 
 func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error) {
-	var filterChain filters.Chain
-	if p.bbrEnabled {
-		log.Debug("Tracking bbr metrics")
-		filterChain = filterChain.Append(p.bbr)
-	} else {
-		log.Debugf("OS is %v, not tracking bbr metrics", runtime.GOOS)
-	}
+	filterChain := filters.Join(p.bbr)
 
 	if p.Benchmark {
 		filterChain = filterChain.Append(ratelimiter.New(5000, map[string]time.Duration{
@@ -235,15 +224,6 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 		rewriteConfigServerRequests = csf.RewriteIfNecessary
 	}
 
-	pforwardOpts := &pforward.Options{
-		IdleTimeout: p.IdleTimeout,
-		Dialer:      dialerForPforward,
-		OnRequest:   rewriteConfigServerRequests,
-	}
-	if p.bbrEnabled {
-		pforwardOpts.OnResponse = p.bbr.AddMetrics
-	}
-
 	filterChain = filterChain.Append(
 		// This filter will look for CONNECT requests and hijack those connections
 		httpconnect.New(&httpconnect.Options{
@@ -253,7 +233,12 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 		}),
 		// This filter will look for GET requests with X-Lantern-Persistent: true and
 		// hijack those connections (new stateful HTTP connection management scheme).
-		pforward.New(pforwardOpts),
+		pforward.New(&pforward.Options{
+			IdleTimeout: p.IdleTimeout,
+			Dialer:      dialerForPforward,
+			OnRequest:   rewriteConfigServerRequests,
+			OnResponse:  p.bbr.AddMetrics,
+		}),
 		// This filter will handle all remaining HTTP requests (legacy HTTP
 		// connection management scheme).
 		forward.New(&forward.Options{
@@ -412,10 +397,7 @@ func (p *Proxy) listenTCP(addr string) (net.Listener, error) {
 	} else {
 		log.Debugf("Not setting diffserv TOS")
 	}
-	if p.bbrEnabled {
-		log.Debugf("Wrapping listener with BBR metrics support: %v", l.Addr())
-		l = p.bbr.Wrap(l)
-	}
+	l = p.bbr.Wrap(l)
 	return l, nil
 }
 

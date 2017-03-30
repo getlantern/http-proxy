@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"runtime"
 	"sync"
 
 	"github.com/dustin/go-humanize"
@@ -35,29 +36,44 @@ var (
 	log = golog.LoggerFor("bbrlistener")
 )
 
-type Middleware struct {
+type Middleware interface {
+	filters.Filter
+
+	// AddMetrics adds BBR metrics to the given response.
+	AddMetrics(resp *http.Response) *http.Response
+
+	// Wrap wraps the given listener with support for BBR metrics.
+	Wrap(l net.Listener) net.Listener
+}
+
+type middleware struct {
 	statsByClient map[string]*stats
 	mx            sync.Mutex
 }
 
-func New() *Middleware {
-	return &Middleware{
-		statsByClient: make(map[string]*stats),
+func New() Middleware {
+	if runtime.GOOS == "linux" {
+		log.Debug("Tracking bbr metrics on Linux")
+		return &middleware{
+			statsByClient: make(map[string]*stats),
+		}
 	}
+	log.Debugf("Not tracking bbr metrics on %v", runtime.GOOS)
+	return &noopMiddleware{}
 }
 
 // Apply implements the interface filters.Filter.
-func (bm *Middleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
+func (bm *middleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
 	bm.addMetrics(req, w.Header())
 	return next()
 }
 
-func (bm *Middleware) AddMetrics(resp *http.Response) *http.Response {
+func (bm *middleware) AddMetrics(resp *http.Response) *http.Response {
 	bm.addMetrics(resp.Request, resp.Header)
 	return resp
 }
 
-func (bm *Middleware) addMetrics(req *http.Request, header http.Header) {
+func (bm *middleware) addMetrics(req *http.Request, header http.Header) {
 	bbrRequested := req.Header.Get(common.BBRRequested)
 	_conn := context.Get(req, "conn")
 	if _conn == nil {
@@ -94,7 +110,7 @@ func (bm *Middleware) addMetrics(req *http.Request, header http.Header) {
 	header.Set(common.BBRAvailableBandwidthEstimateHeader, fmt.Sprint(s.estABE()))
 }
 
-func (bm *Middleware) statsFor(conn net.Conn) *stats {
+func (bm *middleware) statsFor(conn net.Conn) *stats {
 	addr := conn.RemoteAddr().String()
 	host, _, _ := net.SplitHostPort(addr)
 	bm.mx.Lock()
@@ -107,7 +123,7 @@ func (bm *Middleware) statsFor(conn net.Conn) *stats {
 	return s
 }
 
-func (bm *Middleware) track(s *stats, remoteAddr net.Addr, bytesSent int, info *tcpinfo.BBRInfo, err error) {
+func (bm *middleware) track(s *stats, remoteAddr net.Addr, bytesSent int, info *tcpinfo.BBRInfo, err error) {
 	if err != nil {
 		log.Debugf("Unable to get BBR info (this happens when connections are closed unexpectedly): %v", err)
 		return
@@ -116,14 +132,14 @@ func (bm *Middleware) track(s *stats, remoteAddr net.Addr, bytesSent int, info *
 	log.Debugf("%v : Bytes sent: %v   BBR-ABE: %v   EMA BBR-ABE: %v   Min RTT: %d", remoteAddr, humanize.Bytes(uint64(bytesSent)), float64(info.EstBandwidth)*8/1000/1000, s.estABE(), info.MinRTT)
 }
 
-func (bm *Middleware) Wrap(l net.Listener) net.Listener {
+func (bm *middleware) Wrap(l net.Listener) net.Listener {
 	log.Debugf("Enabling bbr metrics on %v", l.Addr())
 	return &bbrlistener{l, bm}
 }
 
 type bbrlistener struct {
 	net.Listener
-	bm *Middleware
+	bm *middleware
 }
 
 func (l *bbrlistener) Accept() (net.Conn, error) {
@@ -134,4 +150,18 @@ func (l *bbrlistener) Accept() (net.Conn, error) {
 	return bbrconn.Wrap(conn, func(bytesSent int, info *tcpinfo.BBRInfo, err error) {
 		l.bm.track(l.bm.statsFor(conn), conn.RemoteAddr(), bytesSent, info, err)
 	})
+}
+
+type noopMiddleware struct{}
+
+func (nm *noopMiddleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
+	return next()
+}
+
+func (nm *noopMiddleware) AddMetrics(resp *http.Response) *http.Response {
+	return resp
+}
+
+func (nm *noopMiddleware) Wrap(l net.Listener) net.Listener {
+	return l
 }
