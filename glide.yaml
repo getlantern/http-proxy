@@ -44,3 +44,4 @@ import:
   - assert
 - package: github.com/klauspost/cpuid
 - package: github.com/Yawning/chacha20
+- package: github.com/gonum/stat

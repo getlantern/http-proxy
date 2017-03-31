@@ -4,7 +4,6 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof"
-	"runtime"
 	"strconv"
 	"strings"
 	"time"
@@ -86,6 +85,7 @@ type Proxy struct {
 	FasttrackDomains             string
 	DiffServTOS                  int
 	LampshadeAddr                string
+	bm                           bbr.Middleware
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -93,16 +93,16 @@ func (p *Proxy) ListenAndServe() error {
 	p.setupOpsContext()
 	p.setBenchmarkMode()
 
-	bbrEnabled := runtime.GOOS == "linux"
+	p.bm = bbr.New()
 	// Only allow connections from remote IPs that are not blacklisted
 	blacklist := p.createBlacklist()
-	filterChain, err := p.createFilterChain(blacklist, bbrEnabled)
+	filterChain, err := p.createFilterChain(blacklist)
 	if err != nil {
 		return err
 	}
 
 	bwReporting := p.configureBandwidthReporting()
-	srv := server.NewServer(filterChain.Prepend(opsfilter.New()))
+	srv := server.NewServer(filterChain.Prepend(opsfilter.New(p.bm)))
 	srv.Allow = blacklist.OnConnect
 	if err := p.applyThrottling(srv, bwReporting); err != nil {
 		return err
@@ -116,10 +116,10 @@ func (p *Proxy) ListenAndServe() error {
 	)
 
 	if p.Obfs4Addr != "" {
-		p.serveOBFS4(srv, bbrEnabled)
+		p.serveOBFS4(srv)
 	}
 
-	l, err := p.listenTCP(p.Addr, bbrEnabled)
+	l, err := p.listenTCP(p.Addr)
 	if err != nil {
 		return errors.New("Unable to listen tcp at %s: %v", p.Addr, err)
 	}
@@ -132,7 +132,7 @@ func (p *Proxy) ListenAndServe() error {
 		}
 		// We initialize lampshade here because it uses the same keypair as HTTPS
 		if p.LampshadeAddr != "" {
-			p.serveLampshade(srv, bbrEnabled)
+			p.serveLampshade(srv)
 		}
 	}
 
@@ -169,17 +169,8 @@ func (p *Proxy) createBlacklist() *blacklist.Blacklist {
 	})
 }
 
-func (p *Proxy) createFilterChain(
-	bl *blacklist.Blacklist,
-	bbrEnabled bool,
-) (filters.Chain, error) {
-	var filterChain filters.Chain
-	if bbrEnabled {
-		log.Debug("Tracking bbr metrics")
-		filterChain = filterChain.Append(bbr.NewFilter())
-	} else {
-		log.Debugf("OS is %v, not tracking bbr metrics", runtime.GOOS)
-	}
+func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error) {
+	filterChain := filters.Join(p.bm)
 
 	if p.Benchmark {
 		filterChain = filterChain.Append(ratelimiter.New(5000, map[string]time.Duration{
@@ -233,15 +224,6 @@ func (p *Proxy) createFilterChain(
 		rewriteConfigServerRequests = csf.RewriteIfNecessary
 	}
 
-	pforwardOpts := &pforward.Options{
-		IdleTimeout: p.IdleTimeout,
-		Dialer:      dialerForPforward,
-		OnRequest:   rewriteConfigServerRequests,
-	}
-	if bbrEnabled {
-		pforwardOpts.OnResponse = bbr.AddMetrics
-	}
-
 	filterChain = filterChain.Append(
 		// This filter will look for CONNECT requests and hijack those connections
 		httpconnect.New(&httpconnect.Options{
@@ -251,7 +233,12 @@ func (p *Proxy) createFilterChain(
 		}),
 		// This filter will look for GET requests with X-Lantern-Persistent: true and
 		// hijack those connections (new stateful HTTP connection management scheme).
-		pforward.New(pforwardOpts),
+		pforward.New(&pforward.Options{
+			IdleTimeout: p.IdleTimeout,
+			Dialer:      dialerForPforward,
+			OnRequest:   rewriteConfigServerRequests,
+			OnResponse:  p.bm.AddMetrics,
+		}),
 		// This filter will handle all remaining HTTP requests (legacy HTTP
 		// connection management scheme).
 		forward.New(&forward.Options{
@@ -357,8 +344,8 @@ func (p *Proxy) redisClientForReporting() (redis.Client, error) {
 	return redis.GetClient(redisOpts)
 }
 
-func (p *Proxy) serveOBFS4(srv *server.Server, bbrEnabled bool) {
-	l, listenErr := p.listenTCP(p.Obfs4Addr, bbrEnabled)
+func (p *Proxy) serveOBFS4(srv *server.Server) {
+	l, listenErr := p.listenTCP(p.Obfs4Addr)
 	if listenErr != nil {
 		log.Fatalf("Unable to listen for OBFS4 with tcp: %v", listenErr)
 	}
@@ -378,8 +365,8 @@ func (p *Proxy) serveOBFS4(srv *server.Server, bbrEnabled bool) {
 	}()
 }
 
-func (p *Proxy) serveLampshade(srv *server.Server, bbrEnabled bool) {
-	l, err := p.listenTCP(p.LampshadeAddr, bbrEnabled)
+func (p *Proxy) serveLampshade(srv *server.Server) {
+	l, err := p.listenTCP(p.LampshadeAddr)
 	if err != nil {
 		log.Fatalf("Unable to listen for lampshade with tcp: %v", err)
 	}
@@ -397,7 +384,7 @@ func (p *Proxy) serveLampshade(srv *server.Server, bbrEnabled bool) {
 	}()
 }
 
-func (p *Proxy) listenTCP(addr string, bbrEnabled bool) (net.Listener, error) {
+func (p *Proxy) listenTCP(addr string) (net.Listener, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -410,10 +397,7 @@ func (p *Proxy) listenTCP(addr string, bbrEnabled bool) (net.Listener, error) {
 	} else {
 		log.Debugf("Not setting diffserv TOS")
 	}
-	if bbrEnabled {
-		log.Debugf("Wrapping listener with BBR metrics support: %v", l.Addr())
-		l = bbr.Wrap(l)
-	}
+	l = p.bm.Wrap(l)
 	return l, nil
 }
 

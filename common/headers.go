@@ -9,6 +9,6 @@ const (
 	ProTokenHeader                      = "X-Lantern-Pro-Token"
 	CfgSvrAuthTokenHeader               = "X-Lantern-Config-Auth-Token"
 	CfgSvrClientIPHeader                = "X-Lantern-Config-Client-IP"
-	BBRBytesSentHeader                  = "X-BBR-Sent"
+	BBRRequested                        = "X-BBR"
 	BBRAvailableBandwidthEstimateHeader = "X-BBR-ABE"
 )
