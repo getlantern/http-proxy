@@ -9,6 +9,8 @@ import (
 	"github.com/getlantern/ops"
 	"github.com/gorilla/context"
 
+	"github.com/getlantern/borda/client"
+	"github.com/getlantern/http-proxy-lantern/bbr"
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/listeners"
@@ -18,11 +20,13 @@ var (
 	log = golog.LoggerFor("logging")
 )
 
-type opsfilter struct{}
+type opsfilter struct {
+	bm bbr.Middleware
+}
 
 // New constructs a new filter that adds ops context.
-func New() filters.Filter {
-	return &opsfilter{}
+func New(bm bbr.Middleware) filters.Filter {
+	return &opsfilter{bm}
 }
 
 func (f *opsfilter) Apply(resp http.ResponseWriter, req *http.Request, next filters.Next) error {
@@ -61,5 +65,13 @@ func (f *opsfilter) Apply(resp http.ResponseWriter, req *http.Request, next filt
 	wc := context.Get(req, "conn").(listeners.WrapConn)
 	wc.ControlMessage("measured", ctx)
 
-	return next()
+	nextErr := next()
+
+	// Add available bandwidth estimate
+	abe := f.bm.ABE(req)
+	if abe > 0 {
+		op.Set("abe", client.Float(abe))
+	}
+
+	return nextErr
 }

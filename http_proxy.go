@@ -85,7 +85,7 @@ type Proxy struct {
 	FasttrackDomains             string
 	DiffServTOS                  int
 	LampshadeAddr                string
-	bbr                          bbr.Middleware
+	bm                           bbr.Middleware
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -93,7 +93,7 @@ func (p *Proxy) ListenAndServe() error {
 	p.setupOpsContext()
 	p.setBenchmarkMode()
 
-	p.bbr = bbr.New()
+	p.bm = bbr.New()
 	// Only allow connections from remote IPs that are not blacklisted
 	blacklist := p.createBlacklist()
 	filterChain, err := p.createFilterChain(blacklist)
@@ -102,7 +102,7 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	bwReporting := p.configureBandwidthReporting()
-	srv := server.NewServer(filterChain.Prepend(opsfilter.New()))
+	srv := server.NewServer(filterChain.Prepend(opsfilter.New(p.bm)))
 	srv.Allow = blacklist.OnConnect
 	if err := p.applyThrottling(srv, bwReporting); err != nil {
 		return err
@@ -170,7 +170,7 @@ func (p *Proxy) createBlacklist() *blacklist.Blacklist {
 }
 
 func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error) {
-	filterChain := filters.Join(p.bbr)
+	filterChain := filters.Join(p.bm)
 
 	if p.Benchmark {
 		filterChain = filterChain.Append(ratelimiter.New(5000, map[string]time.Duration{
@@ -237,7 +237,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 			IdleTimeout: p.IdleTimeout,
 			Dialer:      dialerForPforward,
 			OnRequest:   rewriteConfigServerRequests,
-			OnResponse:  p.bbr.AddMetrics,
+			OnResponse:  p.bm.AddMetrics,
 		}),
 		// This filter will handle all remaining HTTP requests (legacy HTTP
 		// connection management scheme).
@@ -397,7 +397,7 @@ func (p *Proxy) listenTCP(addr string) (net.Listener, error) {
 	} else {
 		log.Debugf("Not setting diffserv TOS")
 	}
-	l = p.bbr.Wrap(l)
+	l = p.bm.Wrap(l)
 	return l, nil
 }
 

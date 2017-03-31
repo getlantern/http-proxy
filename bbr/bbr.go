@@ -44,6 +44,10 @@ type Middleware interface {
 
 	// Wrap wraps the given listener with support for BBR metrics.
 	Wrap(l net.Listener) net.Listener
+
+	// ABE returns an estimate of the available bandwidth in Mbps for the client
+	// associated with the given Request.
+	ABE(req *http.Request) float64
 }
 
 type middleware struct {
@@ -74,16 +78,15 @@ func (bm *middleware) AddMetrics(resp *http.Response) *http.Response {
 }
 
 func (bm *middleware) addMetrics(req *http.Request, header http.Header) {
-	bbrRequested := req.Header.Get(common.BBRRequested)
-	_conn := context.Get(req, "conn")
-	if _conn == nil {
+	conn := connFor(req)
+	if conn == nil {
 		// TODO: for some reason, conn is nil when proxying HTTP requests. Figure
 		// out why
 		return
 	}
-	conn := _conn.(net.Conn)
 	s := bm.statsFor(conn)
 
+	bbrRequested := req.Header.Get(common.BBRRequested)
 	clear := bbrRequested == "clear"
 	if clear {
 		log.Debugf("Clearing stats for %v", conn.RemoteAddr())
@@ -137,6 +140,14 @@ func (bm *middleware) Wrap(l net.Listener) net.Listener {
 	return &bbrlistener{l, bm}
 }
 
+func (bm *middleware) ABE(req *http.Request) float64 {
+	conn := connFor(req)
+	if conn == nil {
+		return 0
+	}
+	return bm.statsFor(conn).estABE()
+}
+
 type bbrlistener struct {
 	net.Listener
 	bm *middleware
@@ -164,4 +175,16 @@ func (nm *noopMiddleware) AddMetrics(resp *http.Response) *http.Response {
 
 func (nm *noopMiddleware) Wrap(l net.Listener) net.Listener {
 	return l
+}
+
+func (nm *noopMiddleware) ABE(req *http.Request) float64 {
+	return 0
+}
+
+func connFor(req *http.Request) net.Conn {
+	_conn := context.Get(req, "conn")
+	if _conn == nil {
+		return nil
+	}
+	return _conn.(net.Conn)
 }
