@@ -70,7 +70,7 @@ func (f *opsfilter) Apply(resp http.ResponseWriter, req *http.Request, next filt
 	// Add available bandwidth estimate
 	abe := f.bm.ABE(req)
 	if abe > 0 {
-		op.Set("abe", client.Float(abe))
+		op.Set("est_mbps", client.Float(abe))
 	}
 
 	return nextErr
