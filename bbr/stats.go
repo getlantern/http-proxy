@@ -3,9 +3,9 @@ package bbr
 import (
 	"math"
 	"sync"
-	"time"
 
 	"github.com/getlantern/ema"
+	"github.com/getlantern/mtime"
 	"github.com/gonum/stat"
 )
 
@@ -21,7 +21,7 @@ type stats struct {
 	sent    []float64
 	abe     []float64
 	weights []float64
-	times   []time.Time
+	times   []mtime.Instant
 	emaABE  *ema.EMA
 	size    int
 	idx     int
@@ -33,7 +33,7 @@ func newStats() *stats {
 		sent:    make([]float64, limit),
 		abe:     make([]float64, limit),
 		weights: make([]float64, limit),
-		times:   make([]time.Time, limit),
+		times:   make([]mtime.Instant, limit),
 		emaABE:  ema.New(0, 0.1),
 	}
 }
@@ -44,7 +44,7 @@ func (s *stats) update(sent float64, abe float64) {
 		return
 	}
 
-	now := time.Now()
+	now := mtime.Now()
 	logOfSent := math.Log1p(sent)
 	logOfABE := math.Log1p(abe)
 	s.mx.Lock()
