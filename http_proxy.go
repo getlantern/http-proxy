@@ -233,7 +233,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 	// check if the client is running below a certain version, and if true,
 	// rewrite certain percentage of the requests to an URL to notify user.
 	if p.VersionCheck {
-		log.Debugf("versioncheck: Will redirect %.4f%% of browser requests from clients below %s to %s",
+		log.Debugf("versioncheck: Will rewrite %.4f%% of browser requests from clients below %s to %s",
 			p.VersionCheckRedirectPercentage*100,
 			p.VersionCheckMinVersion,
 			p.VersionCheckRedirectURL,

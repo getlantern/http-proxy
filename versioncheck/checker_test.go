@@ -11,7 +11,7 @@ const (
 	ip = "8.8.8.8"
 )
 
-func TestShouldRewrite(t *testing.T) {
+func TestRewrite(t *testing.T) {
 	rewriteURL := "https://versioncheck.com/badversion"
 	rewriteAddr := "versioncheck.com:443"
 	f := New("3.1.1", rewriteURL, 1)
