@@ -36,13 +36,14 @@ type VersionChecker struct {
 	rewriteURL       *url.URL
 	rewriteURLString string
 	rewriteAddr      string
+	connectPorts     []string
 	ppm              int
 }
 
 // New constructs a VersionChecker to check the request and rewrite if required.
 // It panics if the minVersion string is not semantic versioned, or the
 // rewrite URL is malformed.
-func New(minVersion string, rewriteURL string, percentage float64) *VersionChecker {
+func New(minVersion string, rewriteURL string, connectPorts []string, percentage float64) *VersionChecker {
 	u, err := url.Parse(rewriteURL)
 	if err != nil {
 		panic(err)
@@ -52,7 +53,11 @@ func New(minVersion string, rewriteURL string, percentage float64) *VersionCheck
 	if u.Scheme == "https" {
 		rewriteAddr = rewriteAddr + ":443"
 	}
-	return &VersionChecker{minVersion, semver.MustParse(minVersion), u, rewriteURL, rewriteAddr, int(percentage * oneMillion)}
+
+	if len(connectPorts) == 0 {
+		connectPorts = []string{"80"}
+	}
+	return &VersionChecker{minVersion, semver.MustParse(minVersion), u, rewriteURL, rewriteAddr, connectPorts, int(percentage * oneMillion)}
 }
 
 type Dial func(network, address string) (net.Conn, error)
@@ -128,9 +133,20 @@ func (c *VersionChecker) redirectConnectIfNecessary(w http.ResponseWriter, req *
 		return false
 	}
 	_, port, err := net.SplitHostPort(req.Host)
-	if err != nil || port != "80" {
+	if err != nil {
 		return false
 	}
+	portMeet := false
+	for _, p := range c.connectPorts {
+		if port == p {
+			portMeet = true
+			break
+		}
+	}
+	if !portMeet {
+		return false
+	}
+
 	h, ok := w.(http.Hijacker)
 	if !ok {
 		return false
@@ -165,8 +181,9 @@ func (c *VersionChecker) redirectConnectIfNecessary(w http.ResponseWriter, req *
 
 	// Make sure the application sent something and started waiting for the
 	// response.
-	var buf [1]byte
-	_, _ = conn.Read(buf[:])
+	var buf [10000]byte
+	n, _ := conn.Read(buf[:])
+	log.Debugf("%d: %v", n, string(buf[:n]))
 
 	// Send the actual response to application.
 	resp = &http.Response{
