@@ -1,7 +1,19 @@
-// package versioncheck checks the GET requests from browsers to see if the
-// X-Lantern-Version header is absent or below than a semantic version,
-// rewrites a fraction of the requests to a predefined URL. The purpose is to
-// show an upgrade notice to the users with outdated Lantern client.
+// package versioncheck checks if the X-Lantern-Version header in the request
+// is absent or below than a semantic version, and rewrite/redirect a fraction
+// of such requests to a predefined URL.
+//
+// For CONNECT tunnels, it simply checks the X-Lantern-Version header in the
+// CONNECT request, as it's ineffeicient to inspect the tunneled data
+// byte-to-byte. It redirects to the predefined URL via HTTP 302 Found.
+//
+// For GET requests, it checks if the request is come from browser (via
+// User-Agent) and expects HTML content, to be more precise. It rewrites the
+// request to access the predefined URL directly.
+//
+// It doesn't check other HTTP methods.
+
+// The purpose is to show an upgrade notice to the users with outdated Lantern
+// client.
 package versioncheck
 
 import (
@@ -36,14 +48,14 @@ type VersionChecker struct {
 	rewriteURL       *url.URL
 	rewriteURLString string
 	rewriteAddr      string
-	connectPorts     []string
+	tunnelPorts      []string
 	ppm              int
 }
 
-// New constructs a VersionChecker to check the request and rewrite if required.
-// It panics if the minVersion string is not semantic versioned, or the
-// rewrite URL is malformed.
-func New(minVersion string, rewriteURL string, connectPorts []string, percentage float64) *VersionChecker {
+// New constructs a VersionChecker to check the request and rewrite/redirect if
+// required.  It panics if the minVersion string is not semantic versioned, or
+// the rewrite URL is malformed. tunnelPortsToCheck defaults to 80 only.
+func New(minVersion string, rewriteURL string, tunnelPortsToCheck []string, percentage float64) *VersionChecker {
 	u, err := url.Parse(rewriteURL)
 	if err != nil {
 		panic(err)
@@ -54,10 +66,10 @@ func New(minVersion string, rewriteURL string, connectPorts []string, percentage
 		rewriteAddr = rewriteAddr + ":443"
 	}
 
-	if len(connectPorts) == 0 {
-		connectPorts = []string{"80"}
+	if len(tunnelPortsToCheck) == 0 {
+		tunnelPortsToCheck = []string{"80"}
 	}
-	return &VersionChecker{minVersion, semver.MustParse(minVersion), u, rewriteURL, rewriteAddr, connectPorts, int(percentage * oneMillion)}
+	return &VersionChecker{minVersion, semver.MustParse(minVersion), u, rewriteURL, rewriteAddr, tunnelPortsToCheck, int(percentage * oneMillion)}
 }
 
 type Dial func(network, address string) (net.Conn, error)
@@ -80,10 +92,12 @@ func (c *VersionChecker) Dialer(d Dial) Dial {
 	}
 }
 
+// Filter returns a filters.Filter interface to be used in the filter chain.
 func (c *VersionChecker) Filter() filters.Filter {
 	return c
 }
 
+// Apply satisfies the filters.Filter interface.
 func (c *VersionChecker) Apply(resp http.ResponseWriter, req *http.Request, next filters.Next) error {
 	if req.Method == http.MethodConnect {
 		if c.redirectConnectIfNecessary(resp, req) {
@@ -137,7 +151,7 @@ func (c *VersionChecker) redirectConnectIfNecessary(w http.ResponseWriter, req *
 		return false
 	}
 	portMeet := false
-	for _, p := range c.connectPorts {
+	for _, p := range c.tunnelPorts {
 		if port == p {
 			portMeet = true
 			break
@@ -181,9 +195,8 @@ func (c *VersionChecker) redirectConnectIfNecessary(w http.ResponseWriter, req *
 
 	// Make sure the application sent something and started waiting for the
 	// response.
-	var buf [10000]byte
-	n, _ := conn.Read(buf[:])
-	log.Debugf("%d: %v", n, string(buf[:n]))
+	var buf [1]byte
+	_, _ = conn.Read(buf[:])
 
 	// Send the actual response to application.
 	resp = &http.Response{

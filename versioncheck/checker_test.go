@@ -10,10 +10,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlantern/flashlight/common"
 	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/getlantern/http-proxy-lantern/common"
 )
 
 const (
