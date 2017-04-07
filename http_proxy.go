@@ -35,7 +35,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/ping"
-	"github.com/getlantern/http-proxy-lantern/profilter"
 	"github.com/getlantern/http-proxy-lantern/redis"
 	"github.com/getlantern/http-proxy-lantern/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
@@ -64,17 +63,13 @@ type Proxy struct {
 	HTTPS                        bool
 	IdleTimeout                  time.Duration
 	KeyFile                      string
+	Pro                          bool
 	ProxiedSitesSamplePercentage float64
 	ProxiedSitesTrackingID       string
-	RedisAddr                    string
-	RedisCA                      string
-	RedisClientPK                string
-	RedisClientCert              string
 	ReportingRedisAddr           string
 	ReportingRedisCA             string
 	ReportingRedisClientPK       string
 	ReportingRedisClientCert     string
-	ServerID                     string
 	ThrottleBPS                  uint64
 	ThrottleThreshold            uint64
 	Token                        string
@@ -86,19 +81,30 @@ type Proxy struct {
 	DiffServTOS                  int
 	LampshadeAddr                string
 	bm                           bbr.Middleware
+	rc                           redis.Client
 }
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
 	p.setupOpsContext()
 	p.setBenchmarkMode()
-
 	p.bm = bbr.New()
+	p.initRedisClient()
+
 	// Only allow connections from remote IPs that are not blacklisted
 	blacklist := p.createBlacklist()
 	filterChain, err := p.createFilterChain(blacklist)
 	if err != nil {
 		return err
+	}
+
+	if p.rc == nil {
+		log.Debug("Not enabling bandwidth limiting because we have no redis client")
+	} else {
+		fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
+		filterChain = filterChain.Append(
+			devicefilter.NewPre(redis.NewDeviceFetcher(p.rc), p.ThrottleThreshold, fd),
+		)
 	}
 
 	bwReporting := p.configureBandwidthReporting()
@@ -184,16 +190,16 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 	} else {
 		filterChain = filterChain.Append(tokenfilter.New(p.Token))
 	}
-	fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
-	rc, err := p.redisClientForPro()
-	if err != nil {
-		log.Debug("Not enabling pro because redis is not configured")
-	}
-	if rc != nil {
+
+	if p.rc == nil {
+		log.Debug("Not enabling bandwidth limiting")
+	} else {
+		fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
 		filterChain = filterChain.Append(
-			devicefilter.NewPre(redis.NewDeviceFetcher(rc), p.ThrottleThreshold, fd),
+			devicefilter.NewPre(redis.NewDeviceFetcher(p.rc), p.ThrottleThreshold, fd),
 		)
 	}
+
 	filterChain = filterChain.Append(
 		analytics.New(&analytics.Options{
 			TrackingID:       p.ProxiedSitesTrackingID,
@@ -247,39 +253,15 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 		}),
 	)
 
-	rc, err = p.redisClientForPro()
-	if err != nil {
-		log.Debug("Not enabling pro because redis is not configured")
-		return filterChain, nil
-	}
-
-	if p.ServerID == "" {
-		return nil, errors.New("Enabling Pro requires setting the \"serverid\" flag")
-	}
-	log.Debug("This proxy is configured to support Lantern Pro")
-	proFilter, proErr := profilter.New(&profilter.Options{
-		RedisClient:         rc,
-		ServerID:            p.ServerID,
-		KeepProTokenDomains: strings.Split(p.CfgSvrDomains, ","),
-		FasttrackDomains:    fd,
-	})
-	if proErr != nil {
-		return nil, errors.Wrap(proErr)
-	}
-	// Put profilter at the beginning of the chain.
-	return filterChain.Prepend(proFilter), nil
+	return filterChain, nil
 }
 
 func (p *Proxy) configureBandwidthReporting() *reportingConfig {
-	rc, err := p.redisClientForReporting()
-	if err != nil {
-		log.Error(err)
-	}
 	var bordaReporter listeners.MeasuredReportFN
 	if p.BordaReportInterval > 0 {
 		bordaReporter = borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
 	}
-	return newReportingConfig(rc, p.EnableReports, bordaReporter)
+	return newReportingConfig(p.rc, p.EnableReports, bordaReporter)
 }
 
 func (p *Proxy) applyThrottling(srv *server.Server, rc *reportingConfig) error {
@@ -318,30 +300,27 @@ func (p *Proxy) allowedTunnelPorts() []int {
 	return ports
 }
 
-func (p *Proxy) redisClientForPro() (redis.Client, error) {
-	if p.RedisAddr == "" {
-		return nil, errors.New("no redis address configured for pro")
+func (p *Proxy) initRedisClient() {
+	var err error
+	if p.Pro {
+		log.Debug("Not connecting to redis because this is a Pro proxy")
+		return
 	}
-	redisOpts := &redis.Options{
-		RedisURL:       p.RedisAddr,
-		RedisCAFile:    p.RedisCA,
-		ClientPKFile:   p.RedisClientPK,
-		ClientCertFile: p.RedisClientCert,
-	}
-	return redis.GetClient(redisOpts)
-}
-
-func (p *Proxy) redisClientForReporting() (redis.Client, error) {
 	if p.ReportingRedisAddr == "" {
-		return nil, errors.New("no redis address configured for bandwidth reporting")
+		log.Debug("no redis address configured for bandwidth reporting")
+		return
 	}
+
 	redisOpts := &redis.Options{
 		RedisURL:       p.ReportingRedisAddr,
 		RedisCAFile:    p.ReportingRedisCA,
 		ClientPKFile:   p.ReportingRedisClientPK,
 		ClientCertFile: p.ReportingRedisClientCert,
 	}
-	return redis.GetClient(redisOpts)
+	p.rc, err = redis.GetClient(redisOpts)
+	if err != nil {
+		log.Errorf("Error connecting to redis, will not be able to perform bandwidth limiting: %v", err)
+	}
 }
 
 func (p *Proxy) serveOBFS4(srv *server.Server) {
