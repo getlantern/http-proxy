@@ -22,12 +22,9 @@ obfs4-addr =   # Provide an address here in order to listen with obfs4
 obfs4-dir = .  # Directory where obfs4 can store its files
 obfs4-distBias = false  # Enable obfs4 using ScrambleSuit style table generation
 pprofaddr =   # pprof address to listen on, not activate pprof if empty
+pro = false  # Set to true to make this a pro proxy (no bandwidth limiting)
 proxied-sites-sample-percentage = 0.01  # The percentage of requests to sample (0.01 = 1%)
 proxied-sites-tracking-id = UA-21815217-16  # The Google Analytics property id for tracking proxied sites
-redis =   # The address of main Redis in "redis[s]://host:port" format
-redisca =   # Certificate for main Redis's CA
-redisclientcert =   # Certificate for authenticating client to main Redis
-redisclientpk =   # Private key for authenticating client to main Redis
 reportingredis =   # The address of the reporting Redis instance in "redis[s]://host:port" format
 reportingredisca =   # Certificate for the CA of Redis instance for reporting
 reportingredisclientcert =   # Certificate for authenticating client to the Redis instance for reporting
