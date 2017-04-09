@@ -124,7 +124,8 @@ func TestRedirectConnect(t *testing.T) {
 func requestViaProxy(t *testing.T, proxiedReq *http.Request, proxy *httptest.Server, version string) *http.Response {
 	proxyConn, _ := net.Dial("tcp", proxy.Listener.Addr().String())
 	defer proxyConn.Close()
-	req, _ := http.NewRequest("CONNECT", proxiedReq.Host, nil)
+	req, err := http.NewRequest("CONNECT", "http://"+proxiedReq.Host, nil)
+	assert.NoError(t, err)
 	if version != "" {
 		req.Header.Add(common.VersionHeader, version)
 	}
