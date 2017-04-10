@@ -38,6 +38,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/redis"
 	"github.com/getlantern/http-proxy-lantern/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
+	"github.com/getlantern/http-proxy-lantern/versioncheck"
 )
 
 const (
@@ -50,38 +51,47 @@ var (
 
 // Proxy is an HTTP proxy.
 type Proxy struct {
-	TestingLocal                 bool
-	Addr                         string
-	BordaReportInterval          time.Duration
-	BordaSamplePercentage        float64
-	BordaBufferSize              int
-	ExternalIP                   string
-	CertFile                     string
-	CfgSvrAuthToken              string
-	CfgSvrDomains                string
-	EnableReports                bool
-	HTTPS                        bool
-	IdleTimeout                  time.Duration
-	KeyFile                      string
-	Pro                          bool
-	ProxiedSitesSamplePercentage float64
-	ProxiedSitesTrackingID       string
-	ReportingRedisAddr           string
-	ReportingRedisCA             string
-	ReportingRedisClientPK       string
-	ReportingRedisClientCert     string
-	ThrottleBPS                  uint64
-	ThrottleThreshold            uint64
-	Token                        string
-	TunnelPorts                  string
-	Obfs4Addr                    string
-	Obfs4Dir                     string
-	Benchmark                    bool
-	FasttrackDomains             string
-	DiffServTOS                  int
-	LampshadeAddr                string
-	bm                           bbr.Middleware
-	rc                           redis.Client
+	TestingLocal                   bool
+	Addr                           string
+	BordaReportInterval            time.Duration
+	BordaSamplePercentage          float64
+	BordaBufferSize                int
+	ExternalIP                     string
+	CertFile                       string
+	CfgSvrAuthToken                string
+	CfgSvrDomains                  string
+	EnableReports                  bool
+	HTTPS                          bool
+	IdleTimeout                    time.Duration
+	KeyFile                        string
+	Pro                            bool
+	ProxiedSitesSamplePercentage   float64
+	ProxiedSitesTrackingID         string
+	RedisAddr                      string
+	RedisCA                        string
+	RedisClientPK                  string
+	RedisClientCert                string
+	ReportingRedisAddr             string
+	ReportingRedisCA               string
+	ReportingRedisClientPK         string
+	ReportingRedisClientCert       string
+	ThrottleBPS                    uint64
+	ThrottleThreshold              uint64
+	Token                          string
+	TunnelPorts                    string
+	Obfs4Addr                      string
+	Obfs4Dir                       string
+	Benchmark                      bool
+	FasttrackDomains               string
+	DiffServTOS                    int
+	LampshadeAddr                  string
+	VersionCheck                   bool
+	VersionCheckMinVersion         string
+	VersionCheckRedirectURL        string
+	VersionCheckRedirectPercentage float64
+
+	bm bbr.Middleware
+	rc redis.Client
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -218,7 +228,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 	dialer := preferIPV4Dialer(timeoutToDialOriginSite)
 	dialerForPforward := dialer
 
-	var rewriteConfigServerRequests func(*http.Request)
+	var requestRewriters []func(*http.Request)
 	if p.CfgSvrAuthToken != "" || p.CfgSvrDomains != "" {
 		cfg := &configserverfilter.Options{
 			AuthToken: p.CfgSvrAuthToken,
@@ -227,9 +237,34 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 		dialerForPforward = configserverfilter.Dialer(dialerForPforward, cfg)
 		csf := configserverfilter.New(cfg)
 		filterChain = filterChain.Append(csf)
-		rewriteConfigServerRequests = csf.RewriteIfNecessary
+		requestRewriters = append(requestRewriters, csf.RewriteIfNecessary)
 	}
 
+	// check if the client is running below a certain version, and if true,
+	// rewrite certain percentage of the requests to an URL to notify user.
+	if p.VersionCheck {
+		log.Debugf("versioncheck: Will rewrite %.4f%% of browser requests from clients below %s to %s",
+			p.VersionCheckRedirectPercentage*100,
+			p.VersionCheckMinVersion,
+			p.VersionCheckRedirectURL,
+		)
+		vc := versioncheck.New(p.VersionCheckMinVersion,
+			p.VersionCheckRedirectURL,
+			[]string{"80"}, // checks CONNECT tunnel to 80 port only.
+			p.VersionCheckRedirectPercentage)
+		requestRewriters = append(requestRewriters, vc.RewriteIfNecessary)
+		dialerForPforward = vc.Dialer(dialerForPforward)
+		filterChain = filterChain.Append(vc.Filter())
+	}
+
+	var rewrite func(req *http.Request)
+	if len(requestRewriters) > 0 {
+		rewrite = func(req *http.Request) {
+			for _, rw := range requestRewriters {
+				rw(req)
+			}
+		}
+	}
 	filterChain = filterChain.Append(
 		// This filter will look for CONNECT requests and hijack those connections
 		httpconnect.New(&httpconnect.Options{
@@ -242,7 +277,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 		pforward.New(&pforward.Options{
 			IdleTimeout: p.IdleTimeout,
 			Dialer:      dialerForPforward,
-			OnRequest:   rewriteConfigServerRequests,
+			OnRequest:   rewrite,
 			OnResponse:  p.bm.AddMetrics,
 		}),
 		// This filter will handle all remaining HTTP requests (legacy HTTP

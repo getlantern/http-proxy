@@ -45,3 +45,5 @@ import:
 - package: github.com/klauspost/cpuid
 - package: github.com/Yawning/chacha20
 - package: github.com/gonum/stat
+- package: github.com/blang/semver
+  version: ~3.5.0
