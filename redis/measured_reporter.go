@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"math/rand"
 	"time"
 
 	"gopkg.in/redis.v3"
@@ -34,7 +35,9 @@ func NewMeasuredReporter(rc *redis.Client, reportInterval time.Duration) listene
 }
 
 func reportPeriodically(rc *redis.Client, reportInterval time.Duration, statsCh chan (*statsAndContext)) {
-	log.Debug("Will report traffic")
+	sleepTime := time.Duration(rand.Int63n(time.Minute.Nanoseconds()))
+	log.Debugf("Randomly sleep %v before reporting traffic", sleepTime)
+	time.Sleep(sleepTime)
 	ticker := time.NewTicker(reportInterval)
 	statsByDeviceID := make(map[string]*measured.Stats)
 
