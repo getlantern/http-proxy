@@ -35,10 +35,10 @@ func NewMeasuredReporter(rc *redis.Client, reportInterval time.Duration) listene
 }
 
 func reportPeriodically(rc *redis.Client, reportInterval time.Duration, statsCh chan (*statsAndContext)) {
-	sleepTime := time.Duration(rand.Int63n(time.Minute.Nanoseconds()))
-	log.Debugf("Randomly sleep %v before reporting traffic", sleepTime)
-	time.Sleep(sleepTime)
-	ticker := time.NewTicker(reportInterval)
+	// randomize the interval to evenly distribute traffic to reporting Redis.
+	randomized := time.Duration(reportInterval.Nanoseconds()/2 + rand.Int63n(reportInterval.Nanoseconds()))
+	log.Debugf("Will report data usage to Redis every %v", randomized)
+	ticker := time.NewTicker(randomized)
 	statsByDeviceID := make(map[string]*measured.Stats)
 
 	for {
