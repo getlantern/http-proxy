@@ -5,13 +5,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/vharitonsky/iniflags"
-
 	"github.com/getlantern/golog"
-
-	"github.com/getlantern/http-proxy/logging"
-
 	"github.com/getlantern/http-proxy-lantern"
+	"github.com/getlantern/http-proxy/logging"
+	"github.com/vharitonsky/iniflags"
 )
 
 var (
@@ -58,6 +55,7 @@ var (
 func main() {
 	var err error
 
+	iniflags.SetAllowUnknownFlags(true)
 	iniflags.Parse()
 	if *help {
 		flag.Usage()
