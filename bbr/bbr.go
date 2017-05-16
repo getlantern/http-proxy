@@ -133,8 +133,7 @@ func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, b
 		log.Debugf("Unable to get BBR info (this happens when connections are closed unexpectedly): %v", err)
 		return
 	}
-	estMbps := float64(bbrInfo.EstBandwidth) * 8 / 1000 / 1000
-	s.update(float64(bytesSent), estMbps)
+	s.update(float64(bytesSent), float64(bbrInfo.EstBandwidth)*8/1000/1000)
 	if reportToBorda {
 		go func() {
 			// We do this inside a goroutine because we explicitly don't want to inherit
@@ -142,12 +141,16 @@ func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, b
 			op := ops.Begin("tcpinfo")
 			op.Set("client_ip", remoteAddr)
 			op.Set("bytes_sent", borda.Sum(bytesSent))
-			op.Set("est_mbps", borda.Avg(estMbps))
-			op.Set("est_mbps_min", borda.Min(estMbps))
-			op.Set("est_mbps_max", borda.Max(estMbps))
 			op.Set("sender_mss", borda.Avg(float64(info.SenderMSS)))
 			op.Set("segments_sent", borda.Sum(float64(info.Sys.SegsOut)))
 			op.Set("segments_sent_retransmitted", borda.Sum(float64(info.Sys.TotalRetransSegs)))
+			estMbps := s.estABE()
+			if estMbps > 0 {
+				// Report ABE if available
+				op.Set("est_mbps", borda.Avg(estMbps))
+				op.Set("est_mbps_min", borda.Min(estMbps))
+				op.Set("est_mbps_max", borda.Max(estMbps))
+			}
 			log.Debugf("reporting tcp info")
 			op.End()
 		}()
