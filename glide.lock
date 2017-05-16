@@ -30,9 +30,9 @@ imports:
 - name: github.com/dustin/go-humanize
   version: 259d2a102b871d17f30e3cd9881a642961a1e486
 - name: github.com/getlantern/bbrconn
-  version: 02b1f22722cfc5afd58f9234e65c18a401a1ad22
+  version: 0b972988313fb61ccfb419e239c7af35430e3f61
 - name: github.com/getlantern/borda
-  version: c274d74dbc96b6aacdd03d6a5da26e48db4b0cd3
+  version: 2d6dc11d00a7e1867dbf0623bdc98da7e29bcc4f
   subpackages:
   - client
 - name: github.com/getlantern/byteexec
@@ -104,7 +104,7 @@ imports:
 - name: github.com/getlantern/stack
   version: 02f928aad224fbccd50d66edd776fc9d1e9f2f2b
 - name: github.com/getlantern/tcpinfo
-  version: 02c9abeb5f94610d1b5ed11e90431f482f5bdb80
+  version: c2c464e492705e425941f0625cb3c2fcc0bfd705
 - name: github.com/getlantern/tlsdefaults
   version: 55d0dd468a195a4c8cb99ee0c1a2878cb7e72155
 - name: github.com/getlantern/wal
