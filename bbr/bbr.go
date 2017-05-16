@@ -33,6 +33,10 @@ import (
 	"github.com/gorilla/context"
 )
 
+const (
+	nanosPerMilli = 1000000
+)
+
 var (
 	log = golog.LoggerFor("bbrlistener")
 )
@@ -141,9 +145,10 @@ func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, b
 			op := ops.Begin("tcpinfo")
 			op.Set("client_ip", remoteAddr)
 			op.Set("bytes_sent", borda.Sum(bytesSent))
-			op.Set("sender_mss", borda.Avg(float64(info.SenderMSS)))
-			op.Set("segments_sent", borda.Sum(float64(info.Sys.SegsOut)))
-			op.Set("segments_sent_retransmitted", borda.Sum(float64(info.Sys.TotalRetransSegs)))
+			op.Set("tcp_sender_mss", borda.Avg(float64(info.SenderMSS)))
+			op.Set("tcp_rtt", borda.Avg(float64(info.RTT/nanosPerMilli)))
+			op.Set("tcp_segments_sent", borda.Sum(float64(info.Sys.SegsOut)))
+			op.Set("tcp_segments_sent_retransmitted", borda.Sum(float64(info.Sys.TotalRetransSegs)))
 			estMbps := s.estABE()
 			if estMbps > 0 {
 				// Report ABE if available

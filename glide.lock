@@ -30,7 +30,7 @@ imports:
 - name: github.com/dustin/go-humanize
   version: 259d2a102b871d17f30e3cd9881a642961a1e486
 - name: github.com/getlantern/bbrconn
-  version: f1175c6579d590b8b3ebd3176c0c7adfdbd616cf
+  version: 0b972988313fb61ccfb419e239c7af35430e3f61
 - name: github.com/getlantern/borda
   version: 2d6dc11d00a7e1867dbf0623bdc98da7e29bcc4f
   subpackages:
@@ -104,7 +104,7 @@ imports:
 - name: github.com/getlantern/stack
   version: 02f928aad224fbccd50d66edd776fc9d1e9f2f2b
 - name: github.com/getlantern/tcpinfo
-  version: 02c9abeb5f94610d1b5ed11e90431f482f5bdb80
+  version: c2c464e492705e425941f0625cb3c2fcc0bfd705
 - name: github.com/getlantern/tlsdefaults
   version: 55d0dd468a195a4c8cb99ee0c1a2878cb7e72155
 - name: github.com/getlantern/wal
