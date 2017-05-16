@@ -16,12 +16,31 @@ import (
 
 var (
 	log = golog.LoggerFor("lantern-proxy-borda")
+
+	fullyReportedOps = []string{"tcpinfo"}
 )
 
 // Enable enables borda reporting
 func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, maxBufferSize int) listeners.MeasuredReportFN {
-	inSample := func() bool {
-		return rand.Float64() < bordaSamplePercentage
+	inSample := func(ctx map[string]interface{}) bool {
+		if rand.Float64() < bordaSamplePercentage {
+			return true
+		}
+
+		// For some ops, we don't randomly sample, we include all of them
+		op := ctx["op"]
+		switch t := op.(type) {
+		case string:
+			for _, fullyReportedOp := range fullyReportedOps {
+				if t == fullyReportedOp {
+					log.Tracef("Including fully reported op %v in borda sample", fullyReportedOp)
+					return true
+				}
+			}
+			return false
+		default:
+			return false
+		}
 	}
 
 	opts := &borda.Options{
@@ -55,7 +74,7 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 	reportToBorda := bordaClient.ReducingSubmitter("proxy_results", maxBufferSize)
 
 	ops.RegisterReporter(func(failure error, ctx map[string]interface{}) {
-		if !inSample() {
+		if !inSample(ctx) {
 			return
 		}
 
@@ -78,7 +97,7 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 			return
 		}
 
-		if !inSample() {
+		if !inSample(ctx) {
 			return
 		}
 

@@ -22,12 +22,13 @@ import (
 	"runtime"
 	"sync"
 
-	"github.com/dustin/go-humanize"
 	"github.com/getlantern/bbrconn"
+	borda "github.com/getlantern/borda/client"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/netx"
+	"github.com/getlantern/ops"
 	"github.com/getlantern/tcpinfo"
 	"github.com/gorilla/context"
 )
@@ -97,8 +98,9 @@ func (bm *middleware) addMetrics(req *http.Request, header http.Header) {
 		switch t := conn.(type) {
 		case bbrconn.Conn:
 			// Found bbr conn, get info
-			bytesSent, info, infoErr := t.Info()
-			bm.track(s, conn.RemoteAddr(), bytesSent, info, infoErr)
+			bytesSent := t.BytesWritten()
+			bbrInfo, infoErr := t.BBRInfo()
+			bm.track(false, s, conn.RemoteAddr(), bytesSent, nil, bbrInfo, infoErr)
 			return false
 		}
 
@@ -126,13 +128,30 @@ func (bm *middleware) statsFor(conn net.Conn) *stats {
 	return s
 }
 
-func (bm *middleware) track(s *stats, remoteAddr net.Addr, bytesSent int, info *tcpinfo.BBRInfo, err error) {
+func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, bytesSent int, info *tcpinfo.Info, bbrInfo *tcpinfo.BBRInfo, err error) {
 	if err != nil {
 		log.Debugf("Unable to get BBR info (this happens when connections are closed unexpectedly): %v", err)
 		return
 	}
-	s.update(float64(bytesSent), float64(info.EstBandwidth)*8/1000/1000)
-	log.Debugf("%v : Bytes sent: %v   BBR-ABE: %v   EMA BBR-ABE: %v   Min RTT: %d", remoteAddr, humanize.Bytes(uint64(bytesSent)), float64(info.EstBandwidth)*8/1000/1000, s.estABE(), info.MinRTT)
+	estMbps := float64(bbrInfo.EstBandwidth) * 8 / 1000 / 1000
+	s.update(float64(bytesSent), estMbps)
+	if reportToBorda {
+		go func() {
+			// We do this inside a goroutine because we explicitly don't want to inherit
+			// the existing context (to reduce data volumes to borda)
+			op := ops.Begin("tcpinfo")
+			op.Set("client_ip", remoteAddr)
+			op.Set("bytes_sent", borda.Sum(bytesSent))
+			op.Set("est_mbps", borda.Avg(estMbps))
+			op.Set("est_mbps_min", borda.Min(estMbps))
+			op.Set("est_mbps_max", borda.Max(estMbps))
+			op.Set("sender_mss", borda.Avg(float64(info.SenderMSS)))
+			op.Set("segments_sent", borda.Sum(float64(info.Sys.SegsOut)))
+			op.Set("segments_sent_retransmitted", borda.Sum(float64(info.Sys.TotalRetransSegs)))
+			log.Debugf("reporting tcp info")
+			op.End()
+		}()
+	}
 }
 
 func (bm *middleware) Wrap(l net.Listener) net.Listener {
@@ -158,8 +177,8 @@ func (l *bbrlistener) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return bbrconn.Wrap(conn, func(bytesSent int, info *tcpinfo.BBRInfo, err error) {
-		l.bm.track(l.bm.statsFor(conn), conn.RemoteAddr(), bytesSent, info, err)
+	return bbrconn.Wrap(conn, func(bytesSent int, info *tcpinfo.Info, bbrInfo *tcpinfo.BBRInfo, err error) {
+		l.bm.track(true, l.bm.statsFor(conn), conn.RemoteAddr(), bytesSent, info, bbrInfo, err)
 	})
 }
 
