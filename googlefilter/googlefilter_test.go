@@ -26,3 +26,13 @@ func TestRecordGoogleActivity(t *testing.T) {
 	check("ipv4.google.com", false, true)
 	check("ipv4.google.co.jp", false, true)
 }
+
+func TestApply(t *testing.T) {
+	f := New(DefaultSearchRegex, DefaultCaptchaRegex).(*googleFilter)
+	req, _ := http.NewRequest(http.MethodGet, "https://google.com", nil)
+	err := f.Apply(nil, req, func() error {
+		return nil
+	})
+
+	assert.NoError(t, err)
+}
