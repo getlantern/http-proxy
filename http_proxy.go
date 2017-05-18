@@ -215,7 +215,6 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 	}
 
 	filterChain = filterChain.Append(
-		googlefilter.New(p.GoogleSearchRegex, p.GoogleCaptchaRegex),
 		analytics.New(&analytics.Options{
 			TrackingID:       p.ProxiedSitesTrackingID,
 			SamplePercentage: p.ProxiedSitesSamplePercentage,

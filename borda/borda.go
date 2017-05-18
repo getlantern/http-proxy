@@ -17,7 +17,7 @@ import (
 var (
 	log = golog.LoggerFor("lantern-proxy-borda")
 
-	fullyReportedOps = []string{"tcpinfo"}
+	fullyReportedOps = []string{"tcpinfo", "google_search", "google_captcha"}
 )
 
 // Enable enables borda reporting
