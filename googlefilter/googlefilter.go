@@ -1,3 +1,7 @@
+// This package filters incoming requests for requests to Google search domains
+// as well as associated redirects to a Google captcha page. It then stores
+// that data in an effort to diagnose what triggers the captcha.
+
 package googlefilter
 
 import (
@@ -13,16 +17,23 @@ import (
 var (
 	log = golog.LoggerFor("googlefilter")
 
-	DefaultSearchRegex  = `^(www.)?google\..+`
+	// DefaultSearchRegex is the default regex for google search domains.
+	DefaultSearchRegex = `^(www.)?google\..+`
+
+	// DefaultCaptchaRegex is the default regex for the redirect from Google
+	// search domains to a captcha page.
 	DefaultCaptchaRegex = `^ipv4.google\..+`
 )
 
-// deviceFilterPre does the device-based filtering
+// googleFilter filters requests for Google search domains and associated
+// redirects to a Google captcha page.
 type googleFilter struct {
 	searchRegex  *regexp.Regexp
 	captchaRegex *regexp.Regexp
 }
 
+// New creates a new filter for checking for redirects from Google search to a
+// captcha.
 func New(searchRegex string, captchaRegex string) filters.Filter {
 	return &googleFilter{
 		searchRegex:  regexp.MustCompile(searchRegex),
