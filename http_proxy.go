@@ -120,7 +120,6 @@ func (p *Proxy) ListenAndServe() error {
 		)
 	}
 
-	filterChain = filterChain.Append()
 	bwReporting := p.configureBandwidthReporting()
 	srv := server.NewServer(filterChain.Prepend(opsfilter.New(p.bm)))
 	srv.Allow = blacklist.OnConnect
