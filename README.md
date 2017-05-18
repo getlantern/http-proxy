@@ -31,6 +31,8 @@ To get list of the command line options, please run `http-proxy-lantern -help`.
 http-proxy-lantern -config config.ini
 ```
 
+To regenerate `config.ini.default` just run `http-proxy-lantern -dumpflags`.
+
 ### Testing with Lantern extensions and configuration
 
 ### Run tests

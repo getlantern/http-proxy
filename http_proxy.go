@@ -29,6 +29,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/diffserv"
+	"github.com/getlantern/http-proxy-lantern/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/lampshade"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
@@ -89,6 +90,8 @@ type Proxy struct {
 	VersionCheckMinVersion         string
 	VersionCheckRedirectURL        string
 	VersionCheckRedirectPercentage float64
+	GoogleSearchRegex              string
+	GoogleCaptchaRegex             string
 
 	bm bbr.Middleware
 	rc redis.Client
@@ -211,6 +214,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 	}
 
 	filterChain = filterChain.Append(
+		googlefilter.New(p.GoogleSearchRegex, p.GoogleCaptchaRegex),
 		analytics.New(&analytics.Options{
 			TrackingID:       p.ProxiedSitesTrackingID,
 			SamplePercentage: p.ProxiedSitesSamplePercentage,
