@@ -12,6 +12,7 @@ import (
 	"github.com/getlantern/http-proxy/logging"
 
 	"github.com/getlantern/http-proxy-lantern"
+	"github.com/getlantern/http-proxy-lantern/googlefilter"
 )
 
 var (
@@ -53,6 +54,8 @@ var (
 	versionCheck                   = flag.String("versioncheck", "", "Check if Lantern client is below certain semantic version. No check by default")
 	versionCheckRedirectURL        = flag.String("versioncheck-redirect-url", "", "The URL to redirect if client is below certain version. Always used along with versioncheck")
 	versionCheckRedirectPercentage = flag.Float64("versioncheck-redirect-percentage", 1, "The percentage of requests to be redirected in version check. Defaults to 1 (100%)")
+	googleSearchRegex              = flag.String("google-search-regex", googlefilter.DefaultSearchRegex, "Regex for detecting access to Google Search")
+	googleCaptchaRegex             = flag.String("google-captcha-regex", googlefilter.DefaultCaptchaRegex, "Regex for detecting access to Google captcha page")
 )
 
 func main() {
@@ -122,6 +125,8 @@ func main() {
 		VersionCheckMinVersion:         *versionCheck,
 		VersionCheckRedirectURL:        *versionCheckRedirectURL,
 		VersionCheckRedirectPercentage: *versionCheckRedirectPercentage,
+		GoogleSearchRegex:              *googleSearchRegex,
+		GoogleCaptchaRegex:             *googleCaptchaRegex,
 	}
 
 	err = p.ListenAndServe()
