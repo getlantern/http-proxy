@@ -9,7 +9,6 @@ import (
 
 	"github.com/getlantern/bbrconn"
 	borda "github.com/getlantern/borda/client"
-	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/netx"
