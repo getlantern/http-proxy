@@ -4,6 +4,7 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/dustin/go-humanize"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/mxk/go-flowrate/flowrate"
 )
@@ -11,8 +12,7 @@ import (
 type ThrottleRate int64
 
 var (
-	NeverThrottle = ThrottleRate(-1)
-	NoThrottle    = ThrottleRate(0)
+	NoThrottle = ThrottleRate(0)
 )
 
 type bitrateListener struct {
@@ -73,12 +73,12 @@ func (c *bitrateConn) OnState(s http.ConnState) {
 
 func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	// pro-user message always overrides the active flag
-	if c.throttle != NeverThrottle && msgType == "throttle" {
+	if msgType == "throttle" {
 		state := data.(ThrottleRate)
 		c.throttle = state
 		c.freader.SetLimit(int64(c.throttle))
 		c.fwriter.SetLimit(int64(c.throttle))
-		log.Debugf("Throttle connection state update: %v", state)
+		log.Debugf("Throttling connection to %v per second", humanize.Bytes(uint64(state)))
 	}
 
 	if c.WrapConnEmbeddable != nil {

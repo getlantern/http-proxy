@@ -13,6 +13,10 @@ const (
 	measuredReportingInterval = 10 * time.Second
 )
 
+var (
+	noReport = &reportingConfig{false, neverWrap}
+)
+
 type reportingConfig struct {
 	enabled bool
 	wrapper func(ls net.Listener) net.Listener
@@ -20,9 +24,13 @@ type reportingConfig struct {
 
 func newReportingConfig(rc redis.Client, enabled bool, bordaReporter listeners.MeasuredReportFN) *reportingConfig {
 	if !enabled || rc == nil {
-		return &reportingConfig{false, neverWrap}
+		return noReport
 	}
-	reporter := redis.NewMeasuredReporter(rc, measuredReportingInterval)
+	reporter, err := redis.NewMeasuredReporter(rc, measuredReportingInterval)
+	if err != nil {
+		log.Errorf("Unable to configure measured reporter, not reporting: %v", err)
+		return noReport
+	}
 	if bordaReporter != nil {
 		reporter = combineReporter(reporter, bordaReporter)
 	}

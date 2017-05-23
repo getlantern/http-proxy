@@ -1,3 +1,5 @@
+// package throttle provides the ability to read throttling configurations from
+// redis.
 package throttle
 
 import (
@@ -9,7 +11,13 @@ import (
 
 	"gopkg.in/redis.v3"
 
+	"github.com/dustin/go-humanize"
 	"github.com/getlantern/golog"
+)
+
+const (
+	desktopSuffix = "desktop"
+	mobileSuffix  = "mobile"
 )
 
 var (
@@ -19,17 +27,20 @@ var (
 // Config is a per-country throttling config
 type Config interface {
 	// ThresholdAndRateFor returns the threshold (bytes) and throttled rate (bytes
-	// per second) for the given countryCode. If none found, returns the values
-	// for the blank "" countryCode which is used as a default.
-	ThresholdAndRateFor(countryCode string) (int64, int64)
+	// per second) for the given deviceID in the given countryCode. If no country
+	// found, returns the values for the blank "" countryCode which is used as a
+	// default.
+	ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64)
 }
 
 type thresholdAndRate [2]int64
 
+// threshold is in bytes
 func (tar thresholdAndRate) threshold() int64 {
 	return tar[0]
 }
 
+// rate is in bytes per second
 func (tar thresholdAndRate) rate() int64 {
 	return tar[1]
 }
@@ -37,7 +48,8 @@ func (tar thresholdAndRate) rate() int64 {
 type config struct {
 	rc              *redis.Client
 	refreshInterval time.Duration
-	countries       map[string]thresholdAndRate
+	desktop         map[string]*thresholdAndRate
+	mobile          map[string]*thresholdAndRate
 	mx              sync.RWMutex
 }
 
@@ -45,73 +57,96 @@ type config struct {
 // its configuration information and reload that information every
 // refreshInterval.
 func NewRedisConfig(rc *redis.Client, refreshInterval time.Duration) (Config, error) {
-	countries, err := loadCountries(rc)
+	desktop, err := loadLimits(rc, desktopSuffix)
+	if err != nil {
+		return nil, err
+	}
+	mobile, err := loadLimits(rc, mobileSuffix)
 	if err != nil {
 		return nil, err
 	}
 	cfg := &config{
 		rc:              rc,
 		refreshInterval: refreshInterval,
-		countries:       countries,
+		desktop:         desktop,
+		mobile:          mobile,
 	}
 	go cfg.keepCurrent()
 	return cfg, nil
 }
 
-func loadCountries(rc *redis.Client) (map[string]thresholdAndRate, error) {
-	_countries, err := rc.HGetAllMap("_throttleConfig").Result()
+func loadLimits(rc *redis.Client, suffix string) (map[string]*thresholdAndRate, error) {
+	key := "_throttle:" + suffix
+	_limits, err := rc.HGetAllMap(key).Result()
 	if err != nil {
-		return nil, fmt.Errorf("Unable to read _throttleConfig from redis: %v", err)
+		return nil, fmt.Errorf("Unable to read %v from redis: %v", key, err)
 	}
-	countries := make(map[string]thresholdAndRate, len(_countries))
-	for country, tstring := range _countries {
-		parts := strings.Split(tstring, "|")
+	limits := make(map[string]*thresholdAndRate, len(_limits))
+	for country, limit := range _limits {
+		parts := strings.Split(limit, "|")
 		if len(parts) != 2 {
-			log.Errorf("Invalid config for country %v: %v", country, tstring)
+			log.Errorf("Invalid config in %v for country %v: %v", key, country, limit)
 			continue
 		}
 		threshold, err := strconv.ParseInt(parts[0], 10, 64)
 		if err != nil {
-			log.Errorf("Invalid threshold for country %v: %v", country, parts[0])
+			log.Errorf("Invalid threshold in %v for country %v: %v", key, country, parts[0])
 			continue
 		}
 		rate, err := strconv.ParseInt(parts[1], 10, 64)
 		if err != nil {
-			log.Errorf("Invalid rate for country %v: %v", country, parts[1])
+			log.Errorf("Invalid rate in %v for country %v: %v", key, country, parts[1])
 			continue
 		}
-		countries[country] = thresholdAndRate{threshold, rate}
+		limits[country] = &thresholdAndRate{threshold, rate}
 	}
 
-	_, hasDefault := countries[""]
+	defaultTR, hasDefault := limits[""]
 	if !hasDefault {
-		return nil, fmt.Errorf(`No default ("") country configured!`)
+		return nil, fmt.Errorf(`No default ("") country configured in %v!`, key)
 	}
 
-	return countries, nil
+	threshold, rate := defaultTR.threshold(), defaultTR.rate()
+	log.Debugf("Throttling %v by default to %v per second after %v", suffix, humanize.Bytes(uint64(rate)), humanize.Bytes(uint64(threshold)))
+
+	return limits, nil
 }
 
 func (cfg *config) keepCurrent() {
+	log.Debugf("Refreshing every %v", cfg.refreshInterval)
 	for {
 		time.Sleep(cfg.refreshInterval)
-		countries, err := loadCountries(cfg.rc)
+		desktop, err := loadLimits(cfg.rc, desktopSuffix)
 		if err != nil {
 			log.Error(err)
-		} else {
-			cfg.mx.Lock()
-			cfg.countries = countries
-			cfg.mx.Unlock()
-			log.Debug("Refreshed")
+			continue
 		}
+		mobile, err := loadLimits(cfg.rc, mobileSuffix)
+		if err != nil {
+			log.Error(err)
+			continue
+		}
+		cfg.mx.Lock()
+		cfg.desktop = desktop
+		cfg.mobile = mobile
+		cfg.mx.Unlock()
+		log.Debug("Refreshed")
 	}
 }
 
-func (cfg *config) ThresholdAndRateFor(countryCode string) (int64, int64) {
+func (cfg *config) ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64) {
+	isDesktop := len(deviceID) == 8
+	var limits map[string]*thresholdAndRate
 	cfg.mx.RLock()
-	tr, found := cfg.countries[countryCode]
-	if !found {
-		tr = cfg.countries[countryCode]
+	if isDesktop {
+		limits = cfg.desktop
+	} else {
+		limits = cfg.mobile
 	}
 	cfg.mx.RUnlock()
+	tr, found := limits[countryCode]
+	if !found {
+		tr = limits[countryCode]
+	}
 	return tr.threshold(), tr.rate()
 }

@@ -100,6 +100,7 @@ func (p *Proxy) ListenAndServe() error {
 	p.setBenchmarkMode()
 	p.bm = bbr.New()
 	p.initRedisClient()
+	p.loadThrottleConfig()
 
 	// Only allow connections from remote IPs that are not blacklisted
 	blacklist := p.createBlacklist()
@@ -111,9 +112,7 @@ func (p *Proxy) ListenAndServe() error {
 	bwReporting := p.configureBandwidthReporting()
 	srv := server.NewServer(filterChain.Prepend(opsfilter.New(p.bm)))
 	srv.Allow = blacklist.OnConnect
-	if err := p.applyThrottling(srv, bwReporting); err != nil {
-		return err
-	}
+	p.applyThrottling(srv, bwReporting)
 	srv.AddListenerWrappers(bwReporting.wrapper)
 	srv.AddListenerWrappers(
 		// Close connections after 30 seconds of no activity
@@ -291,25 +290,28 @@ func (p *Proxy) configureBandwidthReporting() *reportingConfig {
 	return newReportingConfig(p.rc, p.EnableReports, bordaReporter)
 }
 
-func (p *Proxy) applyThrottling(srv *server.Server, rc *reportingConfig) error {
-	if p.Pro {
-		log.Debug("Throttling is disabled")
-		return nil
-	}
-	if !rc.enabled {
-		log.Debug("Not throttling because reporting is not enabled")
-		return nil
+func (p *Proxy) loadThrottleConfig() {
+	if p.Pro || p.rc == nil {
+		log.Debug("Not loading throttle config")
+		return
 	}
 
 	var err error
 	p.throttleConfig, err = throttle.NewRedisConfig(p.rc, p.ThrottleRefreshInterval)
 	if err != nil {
 		p.throttleConfig = nil
-		return errors.New("Unable to read throttling config from redis, will not throttle: %v", err)
+		log.Errorf("Unable to read throttling config from redis, will not throttle: %v", err)
+	}
+}
+
+func (p *Proxy) applyThrottling(srv *server.Server, rc *reportingConfig) {
+	if p.Pro || p.throttleConfig == nil {
+		log.Debug("Throttling is disabled")
+	}
+	if !rc.enabled {
+		log.Debug("Not throttling because reporting is not enabled")
 	}
 
-	threshold, rate := p.throttleConfig.ThresholdAndRateFor("")
-	log.Debugf("Throttling by default to %d bps after %d bytes", rate, threshold)
 	// Add net.Listener wrappers for inbound connections
 	srv.AddListenerWrappers(
 		// Throttle connections when signaled
@@ -317,7 +319,6 @@ func (p *Proxy) applyThrottling(srv *server.Server, rc *reportingConfig) error {
 			return lanternlisteners.NewBitrateListener(ls)
 		},
 	)
-	return nil
 }
 
 func (p *Proxy) allowedTunnelPorts() []int {
