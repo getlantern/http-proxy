@@ -1,3 +1,5 @@
+// Package geo provides functionality for looking up country codes based on
+// IP addresses.
 package geo
 
 import (
@@ -17,7 +19,8 @@ var (
 )
 
 // Lookup allows looking up the country for an IP address and exposes some
-// statistics about itself.
+// statistics about itself. It caches results indefinitely, up to a configurable
+// cache size.
 type Lookup interface {
 	// CountryCode looks up the 2 digit ISO 3166 country code for the given IP
 	// address and returns "" if there was an error looking up the country.
@@ -45,6 +48,7 @@ type lookup struct {
 	networkLookupErrors int64
 }
 
+// New constructs a new caching Lookup with an LRU cache limited to maxSize.
 func New(maxSize int) Lookup {
 	cache, _ := lru.New(maxSize)
 	return &lookup{cache: cache}

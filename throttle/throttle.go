@@ -1,5 +1,13 @@
-// package throttle provides the ability to read throttling configurations from
-// redis.
+// Package throttle provides the ability to read throttling configurations from
+// redis. Configurations are stored in redis as maps under the keys
+// "_throttle:desktop" and "_throttle:mobile". The key/value pairs in each map
+// are the 2-digit lowercase ISO-3166 country code plus a pipe-delimited
+// threshold and rate, for example:
+//
+//   _throttle:mobile
+//     ""   "524288000|10240"
+//     "cn" "104857600|10240"
+//
 package throttle
 
 import (

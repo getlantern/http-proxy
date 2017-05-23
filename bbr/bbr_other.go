@@ -9,6 +9,7 @@ import (
 	"github.com/getlantern/http-proxy/filters"
 )
 
+// noopMiddleware is used on non-linux platforms where BBR is unavailable.
 type noopMiddleware struct{}
 
 func New() Middleware {

@@ -19,6 +19,7 @@ const script = `
 
 	local bytesIn = redis.call("hincrby", clientKey, "bytesIn", ARGV[1])
 	local bytesOut = redis.call("hincrby", clientKey, "bytesOut", ARGV[2])
+	-- record the IP on which we based the countryCode for auditing
 	redis.call("hsetnx", clientKey, "clientIP", ARGV[3])
 	redis.call("hsetnx", clientKey, "countryCode", ARGV[4])
 	local countryCode = redis.call("hget", clientKey, "countryCode")
