@@ -5,8 +5,8 @@
 // threshold and rate, for example:
 //
 //   _throttle:mobile
-//     ""   "524288000|10240"
-//     "cn" "104857600|10240"
+//     "__"   "524288000|10240"
+//     "cn"   "104857600|10240"
 //
 package throttle
 
@@ -24,8 +24,9 @@ import (
 )
 
 const (
-	desktopSuffix = "desktop"
-	mobileSuffix  = "mobile"
+	desktopSuffix      = "desktop"
+	mobileSuffix       = "mobile"
+	defaultCountryCode = "__"
 )
 
 var (
@@ -36,7 +37,7 @@ var (
 type Config interface {
 	// ThresholdAndRateFor returns the threshold (bytes) and throttled rate (bytes
 	// per second) for the given deviceID in the given countryCode. If no country
-	// found, returns the values for the blank "" countryCode which is used as a
+	// found, returns the values for the blank "__" countryCode which is used as a
 	// default.
 	ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64)
 }
@@ -109,9 +110,9 @@ func loadLimits(rc *redis.Client, suffix string) (map[string]*thresholdAndRate, 
 		limits[country] = &thresholdAndRate{threshold, rate}
 	}
 
-	defaultTR, hasDefault := limits[""]
+	defaultTR, hasDefault := limits[defaultCountryCode]
 	if !hasDefault {
-		return nil, fmt.Errorf(`No default ("") country configured in %v!`, key)
+		return nil, fmt.Errorf(`No default "__" country configured in %v!`, key)
 	}
 
 	threshold, rate := defaultTR.threshold(), defaultTR.rate()
@@ -154,7 +155,7 @@ func (cfg *config) ThresholdAndRateFor(deviceID string, countryCode string) (int
 	cfg.mx.RUnlock()
 	tr, found := limits[countryCode]
 	if !found {
-		tr = limits[countryCode]
+		tr = limits[defaultCountryCode]
 	}
 	return tr.threshold(), tr.rate()
 }

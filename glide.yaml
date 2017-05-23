@@ -40,11 +40,12 @@ import:
 - package: github.com/vharitonsky/iniflags
 - package: gopkg.in/redis.v3
 - package: github.com/getlantern/eventual
-- package: github.com/stretchr/testify
-  subpackages:
-  - assert
 - package: github.com/klauspost/cpuid
 - package: github.com/Yawning/chacha20
 - package: github.com/gonum/stat
 - package: github.com/blang/semver
   version: ~3.5.0
+- package: github.com/stretchr/testify
+  subpackages:
+  - assert
+- package: github.com/siddontang/ledisdb
