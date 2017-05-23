@@ -10,7 +10,7 @@ import (
 )
 
 const (
-	measuredReportingInterval = 1 * time.Minute
+	measuredReportingInterval = 10 * time.Second
 )
 
 type reportingConfig struct {

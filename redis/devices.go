@@ -72,25 +72,26 @@ func (df *DeviceFetcher) RequestNewDeviceUsage(device string) {
 }
 
 func (df *DeviceFetcher) retrieveDeviceUsage(device string) error {
-	vals, err := df.rc.HMGet("_client:"+device, "bytesIn", "bytesOut").Result()
+	vals, err := df.rc.HMGet("_client:"+device, "bytesIn", "bytesOut", "countryCode").Result()
 	if err != nil {
 		return err
 	}
-	if vals[0] == nil || vals[1] == nil {
+	if vals[0] == nil || vals[1] == nil || vals[2] == nil {
 		// No entry found or partially stored, nothing to be done
 		return nil
 	}
 
-	bytesIn, err := strconv.ParseUint(vals[0].(string), 10, 64)
+	bytesIn, err := strconv.ParseInt(vals[0].(string), 10, 64)
 	if err != nil {
 		return err
 	}
-	bytesOut, err := strconv.ParseUint(vals[1].(string), 10, 64)
+	bytesOut, err := strconv.ParseInt(vals[1].(string), 10, 64)
 	if err != nil {
 		return err
 	}
+	countryCode := vals[2].(string)
 
-	usage.Set(device, bytesIn+bytesOut, time.Now())
+	usage.Set(device, countryCode, bytesIn+bytesOut, time.Now())
 	df.ongoing.del(device)
 	return nil
 }

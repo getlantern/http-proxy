@@ -23,8 +23,7 @@ var (
 	cfgSvrAuthToken                = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
 	cfgSvrDomains                  = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
 	enableReports                  = flag.Bool("enablereports", false, "Enable stats reporting")
-	throttlebps                    = flag.Uint64("throttlebps", 0, "If > 0, enables throttling at the given bps (needs stats reporting enabled)")
-	throttlethreshold              = flag.Uint64("throttlethreshold", 0, "If > 0, throttling will be activated at the given threshold (in bytes) in all connections of the throttled device")
+	throttleRefreshInterval        = flag.Duration("throttlerefresh", 5*time.Minute, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
 	bordaReportInterval            = flag.Duration("borda-report-interval", 0*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
 	bordaSamplePercentage          = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
 	bordaBufferSize                = flag.Int("borda-buffer-size", 10000, "Size of borda buffer, caps how many distinct measurements to keep during each submit interval")
@@ -92,21 +91,20 @@ func main() {
 	}
 
 	p := &proxy.Proxy{
-		Addr:                  *addr,
-		CertFile:              *certfile,
-		CfgSvrAuthToken:       *cfgSvrAuthToken,
-		CfgSvrDomains:         *cfgSvrDomains,
-		EnableReports:         *enableReports,
-		ThrottleBPS:           *throttlebps,
-		ThrottleThreshold:     *throttlethreshold,
-		BordaReportInterval:   *bordaReportInterval,
-		BordaSamplePercentage: *bordaSamplePercentage,
-		BordaBufferSize:       *bordaBufferSize,
-		ExternalIP:            *externalIP,
-		HTTPS:                 *https,
-		IdleTimeout:           time.Duration(*idleClose) * time.Second,
-		KeyFile:               *keyfile,
-		Pro:                   *pro,
+		Addr:                    *addr,
+		CertFile:                *certfile,
+		CfgSvrAuthToken:         *cfgSvrAuthToken,
+		CfgSvrDomains:           *cfgSvrDomains,
+		EnableReports:           *enableReports,
+		ThrottleRefreshInterval: *throttleRefreshInterval,
+		BordaReportInterval:     *bordaReportInterval,
+		BordaSamplePercentage:   *bordaSamplePercentage,
+		BordaBufferSize:         *bordaBufferSize,
+		ExternalIP:              *externalIP,
+		HTTPS:                   *https,
+		IdleTimeout:             time.Duration(*idleClose) * time.Second,
+		KeyFile:                 *keyfile,
+		Pro:                     *pro,
 		ProxiedSitesSamplePercentage: *proxiedSitesSamplePercentage,
 		ProxiedSitesTrackingID:       *proxiedSitesTrackingId,
 		ReportingRedisAddr:           *reportingRedisAddr,

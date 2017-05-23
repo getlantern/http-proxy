@@ -19,9 +19,9 @@ var (
 // Lookup allows looking up the country for an IP address and exposes some
 // statistics about itself.
 type Lookup interface {
-	// Country looks up the 2 digit ISO 3166 country code for the given IP address
-	// and returns the address or an error if there was an error looking it up.
-	Country(ip string) (string, error)
+	// CountryCode looks up the 2 digit ISO 3166 country code for the given IP
+	// address and returns "" if there was an error looking up the country.
+	CountryCode(ip string) string
 
 	// CacheSize returns the current size of the cache.
 	CacheSize() int
@@ -50,21 +50,23 @@ func New(maxSize int) Lookup {
 	return &lookup{cache: cache}
 }
 
-func (l *lookup) Country(ip string) (string, error) {
+func (l *lookup) CountryCode(ip string) string {
 	cached, found := l.cache.Get(ip)
 	if found {
 		atomic.AddInt64(&l.cacheHits, 1)
-		return cached.(string), nil
+		return cached.(string)
 	}
 	lookedUp, _, err := geolookup.LookupIP(ip, rt)
 	atomic.AddInt64(&l.networkLookups, 1)
 	if err != nil {
 		atomic.AddInt64(&l.networkLookupErrors, 1)
-		return "", err
+		log.Errorf("Error looking up country for %v: %v", ip, err)
+		l.cache.Add(ip, "")
+		return ""
 	}
 	country := strings.ToLower(lookedUp.Country.IsoCode)
 	l.cache.Add(ip, country)
-	return country, nil
+	return country
 }
 
 func (l *lookup) CacheSize() int {
