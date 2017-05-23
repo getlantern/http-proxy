@@ -9,11 +9,9 @@ import (
 	"github.com/getlantern/measured"
 )
 
-const (
-	measuredReportingInterval = 10 * time.Second
-)
-
 var (
+	measuredReportingInterval = 1 * time.Minute
+
 	noReport = &reportingConfig{false, neverWrap}
 )
 

@@ -19,10 +19,15 @@ const script = `
 
 	local bytesIn = redis.call("hincrby", clientKey, "bytesIn", ARGV[1])
 	local bytesOut = redis.call("hincrby", clientKey, "bytesOut", ARGV[2])
-	-- record the IP on which we based the countryCode for auditing
-	redis.call("hsetnx", clientKey, "clientIP", ARGV[3])
-	redis.call("hsetnx", clientKey, "countryCode", ARGV[4])
 	local countryCode = redis.call("hget", clientKey, "countryCode")
+	-- note that we use an if instead of just calling hsetnx because LedisDB (unit
+	-- testing) doesn't support hsetnx
+	if not countryCode then
+		redis.call("hset", clientKey, "countryCode", ARGV[3])
+		-- record the IP on which we based the countryCode for auditing
+		redis.call("hset", clientKey, "clientIP", ARGV[4])
+		countryCode = ARGV[3]
+	end
 
 	redis.call("expireat", clientKey, ARGV[5])
 	return {bytesIn, bytesOut, countryCode}
@@ -129,8 +134,8 @@ func submit(rc *redis.Client, scriptSHA string, statsByDeviceID map[string]*stat
 		_result, err := rc.EvalSha(scriptSHA, []string{clientKey}, []string{
 			strconv.Itoa(stats.RecvTotal),
 			strconv.Itoa(stats.SentTotal),
-			stats.ip,
 			countryCode,
+			stats.ip,
 			endOfThisMonth,
 		}).Result()
 		if err != nil {

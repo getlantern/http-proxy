@@ -3,7 +3,6 @@ package testredis
 
 import (
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 
@@ -13,9 +12,31 @@ import (
 	"gopkg.in/redis.v3"
 )
 
+// Redis is a testing Redis
+type Redis interface {
+	// Addr gets the address of this Redis
+	Addr() string
+
+	// Client opens a new client to this Redis
+	Client() *redis.Client
+
+	// Close closes this Redis and associated resources
+	Close() error
+}
+
 type testRedis struct {
 	dir string
 	app *server.App
+}
+
+func (tr *testRedis) Addr() string {
+	return tr.app.Address()
+}
+
+func (tr *testRedis) Client() *redis.Client {
+	return redis.NewClient(&redis.Options{
+		Addr: tr.app.Address(),
+	})
 }
 
 func (tr *testRedis) Close() error {
@@ -23,10 +44,10 @@ func (tr *testRedis) Close() error {
 	return os.RemoveAll(tr.dir)
 }
 
-func Open() (io.Closer, *redis.Client, error) {
+func Open() (Redis, error) {
 	tmpDir, err := ioutil.TempDir("", "redis")
 	if err != nil {
-		return nil, nil, fmt.Errorf("Unable to create temp dir: %v", err)
+		return nil, fmt.Errorf("Unable to create temp dir: %v", err)
 	}
 
 	cfg := lediscfg.NewConfigDefault()
@@ -34,12 +55,9 @@ func Open() (io.Closer, *redis.Client, error) {
 
 	app, err := server.NewApp(cfg)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 	go app.Run()
-	rc := redis.NewClient(&redis.Options{
-		Addr: app.Address(),
-	})
 
-	return &testRedis{tmpDir, app}, rc, nil
+	return &testRedis{tmpDir, app}, nil
 }

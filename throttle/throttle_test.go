@@ -16,17 +16,19 @@ const (
 )
 
 func TestThrottleConfig(t *testing.T) {
-	r, rc, err := testredis.Open()
+	r, err := testredis.Open()
 	if !assert.NoError(t, err) {
 		return
 	}
 	defer r.Close()
+
+	rc := r.Client()
 	defer rc.Close()
 
-	if !assert.NoError(t, rc.HMSet("_throttle:desktop", defaultCountryCode, "60|6", "cn", "50|5").Err()) {
+	if !assert.NoError(t, rc.HMSet("_throttle:desktop", DefaultCountryCode, "60|6", "cn", "50|5").Err()) {
 		return
 	}
-	if !assert.NoError(t, rc.HMSet("_throttle:mobile", defaultCountryCode, "40|4", "cn", "30|3").Err()) {
+	if !assert.NoError(t, rc.HMSet("_throttle:mobile", DefaultCountryCode, "40|4", "cn", "30|3").Err()) {
 		return
 	}
 
@@ -50,10 +52,10 @@ func TestThrottleConfig(t *testing.T) {
 	doTest(mobileDeviceID, "", 40, 4)
 
 	// update settings
-	if !assert.NoError(t, rc.HMSet("_throttle:desktop", defaultCountryCode, "600|60", "cn", "500|50").Err()) {
+	if !assert.NoError(t, rc.HMSet("_throttle:desktop", DefaultCountryCode, "600|60", "cn", "500|50").Err()) {
 		return
 	}
-	if !assert.NoError(t, rc.HMSet("_throttle:mobile", defaultCountryCode, "400|40", "cn", "300|30").Err()) {
+	if !assert.NoError(t, rc.HMSet("_throttle:mobile", DefaultCountryCode, "400|40", "cn", "300|30").Err()) {
 		return
 	}
 	time.Sleep(refreshInterval * 2)

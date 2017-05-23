@@ -24,9 +24,14 @@ import (
 )
 
 const (
-	desktopSuffix      = "desktop"
-	mobileSuffix       = "mobile"
-	defaultCountryCode = "__"
+	// DesktopSuffix is the suffix for desktop config entries in Redis
+	DesktopSuffix = "desktop"
+	// MobileSuffix is the suffix for mobile config entries in Redis
+	MobileSuffix = "mobile"
+	// DefaultCountryCode is the field for default limits in Redis
+	DefaultCountryCode = "__"
+
+	DefaultRefreshInterval = 5 * time.Minute
 )
 
 var (
@@ -66,11 +71,11 @@ type config struct {
 // its configuration information and reload that information every
 // refreshInterval.
 func NewRedisConfig(rc *redis.Client, refreshInterval time.Duration) (Config, error) {
-	desktop, err := loadLimits(rc, desktopSuffix)
+	desktop, err := loadLimits(rc, DesktopSuffix)
 	if err != nil {
 		return nil, err
 	}
-	mobile, err := loadLimits(rc, mobileSuffix)
+	mobile, err := loadLimits(rc, MobileSuffix)
 	if err != nil {
 		return nil, err
 	}
@@ -110,7 +115,7 @@ func loadLimits(rc *redis.Client, suffix string) (map[string]*thresholdAndRate, 
 		limits[country] = &thresholdAndRate{threshold, rate}
 	}
 
-	defaultTR, hasDefault := limits[defaultCountryCode]
+	defaultTR, hasDefault := limits[DefaultCountryCode]
 	if !hasDefault {
 		return nil, fmt.Errorf(`No default "__" country configured in %v!`, key)
 	}
@@ -122,15 +127,20 @@ func loadLimits(rc *redis.Client, suffix string) (map[string]*thresholdAndRate, 
 }
 
 func (cfg *config) keepCurrent() {
+	if cfg.refreshInterval <= 0 {
+		log.Debugf("Defaulting refresh interval to %v", DefaultRefreshInterval)
+		cfg.refreshInterval = DefaultRefreshInterval
+	}
+
 	log.Debugf("Refreshing every %v", cfg.refreshInterval)
 	for {
 		time.Sleep(cfg.refreshInterval)
-		desktop, err := loadLimits(cfg.rc, desktopSuffix)
+		desktop, err := loadLimits(cfg.rc, DesktopSuffix)
 		if err != nil {
 			log.Error(err)
 			continue
 		}
-		mobile, err := loadLimits(cfg.rc, mobileSuffix)
+		mobile, err := loadLimits(cfg.rc, MobileSuffix)
 		if err != nil {
 			log.Error(err)
 			continue
@@ -155,7 +165,7 @@ func (cfg *config) ThresholdAndRateFor(deviceID string, countryCode string) (int
 	cfg.mx.RUnlock()
 	tr, found := limits[countryCode]
 	if !found {
-		tr = limits[defaultCountryCode]
+		tr = limits[DefaultCountryCode]
 	}
 	return tr.threshold(), tr.rate()
 }
