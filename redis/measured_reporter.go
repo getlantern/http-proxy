@@ -27,15 +27,13 @@ const script = `
 		-- record the IP on which we based the countryCode for auditing
 		redis.call("hset", clientKey, "clientIP", ARGV[4])
 		countryCode = ARGV[3]
+		redis.call("expireat", clientKey, ARGV[5])
 	end
 
-	redis.call("expireat", clientKey, ARGV[5])
 	return {bytesIn, bytesOut, countryCode}
 `
 
 var (
-	keysExpiration = time.Hour * 24 * 31
-
 	geoLookup = geo.New(1000000)
 )
 
@@ -49,11 +47,12 @@ type statsAndContext struct {
 }
 
 func NewMeasuredReporter(rc *redis.Client, reportInterval time.Duration) (listeners.MeasuredReportFN, error) {
-	// Provide some buffering so that we don't lose data while submitting to Redis
 	scriptSHA, err := rc.ScriptLoad(script).Result()
 	if err != nil {
 		return nil, errors.New("Unable to load script: %v", err)
 	}
+
+	// Provide some buffering so that we don't lose data while submitting to Redis
 	statsCh := make(chan *statsAndContext, 10000)
 	go reportPeriodically(rc, scriptSHA, reportInterval, statsCh)
 	return func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
@@ -91,7 +90,7 @@ func reportPeriodically(rc *redis.Client, scriptSHA string, reportInterval time.
 			if existing == nil {
 				_clientIP := sac.ctx["client_ip"]
 				if _clientIP == nil {
-					// ignore
+					log.Error("Missing client_ip in context, this shouldn't happen. Ignoring.")
 					continue
 				}
 				clientIP := _clientIP.(string)

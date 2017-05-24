@@ -52,7 +52,7 @@ func TestThrottleConfig(t *testing.T) {
 	doTest(mobileDeviceID, "", 40, 4)
 
 	// update settings
-	if !assert.NoError(t, rc.HMSet("_throttle:desktop", DefaultCountryCode, "600|60", "cn", "500|50").Err()) {
+	if !assert.NoError(t, rc.HMSet("_throttle:desktop", DefaultCountryCode, "600|60", "cn", "500|50", "bl", "asdfadsf", "bt", "adsfadsfd|10", "br", "1000000|asdfd").Err()) {
 		return
 	}
 	if !assert.NoError(t, rc.HMSet("_throttle:mobile", DefaultCountryCode, "400|40", "cn", "300|30").Err()) {
@@ -62,9 +62,15 @@ func TestThrottleConfig(t *testing.T) {
 
 	doTest(desktopDeviceID, "cn", 500, 50)
 	doTest(desktopDeviceID, "us", 600, 60)
+	doTest(desktopDeviceID, "bl", 600, 60)
+	doTest(desktopDeviceID, "bt", 600, 60)
+	doTest(desktopDeviceID, "br", 600, 60)
 	doTest(desktopDeviceID, "", 600, 60)
 
 	doTest(mobileDeviceID, "cn", 300, 30)
 	doTest(mobileDeviceID, "us", 400, 40)
+	doTest(mobileDeviceID, "bl", 400, 40)
+	doTest(mobileDeviceID, "bt", 400, 40)
+	doTest(mobileDeviceID, "br", 400, 40)
 	doTest(mobileDeviceID, "", 400, 40)
 }

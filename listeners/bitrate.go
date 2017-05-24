@@ -74,11 +74,11 @@ func (c *bitrateConn) OnState(s http.ConnState) {
 func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	// pro-user message always overrides the active flag
 	if msgType == "throttle" {
-		state := data.(ThrottleRate)
-		c.throttle = state
+		rate := data.(ThrottleRate)
+		c.throttle = rate
 		c.freader.SetLimit(int64(c.throttle))
 		c.fwriter.SetLimit(int64(c.throttle))
-		log.Debugf("Throttling connection to %v per second", humanize.Bytes(uint64(state)))
+		log.Debugf("Throttling connection to %v per second", humanize.Bytes(uint64(rate)))
 	}
 
 	if c.WrapConnEmbeddable != nil {

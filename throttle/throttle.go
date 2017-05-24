@@ -59,6 +59,22 @@ func (tar thresholdAndRate) rate() int64 {
 	return tar[1]
 }
 
+func parseThresholdAndRate(limit string) (*thresholdAndRate, error) {
+	parts := strings.Split(limit, "|")
+	if len(parts) != 2 {
+		return nil, fmt.Errorf("invalid config: %v", limit)
+	}
+	threshold, err := strconv.ParseInt(parts[0], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid threshold: %v", parts[0])
+	}
+	rate, err := strconv.ParseInt(parts[1], 10, 64)
+	if err != nil {
+		return nil, fmt.Errorf("invalid rate : %v", parts[1])
+	}
+	return &thresholdAndRate{threshold, rate}, nil
+}
+
 type config struct {
 	rc              *redis.Client
 	refreshInterval time.Duration
@@ -97,22 +113,12 @@ func loadLimits(rc *redis.Client, suffix string) (map[string]*thresholdAndRate, 
 	}
 	limits := make(map[string]*thresholdAndRate, len(_limits))
 	for country, limit := range _limits {
-		parts := strings.Split(limit, "|")
-		if len(parts) != 2 {
-			log.Errorf("Invalid config in %v for country %v: %v", key, country, limit)
-			continue
-		}
-		threshold, err := strconv.ParseInt(parts[0], 10, 64)
+		tar, err := parseThresholdAndRate(limit)
 		if err != nil {
-			log.Errorf("Invalid threshold in %v for country %v: %v", key, country, parts[0])
+			log.Errorf("For %v in country %v %v", key, country, err)
 			continue
 		}
-		rate, err := strconv.ParseInt(parts[1], 10, 64)
-		if err != nil {
-			log.Errorf("Invalid rate in %v for country %v: %v", key, country, parts[1])
-			continue
-		}
-		limits[country] = &thresholdAndRate{threshold, rate}
+		limits[country] = tar
 	}
 
 	defaultTR, hasDefault := limits[DefaultCountryCode]

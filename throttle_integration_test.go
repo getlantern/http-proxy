@@ -103,7 +103,7 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
 		return
 	}
 
-	xbq := resp.Header.Get(common.XBQ)
+	xbq := resp.Header.Get(common.XBQHeader)
 	if pro {
 		assert.Empty(t, xbq)
 	} else {
@@ -137,4 +137,10 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
 	assert.True(t, bytesOut > 0)
 	assert.Equal(t, "", result[2])
 	assert.Equal(t, "127.0.0.1", result[3])
+
+	ttl, err := rc.TTL("_client:" + deviceId).Result()
+	if !assert.NoError(t, err) {
+		return
+	}
+	log.Debug(ttl)
 }

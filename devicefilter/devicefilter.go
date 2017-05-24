@@ -95,7 +95,7 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 			// <asof> is the 64-bit signed integer representing seconds since a custom
 			// epoch (00:00:00 01/01/2016 UTC).
 			threshold, rate := f.throttleConfig.ThresholdAndRateFor(lanternDeviceID, u.CountryCode)
-			w.Header().Set("XBQ", fmt.Sprintf("%d/%d/%d", uMiB, threshold/(1024*1024), int64(u.AsOf.Sub(epoch).Seconds())))
+			w.Header().Set(common.XBQHeader, fmt.Sprintf("%d/%d/%d", uMiB, threshold/(1024*1024), int64(u.AsOf.Sub(epoch).Seconds())))
 			if u.Bytes > threshold {
 				wc.ControlMessage("throttle", lanternlisteners.ThrottleRate(rate))
 			}
