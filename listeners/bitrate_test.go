@@ -36,13 +36,13 @@ func server(t *testing.T, ready *chan struct{}, bytesReadChan *chan int) *bitrat
 	if err != nil {
 		t.Fatal("Error creating listener")
 	}
-	bl := NewBitrateListener(ln, bitrateLimit)
+	bl := NewBitrateListener(ln)
 	assert.NotNil(t, bl, "Should be created succesfully")
 
 	*ready <- struct{}{}
 
 	conn, err := bl.Accept()
-	conn.(*bitrateConn).throttle = On
+	conn.(*bitrateConn).ControlMessage("throttle", ThrottleRate(bitrateLimit))
 
 	go handleConn(t, conn, bytesReadChan)
 
@@ -104,7 +104,7 @@ func benchSrv(wg *sync.WaitGroup, useThrottle, enableBitrate bool, port string) 
 
 		li := ln
 		if useThrottle {
-			li = NewBitrateListener(ln, 1024*1024*1024)
+			li = NewBitrateListener(ln)
 		}
 
 		wg.Done()
@@ -116,7 +116,7 @@ func benchSrv(wg *sync.WaitGroup, useThrottle, enableBitrate bool, port string) 
 			}
 
 			if useThrottle {
-				conn.(*bitrateConn).throttle = On
+				conn.(*bitrateConn).ControlMessage("throttle", ThrottleRate(1024*1024*1024))
 			}
 
 			go func() {

@@ -4,28 +4,23 @@ import (
 	"net"
 	"net/http"
 
+	"github.com/dustin/go-humanize"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/mxk/go-flowrate/flowrate"
 )
 
-type ThrottleState byte
+type ThrottleRate int64
 
 var (
-	On    = ThrottleState(0)
-	Off   = ThrottleState(1)
-	Never = ThrottleState(2)
+	NoThrottle = ThrottleRate(0)
 )
 
 type bitrateListener struct {
 	net.Listener
-	limit uint64
 }
 
-func NewBitrateListener(l net.Listener, lim uint64) net.Listener {
-	return &bitrateListener{
-		Listener: l,
-		limit:    lim,
-	}
+func NewBitrateListener(l net.Listener) net.Listener {
+	return &bitrateListener{l}
 }
 
 func (bl *bitrateListener) Accept() (net.Conn, error) {
@@ -38,9 +33,9 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 	return &bitrateConn{
 		WrapConnEmbeddable: wc,
 		Conn:               c,
-		throttle:           Off,
-		freader:            flowrate.NewReader(c, int64(bl.limit)),
-		fwriter:            flowrate.NewWriter(c, int64(bl.limit)),
+		throttle:           NoThrottle,
+		freader:            flowrate.NewReader(c, int64(0)),
+		fwriter:            flowrate.NewWriter(c, int64(0)),
 	}, err
 }
 
@@ -48,24 +43,24 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 type bitrateConn struct {
 	listeners.WrapConnEmbeddable
 	net.Conn
-	throttle ThrottleState
+	throttle ThrottleRate
 	freader  *flowrate.Reader
 	fwriter  *flowrate.Writer
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	if c.throttle == On {
-		return c.freader.Read(p)
-	} else {
+	if c.throttle == NoThrottle {
 		return c.Conn.Read(p)
+	} else {
+		return c.freader.Read(p)
 	}
 }
 
 func (c *bitrateConn) Write(p []byte) (n int, err error) {
-	if c.throttle == On {
-		return c.fwriter.Write(p)
-	} else {
+	if c.throttle == NoThrottle {
 		return c.Conn.Write(p)
+	} else {
+		return c.fwriter.Write(p)
 	}
 }
 
@@ -78,10 +73,12 @@ func (c *bitrateConn) OnState(s http.ConnState) {
 
 func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	// pro-user message always overrides the active flag
-	if c.throttle != Never && msgType == "throttle" {
-		state := data.(ThrottleState)
-		c.throttle = state
-		log.Debugf("Throttle connection state update: %v", state)
+	if msgType == "throttle" {
+		rate := data.(ThrottleRate)
+		c.throttle = rate
+		c.freader.SetLimit(int64(c.throttle))
+		c.fwriter.SetLimit(int64(c.throttle))
+		log.Debugf("Throttling connection to %v per second", humanize.Bytes(uint64(rate)))
 	}
 
 	if c.WrapConnEmbeddable != nil {

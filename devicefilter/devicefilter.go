@@ -16,8 +16,9 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/common"
-	throttle "github.com/getlantern/http-proxy-lantern/listeners"
+	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/redis"
+	"github.com/getlantern/http-proxy-lantern/throttle"
 	"github.com/getlantern/http-proxy-lantern/usage"
 )
 
@@ -29,9 +30,9 @@ var (
 
 // deviceFilterPre does the device-based filtering
 type deviceFilterPre struct {
-	throttleAfterBytes uint64
-	deviceFetcher      *redis.DeviceFetcher
-	fasttrackDomains   *common.FasttrackDomains
+	deviceFetcher    *redis.DeviceFetcher
+	throttleConfig   throttle.Config
+	fasttrackDomains *common.FasttrackDomains
 }
 
 // deviceFilterPost cleans up
@@ -39,15 +40,15 @@ type deviceFilterPost struct {
 	bl *blacklist.Blacklist
 }
 
-func NewPre(df *redis.DeviceFetcher, throttleAfterBytes uint64, fasttrackDomains *common.FasttrackDomains) filters.Filter {
-	if throttleAfterBytes > 0 {
-		log.Debugf("Throttling clients after %v MiB", throttleAfterBytes/(1024*1024))
+func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, fasttrackDomains *common.FasttrackDomains) filters.Filter {
+	if throttleConfig != nil {
+		log.Debug("Throttling enabled")
 	}
 
 	return &deviceFilterPre{
-		deviceFetcher:      df,
-		throttleAfterBytes: throttleAfterBytes,
-		fasttrackDomains:   fasttrackDomains,
+		deviceFetcher:    df,
+		throttleConfig:   throttleConfig,
+		fasttrackDomains: fasttrackDomains,
 	}
 }
 
@@ -75,7 +76,7 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 		log.Debugf("No %s header found from %s for request to %v. Closing.",
 			common.DeviceIdHeader, req.RemoteAddr, req.Host)
 	} else {
-		if f.throttleAfterBytes > 0 {
+		if f.throttleConfig != nil {
 			// Throttling enabled
 			u := usage.Get(lanternDeviceID)
 			if u == nil {
@@ -93,9 +94,10 @@ func (f *deviceFilterPre) Apply(w http.ResponseWriter, req *http.Request, next f
 			// <allowed> is the string representation of a 64-bit unsigned integer
 			// <asof> is the 64-bit signed integer representing seconds since a custom
 			// epoch (00:00:00 01/01/2016 UTC).
-			w.Header().Set("XBQ", fmt.Sprintf("%d/%d/%d", uMiB, f.throttleAfterBytes/(1024*1024), int64(u.AsOf.Sub(epoch).Seconds())))
-			if u.Bytes > f.throttleAfterBytes {
-				wc.ControlMessage("throttle", throttle.On)
+			threshold, rate := f.throttleConfig.ThresholdAndRateFor(lanternDeviceID, u.CountryCode)
+			w.Header().Set(common.XBQHeader, fmt.Sprintf("%d/%d/%d", uMiB, threshold/(1024*1024), int64(u.AsOf.Sub(epoch).Seconds())))
+			if u.Bytes > threshold {
+				wc.ControlMessage("throttle", lanternlisteners.ThrottleRate(rate))
 			}
 		}
 	}

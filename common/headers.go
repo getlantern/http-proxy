@@ -12,4 +12,5 @@ const (
 	CfgSvrClientIPHeader                = "X-Lantern-Config-Client-IP"
 	BBRRequested                        = "X-BBR"
 	BBRAvailableBandwidthEstimateHeader = "X-BBR-ABE"
+	XBQHeader                           = "XBQ"
 )

@@ -37,6 +37,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/redis"
+	"github.com/getlantern/http-proxy-lantern/throttle"
 	"github.com/getlantern/http-proxy-lantern/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 	"github.com/getlantern/http-proxy-lantern/versioncheck"
@@ -68,16 +69,11 @@ type Proxy struct {
 	Pro                            bool
 	ProxiedSitesSamplePercentage   float64
 	ProxiedSitesTrackingID         string
-	RedisAddr                      string
-	RedisCA                        string
-	RedisClientPK                  string
-	RedisClientCert                string
 	ReportingRedisAddr             string
 	ReportingRedisCA               string
 	ReportingRedisClientPK         string
 	ReportingRedisClientCert       string
-	ThrottleBPS                    uint64
-	ThrottleThreshold              uint64
+	ThrottleRefreshInterval        time.Duration
 	Token                          string
 	TunnelPorts                    string
 	Obfs4Addr                      string
@@ -93,8 +89,9 @@ type Proxy struct {
 	GoogleSearchRegex              string
 	GoogleCaptchaRegex             string
 
-	bm bbr.Middleware
-	rc redis.Client
+	bm             bbr.Middleware
+	rc             redis.Client
+	throttleConfig throttle.Config
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -103,6 +100,7 @@ func (p *Proxy) ListenAndServe() error {
 	p.setBenchmarkMode()
 	p.bm = bbr.New()
 	p.initRedisClient()
+	p.loadThrottleConfig()
 
 	// Only allow connections from remote IPs that are not blacklisted
 	blacklist := p.createBlacklist()
@@ -111,21 +109,10 @@ func (p *Proxy) ListenAndServe() error {
 		return err
 	}
 
-	if p.rc == nil {
-		log.Debug("Not enabling bandwidth limiting because we have no redis client")
-	} else {
-		fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
-		filterChain = filterChain.Append(
-			devicefilter.NewPre(redis.NewDeviceFetcher(p.rc), p.ThrottleThreshold, fd),
-		)
-	}
-
 	bwReporting := p.configureBandwidthReporting()
 	srv := server.NewServer(filterChain.Prepend(opsfilter.New(p.bm)))
 	srv.Allow = blacklist.OnConnect
-	if err := p.applyThrottling(srv, bwReporting); err != nil {
-		return err
-	}
+	p.applyThrottling(srv, bwReporting)
 	srv.AddListenerWrappers(bwReporting.wrapper)
 	srv.AddListenerWrappers(
 		// Close connections after 30 seconds of no activity
@@ -209,7 +196,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 	} else {
 		fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
 		filterChain = filterChain.Append(
-			devicefilter.NewPre(redis.NewDeviceFetcher(p.rc), p.ThrottleThreshold, fd),
+			devicefilter.NewPre(redis.NewDeviceFetcher(p.rc), p.throttleConfig, fd),
 		)
 	}
 
@@ -303,28 +290,35 @@ func (p *Proxy) configureBandwidthReporting() *reportingConfig {
 	return newReportingConfig(p.rc, p.EnableReports, bordaReporter)
 }
 
-func (p *Proxy) applyThrottling(srv *server.Server, rc *reportingConfig) error {
-	if p.ThrottleBPS <= 0 && p.ThrottleThreshold <= 0 {
-		log.Debug("Throttling is disabled")
-		return nil
+func (p *Proxy) loadThrottleConfig() {
+	if p.Pro || p.rc == nil {
+		log.Debug("Not loading throttle config")
+		return
 	}
-	if p.ThrottleBPS <= 0 || p.ThrottleThreshold <= 0 {
-		return errors.New("Throttling requires both throttlebps and throttlethreshold > 0")
+
+	var err error
+	p.throttleConfig, err = throttle.NewRedisConfig(p.rc, p.ThrottleRefreshInterval)
+	if err != nil {
+		p.throttleConfig = nil
+		log.Errorf("Unable to read throttling config from redis, will not throttle: %v", err)
+	}
+}
+
+func (p *Proxy) applyThrottling(srv *server.Server, rc *reportingConfig) {
+	if p.Pro || p.throttleConfig == nil {
+		log.Debug("Throttling is disabled")
 	}
 	if !rc.enabled {
 		log.Debug("Not throttling because reporting is not enabled")
-		return nil
 	}
 
-	log.Debugf("Throttling to %d bps after %d bytes", p.ThrottleBPS, p.ThrottleThreshold)
 	// Add net.Listener wrappers for inbound connections
 	srv.AddListenerWrappers(
 		// Throttle connections when signaled
 		func(ls net.Listener) net.Listener {
-			return lanternlisteners.NewBitrateListener(ls, p.ThrottleBPS)
+			return lanternlisteners.NewBitrateListener(ls)
 		},
 	)
-	return nil
 }
 
 func (p *Proxy) allowedTunnelPorts() []int {
@@ -341,10 +335,6 @@ func (p *Proxy) allowedTunnelPorts() []int {
 
 func (p *Proxy) initRedisClient() {
 	var err error
-	if p.Pro {
-		log.Debug("Not connecting to redis because this is a Pro proxy")
-		return
-	}
 	if p.ReportingRedisAddr == "" {
 		log.Debug("no redis address configured for bandwidth reporting")
 		return

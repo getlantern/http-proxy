@@ -9,8 +9,10 @@ import (
 	"github.com/getlantern/measured"
 )
 
-const (
+var (
 	measuredReportingInterval = 1 * time.Minute
+
+	noReport = &reportingConfig{false, neverWrap}
 )
 
 type reportingConfig struct {
@@ -20,9 +22,13 @@ type reportingConfig struct {
 
 func newReportingConfig(rc redis.Client, enabled bool, bordaReporter listeners.MeasuredReportFN) *reportingConfig {
 	if !enabled || rc == nil {
-		return &reportingConfig{false, neverWrap}
+		return noReport
 	}
-	reporter := redis.NewMeasuredReporter(rc, measuredReportingInterval)
+	reporter, err := redis.NewMeasuredReporter(rc, measuredReportingInterval)
+	if err != nil {
+		log.Errorf("Unable to configure measured reporter, not reporting: %v", err)
+		return noReport
+	}
 	if bordaReporter != nil {
 		reporter = combineReporter(reporter, bordaReporter)
 	}

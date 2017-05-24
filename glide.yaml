@@ -9,6 +9,7 @@ import:
   subpackages:
   - client
 - package: github.com/getlantern/bbrconn
+- package: github.com/getlantern/geolookup
 - package: github.com/getlantern/golog
 - package: github.com/getlantern/http-proxy
   version: b617417c38a996a004fc497d57857db6c1ad3f21
@@ -39,11 +40,13 @@ import:
 - package: github.com/vharitonsky/iniflags
 - package: gopkg.in/redis.v3
 - package: github.com/getlantern/eventual
-- package: github.com/stretchr/testify
-  subpackages:
-  - assert
 - package: github.com/klauspost/cpuid
 - package: github.com/Yawning/chacha20
 - package: github.com/gonum/stat
 - package: github.com/blang/semver
   version: ~3.5.0
+- package: github.com/stretchr/testify
+  subpackages:
+  - assert
+- package: github.com/siddontang/ledisdb
+- package: github.com/getlantern/waitforserver
