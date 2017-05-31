@@ -63,16 +63,16 @@ func TestRoundTrip(t *testing.T) {
 	if !assert.NoError(t, err) {
 		return
 	}
-	dialer := lampshade.NewDialer(50, 32, 0, 0, buffers.Pool(), lampshade.AES128GCM, certRT.X509().PublicKey.(*rsa.PublicKey), func() (net.Conn, error) {
-		return net.Dial("tcp", l.Addr().String())
-	})
+	dialer := lampshade.NewDialer(50, 32, 0, 0, 0, buffers.Pool(), lampshade.AES128GCM, certRT.X509().PublicKey.(*rsa.PublicKey))
 
 	var wg sync.WaitGroup
 	wg.Add(100)
 	for i := 0; i < 100; i++ {
 		go func() {
 			defer wg.Done()
-			conn, err := dialer.Dial()
+			conn, err := dialer.Dial(func() (net.Conn, error) {
+				return net.Dial("tcp", l.Addr().String())
+			})
 			if !assert.NoError(t, err) {
 				return
 			}
