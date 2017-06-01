@@ -63,7 +63,12 @@ func TestRoundTrip(t *testing.T) {
 	if !assert.NoError(t, err) {
 		return
 	}
-	dialer := lampshade.NewDialer(50, 32, 0, 0, 0, buffers.Pool(), lampshade.AES128GCM, certRT.X509().PublicKey.(*rsa.PublicKey))
+	dialer := lampshade.NewDialer(&lampshade.DialerOpts{
+		WindowSize:      50,
+		MaxPadding:      32,
+		Pool:            buffers.Pool(),
+		Cipher:          lampshade.AES128GCM,
+		ServerPublicKey: certRT.X509().PublicKey.(*rsa.PublicKey)})
 
 	var wg sync.WaitGroup
 	wg.Add(100)
