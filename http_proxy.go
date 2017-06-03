@@ -125,7 +125,7 @@ func (p *Proxy) ListenAndServe() error {
 		p.serveOBFS4(srv)
 	}
 
-	l, err := p.listenTCP(p.Addr)
+	l, err := p.listenTCP(p.Addr, true)
 	if err != nil {
 		return errors.New("Unable to listen tcp at %s: %v", p.Addr, err)
 	}
@@ -353,7 +353,7 @@ func (p *Proxy) initRedisClient() {
 }
 
 func (p *Proxy) serveOBFS4(srv *server.Server) {
-	l, listenErr := p.listenTCP(p.Obfs4Addr)
+	l, listenErr := p.listenTCP(p.Obfs4Addr, true)
 	if listenErr != nil {
 		log.Fatalf("Unable to listen for OBFS4 with tcp: %v", listenErr)
 	}
@@ -374,7 +374,7 @@ func (p *Proxy) serveOBFS4(srv *server.Server) {
 }
 
 func (p *Proxy) serveLampshade(srv *server.Server) {
-	l, err := p.listenTCP(p.LampshadeAddr)
+	l, err := p.listenTCP(p.LampshadeAddr, false)
 	if err != nil {
 		log.Fatalf("Unable to listen for lampshade with tcp: %v", err)
 	}
@@ -382,6 +382,9 @@ func (p *Proxy) serveLampshade(srv *server.Server) {
 	if wrapErr != nil {
 		log.Fatalf("Unable to initialize lampshade with tcp: %v", wrapErr)
 	}
+	// We wrap the lampshade listener itself so that we record BBR metrics on
+	// close of virtual streams rather than the physical connection.
+	wrapped = p.bm.Wrap(wrapped)
 	go func() {
 		serveErr := srv.Serve(wrapped, func(addr string) {
 			log.Debugf("lampshade serving at %v", addr)
@@ -392,7 +395,7 @@ func (p *Proxy) serveLampshade(srv *server.Server) {
 	}()
 }
 
-func (p *Proxy) listenTCP(addr string) (net.Listener, error) {
+func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -405,7 +408,9 @@ func (p *Proxy) listenTCP(addr string) (net.Listener, error) {
 	} else {
 		log.Debugf("Not setting diffserv TOS")
 	}
-	l = p.bm.Wrap(l)
+	if wrapBBR {
+		l = p.bm.Wrap(l)
+	}
 	return l, nil
 }
 
