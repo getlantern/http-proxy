@@ -1,13 +1,16 @@
 GLIDE_BIN    ?= $(shell which glide)
 UPX_BIN      ?= $(shell which upx)
 BUILD_DIR    ?= bin
+GIT_REVISION := $(shell git rev-parse --short HEAD)
 
 .PHONY: dist build require-glide
 
 build: require-glide
 	$(GLIDE_BIN) install && \
 	mkdir -p $(BUILD_DIR) && \
-	go build -o $(BUILD_DIR)/http-proxy github.com/getlantern/http-proxy-lantern/http-proxy && \
+	go build -o $(BUILD_DIR)/http-proxy \
+	-ldflags="-X main.revision=$(GIT_REVISION)" \
+	github.com/getlantern/http-proxy-lantern/http-proxy && \
 	file $(BUILD_DIR)/http-proxy
 
 require-glide:

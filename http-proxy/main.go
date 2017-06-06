@@ -2,7 +2,10 @@ package main
 
 import (
 	"flag"
+	"fmt"
 	"net/http"
+	"os"
+	"runtime"
 	"time"
 
 	"github.com/vharitonsky/iniflags"
@@ -17,7 +20,8 @@ import (
 )
 
 var (
-	log = golog.LoggerFor("lantern-proxy")
+	log      = golog.LoggerFor("lantern-proxy")
+	revision = "unknown" // overridden by Makefile
 
 	addr                           = flag.String("addr", ":8080", "Address to listen")
 	certfile                       = flag.String("cert", "", "Certificate file name")
@@ -51,6 +55,7 @@ var (
 	fasttrackDomains               = flag.String("fasttrackdomains", "", "Whitelisted domains, such as the config server, pro server, etc, that should not count towards the bandwidth cap or be throttled, separated by comma")
 	tos                            = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")
 	lampshadeAddr                  = flag.String("lampshade-addr", "", "Address at which to listen for lampshade connections. Requires https to be true.")
+	version                        = flag.Bool("version", false, "shows the version of the binary")
 	versionCheck                   = flag.String("versioncheck", "", "Check if Lantern client is below certain semantic version. No check by default")
 	versionCheckRedirectURL        = flag.String("versioncheck-redirect-url", "", "The URL to redirect if client is below certain version. Always used along with versioncheck")
 	versionCheckRedirectPercentage = flag.Float64("versioncheck-redirect-percentage", 1, "The percentage of requests to be redirected in version check. Defaults to 1 (100%)")
@@ -62,6 +67,10 @@ func main() {
 	var err error
 
 	iniflags.Parse()
+	if *version {
+		fmt.Fprintf(os.Stderr, "%s: commit %s built with %s\n", os.Args[0], revision, runtime.Version())
+		return
+	}
 	if *help {
 		flag.Usage()
 		return
