@@ -1,5 +1,5 @@
-hash: 5ddaa014a00d5509c6291c56fb2d13eb23e76d699226ca5b7e6d7a09d5c568fb
-updated: 2017-06-08T08:04:26.41806015-05:00
+hash: 8d5d0f498711e2165f710e240f08ac885f887ad6007b04d0dd2d17360548dbaf
+updated: 2017-06-09T09:52:44.105144733+08:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: a6aba3a6314be3a8ef518d5d4269a8459af9c789
@@ -25,8 +25,6 @@ imports:
   - monotime
 - name: github.com/blang/semver
   version: b38d23b8782a487059e8fc8773e9a5b228a77cb6
-- name: github.com/BurntSushi/toml
-  version: bbd5bb678321a0d6e58f1099321dfa73391c1b6f
 - name: github.com/cupcake/rdb
   version: 43ba34106c765f2111c0dc7b74cdf8ee437411e0
   subpackages:
@@ -75,7 +73,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: b617417c38a996a004fc497d57857db6c1ad3f21
+  version: 03c27914a6410630a84b635e1f573bea0d8c7517
   subpackages:
   - buffers
   - commonfilter
@@ -194,6 +192,10 @@ imports:
   version: d19f6d453e836d12ee8fe895d0494421e93ef8c1
 - name: github.com/oxtoacart/bpool
   version: 4e1c5567d7c2dd59fa4c7c83d34c2f3528b025d6
+- name: github.com/pelletier/go-buffruneio
+  version: c37440a7cf42ac63b919c752ca73a85067e05992
+- name: github.com/pelletier/go-toml
+  version: fe7536c3dee2596cdd23ee9976a17c22bdaae286
 - name: github.com/rcrowley/go-metrics
   version: 1f30fe9094a513ce4c700b9a54458bbb0c96996c
 - name: github.com/siddontang/go
@@ -210,7 +212,7 @@ imports:
 - name: github.com/siddontang/goredis
   version: 760763f78400635ed7b9b115511b8ed06035e908
 - name: github.com/siddontang/ledisdb
-  version: 0b1b6de120e1ed3e2b369dec21e250b982b21c31
+  version: 74d1db9b356e05d42a1d8a7769aada151e217cf8
   subpackages:
   - config
   - ledis
@@ -292,7 +294,7 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/sys
-  version: b9e8d468b01f806830d387bd9a1fe96dc68129d1
+  version: 0b25a408a50076fbbcae6b7ac0ea5fbb0b085e79
   repo: https://github.com/golang/sys
   vcs: git
   subpackages:
@@ -321,7 +323,7 @@ imports:
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 06c984861f3044e61f84671f9fe660da0fdf4997
+  version: dbdb479a60db5b6b4a496fac2cc99cbc787a7a71
   subpackages:
   - codes
   - credentials
