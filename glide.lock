@@ -1,5 +1,5 @@
 hash: 8d5d0f498711e2165f710e240f08ac885f887ad6007b04d0dd2d17360548dbaf
-updated: 2017-06-09T09:52:44.105144733+08:00
+updated: 2017-06-09T10:48:59.715095551+08:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: a6aba3a6314be3a8ef518d5d4269a8459af9c789
@@ -113,7 +113,7 @@ imports:
 - name: github.com/getlantern/stack
   version: 02f928aad224fbccd50d66edd776fc9d1e9f2f2b
 - name: github.com/getlantern/tcpinfo
-  version: 45fbcafccd7e9f2cac33a23f409c5b2e72f8f1cc
+  version: c475b171ec955019a7906187bf6f4011d7d791fe
 - name: github.com/getlantern/tlsdefaults
   version: 55d0dd468a195a4c8cb99ee0c1a2878cb7e72155
 - name: github.com/getlantern/waitforserver
