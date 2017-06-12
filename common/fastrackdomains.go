@@ -1,6 +1,7 @@
 package common
 
 import (
+	"net"
 	"net/http"
 	"strings"
 
@@ -39,8 +40,12 @@ func NewFasttrackDomains(domains []string) *FasttrackDomains {
 
 // Whitelisted returns whether or not the given request should be whitelisted.
 func (f *FasttrackDomains) Whitelisted(req *http.Request) bool {
+	host, _, err := net.SplitHostPort(req.Host)
+	if err != nil {
+		host = req.Host
+	}
 	for _, d := range f.Domains {
-		if strings.HasPrefix(req.Host, d) {
+		if host == d || strings.HasSuffix(host, "."+d) {
 			return true
 		}
 	}
