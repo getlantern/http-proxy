@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlantern/http-proxy-lantern/testredis"
+	"github.com/getlantern/testredis"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -25,10 +25,14 @@ func TestThrottleConfig(t *testing.T) {
 	rc := r.Client()
 	defer rc.Close()
 
-	if !assert.NoError(t, rc.HMSet("_throttle:desktop", DefaultCountryCode, "60|6", "cn", "50|5").Err()) {
+	if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{
+		DefaultCountryCode: "60|6",
+		"cn":               "50|5"}).Err()) {
 		return
 	}
-	if !assert.NoError(t, rc.HMSet("_throttle:mobile", DefaultCountryCode, "40|4", "cn", "30|3").Err()) {
+	if !assert.NoError(t, rc.HMSet("_throttle:mobile", map[string]string{
+		DefaultCountryCode: "40|4",
+		"cn":               "30|3"}).Err()) {
 		return
 	}
 
@@ -52,10 +56,17 @@ func TestThrottleConfig(t *testing.T) {
 	doTest(mobileDeviceID, "", 40, 4)
 
 	// update settings
-	if !assert.NoError(t, rc.HMSet("_throttle:desktop", DefaultCountryCode, "600|60", "cn", "500|50", "bl", "asdfadsf", "bt", "adsfadsfd|10", "br", "1000000|asdfd").Err()) {
+	if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{
+		DefaultCountryCode: "600|60",
+		"cn":               "500|50",
+		"bl":               "asdfadsf",
+		"bt":               "adsfadsfd|10",
+		"br":               "1000000|asdfd"}).Err()) {
 		return
 	}
-	if !assert.NoError(t, rc.HMSet("_throttle:mobile", DefaultCountryCode, "400|40", "cn", "300|30").Err()) {
+	if !assert.NoError(t, rc.HMSet("_throttle:mobile", map[string]string{
+		DefaultCountryCode: "400|40",
+		"cn":               "300|30"}).Err()) {
 		return
 	}
 	time.Sleep(refreshInterval * 2)

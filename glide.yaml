@@ -26,6 +26,8 @@ import:
 - package: github.com/getlantern/mockconn
 - package: github.com/getlantern/ops
 - package: github.com/getlantern/proxy
+- package: github.com/getlantern/testredis
+- package: github.com/getlantern/tlsredis
 - package: github.com/getlantern/withtimeout
 - package: github.com/golang/groupcache
   subpackages:
@@ -36,7 +38,7 @@ import:
   - flowrate
 - package: github.com/rcrowley/go-metrics
 - package: github.com/vharitonsky/iniflags
-- package: gopkg.in/redis.v3
+- package: gopkg.in/redis.v5
 - package: github.com/getlantern/eventual
 - package: github.com/klauspost/cpuid
 - package: github.com/Yawning/chacha20

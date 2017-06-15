@@ -17,7 +17,7 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/redis.v3"
+	"gopkg.in/redis.v5"
 
 	"github.com/dustin/go-humanize"
 	"github.com/getlantern/golog"
@@ -107,7 +107,7 @@ func NewRedisConfig(rc *redis.Client, refreshInterval time.Duration) (Config, er
 
 func loadLimits(rc *redis.Client, suffix string) (map[string]*thresholdAndRate, error) {
 	key := "_throttle:" + suffix
-	_limits, err := rc.HGetAllMap(key).Result()
+	_limits, err := rc.HGetAll(key).Result()
 	if err != nil {
 		return nil, fmt.Errorf("Unable to read %v from redis: %v", key, err)
 	}

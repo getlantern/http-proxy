@@ -5,9 +5,10 @@ import (
 	"strconv"
 	"time"
 
-	"gopkg.in/redis.v3"
+	"gopkg.in/redis.v5"
 
 	"github.com/getlantern/errors"
+	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/geo"
 	"github.com/getlantern/http-proxy-lantern/usage"
 	"github.com/getlantern/http-proxy/listeners"
@@ -34,6 +35,8 @@ const script = `
 `
 
 var (
+	log = golog.LoggerFor("redis")
+
 	geoLookup = geo.New(1000000)
 )
 
@@ -130,13 +133,12 @@ func submit(rc *redis.Client, scriptSHA string, statsByDeviceID map[string]*stat
 	for deviceID, stats := range statsByDeviceID {
 		clientKey := "_client:" + deviceID
 		countryCode := geoLookup.CountryCode(stats.ip)
-		_result, err := rc.EvalSha(scriptSHA, []string{clientKey}, []string{
+		_result, err := rc.EvalSha(scriptSHA, []string{clientKey},
 			strconv.Itoa(stats.RecvTotal),
 			strconv.Itoa(stats.SentTotal),
 			countryCode,
 			stats.ip,
-			endOfThisMonth,
-		}).Result()
+			endOfThisMonth).Result()
 		if err != nil {
 			return err
 		}

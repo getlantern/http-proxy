@@ -10,11 +10,12 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy-lantern/testredis"
-	"github.com/getlantern/http-proxy-lantern/throttle"
+	"github.com/getlantern/testredis"
 	. "github.com/getlantern/waitforserver"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/getlantern/http-proxy-lantern/throttle"
 )
 
 const (
@@ -46,10 +47,10 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
 	rc := r.Client()
 	defer rc.Close()
 
-	if !assert.NoError(t, rc.HMSet("_throttle:desktop", throttle.DefaultCountryCode, "10485760|1048576").Err()) {
+	if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{throttle.DefaultCountryCode: "10485760|1048576"}).Err()) {
 		return
 	}
-	if !assert.NoError(t, rc.HMSet("_throttle:mobile", throttle.DefaultCountryCode, "10485760|1048576").Err()) {
+	if !assert.NoError(t, rc.HMSet("_throttle:mobile", map[string]string{throttle.DefaultCountryCode: "10485760|1048576"}).Err()) {
 		return
 	}
 

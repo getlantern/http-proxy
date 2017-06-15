@@ -116,6 +116,10 @@ imports:
   version: c475b171ec955019a7906187bf6f4011d7d791fe
 - name: github.com/getlantern/tlsdefaults
   version: 55d0dd468a195a4c8cb99ee0c1a2878cb7e72155
+- name: github.com/getlantern/testredis
+  version: 7e6b46b7ef1b3a29f9a2c3f060dfddb9cd17ef1b
+- name: github.com/getlantern/tlsredis
+  version: e14f04c41d2ecdeebd3481c0dbfa5c21c8666973
 - name: github.com/getlantern/waitforserver
   version: 381a5878bd8ecb7001c361f2d5dcc3358460aa3e
 - name: github.com/getlantern/wal
