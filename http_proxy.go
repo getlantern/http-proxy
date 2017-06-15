@@ -11,6 +11,8 @@ import (
 	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
+	"github.com/getlantern/tlsredis"
+	rclient "gopkg.in/redis.v5"
 
 	"github.com/getlantern/http-proxy/commonfilter"
 	"github.com/getlantern/http-proxy/filters"
@@ -90,7 +92,7 @@ type Proxy struct {
 	GoogleCaptchaRegex             string
 
 	bm             bbr.Middleware
-	rc             redis.Client
+	rc             *rclient.Client
 	throttleConfig throttle.Config
 }
 
@@ -340,13 +342,13 @@ func (p *Proxy) initRedisClient() {
 		return
 	}
 
-	redisOpts := &redis.Options{
+	redisOpts := &tlsredis.Options{
 		RedisURL:       p.ReportingRedisAddr,
 		RedisCAFile:    p.ReportingRedisCA,
 		ClientPKFile:   p.ReportingRedisClientPK,
 		ClientCertFile: p.ReportingRedisClientCert,
 	}
-	p.rc, err = redis.GetClient(redisOpts)
+	p.rc, err = tlsredis.GetClient(redisOpts)
 	if err != nil {
 		log.Errorf("Error connecting to redis, will not be able to perform bandwidth limiting: %v", err)
 	}

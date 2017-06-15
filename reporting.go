@@ -4,9 +4,11 @@ import (
 	"net"
 	"time"
 
+	"github.com/getlantern/measured"
+	rclient "gopkg.in/redis.v5"
+
 	"github.com/getlantern/http-proxy-lantern/redis"
 	"github.com/getlantern/http-proxy/listeners"
-	"github.com/getlantern/measured"
 )
 
 var (
@@ -20,7 +22,7 @@ type reportingConfig struct {
 	wrapper func(ls net.Listener) net.Listener
 }
 
-func newReportingConfig(rc redis.Client, enabled bool, bordaReporter listeners.MeasuredReportFN) *reportingConfig {
+func newReportingConfig(rc *rclient.Client, enabled bool, bordaReporter listeners.MeasuredReportFN) *reportingConfig {
 	if !enabled || rc == nil {
 		return noReport
 	}
