@@ -21,6 +21,12 @@ func TestWhitelist(t *testing.T) {
 	req, _ = http.NewRequest("GET", "http://getiantem.org:80", nil)
 	assert.True(t, wl.Whitelisted(req))
 
+	req, _ = http.NewRequest("GET", "http://geo.getiantem.org:80", nil)
+	assert.True(t, wl.Whitelisted(req))
+
+	req, _ = http.NewRequest("GET", "http://agetiantem.org", nil)
+	assert.False(t, wl.Whitelisted(req))
+
 	req, _ = http.NewRequest("GET", "http://lantern-pro-server.herokuapp.com", nil)
 	assert.True(t, wl.Whitelisted(req), "lantern-pro-server.herokuapp.com not whitelisted?")
 
