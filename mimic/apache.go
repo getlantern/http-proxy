@@ -39,25 +39,10 @@ func SetServerAddr(addr string) {
 	Port = port
 }
 
-func MimicApacheOnInvalidRequest(c net.Conn, withHeader bool) {
-	defer c.Close()
-	m := apacheMimic{c, nil, ""}
-	var header *template.Template
-	if withHeader {
-		header = badRequestHeaderWithoutLength
-	}
-	m.writeError(header, badRequestBody)
-}
-
-// MimicApache mimics the behaviour of an unconfigured Apache web server 2.4.7
+// Apache( mimics the behaviour of an unconfigured Apache web server 2.4.7
 // (the one installed by 'apt-get install apache2') running on Ubuntu 14.04.
 // Set 'Host' and 'Port' before calling it.
-func MimicApache(w http.ResponseWriter, req *http.Request) {
-	conn, _, err := w.(http.Hijacker).Hijack()
-	if err != nil {
-		panic("fail to hijack, should not happen")
-	}
-	defer conn.Close()
+func Apache(conn net.Conn, req *http.Request) {
 	path := req.URL.Path
 	// remove extra leading slash
 	if len(path) > 0 && path[0] == '/' {
