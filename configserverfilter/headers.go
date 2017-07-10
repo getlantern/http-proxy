@@ -4,13 +4,13 @@
 package configserverfilter
 
 import (
+	"context"
 	"errors"
 	"net"
 	"net/http"
 
 	"github.com/getlantern/golog"
-
-	"github.com/getlantern/http-proxy/filters"
+	"github.com/getlantern/proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/common"
 )
@@ -34,9 +34,9 @@ func New(opts *Options) *ConfigServerFilter {
 	return &ConfigServerFilter{opts}
 }
 
-func (f *ConfigServerFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
+func (f *ConfigServerFilter) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
 	f.RewriteIfNecessary(req)
-	return next()
+	return next(ctx, req)
 }
 
 func (f *ConfigServerFilter) RewriteIfNecessary(req *http.Request) {
