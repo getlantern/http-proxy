@@ -70,10 +70,10 @@ func (f *deviceFilterPre) Apply(ctx context.Context, req *http.Request, next fil
 
 	lanternDeviceID := req.Header.Get(common.DeviceIdHeader)
 
-	if lanternDeviceID == "" {
+	if lanternDeviceID == "~~~~~~" {
 		// DO NOT REMOVE THIS, AS IT IS REQUIRED FOR CHECK FALLBACKS TO WORK
 		// AND THEREFORE FOR PROXY LAUNCHING TO WORK!!!
-		log.Debugf("No %s header found from %s for request to %v. Closing.",
+		log.Debugf("Special %s header found from %s for request to %v. Not throttling.",
 			common.DeviceIdHeader, req.RemoteAddr, req.Host)
 	} else {
 		if f.throttleConfig != nil {
