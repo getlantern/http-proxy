@@ -16,11 +16,12 @@
 package bbr
 
 import (
+	"context"
 	"net"
 	"net/http"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy/filters"
+	"github.com/getlantern/proxy/filters"
 )
 
 const (
@@ -35,12 +36,12 @@ type Middleware interface {
 	filters.Filter
 
 	// AddMetrics adds BBR metrics to the given response.
-	AddMetrics(resp *http.Response) *http.Response
+	AddMetrics(ctx context.Context, req *http.Request, resp *http.Response)
 
 	// Wrap wraps the given listener with support for BBR metrics.
 	Wrap(l net.Listener) net.Listener
 
-	// ABE returns an estimate of the available bandwidth in Mbps for the client
-	// associated with the given Request.
-	ABE(req *http.Request) float64
+	// ABE returns an estimate of the available bandwidth in Mbps for the given
+	// Context
+	ABE(ctx context.Context) float64
 }
