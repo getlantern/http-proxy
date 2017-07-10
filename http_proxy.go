@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	_ "net/http/pprof"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -143,6 +144,7 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	log.Debugf("Listening for %v at %v", protocol, l.Addr())
+	log.Debugf("Type of listener: %v", reflect.TypeOf(l))
 	err = srv.Serve(l, mimic.SetServerAddr)
 	if err != nil {
 		return errors.New("Error serving HTTP(S): %v", err)
@@ -188,7 +190,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 			"ping-chained-server": 1 * time.Nanosecond, // Internal ping-chained-server protocol
 		}))
 	} else {
-		filterChain = filterChain.Append(tokenfilter.New(p.Token))
+		filterChain = filterChain.Append(proxy.OnFirstOnly(tokenfilter.New(p.Token)))
 	}
 
 	if p.rc == nil {
@@ -196,17 +198,17 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	} else {
 		fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
 		filterChain = filterChain.Append(
-			devicefilter.NewPre(redis.NewDeviceFetcher(p.rc), p.throttleConfig, fd),
+			proxy.OnFirstOnly(devicefilter.NewPre(redis.NewDeviceFetcher(p.rc), p.throttleConfig, fd)),
 		)
 	}
 
 	filterChain = filterChain.Append(
-		googlefilter.New(p.GoogleSearchRegex, p.GoogleCaptchaRegex),
+		proxy.OnFirstOnly(googlefilter.New(p.GoogleSearchRegex, p.GoogleCaptchaRegex)),
 		analytics.New(&analytics.Options{
 			TrackingID:       p.ProxiedSitesTrackingID,
 			SamplePercentage: p.ProxiedSitesSamplePercentage,
 		}),
-		devicefilter.NewPost(bl),
+		proxy.OnFirstOnly(devicefilter.NewPost(bl)),
 	)
 
 	if !p.TestingLocal {

@@ -73,7 +73,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: 855171b127559579b97852a2ee736caaa60dfc3d
+  version: eef786bee8fa8fad09a00e2b2f6a649340484586
   subpackages:
   - buffers
   - commonfilter
@@ -105,7 +105,7 @@ imports:
 - name: github.com/getlantern/ops
   version: b70875f5d689a9438bca72aefd7142a2af889b18
 - name: github.com/getlantern/proxy
-  version: 10983031df2a8455cff82311209737db814b2870
+  version: cebb6329a359cf90444082c1a8c59192e3ec5a72
 - name: github.com/getlantern/rotator
   version: 013d4f8e36a2f6369b2435d89866056b5b74c69e
 - name: github.com/getlantern/sqlparser

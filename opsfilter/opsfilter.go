@@ -47,6 +47,7 @@ func (f *opsfilter) Apply(ctx context.Context, req *http.Request, next filters.N
 		Set("origin", req.Host).
 		Set("origin_host", originHost).
 		Set("origin_port", originPort)
+	log.Debug("Starting op")
 	defer op.End()
 
 	opsCtx := map[string]interface{}{
