@@ -17,6 +17,7 @@
 package versioncheck
 
 import (
+	"context"
 	"crypto/tls"
 	"math/rand"
 	"net"
@@ -27,9 +28,9 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/getlantern/golog"
+	"github.com/getlantern/proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy/filters"
 )
 
 var (
@@ -98,16 +99,9 @@ func (c *VersionChecker) Filter() filters.Filter {
 }
 
 // Apply satisfies the filters.Filter interface.
-func (c *VersionChecker) Apply(resp http.ResponseWriter, req *http.Request, next filters.Next) error {
-	if req.Method == http.MethodConnect {
-		if c.redirectConnectIfNecessary(resp, req) {
-			// stop here as the response has already been written
-			return nil
-		}
-		return next()
-	}
+func (c *VersionChecker) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
 	c.RewriteIfNecessary(req)
-	return next()
+	return next(ctx, req)
 }
 
 func (c *VersionChecker) RewriteIfNecessary(req *http.Request) {
@@ -140,78 +134,6 @@ func (c *VersionChecker) shouldRewrite(req *http.Request) bool {
 		return false
 	}
 	return c.matchVersion(req)
-}
-
-func (c *VersionChecker) redirectConnectIfNecessary(w http.ResponseWriter, req *http.Request) bool {
-	if !c.matchVersion(req) {
-		return false
-	}
-	_, port, err := net.SplitHostPort(req.Host)
-	if err != nil {
-		return false
-	}
-	portMeet := false
-	for _, p := range c.tunnelPorts {
-		if port == p {
-			portMeet = true
-			break
-		}
-	}
-	if !portMeet {
-		return false
-	}
-
-	h, ok := w.(http.Hijacker)
-	if !ok {
-		return false
-	}
-	conn, _, err := h.Hijack()
-	if err != nil {
-		// If there's an error hijacking, it's because the connection has already
-		// been hijacked (a programming error). Not much we can do other than
-		// report an error.
-		log.Errorf("Unable to hijack connection: %s", err)
-		return true
-	}
-	defer conn.Close()
-
-	log.Debugf("Redirecting %s://%s%s to %s",
-		req.Method,
-		req.Host,
-		req.URL.Path,
-		c.rewriteURLString,
-	)
-	// Acknowledge the CONNECT request
-	resp := &http.Response{
-		StatusCode: http.StatusOK,
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		Header:     w.Header(),
-	}
-	if err := resp.Write(conn); err != nil {
-		log.Debugf("error write: %v", err)
-		return true
-	}
-
-	// Make sure the application sent something and started waiting for the
-	// response.
-	var buf [1]byte
-	_, _ = conn.Read(buf[:])
-
-	// Send the actual response to application.
-	resp = &http.Response{
-		StatusCode: http.StatusFound,
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		Header: http.Header{
-			"Location": []string{c.rewriteURLString},
-		},
-		Close: true,
-	}
-	if err := resp.Write(conn); err != nil {
-		log.Debugf("error write: %v", err)
-	}
-	return true
 }
 
 func (c *VersionChecker) matchVersion(req *http.Request) bool {
