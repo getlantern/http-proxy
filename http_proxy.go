@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -11,16 +12,13 @@ import (
 	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
+	"github.com/getlantern/proxy"
+	"github.com/getlantern/proxy/filters"
 	"github.com/getlantern/tlsredis"
 	rclient "gopkg.in/redis.v5"
 
-	"github.com/getlantern/http-proxy/commonfilter"
-	"github.com/getlantern/http-proxy/filters"
-	"github.com/getlantern/http-proxy/forward"
-	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
-	"github.com/getlantern/http-proxy/pforward"
-	"github.com/getlantern/http-proxy/ratelimiter"
+	"github.com/getlantern/http-proxy/proxyfilters"
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
@@ -106,13 +104,13 @@ func (p *Proxy) ListenAndServe() error {
 
 	// Only allow connections from remote IPs that are not blacklisted
 	blacklist := p.createBlacklist()
-	filterChain, err := p.createFilterChain(blacklist)
+	filterChain, dial, err := p.createFilterChain(blacklist)
 	if err != nil {
 		return err
 	}
 
 	bwReporting := p.configureBandwidthReporting()
-	srv := server.NewServer(filterChain.Prepend(opsfilter.New(p.bm)))
+	srv := server.NewServer(p.IdleTimeout, dial, filterChain.Prepend(opsfilter.New(p.bm)))
 	srv.Allow = blacklist.OnConnect
 	p.applyThrottling(srv, bwReporting)
 	srv.AddListenerWrappers(bwReporting.wrapper)
@@ -177,11 +175,11 @@ func (p *Proxy) createBlacklist() *blacklist.Blacklist {
 	})
 }
 
-func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error) {
+func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy.DialFunc, error) {
 	filterChain := filters.Join(p.bm)
 
 	if p.Benchmark {
-		filterChain = filterChain.Append(ratelimiter.New(5000, map[string]time.Duration{
+		filterChain = filterChain.Append(proxyfilters.RateLimit(5000, map[string]time.Duration{
 			"www.google.com":      30 * time.Minute,
 			"www.facebook.com":    30 * time.Minute,
 			"67.media.tumblr.com": 30 * time.Minute,
@@ -209,12 +207,12 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 			SamplePercentage: p.ProxiedSitesSamplePercentage,
 		}),
 		devicefilter.NewPost(bl),
-		commonfilter.New(&commonfilter.Options{
-			AllowLocalhost: p.TestingLocal,
-			Exceptions:     []string{"127.0.0.1:7300"},
-		}),
-		ping.New(0),
 	)
+
+	if !p.TestingLocal {
+		filterChain = filterChain.Append(proxyfilters.BlockLocal([]string{"127.0.0.1:7300"}))
+	}
+	filterChain = filterChain.Append(ping.New(0))
 
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97
@@ -250,38 +248,29 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 		filterChain = filterChain.Append(vc.Filter())
 	}
 
-	var rewrite func(req *http.Request)
 	if len(requestRewriters) > 0 {
-		rewrite = func(req *http.Request) {
-			for _, rw := range requestRewriters {
-				rw(req)
+		filterChain = filterChain.Append(filters.FilterFunc(func(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
+			if req.Method != http.MethodConnect {
+				for _, rw := range requestRewriters {
+					rw(req)
+				}
 			}
-		}
+			return next(ctx, req)
+		}))
 	}
+
 	filterChain = filterChain.Append(
-		// This filter will look for CONNECT requests and hijack those connections
-		httpconnect.New(&httpconnect.Options{
-			IdleTimeout:  p.IdleTimeout,
-			AllowedPorts: p.allowedTunnelPorts(),
-			Dialer:       dialer,
-		}),
-		// This filter will look for GET requests with X-Lantern-Persistent: true and
-		// hijack those connections (new stateful HTTP connection management scheme).
-		pforward.New(&pforward.Options{
-			IdleTimeout: p.IdleTimeout,
-			Dialer:      dialerForPforward,
-			OnRequest:   rewrite,
-			OnResponse:  p.bm.AddMetrics,
-		}),
-		// This filter will handle all remaining HTTP requests (legacy HTTP
-		// connection management scheme).
-		forward.New(&forward.Options{
-			IdleTimeout: p.IdleTimeout,
-			Dialer:      dialer,
-		}),
+		proxyfilters.AddForwardedFor,
+		proxyfilters.RestrictConnectPorts(p.allowedTunnelPorts()),
+		proxyfilters.RecordOp,
 	)
 
-	return filterChain, nil
+	return filterChain, func(isCONNECT bool, network, addr string) (net.Conn, error) {
+		if isCONNECT {
+			return dialer(network, addr)
+		}
+		return dialerForPforward(network, addr)
+	}, nil
 }
 
 func (p *Proxy) configureBandwidthReporting() *reportingConfig {

@@ -20,9 +20,6 @@ import (
 	"github.com/getlantern/measured"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/getlantern/http-proxy/filters"
-	"github.com/getlantern/http-proxy/forward"
-	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/http-proxy/server"
 
@@ -632,27 +629,9 @@ func testRoundTrip(t *testing.T, addr string, isTls bool, target *targetHandler,
 	checkerFn(conn, url)
 }
 
-//
-// Proxy server
-//
-
-type proxy struct {
-	protocol string
-	addr     string
-}
-
 func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
-	filters := filters.Join(
-		tokenfilter.New(validToken),
-		httpconnect.New(&httpconnect.Options{
-			IdleTimeout: idleTimeout,
-		}),
-		forward.New(&forward.Options{
-			IdleTimeout: idleTimeout,
-		}),
-	)
 	// Create server
-	srv := server.NewServer(filters)
+	srv := server.NewServer(30*time.Second, nil, tokenfilter.New(validToken))
 
 	// Add net.Listener wrappers for inbound connections
 	srv.AddListenerWrappers(
