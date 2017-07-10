@@ -4,6 +4,7 @@ package analytics
 
 import (
 	"bytes"
+	"context"
 	"math/rand"
 	"net"
 	"net/http"
@@ -16,7 +17,7 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy/filters"
+	"github.com/getlantern/proxy/filters"
 	"github.com/golang/groupcache/lru"
 )
 
@@ -74,9 +75,9 @@ func New(opts *Options) filters.Filter {
 	return am
 }
 
-func (am *analyticsMiddleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
+func (am *analyticsMiddleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
 	am.track(req)
-	return next()
+	return next(ctx, req)
 }
 
 func (am *analyticsMiddleware) track(req *http.Request) {
