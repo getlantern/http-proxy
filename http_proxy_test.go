@@ -519,37 +519,45 @@ func TestDirectNoDevice(t *testing.T) {
 
 // X-Lantern-Auth-Token + X-Lantern-Device-Id -> Forward
 func TestDirectOK(t *testing.T) {
-	reqTempl := "GET /%s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: extraauthtoken\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
-	failResp := "HTTP/1.1 500 Internal Server Error\r\n"
+	buildRequest := func(url *url.URL, token string, deviceID string) *http.Request {
+		req, _ := http.NewRequest(http.MethodGet, url.String(), nil)
+		req.Header.Add("X-Lantern-Auth-Token", "extraauthtoken")
+		req.Header.Add("X-Lantern-Auth-Token", token)
+		req.Header.Set("X-Lantern-Device-Id", deviceID)
+		return req
+	}
 
 	testOk := func(conn net.Conn, targetURL *url.URL) {
-		req := fmt.Sprintf(reqTempl, targetURL.Path, targetURL.Host, validToken, deviceId)
-		t.Log("\n" + req)
-		_, err := conn.Write([]byte(req))
+		req := buildRequest(targetURL, validToken, deviceId)
+		err := req.Write(conn)
 		if !assert.NoError(t, err, "should write GET request") {
 			t.FailNow()
 		}
 
-		buf := [400]byte{}
-		_, err = conn.Read(buf[:])
-		assert.Contains(t, string(buf[:]), targetResponse, "should read tunneled response")
-
+		resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+		if !assert.NoError(t, err) {
+			t.FailNow()
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+		if !assert.NoError(t, err) {
+			t.FailNow()
+		}
+		assert.Contains(t, string(body), targetResponse, "should read tunneled response")
 	}
 
 	testFail := func(conn net.Conn, targetURL *url.URL) {
-		req := fmt.Sprintf(reqTempl, targetURL.Path, targetURL.Host, validToken, deviceId)
-		t.Log("\n" + req)
-		_, err := conn.Write([]byte(req))
+		req := buildRequest(targetURL, validToken, deviceId)
+		err := req.Write(conn)
 		if !assert.NoError(t, err, "should write GET request") {
 			t.FailNow()
 		}
 
-		buf := [400]byte{}
-		_, err = conn.Read(buf[:])
-		t.Log("\n" + string(buf[:]))
-
-		assert.Contains(t, string(buf[:]), failResp, "should respond with 500 Internal Server Error")
-
+		resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+		if !assert.NoError(t, err) {
+			t.FailNow()
+		}
+		assert.Equal(t, http.StatusBadGateway, resp.StatusCode)
 	}
 
 	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testOk)
