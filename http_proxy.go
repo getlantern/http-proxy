@@ -260,6 +260,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}
 
 	filterChain = filterChain.Append(
+		proxyfilters.DiscardInitialPersistentRequest,
 		proxyfilters.AddForwardedFor,
 		proxyfilters.RestrictConnectPorts(p.allowedTunnelPorts()),
 		proxyfilters.RecordOp,
