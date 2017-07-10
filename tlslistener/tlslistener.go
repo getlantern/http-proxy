@@ -5,13 +5,9 @@ package tlslistener
 import (
 	"crypto/tls"
 	"net"
-	"reflect"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/tlsdefaults"
 )
-
-var log = golog.LoggerFor("http-proxy.tlslistener")
 
 func Wrap(wrapped net.Listener, keyFile string, certFile string) (net.Listener, error) {
 	cfg, err := tlsdefaults.BuildListenerConfig(wrapped.Addr().String(), keyFile, certFile)
@@ -27,15 +23,11 @@ type tlslistener struct {
 }
 
 func (l *tlslistener) Accept() (net.Conn, error) {
-	log.Debugf("Accepting from underlying: %v", reflect.TypeOf(l.wrapped))
 	conn, err := l.wrapped.Accept()
 	if err != nil {
 		return nil, err
 	}
-	log.Debugf("Building tls conn")
-	result := &tlsconn{tls.Server(conn, l.cfg), conn}
-	log.Debugf("Returning tls conn")
-	return result, nil
+	return &tlsconn{tls.Server(conn, l.cfg), conn}, nil
 }
 
 func (l *tlslistener) Addr() net.Addr {
