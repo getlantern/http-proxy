@@ -5,13 +5,13 @@
 package googlefilter
 
 import (
+	"context"
 	"net/http"
 	"regexp"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
-
-	"github.com/getlantern/http-proxy/filters"
+	"github.com/getlantern/proxy/filters"
 )
 
 var (
@@ -41,9 +41,9 @@ func New(searchRegex string, captchaRegex string) filters.Filter {
 	}
 }
 
-func (f *googleFilter) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
+func (f *googleFilter) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
 	f.recordActivity(req)
-	return next()
+	return next(ctx, req)
 }
 
 func (f *googleFilter) recordActivity(req *http.Request) (sawSearch bool, sawCaptcha bool) {

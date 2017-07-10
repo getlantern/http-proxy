@@ -1,6 +1,7 @@
 package googlefilter
 
 import (
+	"context"
 	"net/http"
 	"testing"
 
@@ -30,8 +31,8 @@ func TestRecordGoogleActivity(t *testing.T) {
 func TestApply(t *testing.T) {
 	f := New(DefaultSearchRegex, DefaultCaptchaRegex).(*googleFilter)
 	req, _ := http.NewRequest(http.MethodGet, "https://google.com", nil)
-	err := f.Apply(nil, req, func() error {
-		return nil
+	_, err := f.Apply(context.Background(), req, func(ctx context.Context, req *http.Request) (*http.Response, error) {
+		return nil, nil
 	})
 
 	assert.NoError(t, err)
