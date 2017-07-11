@@ -2,6 +2,7 @@ package versioncheck
 
 import (
 	"bufio"
+	"fmt"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -95,53 +96,60 @@ func TestRedirectConnect(t *testing.T) {
 	go p.Serve(l)
 
 	proxiedReq, _ := http.NewRequest("GET", originServer.URL, nil)
-	r := requestViaProxy(t, proxiedReq, l, "")
-	if assert.NotNil(t, r) {
-		assert.Equal(t, http.StatusFound, r.StatusCode,
-			"should redirect when no version header is present")
-		assert.Equal(t, r.Header.Get("Location"), rewriteURL)
-		b, _ := ioutil.ReadAll(r.Body)
-		assert.Equal(t, "", string(b))
+	r, err := requestViaProxy(t, proxiedReq, l, "")
+	if !assert.NoError(t, err) {
+		return
 	}
+	assert.Equal(t, http.StatusFound, r.StatusCode,
+		"should redirect when no version header is present")
+	assert.Equal(t, r.Header.Get("Location"), rewriteURL)
+	b, _ := ioutil.ReadAll(r.Body)
+	assert.Equal(t, "", string(b))
 
-	r = requestViaProxy(t, proxiedReq, l, "3.1.0")
-	if assert.NotNil(t, r) {
-		assert.Equal(t, http.StatusFound, r.StatusCode,
-			"should redirect when version is lower than expected")
-		assert.Equal(t, r.Header.Get("Location"), rewriteURL)
-		b, _ := ioutil.ReadAll(r.Body)
-		assert.Equal(t, "", string(b))
+	r, err = requestViaProxy(t, proxiedReq, l, "3.1.0")
+	if !assert.NoError(t, err) {
+		return
 	}
+	assert.Equal(t, http.StatusFound, r.StatusCode,
+		"should redirect when version is lower than expected")
+	assert.Equal(t, r.Header.Get("Location"), rewriteURL)
+	b, _ = ioutil.ReadAll(r.Body)
+	assert.Equal(t, "", string(b))
 
-	r = requestViaProxy(t, proxiedReq, l, "3.1.1")
-	if assert.NotNil(t, r) {
-		assert.Equal(t, http.StatusOK, r.StatusCode,
-			"should not redirect when version is equal to or higher than expected")
-		assert.Equal(t, r.Header.Get("Location"), "")
-		b, _ := ioutil.ReadAll(r.Body)
-		assert.Equal(t, "good", string(b))
+	r, err = requestViaProxy(t, proxiedReq, l, "3.1.1")
+	if !assert.NoError(t, err) {
+		return
 	}
+	assert.Equal(t, http.StatusOK, r.StatusCode,
+		"should not redirect when version is equal to or higher than expected")
+	assert.Equal(t, r.Header.Get("Location"), "")
+	b, _ = ioutil.ReadAll(r.Body)
+	assert.Equal(t, "good", string(b))
 }
 
-func requestViaProxy(t *testing.T, proxiedReq *http.Request, l net.Listener, version string) *http.Response {
+func requestViaProxy(t *testing.T, proxiedReq *http.Request, l net.Listener, version string) (*http.Response, error) {
 	proxyConn, _ := net.Dial("tcp", l.Addr().String())
 	defer proxyConn.Close()
 	req, err := http.NewRequest("CONNECT", "http://"+proxiedReq.Host, nil)
-	assert.NoError(t, err)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to construct CONNECT request: %v", err)
+	}
 	if version != "" {
 		req.Header.Add(common.VersionHeader, version)
 	}
-	req.Write(proxyConn)
+	err = req.Write(proxyConn)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to issue CONNECT request: %v", err)
+	}
 	bufReader := bufio.NewReader(proxyConn)
-	resp, err := http.ReadResponse(bufReader, nil)
-	if !assert.NoError(t, err, "should have received proxy's response") {
-		return nil
+	resp, err := http.ReadResponse(bufReader, req)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to read CONNECT response: %v", err)
 	}
 	assert.Equal(t, http.StatusOK, resp.StatusCode, "proxy should respond 200 OK")
-	proxiedReq.Write(proxyConn)
-	r, e := http.ReadResponse(bufReader, nil)
-	if assert.NoError(t, e, "should have received proxied response") {
-		return r
+	err = proxiedReq.Write(proxyConn)
+	if err != nil {
+		return nil, fmt.Errorf("Unable to issue proxied request: %v", err)
 	}
-	return nil
+	return http.ReadResponse(bufReader, proxiedReq)
 }
