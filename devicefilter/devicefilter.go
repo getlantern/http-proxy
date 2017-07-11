@@ -52,7 +52,7 @@ func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, fasttrackDo
 	}
 }
 
-func (f *deviceFilterPre) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
+func (f *deviceFilterPre) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
 	if log.IsTraceEnabled() {
 		reqStr, _ := httputil.DumpRequest(req, true)
 		log.Tracef("DeviceFilter Middleware received request:\n%s", reqStr)
@@ -77,16 +77,16 @@ func (f *deviceFilterPre) Apply(ctx context.Context, req *http.Request, next fil
 			common.DeviceIdHeader, req.RemoteAddr, req.Host)
 	} else {
 		if f.throttleConfig != nil {
-			resp, err := next(ctx, req)
+			resp, nextCtx, err := next(ctx, req)
 			// Throttling enabled
 			u := usage.Get(lanternDeviceID)
 			if u == nil {
 				// Eagerly request device ID data to Redis and store it in usage
 				f.deviceFetcher.RequestNewDeviceUsage(lanternDeviceID)
-				return resp, err
+				return resp, nextCtx, err
 			}
 			if err != nil {
-				return resp, err
+				return resp, nextCtx, err
 			}
 			uMiB := u.Bytes / (1024 * 1024)
 			// Encode usage information in a header. The header is expected to follow
@@ -103,7 +103,7 @@ func (f *deviceFilterPre) Apply(ctx context.Context, req *http.Request, next fil
 			if u.Bytes > threshold {
 				wc.ControlMessage("throttle", lanternlisteners.ThrottleRate(rate))
 			}
-			return resp, err
+			return resp, nextCtx, err
 		}
 	}
 
@@ -116,7 +116,7 @@ func NewPost(bl *blacklist.Blacklist) filters.Filter {
 	}
 }
 
-func (f *deviceFilterPost) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
+func (f *deviceFilterPost) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
 	// For privacy, delete the DeviceId header before passing it along
 	req.Header.Del(common.DeviceIdHeader)
 	ip, _, _ := net.SplitHostPort(req.RemoteAddr)

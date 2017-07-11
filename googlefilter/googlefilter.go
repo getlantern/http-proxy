@@ -41,7 +41,7 @@ func New(searchRegex string, captchaRegex string) filters.Filter {
 	}
 }
 
-func (f *googleFilter) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
+func (f *googleFilter) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
 	f.recordActivity(req)
 	return next(ctx, req)
 }

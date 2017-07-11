@@ -17,7 +17,7 @@ func New() Middleware {
 	return &noopMiddleware{}
 }
 
-func (bm *noopMiddleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
+func (bm *noopMiddleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
 	return next(ctx, req)
 }
 

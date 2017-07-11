@@ -75,7 +75,7 @@ func New(opts *Options) filters.Filter {
 	return am
 }
 
-func (am *analyticsMiddleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
+func (am *analyticsMiddleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
 	am.track(req)
 	return next(ctx, req)
 }

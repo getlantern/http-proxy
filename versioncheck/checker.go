@@ -104,7 +104,7 @@ func (c *VersionChecker) Filter() filters.Filter {
 }
 
 // Apply satisfies the filters.Filter interface.
-func (c *VersionChecker) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
+func (c *VersionChecker) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
 	if c.shouldRedirectOnConnect(req) {
 		return c.redirectOnConnect(ctx, req)
 	}
@@ -164,7 +164,7 @@ func (c *VersionChecker) shouldRedirectOnConnect(req *http.Request) bool {
 	return portMeet
 }
 
-func (c *VersionChecker) redirectOnConnect(ctx context.Context, req *http.Request) (*http.Response, error) {
+func (c *VersionChecker) redirectOnConnect(ctx context.Context, req *http.Request) (*http.Response, context.Context, error) {
 	conn := proxy.DownstreamConn(ctx)
 
 	log.Debugf("Redirecting %s://%s%s to %s",
@@ -180,7 +180,7 @@ func (c *VersionChecker) redirectOnConnect(ctx context.Context, req *http.Reques
 		ProtoMinor: 1,
 	}
 	if err := resp.Write(conn); err != nil {
-		return nil, err
+		return nil, ctx, err
 	}
 
 	// Make sure the application sent something and started waiting for the
@@ -197,7 +197,7 @@ func (c *VersionChecker) redirectOnConnect(ctx context.Context, req *http.Reques
 			"Location": []string{c.rewriteURLString},
 		},
 		Close: true,
-	}, nil
+	}, ctx, nil
 }
 
 func (c *VersionChecker) matchVersion(req *http.Request) bool {

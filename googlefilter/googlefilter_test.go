@@ -31,8 +31,8 @@ func TestRecordGoogleActivity(t *testing.T) {
 func TestApply(t *testing.T) {
 	f := New(DefaultSearchRegex, DefaultCaptchaRegex).(*googleFilter)
 	req, _ := http.NewRequest(http.MethodGet, "https://google.com", nil)
-	_, err := f.Apply(context.Background(), req, func(ctx context.Context, req *http.Request) (*http.Response, error) {
-		return nil, nil
+	_, _, err := f.Apply(context.Background(), req, func(ctx context.Context, req *http.Request) (*http.Response, context.Context, error) {
+		return nil, ctx, nil
 	})
 
 	assert.NoError(t, err)

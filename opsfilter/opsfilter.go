@@ -30,7 +30,7 @@ func New(bm bbr.Middleware) filters.Filter {
 	return &opsfilter{bm}
 }
 
-func (f *opsfilter) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
+func (f *opsfilter) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
 	deviceID := req.Header.Get(common.DeviceIdHeader)
 	originHost, originPort, _ := net.SplitHostPort(req.Host)
 	if (originPort == "0" || originPort == "") && req.Method != http.MethodConnect {
@@ -67,7 +67,7 @@ func (f *opsfilter) Apply(ctx context.Context, req *http.Request, next filters.N
 	wc := proxy.DownstreamConn(ctx).(listeners.WrapConn)
 	wc.ControlMessage("measured", opsCtx)
 
-	resp, nextErr := next(ctx, req)
+	resp, nextCtx, nextErr := next(ctx, req)
 
 	// Add available bandwidth estimate
 	abe := f.bm.ABE(ctx)
@@ -75,5 +75,5 @@ func (f *opsfilter) Apply(ctx context.Context, req *http.Request, next filters.N
 		op.Set("est_mbps", client.Float(abe))
 	}
 
-	return resp, nextErr
+	return resp, nextCtx, nextErr
 }

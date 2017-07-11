@@ -1,6 +1,7 @@
 package ping
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -33,7 +34,7 @@ var (
 	defaultTimingExpiration = 1 * time.Minute
 )
 
-func (pm *pingMiddleware) urlPing(req *http.Request, pingURL string) (*http.Response, error) {
+func (pm *pingMiddleware) urlPing(ctx context.Context, req *http.Request, pingURL string) (*http.Response, context.Context, error) {
 	pm.urlTimingsMx.RLock()
 	timing, found := pm.urlTimings[pingURL]
 	pm.urlTimingsMx.RUnlock()
@@ -46,11 +47,11 @@ func (pm *pingMiddleware) urlPing(req *http.Request, pingURL string) (*http.Resp
 		var err error
 		timing, err = pm.timeURL(pingURL)
 		if err != nil {
-			return filters.Fail(req, http.StatusInternalServerError, log.Errorf("Unable to obtain timing for %v: %v", pingURL, err))
+			return filters.Fail(ctx, req, http.StatusInternalServerError, log.Errorf("Unable to obtain timing for %v: %v", pingURL, err))
 		}
 	}
 
-	return filters.ShortCircuit(req, &http.Response{
+	return filters.ShortCircuit(ctx, req, &http.Response{
 		StatusCode: timing.statusCode,
 		Header:     http.Header{common.PingTSHeader: []string{timing.ts.String()}},
 	})

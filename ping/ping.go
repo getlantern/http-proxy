@@ -63,7 +63,7 @@ func New(timingExpiration time.Duration) filters.Filter {
 	return pm
 }
 
-func (pm *pingMiddleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
+func (pm *pingMiddleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
 	log.Trace("In ping")
 	pingSize := req.Header.Get(common.PingHeader)
 	pingURL := req.Header.Get(common.PingURLHeader)
@@ -75,7 +75,7 @@ func (pm *pingMiddleware) Apply(ctx context.Context, req *http.Request, next fil
 	log.Trace("Processing ping")
 
 	if pingURL != "" {
-		return pm.urlPing(req, pingURL)
+		return pm.urlPing(ctx, req, pingURL)
 	}
 
 	var size int
@@ -93,15 +93,15 @@ func (pm *pingMiddleware) Apply(ctx context.Context, req *http.Request, next fil
 			size, parseErr = strconv.Atoi(req.URL.RawQuery)
 		}
 		if parseErr != nil {
-			return filters.Fail(req, http.StatusBadRequest, fmt.Errorf("Invalid ping size %v\n", pingSize))
+			return filters.Fail(ctx, req, http.StatusBadRequest, fmt.Errorf("Invalid ping size %v\n", pingSize))
 		}
 	}
 
-	return pm.cannedPing(req, size)
+	return pm.cannedPing(ctx, req, size)
 }
 
-func (pm *pingMiddleware) cannedPing(req *http.Request, size int) (*http.Response, error) {
-	return filters.ShortCircuit(req, &http.Response{
+func (pm *pingMiddleware) cannedPing(ctx context.Context, req *http.Request, size int) (*http.Response, context.Context, error) {
+	return filters.ShortCircuit(ctx, req, &http.Response{
 		StatusCode: http.StatusOK,
 		Body:       &randReader{size * len(data)},
 	})

@@ -28,7 +28,7 @@ func New(token string) filters.Filter {
 	}
 }
 
-func (f *tokenFilter) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
+func (f *tokenFilter) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
 	op := ops.Begin("tokenfilter")
 	defer op.End()
 
@@ -67,9 +67,9 @@ func errorf(op ops.Op, msg string, args ...interface{}) error {
 	return op.FailIf(fmt.Errorf(msg, args...))
 }
 
-func mimicApache(ctx context.Context, req *http.Request) (*http.Response, error) {
+func mimicApache(ctx context.Context, req *http.Request) (*http.Response, context.Context, error) {
 	conn := proxy.DownstreamConn(ctx)
 	mimic.Apache(conn, req)
 	conn.Close()
-	return nil, nil
+	return nil, ctx, nil
 }

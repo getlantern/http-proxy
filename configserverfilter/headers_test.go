@@ -16,7 +16,7 @@ import (
 
 type dummyHandler struct{ req *http.Request }
 
-func (h *dummyHandler) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
+func (h *dummyHandler) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
 	h.req = req
 	return next(ctx, req)
 }
@@ -30,8 +30,8 @@ func TestModifyRequest(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "http://site1.com:80/abc.gz", nil)
 	req.RemoteAddr = dummyAddr
-	next := func(ctx context.Context, req *http.Request) (*http.Response, error) {
-		return nil, nil
+	next := func(ctx context.Context, req *http.Request) (*http.Response, context.Context, error) {
+		return nil, ctx, nil
 	}
 	ctx := context.Background()
 	chain.Apply(ctx, req, next)

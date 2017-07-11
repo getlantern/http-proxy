@@ -35,12 +35,12 @@ func New() Middleware {
 }
 
 // Apply implements the interface filters.Filter.
-func (bm *middleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
-	resp, err := next(ctx, req)
+func (bm *middleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
+	resp, nextCtx, err := next(ctx, req)
 	if resp != nil {
-		bm.AddMetrics(ctx, req, resp)
+		bm.AddMetrics(nextCtx, req, resp)
 	}
-	return resp, err
+	return resp, nextCtx, err
 }
 
 func (bm *middleware) AddMetrics(ctx context.Context, req *http.Request, resp *http.Response) {
@@ -151,7 +151,7 @@ func (l *bbrlistener) Accept() (net.Conn, error) {
 
 type noopMiddleware struct{}
 
-func (nm *noopMiddleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
+func (nm *noopMiddleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
 	return next(ctx, req)
 }
 
