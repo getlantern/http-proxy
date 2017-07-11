@@ -1,19 +1,22 @@
-// package versioncheck checks if the X-Lantern-Version header in the request
+// Package versioncheck checks if the X-Lantern-Version header in the request
 // is absent or below than a semantic version, and rewrite/redirect a fraction
 // of such requests to a predefined URL.
 //
 // For CONNECT tunnels, it simply checks the X-Lantern-Version header in the
 // CONNECT request, as it's ineffeicient to inspect the tunneled data
-// byte-to-byte. It redirects to the predefined URL via HTTP 302 Found.
+// byte-to-byte. It redirects to the predefined URL via HTTP 302 Found. Note -
+// this only works for CONNECT requests whose payload isn't encrypted (i.e.
+// CONNECT requests from mobile app to port 80).
 //
 // For GET requests, it checks if the request is come from browser (via
 // User-Agent) and expects HTML content, to be more precise. It rewrites the
 // request to access the predefined URL directly.
 //
 // It doesn't check other HTTP methods.
-
+//
 // The purpose is to show an upgrade notice to the users with outdated Lantern
 // client.
+//
 package versioncheck
 
 import (
@@ -28,6 +31,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/getlantern/golog"
+	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/common"
@@ -73,6 +77,7 @@ func New(minVersion string, rewriteURL string, tunnelPortsToCheck []string, perc
 	return &VersionChecker{minVersion, semver.MustParse(minVersion), u, rewriteURL, rewriteAddr, tunnelPortsToCheck, int(percentage * oneMillion)}
 }
 
+// Dial is a function that dials a network connection.
 type Dial func(network, address string) (net.Conn, error)
 
 // Dialer wraps Dial to dial TLS when the requested host matchs the host in
@@ -100,10 +105,15 @@ func (c *VersionChecker) Filter() filters.Filter {
 
 // Apply satisfies the filters.Filter interface.
 func (c *VersionChecker) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, error) {
+	if c.shouldRedirectOnConnect(req) {
+		return c.redirectOnConnect(ctx, req)
+	}
 	c.RewriteIfNecessary(req)
 	return next(ctx, req)
 }
 
+// RewriteIfNecessary rewrites the request path to point at the version check
+// page if the conditions for doing so are met.
 func (c *VersionChecker) RewriteIfNecessary(req *http.Request) {
 	defer req.Header.Del(common.VersionHeader)
 	if !c.shouldRewrite(req) {
@@ -134,6 +144,60 @@ func (c *VersionChecker) shouldRewrite(req *http.Request) bool {
 		return false
 	}
 	return c.matchVersion(req)
+}
+
+func (c *VersionChecker) shouldRedirectOnConnect(req *http.Request) bool {
+	if !c.matchVersion(req) {
+		return false
+	}
+	_, port, err := net.SplitHostPort(req.Host)
+	if err != nil {
+		return false
+	}
+	portMeet := false
+	for _, p := range c.tunnelPorts {
+		if port == p {
+			portMeet = true
+			break
+		}
+	}
+	return portMeet
+}
+
+func (c *VersionChecker) redirectOnConnect(ctx context.Context, req *http.Request) (*http.Response, error) {
+	conn := proxy.DownstreamConn(ctx)
+
+	log.Debugf("Redirecting %s://%s%s to %s",
+		req.Method,
+		req.Host,
+		req.URL.Path,
+		c.rewriteURLString,
+	)
+	// Acknowledge the CONNECT request
+	resp := &http.Response{
+		StatusCode: http.StatusOK,
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+	}
+	if err := resp.Write(conn); err != nil {
+		return nil, err
+	}
+
+	// Make sure the application sent something and started waiting for the
+	// response.
+	var buf [1]byte
+	_, _ = conn.Read(buf[:])
+
+	// Send the actual response to application.
+	return &http.Response{
+		StatusCode: http.StatusFound,
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header: http.Header{
+			"Location": []string{c.rewriteURLString},
+		},
+		Close: true,
+	}, nil
 }
 
 func (c *VersionChecker) matchVersion(req *http.Request) bool {
