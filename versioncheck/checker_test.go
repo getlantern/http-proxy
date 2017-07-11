@@ -132,13 +132,14 @@ func requestViaProxy(t *testing.T, proxiedReq *http.Request, l net.Listener, ver
 		req.Header.Add(common.VersionHeader, version)
 	}
 	req.Write(proxyConn)
-	resp, err := http.ReadResponse(bufio.NewReader(proxyConn), nil)
+	bufReader := bufio.NewReader(proxyConn)
+	resp, err := http.ReadResponse(bufReader, nil)
 	if !assert.NoError(t, err, "should have received proxy's response") {
 		return nil
 	}
 	assert.Equal(t, http.StatusOK, resp.StatusCode, "proxy should respond 200 OK")
 	proxiedReq.Write(proxyConn)
-	r, e := http.ReadResponse(bufio.NewReader(proxyConn), nil)
+	r, e := http.ReadResponse(bufReader, nil)
 	if assert.NoError(t, e, "should have received proxied response") {
 		return r
 	}

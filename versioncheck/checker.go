@@ -183,13 +183,10 @@ func (c *VersionChecker) redirectOnConnect(ctx context.Context, req *http.Reques
 		return nil, ctx, err
 	}
 
-	log.Debug("Waiting")
 	// Make sure the application sent something and started waiting for the
 	// response.
 	var buf [1]byte
 	_, _ = conn.Read(buf[:])
-
-	log.Debug("Waited")
 
 	// Send the actual response to application.
 	return &http.Response{
