@@ -5,7 +5,6 @@
 package googlefilter
 
 import (
-	"context"
 	"net/http"
 	"regexp"
 
@@ -41,7 +40,7 @@ func New(searchRegex string, captchaRegex string) filters.Filter {
 	}
 }
 
-func (f *googleFilter) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
+func (f *googleFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	f.recordActivity(req)
 	return next(ctx, req)
 }

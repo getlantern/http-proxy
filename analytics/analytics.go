@@ -4,7 +4,6 @@ package analytics
 
 import (
 	"bytes"
-	"context"
 	"math/rand"
 	"net"
 	"net/http"
@@ -75,7 +74,7 @@ func New(opts *Options) filters.Filter {
 	return am
 }
 
-func (am *analyticsMiddleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
+func (am *analyticsMiddleware) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	am.track(req)
 	return next(ctx, req)
 }

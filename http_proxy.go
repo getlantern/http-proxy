@@ -251,7 +251,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}
 
 	if len(requestRewriters) > 0 {
-		filterChain = filterChain.Append(filters.FilterFunc(func(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
+		filterChain = filterChain.Append(filters.FilterFunc(func(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 			if req.Method != http.MethodConnect {
 				for _, rw := range requestRewriters {
 					rw(req)
@@ -268,7 +268,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		proxyfilters.RecordOp,
 	)
 
-	return filterChain, func(isCONNECT bool, network, addr string) (net.Conn, error) {
+	return filterChain, func(ctx context.Context, isCONNECT bool, network, addr string) (net.Conn, error) {
 		if isCONNECT {
 			return dialer(network, addr)
 		}

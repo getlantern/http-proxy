@@ -1,7 +1,6 @@
 package bbr
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -13,7 +12,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/netx"
 	"github.com/getlantern/ops"
-	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
 	"github.com/getlantern/tcpinfo"
 )
@@ -35,7 +33,7 @@ func New() Middleware {
 }
 
 // Apply implements the interface filters.Filter.
-func (bm *middleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
+func (bm *middleware) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	resp, nextCtx, err := next(ctx, req)
 	if resp != nil {
 		bm.AddMetrics(nextCtx, req, resp)
@@ -43,7 +41,7 @@ func (bm *middleware) Apply(ctx context.Context, req *http.Request, next filters
 	return resp, nextCtx, err
 }
 
-func (bm *middleware) AddMetrics(ctx context.Context, req *http.Request, resp *http.Response) {
+func (bm *middleware) AddMetrics(ctx filters.Context, req *http.Request, resp *http.Response) {
 	conn := connFor(ctx)
 	s := bm.statsFor(conn)
 
@@ -126,7 +124,7 @@ func (bm *middleware) Wrap(l net.Listener) net.Listener {
 	return &bbrlistener{l, bm}
 }
 
-func (bm *middleware) ABE(ctx context.Context) float64 {
+func (bm *middleware) ABE(ctx filters.Context) float64 {
 	conn := connFor(ctx)
 	if conn == nil {
 		return 0
@@ -151,21 +149,21 @@ func (l *bbrlistener) Accept() (net.Conn, error) {
 
 type noopMiddleware struct{}
 
-func (nm *noopMiddleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
+func (nm *noopMiddleware) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	return next(ctx, req)
 }
 
-func (nm *noopMiddleware) AddMetrics(ctx context.Context, req *http.Request, resp *http.Response) {
+func (nm *noopMiddleware) AddMetrics(ctx filters.Context, req *http.Request, resp *http.Response) {
 }
 
 func (nm *noopMiddleware) Wrap(l net.Listener) net.Listener {
 	return l
 }
 
-func (nm *noopMiddleware) ABE(ctx context.Context) float64 {
+func (nm *noopMiddleware) ABE(ctx filters.Context) float64 {
 	return 0
 }
 
-func connFor(ctx context.Context) net.Conn {
-	return proxy.DownstreamConn(ctx)
+func connFor(ctx filters.Context) net.Conn {
+	return ctx.DownstreamConn()
 }

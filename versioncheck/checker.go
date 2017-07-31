@@ -20,7 +20,6 @@
 package versioncheck
 
 import (
-	"context"
 	"crypto/tls"
 	"math/rand"
 	"net"
@@ -31,7 +30,6 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/getlantern/golog"
-	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/common"
@@ -104,7 +102,7 @@ func (c *VersionChecker) Filter() filters.Filter {
 }
 
 // Apply satisfies the filters.Filter interface.
-func (c *VersionChecker) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
+func (c *VersionChecker) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	if c.shouldRedirectOnConnect(req) {
 		return c.redirectOnConnect(ctx, req)
 	}
@@ -164,8 +162,8 @@ func (c *VersionChecker) shouldRedirectOnConnect(req *http.Request) bool {
 	return portMeet
 }
 
-func (c *VersionChecker) redirectOnConnect(ctx context.Context, req *http.Request) (*http.Response, context.Context, error) {
-	conn := proxy.DownstreamConn(ctx)
+func (c *VersionChecker) redirectOnConnect(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
+	conn := ctx.DownstreamConn()
 
 	log.Debugf("Redirecting %s://%s%s to %s",
 		req.Method,

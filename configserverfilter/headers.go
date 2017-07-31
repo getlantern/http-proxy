@@ -4,7 +4,6 @@
 package configserverfilter
 
 import (
-	"context"
 	"errors"
 	"net"
 	"net/http"
@@ -34,7 +33,7 @@ func New(opts *Options) *ConfigServerFilter {
 	return &ConfigServerFilter{opts}
 }
 
-func (f *ConfigServerFilter) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
+func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	f.RewriteIfNecessary(req)
 	return next(ctx, req)
 }

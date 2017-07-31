@@ -1,7 +1,6 @@
 package ping
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -27,7 +26,7 @@ func TestBypass(t *testing.T) {
 	filter := New(0)
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
 	n := &next{}
-	_, _, err := filter.Apply(context.Background(), req, n.do)
+	_, _, err := filter.Apply(filters.BackgroundContext(), req, n.do)
 	assert.True(t, n.wasCalled())
 	assert.Equal(t, errNext, err)
 }
@@ -37,7 +36,7 @@ func TestInvalid(t *testing.T) {
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
 	req.Header.Set(common.PingHeader, "invalid")
 	n := &next{}
-	resp, _, err := filter.Apply(context.Background(), req, n.do)
+	resp, _, err := filter.Apply(filters.BackgroundContext(), req, n.do)
 	assert.False(t, n.wasCalled())
 	if assert.Error(t, err) {
 		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
@@ -84,7 +83,7 @@ func doTestURL(t *testing.T, filter filters.Filter, url string) (statusCode int,
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
 	req.Header.Set(common.PingURLHeader, url)
 	n := &next{}
-	resp, _, err := filter.Apply(context.Background(), req, n.do)
+	resp, _, err := filter.Apply(filters.BackgroundContext(), req, n.do)
 	assert.False(t, n.wasCalled())
 	if assert.NoError(t, err) {
 		statusCode = resp.StatusCode
@@ -115,7 +114,7 @@ func testSize(t *testing.T, size string, mult int) {
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
 	req.Header.Set(common.PingHeader, size)
 	n := &next{}
-	resp, _, err := filter.Apply(context.Background(), req, n.do)
+	resp, _, err := filter.Apply(filters.BackgroundContext(), req, n.do)
 	assert.False(t, n.wasCalled())
 	if assert.NoError(t, err) {
 		if assert.Equal(t, http.StatusOK, resp.StatusCode) {
@@ -130,7 +129,7 @@ func TestPingURL(t *testing.T) {
 	filter := New(0)
 	req := httptest.NewRequest("GET", fmt.Sprintf("http://ping-chained-server?%d", mult), nil)
 	n := &next{}
-	resp, _, err := filter.Apply(context.Background(), req, n.do)
+	resp, _, err := filter.Apply(filters.BackgroundContext(), req, n.do)
 	assert.False(t, n.wasCalled())
 	if assert.NoError(t, err) {
 		if assert.Equal(t, http.StatusOK, resp.StatusCode) {
@@ -145,7 +144,7 @@ type next struct {
 	mx     sync.Mutex
 }
 
-func (n *next) do(ctx context.Context, req *http.Request) (*http.Response, context.Context, error) {
+func (n *next) do(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
 	n.mx.Lock()
 	n.called = true
 	n.mx.Unlock()

@@ -3,7 +3,6 @@
 package ping
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"math/rand"
@@ -63,7 +62,7 @@ func New(timingExpiration time.Duration) filters.Filter {
 	return pm
 }
 
-func (pm *pingMiddleware) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
+func (pm *pingMiddleware) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	log.Trace("In ping")
 	pingSize := req.Header.Get(common.PingHeader)
 	pingURL := req.Header.Get(common.PingURLHeader)
@@ -100,7 +99,7 @@ func (pm *pingMiddleware) Apply(ctx context.Context, req *http.Request, next fil
 	return pm.cannedPing(ctx, req, size)
 }
 
-func (pm *pingMiddleware) cannedPing(ctx context.Context, req *http.Request, size int) (*http.Response, context.Context, error) {
+func (pm *pingMiddleware) cannedPing(ctx filters.Context, req *http.Request, size int) (*http.Response, filters.Context, error) {
 	return filters.ShortCircuit(ctx, req, &http.Response{
 		StatusCode: http.StatusOK,
 		Body:       &randReader{size * len(data)},

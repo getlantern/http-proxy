@@ -1,7 +1,6 @@
 package configserverfilter
 
 import (
-	"context"
 	"crypto/tls"
 	"net"
 	"net/http"
@@ -16,7 +15,7 @@ import (
 
 type dummyHandler struct{ req *http.Request }
 
-func (h *dummyHandler) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
+func (h *dummyHandler) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	h.req = req
 	return next(ctx, req)
 }
@@ -30,10 +29,10 @@ func TestModifyRequest(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "http://site1.com:80/abc.gz", nil)
 	req.RemoteAddr = dummyAddr
-	next := func(ctx context.Context, req *http.Request) (*http.Response, context.Context, error) {
+	next := func(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
 		return nil, ctx, nil
 	}
-	ctx := context.Background()
+	ctx := filters.BackgroundContext()
 	chain.Apply(ctx, req, next)
 	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
 	assert.Equal(t, "site1.com:443", dummy.req.Host, "should use port 443")

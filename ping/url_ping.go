@@ -1,7 +1,6 @@
 package ping
 
 import (
-	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -34,7 +33,7 @@ var (
 	defaultTimingExpiration = 1 * time.Minute
 )
 
-func (pm *pingMiddleware) urlPing(ctx context.Context, req *http.Request, pingURL string) (*http.Response, context.Context, error) {
+func (pm *pingMiddleware) urlPing(ctx filters.Context, req *http.Request, pingURL string) (*http.Response, filters.Context, error) {
 	pm.urlTimingsMx.RLock()
 	timing, found := pm.urlTimings[pingURL]
 	pm.urlTimingsMx.RUnlock()

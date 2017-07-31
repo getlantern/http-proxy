@@ -1,7 +1,6 @@
 package devicefilter
 
 import (
-	"context"
 	"fmt"
 	"net"
 	"net/http"
@@ -9,7 +8,6 @@ import (
 	"time"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
 
 	"github.com/getlantern/http-proxy/listeners"
@@ -52,7 +50,7 @@ func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, fasttrackDo
 	}
 }
 
-func (f *deviceFilterPre) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
+func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	if log.IsTraceEnabled() {
 		reqStr, _ := httputil.DumpRequest(req, true)
 		log.Tracef("DeviceFilter Middleware received request:\n%s", reqStr)
@@ -66,7 +64,7 @@ func (f *deviceFilterPre) Apply(ctx context.Context, req *http.Request, next fil
 
 	// Attached the uid to connection to report stats to redis correctly
 	// "conn" in context is previously attached in server.go
-	wc := proxy.DownstreamConn(ctx).(listeners.WrapConn)
+	wc := ctx.DownstreamConn().(listeners.WrapConn)
 
 	lanternDeviceID := req.Header.Get(common.DeviceIdHeader)
 
@@ -116,7 +114,7 @@ func NewPost(bl *blacklist.Blacklist) filters.Filter {
 	}
 }
 
-func (f *deviceFilterPost) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
+func (f *deviceFilterPost) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	// For privacy, delete the DeviceId header before passing it along
 	req.Header.Del(common.DeviceIdHeader)
 	ip, _, _ := net.SplitHostPort(req.RemoteAddr)

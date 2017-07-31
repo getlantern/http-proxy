@@ -1,14 +1,12 @@
 package opsfilter
 
 import (
-	"context"
 	"net"
 	"net/http"
 	"strings"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
-	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
 
 	"github.com/getlantern/borda/client"
@@ -30,7 +28,7 @@ func New(bm bbr.Middleware) filters.Filter {
 	return &opsfilter{bm}
 }
 
-func (f *opsfilter) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
+func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	deviceID := req.Header.Get(common.DeviceIdHeader)
 	originHost, originPort, _ := net.SplitHostPort(req.Host)
 	if (originPort == "0" || originPort == "") && req.Method != http.MethodConnect {
@@ -64,7 +62,7 @@ func (f *opsfilter) Apply(ctx context.Context, req *http.Request, next filters.N
 	}
 
 	// Send the same context data to measured as well
-	wc := proxy.DownstreamConn(ctx).(listeners.WrapConn)
+	wc := ctx.DownstreamConn().(listeners.WrapConn)
 	wc.ControlMessage("measured", opsCtx)
 
 	resp, nextCtx, nextErr := next(ctx, req)

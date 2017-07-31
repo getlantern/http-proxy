@@ -1,10 +1,10 @@
 package googlefilter
 
 import (
-	"context"
 	"net/http"
 	"testing"
 
+	"github.com/getlantern/proxy/filters"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,7 +31,7 @@ func TestRecordGoogleActivity(t *testing.T) {
 func TestApply(t *testing.T) {
 	f := New(DefaultSearchRegex, DefaultCaptchaRegex).(*googleFilter)
 	req, _ := http.NewRequest(http.MethodGet, "https://google.com", nil)
-	_, _, err := f.Apply(context.Background(), req, func(ctx context.Context, req *http.Request) (*http.Response, context.Context, error) {
+	_, _, err := f.Apply(filters.BackgroundContext(), req, func(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
 		return nil, ctx, nil
 	})
 

@@ -1,7 +1,6 @@
 package tokenfilter
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httputil"
@@ -9,7 +8,6 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
-	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/common"
@@ -28,7 +26,7 @@ func New(token string) filters.Filter {
 	}
 }
 
-func (f *tokenFilter) Apply(ctx context.Context, req *http.Request, next filters.Next) (*http.Response, context.Context, error) {
+func (f *tokenFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	op := ops.Begin("tokenfilter")
 	defer op.End()
 
@@ -67,8 +65,8 @@ func errorf(op ops.Op, msg string, args ...interface{}) error {
 	return op.FailIf(fmt.Errorf(msg, args...))
 }
 
-func mimicApache(ctx context.Context, req *http.Request) (*http.Response, context.Context, error) {
-	conn := proxy.DownstreamConn(ctx)
+func mimicApache(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
+	conn := ctx.DownstreamConn()
 	mimic.Apache(conn, req)
 	conn.Close()
 	return nil, ctx, nil
