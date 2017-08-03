@@ -111,7 +111,11 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	bwReporting := p.configureBandwidthReporting()
-	srv := server.NewServer(p.IdleTimeout, dial, filterChain.Prepend(opsfilter.New(p.bm)))
+	srv := server.New(&server.Opts{
+		IdleTimeout: p.IdleTimeout,
+		Dial:        dial,
+		Filter:      filterChain.Prepend(opsfilter.New(p.bm)),
+	})
 	srv.Allow = blacklist.OnConnect
 	p.applyThrottling(srv, bwReporting)
 	srv.AddListenerWrappers(bwReporting.wrapper)

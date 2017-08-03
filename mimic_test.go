@@ -95,7 +95,10 @@ type entryWithHeaders struct {
 
 func TestMimicApache(t *testing.T) {
 	tf := tokenfilter.New("arbitrary-token")
-	s := server.NewServer(30*time.Second, nil, filters.Join(tf))
+	s := server.New(&server.Opts{
+		IdleTimeout: 30 * time.Second,
+		Filter:      filters.Join(tf),
+	})
 
 	chListenOn := make(chan string)
 	go func() {

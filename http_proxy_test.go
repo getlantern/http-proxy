@@ -645,7 +645,10 @@ func testRoundTrip(t *testing.T, addr string, isTls bool, target *targetHandler,
 
 func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
 	// Create server
-	srv := server.NewServer(idleTimeout, nil, tokenfilter.New(validToken))
+	srv := server.New(&server.Opts{
+		IdleTimeout: idleTimeout,
+		Filter:      tokenfilter.New(validToken),
+	})
 
 	// Add net.Listener wrappers for inbound connections
 	srv.AddListenerWrappers(
