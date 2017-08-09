@@ -10,11 +10,10 @@ import (
 	"github.com/getlantern/bbrconn"
 	borda "github.com/getlantern/borda/client"
 	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/netx"
 	"github.com/getlantern/ops"
+	"github.com/getlantern/proxy/filters"
 	"github.com/getlantern/tcpinfo"
-	"github.com/gorilla/context"
 )
 
 type middleware struct {
@@ -34,23 +33,16 @@ func New() Middleware {
 }
 
 // Apply implements the interface filters.Filter.
-func (bm *middleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
-	bm.addMetrics(req, w.Header())
-	return next()
-}
-
-func (bm *middleware) AddMetrics(resp *http.Response) *http.Response {
-	bm.addMetrics(resp.Request, resp.Header)
-	return resp
-}
-
-func (bm *middleware) addMetrics(req *http.Request, header http.Header) {
-	conn := connFor(req)
-	if conn == nil {
-		// TODO: for some reason, conn is nil when proxying HTTP requests. Figure
-		// out why
-		return
+func (bm *middleware) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+	resp, nextCtx, err := next(ctx, req)
+	if resp != nil {
+		bm.AddMetrics(nextCtx, req, resp)
 	}
+	return resp, nextCtx, err
+}
+
+func (bm *middleware) AddMetrics(ctx filters.Context, req *http.Request, resp *http.Response) {
+	conn := ctx.DownstreamConn()
 	s := bm.statsFor(conn)
 
 	bbrRequested := req.Header.Get(common.BBRRequested)
@@ -78,7 +70,7 @@ func (bm *middleware) addMetrics(req *http.Request, header http.Header) {
 		// BBR info not requested, ignore
 		return
 	}
-	header.Set(common.BBRAvailableBandwidthEstimateHeader, fmt.Sprint(s.estABE()))
+	resp.Header.Set(common.BBRAvailableBandwidthEstimateHeader, fmt.Sprint(s.estABE()))
 }
 
 func (bm *middleware) statsFor(conn net.Conn) *stats {
@@ -132,8 +124,8 @@ func (bm *middleware) Wrap(l net.Listener) net.Listener {
 	return &bbrlistener{l, bm}
 }
 
-func (bm *middleware) ABE(req *http.Request) float64 {
-	conn := connFor(req)
+func (bm *middleware) ABE(ctx filters.Context) float64 {
+	conn := ctx.DownstreamConn()
 	if conn == nil {
 		return 0
 	}
@@ -157,26 +149,17 @@ func (l *bbrlistener) Accept() (net.Conn, error) {
 
 type noopMiddleware struct{}
 
-func (nm *noopMiddleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
-	return next()
+func (nm *noopMiddleware) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+	return next(ctx, req)
 }
 
-func (nm *noopMiddleware) AddMetrics(resp *http.Response) *http.Response {
-	return resp
+func (nm *noopMiddleware) AddMetrics(ctx filters.Context, req *http.Request, resp *http.Response) {
 }
 
 func (nm *noopMiddleware) Wrap(l net.Listener) net.Listener {
 	return l
 }
 
-func (nm *noopMiddleware) ABE(req *http.Request) float64 {
+func (nm *noopMiddleware) ABE(ctx filters.Context) float64 {
 	return 0
-}
-
-func connFor(req *http.Request) net.Conn {
-	_conn := context.Get(req, "conn")
-	if _conn == nil {
-		return nil
-	}
-	return _conn.(net.Conn)
 }

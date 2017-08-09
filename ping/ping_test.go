@@ -11,8 +11,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getlantern/proxy/filters"
+
 	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy/filters"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -22,24 +24,22 @@ var (
 
 func TestBypass(t *testing.T) {
 	filter := New(0)
-	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
 	n := &next{}
-	err := filter.Apply(w, req, n.do)
+	_, _, err := filter.Apply(filters.BackgroundContext(), req, n.do)
 	assert.True(t, n.wasCalled())
 	assert.Equal(t, errNext, err)
 }
 
 func TestInvalid(t *testing.T) {
 	filter := New(0)
-	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
 	req.Header.Set(common.PingHeader, "invalid")
 	n := &next{}
-	err := filter.Apply(w, req, n.do)
+	resp, _, err := filter.Apply(filters.BackgroundContext(), req, n.do)
 	assert.False(t, n.wasCalled())
-	if assert.NoError(t, err) {
-		assert.Equal(t, http.StatusBadRequest, w.Result().StatusCode)
+	if assert.Error(t, err) {
+		assert.Equal(t, http.StatusBadRequest, resp.StatusCode)
 	}
 }
 
@@ -80,18 +80,15 @@ func TestGoodURL(t *testing.T) {
 }
 
 func doTestURL(t *testing.T, filter filters.Filter, url string) (statusCode int, ts string) {
-	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
 	req.Header.Set(common.PingURLHeader, url)
 	n := &next{}
-	err := filter.Apply(w, req, n.do)
+	resp, _, err := filter.Apply(filters.BackgroundContext(), req, n.do)
 	assert.False(t, n.wasCalled())
 	if assert.NoError(t, err) {
-		resp := w.Result()
 		statusCode = resp.StatusCode
 		if resp.StatusCode == http.StatusOK {
-			n, _ := io.Copy(ioutil.Discard, w.Result().Body)
-			assert.EqualValues(t, 0, n)
+			assert.Nil(t, resp.Body)
 			ts = resp.Header.Get(common.PingTSHeader)
 			assert.NotEmpty(t, ts)
 		}
@@ -100,30 +97,28 @@ func doTestURL(t *testing.T, filter filters.Filter, url string) (statusCode int,
 	return
 }
 
-func TestSmall(t *testing.T) {
+func TestSizeSmall(t *testing.T) {
 	testSize(t, "small", 1)
 }
 
-func TestMedium(t *testing.T) {
+func TestSizeMedium(t *testing.T) {
 	testSize(t, "medium", 100)
 }
 
-func TestLarge(t *testing.T) {
+func TestSizeLarge(t *testing.T) {
 	testSize(t, "large", 10000)
 }
 
 func testSize(t *testing.T, size string, mult int) {
 	filter := New(0)
-	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", "http://doesntmatter.domain", nil)
 	req.Header.Set(common.PingHeader, size)
 	n := &next{}
-	err := filter.Apply(w, req, n.do)
+	resp, _, err := filter.Apply(filters.BackgroundContext(), req, n.do)
 	assert.False(t, n.wasCalled())
 	if assert.NoError(t, err) {
-		resp := w.Result()
 		if assert.Equal(t, http.StatusOK, resp.StatusCode) {
-			n, _ := io.Copy(ioutil.Discard, w.Result().Body)
+			n, _ := io.Copy(ioutil.Discard, resp.Body)
 			assert.EqualValues(t, mult*len(data), n)
 		}
 	}
@@ -132,15 +127,13 @@ func testSize(t *testing.T, size string, mult int) {
 func TestPingURL(t *testing.T) {
 	mult := 20
 	filter := New(0)
-	w := httptest.NewRecorder()
 	req := httptest.NewRequest("GET", fmt.Sprintf("http://ping-chained-server?%d", mult), nil)
 	n := &next{}
-	err := filter.Apply(w, req, n.do)
+	resp, _, err := filter.Apply(filters.BackgroundContext(), req, n.do)
 	assert.False(t, n.wasCalled())
 	if assert.NoError(t, err) {
-		resp := w.Result()
 		if assert.Equal(t, http.StatusOK, resp.StatusCode) {
-			n, _ := io.Copy(ioutil.Discard, w.Result().Body)
+			n, _ := io.Copy(ioutil.Discard, resp.Body)
 			assert.EqualValues(t, mult*len(data), n)
 		}
 	}
@@ -151,11 +144,11 @@ type next struct {
 	mx     sync.Mutex
 }
 
-func (n *next) do() error {
+func (n *next) do(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
 	n.mx.Lock()
 	n.called = true
 	n.mx.Unlock()
-	return errNext
+	return nil, ctx, errNext
 }
 
 func (n *next) wasCalled() bool {

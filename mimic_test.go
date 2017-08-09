@@ -9,10 +9,11 @@ import (
 	"os/exec"
 	"regexp"
 	"testing"
+	"time"
 
+	"github.com/getlantern/proxy/filters"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/mimic"
@@ -94,7 +95,10 @@ type entryWithHeaders struct {
 
 func TestMimicApache(t *testing.T) {
 	tf := tokenfilter.New("arbitrary-token")
-	s := server.NewServer(filters.Join(tf))
+	s := server.New(&server.Opts{
+		IdleTimeout: 30 * time.Second,
+		Filter:      filters.Join(tf),
+	})
 
 	chListenOn := make(chan string)
 	go func() {

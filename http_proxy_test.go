@@ -20,9 +20,6 @@ import (
 	"github.com/getlantern/measured"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/getlantern/http-proxy/filters"
-	"github.com/getlantern/http-proxy/forward"
-	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/http-proxy/server"
 
@@ -178,6 +175,15 @@ func TestMaxConnections(t *testing.T) {
 	}
 }
 
+func bufEmpty(buf [400]byte) bool {
+	for _, c := range buf {
+		if c != 0 {
+			return false
+		}
+	}
+	return true
+}
+
 func TestIdleClientConnections(t *testing.T) {
 	limitedServerAddr, err := setupNewHTTPServer(0, 100*time.Millisecond)
 	if err != nil {
@@ -199,9 +205,9 @@ func TestIdleClientConnections(t *testing.T) {
 		conn.Write([]byte("GET / HTTP/1.1\r\n\r\n"))
 
 		var buf [400]byte
-		_, err := conn.Read(buf[:])
+		conn.Read(buf[:])
 
-		assert.Error(t, err)
+		assert.True(t, bufEmpty(buf), "Should fail")
 	}
 
 	go testRoundTrip(t, limitedServerAddr, false, httpTargetServer, okFn)
@@ -212,12 +218,13 @@ func TestIdleClientConnections(t *testing.T) {
 // we are just testing the combined behavior.  We probably can do that by
 // creating a custom server that only sets one timeout at a time
 func TestIdleTargetConnections(t *testing.T) {
+	impatientTimeout := 30 * time.Millisecond
 	normalServerAddr, err := setupNewHTTPServer(0, 30*time.Second)
 	if err != nil {
 		assert.Fail(t, "Error starting proxy server: %s", err)
 	}
 
-	impatientServerAddr, err := setupNewHTTPServer(0, 100*time.Millisecond)
+	impatientServerAddr, err := setupNewHTTPServer(0, impatientTimeout)
 	if err != nil {
 		assert.Fail(t, "Error starting proxy server: %s", err)
 	}
@@ -242,17 +249,13 @@ func TestIdleTargetConnections(t *testing.T) {
 		reqStr := "GET / HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 		req := fmt.Sprintf(reqStr, targetURL.Host, validToken, deviceId)
 		t.Log("\n" + req)
-		conn.Write([]byte(req))
+
+		time.Sleep(impatientTimeout * 2)
+		conn.Write([]byte("GET / HTTP/1.1\r\n\r\n"))
 		var buf [400]byte
 		conn.Read(buf[:])
 
-		time.Sleep(150 * time.Millisecond)
-		conn.Write([]byte("GET / HTTP/1.1\r\n\r\n"))
-		_, err := conn.Read(buf[:])
-
-		if assert.Error(t, err) {
-			assert.Equal(t, "EOF", err.Error())
-		}
+		assert.True(t, bufEmpty(buf), "Should fail")
 	}
 
 	failConnectFn := func(conn net.Conn, targetURL *url.URL) {
@@ -262,7 +265,7 @@ func TestIdleTargetConnections(t *testing.T) {
 		var buf [400]byte
 		conn.Read(buf[:])
 
-		time.Sleep(150 * time.Millisecond)
+		time.Sleep(impatientTimeout * 10)
 		conn.Write([]byte("GET / HTTP/1.1\r\n\r\n"))
 		_, err := http.ReadResponse(bufio.NewReader(conn), nil)
 
@@ -522,37 +525,45 @@ func TestDirectNoDevice(t *testing.T) {
 
 // X-Lantern-Auth-Token + X-Lantern-Device-Id -> Forward
 func TestDirectOK(t *testing.T) {
-	reqTempl := "GET /%s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: extraauthtoken\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
-	failResp := "HTTP/1.1 500 Internal Server Error\r\n"
+	buildRequest := func(url *url.URL, token string, deviceID string) *http.Request {
+		req, _ := http.NewRequest(http.MethodGet, url.String(), nil)
+		req.Header.Add("X-Lantern-Auth-Token", "extraauthtoken")
+		req.Header.Add("X-Lantern-Auth-Token", token)
+		req.Header.Set("X-Lantern-Device-Id", deviceID)
+		return req
+	}
 
 	testOk := func(conn net.Conn, targetURL *url.URL) {
-		req := fmt.Sprintf(reqTempl, targetURL.Path, targetURL.Host, validToken, deviceId)
-		t.Log("\n" + req)
-		_, err := conn.Write([]byte(req))
+		req := buildRequest(targetURL, validToken, deviceId)
+		err := req.Write(conn)
 		if !assert.NoError(t, err, "should write GET request") {
 			t.FailNow()
 		}
 
-		buf := [400]byte{}
-		_, err = conn.Read(buf[:])
-		assert.Contains(t, string(buf[:]), targetResponse, "should read tunneled response")
-
+		resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+		if !assert.NoError(t, err) {
+			t.FailNow()
+		}
+		body, err := ioutil.ReadAll(resp.Body)
+		resp.Body.Close()
+		if !assert.NoError(t, err) {
+			t.FailNow()
+		}
+		assert.Contains(t, string(body), targetResponse, "should read tunneled response")
 	}
 
 	testFail := func(conn net.Conn, targetURL *url.URL) {
-		req := fmt.Sprintf(reqTempl, targetURL.Path, targetURL.Host, validToken, deviceId)
-		t.Log("\n" + req)
-		_, err := conn.Write([]byte(req))
+		req := buildRequest(targetURL, validToken, deviceId)
+		err := req.Write(conn)
 		if !assert.NoError(t, err, "should write GET request") {
 			t.FailNow()
 		}
 
-		buf := [400]byte{}
-		_, err = conn.Read(buf[:])
-		t.Log("\n" + string(buf[:]))
-
-		assert.Contains(t, string(buf[:]), failResp, "should respond with 500 Internal Server Error")
-
+		resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+		if !assert.NoError(t, err) {
+			t.FailNow()
+		}
+		assert.Equal(t, http.StatusBadGateway, resp.StatusCode)
 	}
 
 	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testOk)
@@ -632,27 +643,12 @@ func testRoundTrip(t *testing.T, addr string, isTls bool, target *targetHandler,
 	checkerFn(conn, url)
 }
 
-//
-// Proxy server
-//
-
-type proxy struct {
-	protocol string
-	addr     string
-}
-
 func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
-	filters := filters.Join(
-		tokenfilter.New(validToken),
-		httpconnect.New(&httpconnect.Options{
-			IdleTimeout: idleTimeout,
-		}),
-		forward.New(&forward.Options{
-			IdleTimeout: idleTimeout,
-		}),
-	)
 	// Create server
-	srv := server.NewServer(filters)
+	srv := server.New(&server.Opts{
+		IdleTimeout: idleTimeout,
+		Filter:      tokenfilter.New(validToken),
+	})
 
 	// Add net.Listener wrappers for inbound connections
 	srv.AddListenerWrappers(
@@ -662,7 +658,7 @@ func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
 		func(ls net.Listener) net.Listener {
 			return listeners.NewLimitedListener(ls, maxConns)
 		},
-		// Close connections after 30 seconds of no activity
+		// Close connections after idleTimeout seconds of no activity
 		func(ls net.Listener) net.Listener {
 			return listeners.NewIdleConnListener(ls, idleTimeout)
 		},

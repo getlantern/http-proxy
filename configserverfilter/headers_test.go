@@ -9,14 +9,15 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy/filters"
 	"github.com/getlantern/mockconn"
+	"github.com/getlantern/proxy/filters"
 )
 
 type dummyHandler struct{ req *http.Request }
 
-func (h *dummyHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	h.req = r
+func (h *dummyHandler) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+	h.req = req
+	return next(ctx, req)
 }
 
 func TestModifyRequest(t *testing.T) {
@@ -24,11 +25,15 @@ func TestModifyRequest(t *testing.T) {
 	dummyClientIP := "1.1.1.1"
 	dummyAddr := dummyClientIP + ":12345"
 	dummy := &dummyHandler{}
-	chain := filters.Join(New(&Options{fakeToken, []string{"site1.com", "site2.org"}}), filters.Adapt(dummy))
+	chain := filters.Join(New(&Options{fakeToken, []string{"site1.com", "site2.org"}}), dummy)
 
 	req, _ := http.NewRequest("GET", "http://site1.com:80/abc.gz", nil)
 	req.RemoteAddr = dummyAddr
-	chain.ServeHTTP(nil, req)
+	next := func(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
+		return nil, ctx, nil
+	}
+	ctx := filters.BackgroundContext()
+	chain.Apply(ctx, req, next)
 	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
 	assert.Equal(t, "site1.com:443", dummy.req.Host, "should use port 443")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
@@ -36,7 +41,7 @@ func TestModifyRequest(t *testing.T) {
 
 	req, _ = http.NewRequest("GET", "http://site2.org/abc.gz", nil)
 	req.RemoteAddr = dummyAddr
-	chain.ServeHTTP(nil, req)
+	chain.Apply(ctx, req, next)
 	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
 	assert.Equal(t, "site2.org:443", dummy.req.Host, "should use port 443")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
@@ -44,7 +49,7 @@ func TestModifyRequest(t *testing.T) {
 
 	req, _ = http.NewRequest("GET", "http://site2.org:443/abc.gz", nil)
 	req.RemoteAddr = "bad-addr"
-	chain.ServeHTTP(nil, req)
+	chain.Apply(ctx, req, next)
 	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
 	assert.Equal(t, "site2.org:443", dummy.req.Host, "should use port 443")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
@@ -52,7 +57,7 @@ func TestModifyRequest(t *testing.T) {
 
 	req, _ = http.NewRequest("GET", "http://not-config-server.org/abc.gz", nil)
 	req.RemoteAddr = dummyAddr
-	chain.ServeHTTP(nil, req)
+	chain.Apply(ctx, req, next)
 	assert.Equal(t, "http", dummy.req.URL.Scheme, "should not rewrite to https for other sites")
 	assert.Equal(t, "not-config-server.org", dummy.req.Host, "should not use port 443 for other sites")
 	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should not attach token for other sites")

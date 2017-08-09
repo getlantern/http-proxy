@@ -133,6 +133,7 @@ func submit(rc *redis.Client, scriptSHA string, statsByDeviceID map[string]*stat
 	for deviceID, stats := range statsByDeviceID {
 		clientKey := "_client:" + deviceID
 		countryCode := geoLookup.CountryCode(stats.ip)
+		log.Debugf("CountryCode for %v: %v", stats.ip, countryCode)
 		_result, err := rc.EvalSha(scriptSHA, []string{clientKey},
 			strconv.Itoa(stats.RecvTotal),
 			strconv.Itoa(stats.SentTotal),
@@ -146,7 +147,12 @@ func submit(rc *redis.Client, scriptSHA string, statsByDeviceID map[string]*stat
 		result := _result.([]interface{})
 		bytesIn, _ := result[0].(int64)
 		bytesOut, _ := result[1].(int64)
-		countryCode = result[2].(string)
+		_countryCode := result[2]
+		if _countryCode == nil {
+			countryCode = ""
+		} else {
+			countryCode = _countryCode.(string)
+		}
 		usage.Set(deviceID, countryCode, bytesIn+bytesOut, now)
 	}
 	return nil

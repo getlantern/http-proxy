@@ -43,7 +43,7 @@ func TestDefaultPort(t *testing.T) {
 	req, _ := http.NewRequest(http.MethodGet, "www.google.com", nil)
 	for _, host := range []string{"www.google.com", "www.google.com:0"} {
 		req.Host = host
-		am.Apply(nil, req, func() error { return nil })
+		am.track(req)
 		sa := <-am.siteAccesses
 		assert.Equal(t, "80", sa.port)
 	}

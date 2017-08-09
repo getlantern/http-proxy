@@ -1,9 +1,11 @@
 package proxy
 
 import (
+	"context"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
+	"reflect"
 	"strconv"
 	"strings"
 	"time"
@@ -11,16 +13,13 @@ import (
 	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
+	"github.com/getlantern/proxy"
+	"github.com/getlantern/proxy/filters"
 	"github.com/getlantern/tlsredis"
 	rclient "gopkg.in/redis.v5"
 
-	"github.com/getlantern/http-proxy/commonfilter"
-	"github.com/getlantern/http-proxy/filters"
-	"github.com/getlantern/http-proxy/forward"
-	"github.com/getlantern/http-proxy/httpconnect"
 	"github.com/getlantern/http-proxy/listeners"
-	"github.com/getlantern/http-proxy/pforward"
-	"github.com/getlantern/http-proxy/ratelimiter"
+	"github.com/getlantern/http-proxy/proxyfilters"
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/analytics"
@@ -106,13 +105,17 @@ func (p *Proxy) ListenAndServe() error {
 
 	// Only allow connections from remote IPs that are not blacklisted
 	blacklist := p.createBlacklist()
-	filterChain, err := p.createFilterChain(blacklist)
+	filterChain, dial, err := p.createFilterChain(blacklist)
 	if err != nil {
 		return err
 	}
 
 	bwReporting := p.configureBandwidthReporting()
-	srv := server.NewServer(filterChain.Prepend(opsfilter.New(p.bm)))
+	srv := server.New(&server.Opts{
+		IdleTimeout: p.IdleTimeout,
+		Dial:        dial,
+		Filter:      filterChain.Prepend(opsfilter.New(p.bm)),
+	})
 	srv.Allow = blacklist.OnConnect
 	p.applyThrottling(srv, bwReporting)
 	srv.AddListenerWrappers(bwReporting.wrapper)
@@ -145,6 +148,7 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	log.Debugf("Listening for %v at %v", protocol, l.Addr())
+	log.Debugf("Type of listener: %v", reflect.TypeOf(l))
 	err = srv.Serve(l, mimic.SetServerAddr)
 	if err != nil {
 		return errors.New("Error serving HTTP(S): %v", err)
@@ -177,11 +181,16 @@ func (p *Proxy) createBlacklist() *blacklist.Blacklist {
 	})
 }
 
-func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error) {
+// createFilterChain creates a chain of filters that modify the default behavior
+// of proxy.Proxy to implement Lantern-specific logic like authentication,
+// Apache mimicry, bandwidth throttling, BBR metric reporting, etc. The actual
+// work of proxying plain HTTP and CONNECT requests is handled by proxy.Proxy
+// itself.
+func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy.DialFunc, error) {
 	filterChain := filters.Join(p.bm)
 
 	if p.Benchmark {
-		filterChain = filterChain.Append(ratelimiter.New(5000, map[string]time.Duration{
+		filterChain = filterChain.Append(proxyfilters.RateLimit(5000, map[string]time.Duration{
 			"www.google.com":      30 * time.Minute,
 			"www.facebook.com":    30 * time.Minute,
 			"67.media.tumblr.com": 30 * time.Minute,
@@ -190,7 +199,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 			"ping-chained-server": 1 * time.Nanosecond, // Internal ping-chained-server protocol
 		}))
 	} else {
-		filterChain = filterChain.Append(tokenfilter.New(p.Token))
+		filterChain = filterChain.Append(proxy.OnFirstOnly(tokenfilter.New(p.Token)))
 	}
 
 	if p.rc == nil {
@@ -198,23 +207,23 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 	} else {
 		fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
 		filterChain = filterChain.Append(
-			devicefilter.NewPre(redis.NewDeviceFetcher(p.rc), p.throttleConfig, fd),
+			proxy.OnFirstOnly(devicefilter.NewPre(redis.NewDeviceFetcher(p.rc), p.throttleConfig, fd)),
 		)
 	}
 
 	filterChain = filterChain.Append(
-		googlefilter.New(p.GoogleSearchRegex, p.GoogleCaptchaRegex),
+		proxy.OnFirstOnly(googlefilter.New(p.GoogleSearchRegex, p.GoogleCaptchaRegex)),
 		analytics.New(&analytics.Options{
 			TrackingID:       p.ProxiedSitesTrackingID,
 			SamplePercentage: p.ProxiedSitesSamplePercentage,
 		}),
-		devicefilter.NewPost(bl),
-		commonfilter.New(&commonfilter.Options{
-			AllowLocalhost: p.TestingLocal,
-			Exceptions:     []string{"127.0.0.1:7300"},
-		}),
-		ping.New(0),
+		proxy.OnFirstOnly(devicefilter.NewPost(bl)),
 	)
+
+	if !p.TestingLocal {
+		filterChain = filterChain.Append(proxyfilters.BlockLocal([]string{"127.0.0.1:7300"}))
+	}
+	filterChain = filterChain.Append(ping.New(0))
 
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97
@@ -250,38 +259,30 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, error
 		filterChain = filterChain.Append(vc.Filter())
 	}
 
-	var rewrite func(req *http.Request)
 	if len(requestRewriters) > 0 {
-		rewrite = func(req *http.Request) {
-			for _, rw := range requestRewriters {
-				rw(req)
+		filterChain = filterChain.Append(filters.FilterFunc(func(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+			if req.Method != http.MethodConnect {
+				for _, rw := range requestRewriters {
+					rw(req)
+				}
 			}
-		}
+			return next(ctx, req)
+		}))
 	}
+
 	filterChain = filterChain.Append(
-		// This filter will look for CONNECT requests and hijack those connections
-		httpconnect.New(&httpconnect.Options{
-			IdleTimeout:  p.IdleTimeout,
-			AllowedPorts: p.allowedTunnelPorts(),
-			Dialer:       dialer,
-		}),
-		// This filter will look for GET requests with X-Lantern-Persistent: true and
-		// hijack those connections (new stateful HTTP connection management scheme).
-		pforward.New(&pforward.Options{
-			IdleTimeout: p.IdleTimeout,
-			Dialer:      dialerForPforward,
-			OnRequest:   rewrite,
-			OnResponse:  p.bm.AddMetrics,
-		}),
-		// This filter will handle all remaining HTTP requests (legacy HTTP
-		// connection management scheme).
-		forward.New(&forward.Options{
-			IdleTimeout: p.IdleTimeout,
-			Dialer:      dialer,
-		}),
+		proxyfilters.DiscardInitialPersistentRequest,
+		proxyfilters.AddForwardedFor,
+		proxyfilters.RestrictConnectPorts(p.allowedTunnelPorts()),
+		proxyfilters.RecordOp,
 	)
 
-	return filterChain, nil
+	return filterChain, func(ctx context.Context, isCONNECT bool, network, addr string) (net.Conn, error) {
+		if isCONNECT {
+			return dialer(network, addr)
+		}
+		return dialerForPforward(network, addr)
+	}, nil
 }
 
 func (p *Proxy) configureBandwidthReporting() *reportingConfig {

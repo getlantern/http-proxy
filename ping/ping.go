@@ -4,6 +4,7 @@ package ping
 
 import (
 	"fmt"
+	"io"
 	"math/rand"
 	"net/http"
 	"strconv"
@@ -11,8 +12,9 @@ import (
 	"time"
 
 	"github.com/getlantern/golog"
+	"github.com/getlantern/proxy/filters"
+
 	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy/filters"
 )
 
 var (
@@ -60,19 +62,19 @@ func New(timingExpiration time.Duration) filters.Filter {
 	return pm
 }
 
-func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next filters.Next) error {
+func (pm *pingMiddleware) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	log.Trace("In ping")
 	pingSize := req.Header.Get(common.PingHeader)
 	pingURL := req.Header.Get(common.PingURLHeader)
 	isPingURL := req.Host == "ping-chained-server"
 	if pingSize == "" && pingURL == "" && !isPingURL {
 		log.Trace("Bypassing ping")
-		return next()
+		return next(ctx, req)
 	}
 	log.Trace("Processing ping")
 
 	if pingURL != "" {
-		return pm.urlPing(w, pingURL)
+		return pm.urlPing(ctx, req, pingURL)
 	}
 
 	var size int
@@ -90,21 +92,46 @@ func (pm *pingMiddleware) Apply(w http.ResponseWriter, req *http.Request, next f
 			size, parseErr = strconv.Atoi(req.URL.RawQuery)
 		}
 		if parseErr != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			fmt.Fprintf(w, "Invalid ping size %v\n", pingSize)
-			return filters.Stop()
+			return filters.Fail(ctx, req, http.StatusBadRequest, fmt.Errorf("Invalid ping size %v\n", pingSize))
 		}
 	}
 
-	return pm.cannedPing(w, size)
+	return pm.cannedPing(ctx, req, size)
 }
 
-func (pm *pingMiddleware) cannedPing(w http.ResponseWriter, size int) error {
-	w.WriteHeader(200)
-	for i := 0; i < size; i++ {
-		w.Write(data)
+func (pm *pingMiddleware) cannedPing(ctx filters.Context, req *http.Request, size int) (*http.Response, filters.Context, error) {
+	return filters.ShortCircuit(ctx, req, &http.Response{
+		StatusCode: http.StatusOK,
+		Body:       &randReader{size * len(data)},
+	})
+}
+
+type randReader struct {
+	remain int
+}
+
+func (r *randReader) Read(b []byte) (int, error) {
+	n := 0
+	for len(b) > 0 && r.remain > 0 {
+		toCopy := len(b)
+		if toCopy > len(data) {
+			toCopy = len(data)
+		}
+		if toCopy > r.remain {
+			toCopy = r.remain
+		}
+		copy(b, data[:toCopy])
+		b = b[toCopy:]
+		r.remain -= toCopy
+		n += toCopy
 	}
-	// Flush to the client to make sure we're getting a comprehensive timing
-	w.(http.Flusher).Flush()
-	return filters.Stop()
+	var err error
+	if r.remain == 0 {
+		err = io.EOF
+	}
+	return n, err
+}
+
+func (r *randReader) Close() error {
+	return nil
 }
