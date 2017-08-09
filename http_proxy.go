@@ -181,6 +181,11 @@ func (p *Proxy) createBlacklist() *blacklist.Blacklist {
 	})
 }
 
+// createFilterChain creates a chain of filters that modify the default behavior
+// of proxy.Proxy to implement Lantern-specific logic like authentication,
+// Apache mimicry, bandwidth throttling, BBR metric reporting, etc. The actual
+// work of proxying plain HTTP and CONNECT requests is handled by proxy.Proxy
+// itself.
 func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy.DialFunc, error) {
 	filterChain := filters.Join(p.bm)
 
