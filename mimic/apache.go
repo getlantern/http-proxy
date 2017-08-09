@@ -39,7 +39,7 @@ func SetServerAddr(addr string) {
 	Port = port
 }
 
-// Apache( mimics the behaviour of an unconfigured Apache web server 2.4.7
+// Apache mimics the behaviour of an unconfigured Apache web server 2.4.7
 // (the one installed by 'apt-get install apache2') running on Ubuntu 14.04.
 // Set 'Host' and 'Port' before calling it.
 func Apache(conn net.Conn, req *http.Request) {

@@ -42,7 +42,7 @@ func (bm *middleware) Apply(ctx filters.Context, req *http.Request, next filters
 }
 
 func (bm *middleware) AddMetrics(ctx filters.Context, req *http.Request, resp *http.Response) {
-	conn := connFor(ctx)
+	conn := ctx.DownstreamConn()
 	s := bm.statsFor(conn)
 
 	bbrRequested := req.Header.Get(common.BBRRequested)
@@ -125,7 +125,7 @@ func (bm *middleware) Wrap(l net.Listener) net.Listener {
 }
 
 func (bm *middleware) ABE(ctx filters.Context) float64 {
-	conn := connFor(ctx)
+	conn := ctx.DownstreamConn()
 	if conn == nil {
 		return 0
 	}
@@ -162,8 +162,4 @@ func (nm *noopMiddleware) Wrap(l net.Listener) net.Listener {
 
 func (nm *noopMiddleware) ABE(ctx filters.Context) float64 {
 	return 0
-}
-
-func connFor(ctx filters.Context) net.Conn {
-	return ctx.DownstreamConn()
 }
