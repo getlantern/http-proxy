@@ -105,7 +105,7 @@ imports:
 - name: github.com/getlantern/ops
   version: b70875f5d689a9438bca72aefd7142a2af889b18
 - name: github.com/getlantern/proxy
-  version: 7761ad9445c0af93ed10ad8b1a1295ff0a4a2695
+  version: 074e74c4aae248e83ea6fb3d15991d9fabee0945
 - name: github.com/getlantern/rotator
   version: 013d4f8e36a2f6369b2435d89866056b5b74c69e
 - name: github.com/getlantern/sqlparser
