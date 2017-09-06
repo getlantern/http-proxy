@@ -70,6 +70,9 @@ func (bm *middleware) AddMetrics(ctx filters.Context, req *http.Request, resp *h
 		// BBR info not requested, ignore
 		return
 	}
+	if resp.Header == nil {
+		resp.Header = make(http.Header, 1)
+	}
 	resp.Header.Set(common.BBRAvailableBandwidthEstimateHeader, fmt.Sprint(s.estABE()))
 }
 

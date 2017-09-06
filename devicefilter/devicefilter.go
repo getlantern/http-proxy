@@ -83,7 +83,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 				f.deviceFetcher.RequestNewDeviceUsage(lanternDeviceID)
 				return resp, nextCtx, err
 			}
-			if err != nil {
+			if resp == nil || err != nil {
 				return resp, nextCtx, err
 			}
 			uMiB := u.Bytes / (1024 * 1024)
@@ -97,6 +97,9 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 			// <asof> is the 64-bit signed integer representing seconds since a custom
 			// epoch (00:00:00 01/01/2016 UTC).
 			threshold, rate := f.throttleConfig.ThresholdAndRateFor(lanternDeviceID, u.CountryCode)
+			if resp.Header == nil {
+				resp.Header = make(http.Header, 1)
+			}
 			resp.Header.Set(common.XBQHeader, fmt.Sprintf("%d/%d/%d", uMiB, threshold/(1024*1024), int64(u.AsOf.Sub(epoch).Seconds())))
 			if u.Bytes > threshold {
 				wc.ControlMessage("throttle", lanternlisteners.ThrottleRate(rate))
