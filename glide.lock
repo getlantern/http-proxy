@@ -104,6 +104,8 @@ imports:
   version: c704f69db48c8406d722f6e9ea9b0ad266975fe6
 - name: github.com/getlantern/ops
   version: 37353306c90844c8e0591956f56611f46299d202
+- name: github.com/getlantern/preconn
+  version: 9d78068db81b714e7612e5d43030ee2e1ce6c49a
 - name: github.com/getlantern/proxy
   version: 2bd1c807398244942a7c4d890b1bbcffd826c2f3
 - name: github.com/getlantern/rotator
