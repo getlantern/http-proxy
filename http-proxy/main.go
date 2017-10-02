@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"runtime"
+	"runtime/debug"
 	"time"
 
 	"github.com/vharitonsky/iniflags"
@@ -100,6 +101,8 @@ func main() {
 		log.Fatal("version check redirect URL should not empty")
 	}
 
+	go periodicallyForceGC()
+
 	p := &proxy.Proxy{
 		Addr:                    *addr,
 		CertFile:                *certfile,
@@ -140,5 +143,12 @@ func main() {
 	err = p.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
+	}
+}
+
+func periodicallyForceGC() {
+	for {
+		time.Sleep(1 * time.Minute)
+		debug.FreeOSMemory()
 	}
 }
