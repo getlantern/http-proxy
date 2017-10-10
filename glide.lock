@@ -73,7 +73,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: dda25cd8a6e70ae8986dd97a848fe667e71fa7af
+  version: e8da0028ab640f0320e0d328f8b4ef32b2cb0bd6
   subpackages:
   - buffers
   - commonfilter
@@ -93,7 +93,7 @@ imports:
   subpackages:
   - certimporter
 - name: github.com/getlantern/lampshade
-  version: 2c40d2cb59bd452b4e55af9ba7462bbafded35a1
+  version: 1a86028a488d368e04e23250d51fe0bc8bcc3047
 - name: github.com/getlantern/measured
   version: 0582bf799783fba9a890459155817f1cbcf00f17
 - name: github.com/getlantern/mockconn
@@ -274,7 +274,7 @@ imports:
   - parse
   - pm
 - name: golang.org/x/crypto
-  version: e7ba82683099cae71475961448ab8f903ea77c26
+  version: 9419663f5a44be8b34ca85f08abc5fe1be11f8a3
   subpackages:
   - chacha20poly1305
   - chacha20poly1305/internal/chacha20
