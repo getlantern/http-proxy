@@ -11,6 +11,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"sync"
 	"text/template"
 	"time"
 )
@@ -28,6 +29,7 @@ var (
 	Port         string
 	lastModified = time.Now().Format(timeFormat)
 	etag         = makeETag()
+	mutex        = &sync.Mutex{}
 )
 
 func SetServerAddr(addr string) {
@@ -35,8 +37,10 @@ func SetServerAddr(addr string) {
 	if err != nil {
 		panic("should not happen")
 	}
+	mutex.Lock()
 	Host = host
 	Port = port
+	mutex.Unlock()
 }
 
 // Apache mimics the behaviour of an unconfigured Apache web server 2.4.7
