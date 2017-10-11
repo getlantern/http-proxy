@@ -2,9 +2,11 @@ package proxy
 
 import (
 	"context"
+	"encoding/json"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
@@ -12,6 +14,7 @@ import (
 
 	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
+	"github.com/getlantern/kcptun/server/lib"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
@@ -79,6 +82,7 @@ type Proxy struct {
 	TunnelPorts                    string
 	Obfs4Addr                      string
 	Obfs4Dir                       string
+	KCPConf                        string
 	Benchmark                      bool
 	FasttrackDomains               string
 	DiffServTOS                    int
@@ -134,6 +138,7 @@ func (p *Proxy) ListenAndServe() error {
 	if err != nil {
 		return errors.New("Unable to listen tcp at %s: %v", p.Addr, err)
 	}
+
 	protocol := "HTTP"
 	if p.HTTPS {
 		protocol = "HTTPS"
@@ -149,10 +154,14 @@ func (p *Proxy) ListenAndServe() error {
 
 	log.Debugf("Listening for %v at %v", protocol, l.Addr())
 	log.Debugf("Type of listener: %v", reflect.TypeOf(l))
+
+	p.startKCPIfNecessary(l.Addr().String())
+
 	err = srv.Serve(l, mimic.SetServerAddr)
 	if err != nil {
 		return errors.New("Error serving HTTP(S): %v", err)
 	}
+
 	return nil
 }
 
@@ -366,6 +375,8 @@ func (p *Proxy) serveOBFS4(srv *server.Server) {
 	}
 	log.Debugf("Listening for OBFS4 at %v", wrapped.Addr())
 
+	p.startKCPIfNecessary(wrapped.Addr().String())
+
 	go func() {
 		serveErr := srv.Serve(wrapped, func(addr string) {
 			log.Debugf("obfs4 serving at %v", addr)
@@ -385,6 +396,10 @@ func (p *Proxy) serveLampshade(srv *server.Server) {
 	if wrapErr != nil {
 		log.Fatalf("Unable to initialize lampshade with tcp: %v", wrapErr)
 	}
+	log.Debugf("Listening for lampshade at %v", wrapped.Addr())
+
+	p.startKCPIfNecessary(wrapped.Addr().String())
+
 	// We wrap the lampshade listener itself so that we record BBR metrics on
 	// close of virtual streams rather than the physical connection.
 	wrapped = p.bm.Wrap(wrapped)
@@ -415,6 +430,33 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 		l = p.bm.Wrap(l)
 	}
 	return l, nil
+}
+
+func (p *Proxy) startKCPIfNecessary(target string) {
+	if p.KCPConf != "" {
+		config := &lib.Config{
+			Target: target,
+		}
+		file, err := os.Open(p.KCPConf) // For read access.
+		if err != nil {
+			log.Fatalf("Unable to open KCPConf at %v: %v", p.KCPConf, err)
+		}
+
+		err = json.NewDecoder(file).Decode(config)
+		file.Close()
+		if err != nil {
+			log.Fatalf("Unable to decode KCPConf at %v: %v", p.KCPConf, err)
+		}
+
+		go func() {
+			kcpErr := lib.Run(config, "embedded", func(addr net.Addr) {
+				log.Debugf("KCP listening at: %v", addr)
+			})
+			if kcpErr != nil {
+				log.Fatalf("Error serving kcp: %v", kcpErr)
+			}
+		}()
+	}
 }
 
 func portsFromCSV(csv string) ([]int, error) {
