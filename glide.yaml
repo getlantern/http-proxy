@@ -50,3 +50,5 @@ import:
   - assert
 - package: github.com/siddontang/ledisdb
 - package: github.com/getlantern/waitforserver
+- package: github.com/xtaci/kcp-go
+- package: github.com/getlantern/kcptun
