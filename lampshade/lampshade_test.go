@@ -21,7 +21,7 @@ func TestRoundTrip(t *testing.T) {
 		return
 	}
 
-	cert, err := pk.TLSCertificateFor("org", "name", time.Now().Add(10*time.Hour), false, nil)
+	cert, err := pk.TLSCertificateFor(time.Now().Add(10*time.Hour), false, nil, "org", "name")
 	if !assert.NoError(t, err) {
 		return
 	}
