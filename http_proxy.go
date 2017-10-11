@@ -10,6 +10,7 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/getlantern/errors"
@@ -97,6 +98,7 @@ type Proxy struct {
 	bm             bbr.Middleware
 	rc             *rclient.Client
 	throttleConfig throttle.Config
+	startKCPOnce   sync.Once
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -434,28 +436,30 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 
 func (p *Proxy) startKCPIfNecessary(target string) {
 	if p.KCPConf != "" {
-		config := &lib.Config{
-			Target: target,
-		}
-		file, err := os.Open(p.KCPConf) // For read access.
-		if err != nil {
-			log.Fatalf("Unable to open KCPConf at %v: %v", p.KCPConf, err)
-		}
-
-		err = json.NewDecoder(file).Decode(config)
-		file.Close()
-		if err != nil {
-			log.Fatalf("Unable to decode KCPConf at %v: %v", p.KCPConf, err)
-		}
-
-		go func() {
-			kcpErr := lib.Run(config, "embedded", func(addr net.Addr) {
-				log.Debugf("KCP listening at: %v", addr)
-			})
-			if kcpErr != nil {
-				log.Fatalf("Error serving kcp: %v", kcpErr)
+		p.startKCPOnce.Do(func() {
+			config := &lib.Config{
+				Target: target,
 			}
-		}()
+			file, err := os.Open(p.KCPConf) // For read access.
+			if err != nil {
+				log.Fatalf("Unable to open KCPConf at %v: %v", p.KCPConf, err)
+			}
+
+			err = json.NewDecoder(file).Decode(config)
+			file.Close()
+			if err != nil {
+				log.Fatalf("Unable to decode KCPConf at %v: %v", p.KCPConf, err)
+			}
+
+			go func() {
+				kcpErr := lib.Run(config, "embedded", func(addr net.Addr) {
+					log.Debugf("KCP listening at: %v", addr)
+				})
+				if kcpErr != nil {
+					log.Fatalf("Error serving kcp: %v", kcpErr)
+				}
+			}()
+		})
 	}
 }
 
