@@ -10,12 +10,11 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
-	"github.com/getlantern/kcptun/server/lib"
+	"github.com/getlantern/kcpwrapper"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
@@ -98,7 +97,6 @@ type Proxy struct {
 	bm             bbr.Middleware
 	rc             *rclient.Client
 	throttleConfig throttle.Config
-	startKCPOnce   sync.Once
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -136,9 +134,17 @@ func (p *Proxy) ListenAndServe() error {
 		p.serveOBFS4(srv)
 	}
 
-	l, err := p.listenTCP(p.Addr, true)
-	if err != nil {
-		return errors.New("Unable to listen tcp at %s: %v", p.Addr, err)
+	var l net.Listener
+	if p.KCPConf != "" {
+		l, err = p.listenKCP()
+		if err != nil {
+			return errors.New("Unable to listen kcp: %v", err)
+		}
+	} else {
+		l, err = p.listenTCP(p.Addr, true)
+		if err != nil {
+			return errors.New("Unable to listen tcp at %s: %v", p.Addr, err)
+		}
 	}
 
 	protocol := "HTTP"
@@ -156,8 +162,6 @@ func (p *Proxy) ListenAndServe() error {
 
 	log.Debugf("Listening for %v at %v", protocol, l.Addr())
 	log.Debugf("Type of listener: %v", reflect.TypeOf(l))
-
-	p.startKCPIfNecessary(l.Addr().String())
 
 	err = srv.Serve(l, mimic.SetServerAddr)
 	if err != nil {
@@ -377,8 +381,6 @@ func (p *Proxy) serveOBFS4(srv *server.Server) {
 	}
 	log.Debugf("Listening for OBFS4 at %v", wrapped.Addr())
 
-	p.startKCPIfNecessary(wrapped.Addr().String())
-
 	go func() {
 		serveErr := srv.Serve(wrapped, func(addr string) {
 			log.Debugf("obfs4 serving at %v", addr)
@@ -399,8 +401,6 @@ func (p *Proxy) serveLampshade(srv *server.Server) {
 		log.Fatalf("Unable to initialize lampshade with tcp: %v", wrapErr)
 	}
 	log.Debugf("Listening for lampshade at %v", wrapped.Addr())
-
-	p.startKCPIfNecessary(wrapped.Addr().String())
 
 	// We wrap the lampshade listener itself so that we record BBR metrics on
 	// close of virtual streams rather than the physical connection.
@@ -434,33 +434,20 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 	return l, nil
 }
 
-func (p *Proxy) startKCPIfNecessary(target string) {
-	if p.KCPConf != "" {
-		p.startKCPOnce.Do(func() {
-			config := &lib.Config{
-				Target: target,
-			}
-			file, err := os.Open(p.KCPConf) // For read access.
-			if err != nil {
-				log.Fatalf("Unable to open KCPConf at %v: %v", p.KCPConf, err)
-			}
-
-			err = json.NewDecoder(file).Decode(config)
-			file.Close()
-			if err != nil {
-				log.Fatalf("Unable to decode KCPConf at %v: %v", p.KCPConf, err)
-			}
-
-			go func() {
-				kcpErr := lib.Run(config, "embedded", func(addr net.Addr) {
-					log.Debugf("KCP listening at: %v", addr)
-				})
-				if kcpErr != nil {
-					log.Fatalf("Error serving kcp: %v", kcpErr)
-				}
-			}()
-		})
+func (p *Proxy) listenKCP() (net.Listener, error) {
+	cfg := &kcpwrapper.ListenerConfig{}
+	file, err := os.Open(p.KCPConf) // For read access.
+	if err != nil {
+		return nil, errors.New("Unable to open KCPConf at %v: %v", p.KCPConf, err)
 	}
+
+	err = json.NewDecoder(file).Decode(cfg)
+	file.Close()
+	if err != nil {
+		return nil, errors.New("Unable to decode KCPConf at %v: %v", p.KCPConf, err)
+	}
+
+	return kcpwrapper.Listen(cfg)
 }
 
 func portsFromCSV(csv string) ([]int, error) {
