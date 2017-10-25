@@ -20,6 +20,7 @@ import:
   - listeners
   - logging
   - server
+- package: github.com/getlantern/kcpwrapper
 - package: github.com/getlantern/keyman
 - package: github.com/getlantern/lampshade
 - package: github.com/getlantern/measured
@@ -51,4 +52,5 @@ import:
 - package: github.com/siddontang/ledisdb
 - package: github.com/getlantern/waitforserver
 - package: github.com/xtaci/kcp-go
-- package: github.com/getlantern/kcptun
+- package: github.com/xtaci/smux
+- package: github.com/getlantern/cmux
