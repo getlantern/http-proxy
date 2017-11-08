@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/kcpwrapper"
@@ -85,6 +86,7 @@ type Proxy struct {
 	Obfs4Addr                      string
 	Obfs4Dir                       string
 	KCPConf                        string
+	ENHTTPAddr                     string
 	Benchmark                      bool
 	FasttrackDomains               string
 	DiffServTOS                    int
@@ -164,6 +166,18 @@ func (p *Proxy) ListenAndServe() error {
 
 	log.Debugf("Listening for %v at %v", protocol, l.Addr())
 	log.Debugf("Type of listener: %v", reflect.TypeOf(l))
+
+	if p.ENHTTPAddr != "" {
+		go func() {
+			el, err := net.Listen("tcp", p.ENHTTPAddr)
+			if err != nil {
+				log.Errorf("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
+				return
+			}
+			log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
+			enhttp.Serve(el)
+		}()
+	}
 
 	err = srv.Serve(l, mimic.SetServerAddr)
 	if err != nil {

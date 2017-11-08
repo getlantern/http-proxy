@@ -53,6 +53,7 @@ var (
 	obfs4Addr                      = flag.String("obfs4-addr", "", "Provide an address here in order to listen with obfs4")
 	obfs4Dir                       = flag.String("obfs4-dir", ".", "Directory where obfs4 can store its files")
 	kcpConf                        = flag.String("kcpconf", "", "Path to file configuring kcp")
+	enhttpAddr                     = flag.String("enhttp-addr", "", "Address at which to accept encapsulated HTTP requests")
 	bench                          = flag.Bool("bench", false, "Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.")
 	fasttrackDomains               = flag.String("fasttrackdomains", "", "Whitelisted domains, such as the config server, pro server, etc, that should not count towards the bandwidth cap or be throttled, separated by comma")
 	tos                            = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")
@@ -132,6 +133,7 @@ func main() {
 		Obfs4Addr:                      *obfs4Addr,
 		Obfs4Dir:                       *obfs4Dir,
 		KCPConf:                        *kcpConf,
+		ENHTTPAddr:                     *enhttpAddr,
 		Benchmark:                      *bench,
 		FasttrackDomains:               *fasttrackDomains,
 		DiffServTOS:                    *tos,

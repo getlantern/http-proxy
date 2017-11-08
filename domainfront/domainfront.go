@@ -20,6 +20,10 @@ type domainFrontFilter struct{}
 func (f *domainFrontFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	fmt.Println(req)
 	u := req.Header.Get("X-Ddf-Url")
+	if u == "" {
+		// Treat as a regular request
+		return next(ctx, req)
+	}
 	var parseErr error
 	req.URL, parseErr = url.Parse(u)
 	if parseErr != nil {
