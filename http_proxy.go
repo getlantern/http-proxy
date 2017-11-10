@@ -123,13 +123,6 @@ func (p *Proxy) ListenAndServe() error {
 	srv.Allow = blacklist.OnConnect
 	p.applyThrottling(srv, bwReporting)
 	srv.AddListenerWrappers(bwReporting.wrapper)
-	srv.AddListenerWrappers(
-		// Close connections after 30 seconds of no activity
-		func(ls net.Listener) net.Listener {
-			return listeners.NewIdleConnListener(ls, p.IdleTimeout)
-		},
-	)
-
 	if p.Obfs4Addr != "" {
 		p.serveOBFS4(srv)
 	}
@@ -420,6 +413,9 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 	if err != nil {
 		return nil, err
 	}
+	if p.IdleTimeout > 0 {
+		l = listeners.NewIdleConnListener(l, p.IdleTimeout)
+	}
 	if p.DiffServTOS > 0 {
 		log.Debugf("Setting diffserv TOS to %d", p.DiffServTOS)
 		// Note - this doesn't actually wrap the underlying connection, it'll still
@@ -447,7 +443,12 @@ func (p *Proxy) listenKCP() (net.Listener, error) {
 		return nil, errors.New("Unable to decode KCPConf at %v: %v", p.KCPConf, err)
 	}
 
-	return kcpwrapper.Listen(cfg)
+	return kcpwrapper.Listen(cfg, func(conn net.Conn) net.Conn {
+		if p.IdleTimeout <= 0 {
+			return conn
+		}
+		return listeners.WrapIdleConn(conn, p.IdleTimeout)
+	})
 }
 
 func portsFromCSV(csv string) ([]int, error) {

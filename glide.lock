@@ -68,7 +68,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: c70d87222c28e17a679b94c1ec885fbf174f53df
+  version: a80341f98395426683084a8dcaf6b6d04d111a6b
   subpackages:
   - buffers
   - commonfilter
@@ -82,7 +82,7 @@ imports:
 - name: github.com/getlantern/idletiming
   version: 7a71d2e71cf253f64b9610ce7aa9ddfc58aa9b2a
 - name: github.com/getlantern/kcpwrapper
-  version: 0f5146a4c333d5ded957c12256da68427b0bd3bc
+  version: 9104b5becbe50d1ff2aab77898948b730d007b83
 - name: github.com/getlantern/keyman
   version: 10caeb5133f874e91d12e9b256f6e316dfaa5ae0
   subpackages:
