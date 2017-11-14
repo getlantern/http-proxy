@@ -46,19 +46,20 @@ const (
 )
 
 type VersionChecker struct {
-	minVersionString string
-	minVersion       semver.Version
-	rewriteURL       *url.URL
-	rewriteURLString string
-	rewriteAddr      string
-	tunnelPorts      []string
-	ppm              int
+	minVersionString          string
+	minVersion                semver.Version
+	rewriteURL                *url.URL
+	rewriteURLString          string
+	rewriteAddr               string
+	tunnelPorts               []string
+	ppm                       int
+	allowVersionHeaderDomains []string
 }
 
 // New constructs a VersionChecker to check the request and rewrite/redirect if
 // required.  It panics if the minVersion string is not semantic versioned, or
 // the rewrite URL is malformed. tunnelPortsToCheck defaults to 80 only.
-func New(minVersion string, rewriteURL string, tunnelPortsToCheck []string, percentage float64) *VersionChecker {
+func New(minVersion string, rewriteURL string, tunnelPortsToCheck []string, percentage float64, allowVersionHeaderDomains []string) *VersionChecker {
 	u, err := url.Parse(rewriteURL)
 	if err != nil {
 		panic(err)
@@ -72,7 +73,16 @@ func New(minVersion string, rewriteURL string, tunnelPortsToCheck []string, perc
 	if len(tunnelPortsToCheck) == 0 {
 		tunnelPortsToCheck = []string{"80"}
 	}
-	return &VersionChecker{minVersion, semver.MustParse(minVersion), u, rewriteURL, rewriteAddr, tunnelPortsToCheck, int(percentage * oneMillion)}
+	return &VersionChecker{
+		minVersionString: minVersion,
+		minVersion:       semver.MustParse(minVersion),
+		rewriteURL:       u,
+		rewriteURLString: rewriteURL,
+		rewriteAddr:      rewriteAddr,
+		tunnelPorts:      tunnelPortsToCheck,
+		ppm:              int(percentage * oneMillion),
+		allowVersionHeaderDomains: allowVersionHeaderDomains,
+	}
 }
 
 // Dial is a function that dials a network connection.
@@ -106,14 +116,33 @@ func (c *VersionChecker) Apply(ctx filters.Context, req *http.Request, next filt
 	if c.shouldRedirectOnConnect(req) {
 		return c.redirectOnConnect(ctx, req)
 	}
-	c.RewriteIfNecessary(req)
+	c.RewriteAsNecessary(req)
+
 	return next(ctx, req)
 }
 
-// RewriteIfNecessary rewrites the request path to point at the version check
+// Check if we should remove the headers or not
+func (c *VersionChecker) hostShouldReceiveHeaders(u string) bool {
+	h, _, err := net.SplitHostPort(u)
+	if err != nil {
+		return false
+	}
+
+	for _, d := range c.allowVersionHeaderDomains {
+		if d == h {
+			return true
+		}
+	}
+	return false
+}
+
+// RewriteAsNecessary rewrites the request path to point at the version check
 // page if the conditions for doing so are met.
-func (c *VersionChecker) RewriteIfNecessary(req *http.Request) {
-	defer req.Header.Del(common.VersionHeader)
+func (c *VersionChecker) RewriteAsNecessary(req *http.Request) {
+	// Remove version header, but only if the host is not a Lantern service
+	if !c.hostShouldReceiveHeaders(req.Host) && !c.hostShouldReceiveHeaders(c.rewriteAddr) {
+		defer req.Header.Del(common.VersionHeader)
+	}
 	if !c.shouldRewrite(req) {
 		return
 	}

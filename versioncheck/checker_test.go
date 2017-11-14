@@ -23,7 +23,7 @@ const (
 func TestRewrite(t *testing.T) {
 	rewriteURL := "https://versioncheck.com/badversion"
 	rewriteAddr := "versioncheck.com:443"
-	f := New("3.1.1", rewriteURL, nil, 1)
+	f := New("3.1.1", rewriteURL, nil, 1, nil)
 	req, _ := http.NewRequest("POST", "http://anysite.com", nil)
 	assert.False(t, f.shouldRewrite(req), "should not rewrite POST requests")
 	req, _ = http.NewRequest("CONNECT", "http://anysite.com", nil)
@@ -45,9 +45,42 @@ func TestRewrite(t *testing.T) {
 	req.Header.Set("X-Lantern-Version", "3.1.0")
 	assert.True(t, f.shouldRewrite(req), "should rewrite if version is below the min version")
 
-	f.RewriteIfNecessary(req)
+	f.RewriteAsNecessary(req)
 	assert.Equal(t, rewriteURL, req.URL.String())
 	assert.Equal(t, rewriteAddr, req.Host)
+}
+
+func TestKeepVersionHeader(t *testing.T) {
+	originServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Write([]byte(req.Header.Get("X-Lantern-Version")))
+	}))
+	defer originServer.Close()
+
+	originURL, _ := url.Parse(originServer.URL)
+	_, originPort, _ := net.SplitHostPort(originURL.Host)
+	rewriteURL := "https://versioncheck.com/badversion"
+	l, err := net.Listen("tcp", "localhost:0")
+	if !assert.NoError(t, err) {
+		return
+	}
+	defer l.Close()
+
+	p := proxy.New(&proxy.Opts{
+		Filter: New("3.1.1", rewriteURL, []string{originPort}, 1, []string{"localhost", "127.0.0.1"}),
+	})
+	go p.Serve(l)
+
+	proxiedReq, _ := http.NewRequest("GET", originServer.URL, nil)
+	// This version set here is set in the client HTTP request, will be received by the origin server
+	proxiedReq.Header.Set("X-Lantern-Version", "4.4.0")
+	// The version set here is set in the CONNECT request, won't be received by the origin server
+	// Tests CONNECT request
+	r, err := requestViaProxy(t, proxiedReq, l, "4.3.0")
+	if !assert.NoError(t, err) {
+		return
+	}
+	b, _ := ioutil.ReadAll(r.Body)
+	assert.Equal(t, "4.4.0", string(b))
 }
 
 func TestPercentage(t *testing.T) {
@@ -57,7 +90,7 @@ func TestPercentage(t *testing.T) {
 }
 
 func testPercentage(t *testing.T, percentage float64, exact bool) {
-	f := New("3.1.1", "http://versioncheck.com/badversion", nil, percentage)
+	f := New("3.1.1", "http://versioncheck.com/badversion", nil, percentage, nil)
 	req, _ := http.NewRequest("GET", "http://anysite.com", nil)
 	req.Header.Set("Accept", "text/html")
 	req.Header.Set("User-Agent", "Mozilla/5.0 xxx")
@@ -91,7 +124,7 @@ func TestRedirectConnect(t *testing.T) {
 	defer l.Close()
 
 	p := proxy.New(&proxy.Opts{
-		Filter: New("3.1.1", rewriteURL, []string{originPort}, 1),
+		Filter: New("3.1.1", rewriteURL, []string{originPort}, 1, nil),
 	})
 	go p.Serve(l)
 
@@ -137,6 +170,7 @@ func requestViaProxy(t *testing.T, proxiedReq *http.Request, l net.Listener, ver
 	if version != "" {
 		req.Header.Add(common.VersionHeader, version)
 	}
+
 	err = req.Write(proxyConn)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to issue CONNECT request: %v", err)

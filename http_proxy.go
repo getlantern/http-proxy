@@ -268,8 +268,9 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		vc := versioncheck.New(p.VersionCheckMinVersion,
 			p.VersionCheckRedirectURL,
 			[]string{"80"}, // checks CONNECT tunnel to 80 port only.
-			p.VersionCheckRedirectPercentage)
-		requestRewriters = append(requestRewriters, vc.RewriteIfNecessary)
+			p.VersionCheckRedirectPercentage,
+			[]string{"api.getiantem.org", "config.getiantem.org"})
+		requestRewriters = append(requestRewriters, vc.RewriteAsNecessary)
 		dialerForPforward = vc.Dialer(dialerForPforward)
 		filterChain = filterChain.Append(vc.Filter())
 	}
