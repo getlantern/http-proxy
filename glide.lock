@@ -68,7 +68,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: c70d87222c28e17a679b94c1ec885fbf174f53df
+  version: a80341f98395426683084a8dcaf6b6d04d111a6b
   subpackages:
   - buffers
   - commonfilter
@@ -82,7 +82,7 @@ imports:
 - name: github.com/getlantern/idletiming
   version: 7a71d2e71cf253f64b9610ce7aa9ddfc58aa9b2a
 - name: github.com/getlantern/kcpwrapper
-  version: 0f5146a4c333d5ded957c12256da68427b0bd3bc
+  version: 9104b5becbe50d1ff2aab77898948b730d007b83
 - name: github.com/getlantern/keyman
   version: 10caeb5133f874e91d12e9b256f6e316dfaa5ae0
   subpackages:
@@ -96,7 +96,7 @@ imports:
 - name: github.com/getlantern/mtime
   version: ba114e4a82b0d453c15c505073a5896453b5cbd2
 - name: github.com/getlantern/netx
-  version: c704f69db48c8406d722f6e9ea9b0ad266975fe6
+  version: 06a8a15aede91b4274bb0272108e16a4eabeca19
 - name: github.com/getlantern/ops
   version: b70875f5d689a9438bca72aefd7142a2af889b18
 - name: github.com/getlantern/preconn
@@ -226,8 +226,8 @@ imports:
   version: 94db042d45d83a94a8cfc494a6800ce1b5edd5e4
 - name: github.com/visionmedia/go-debug
   version: ff4a55a20a86994118644bbddc6a216da193cc13
-- name: github.com/xtaci/kcp-go
-  version: f042b40cd3be3eaa802add29ca56a092c70edf07
+- name: github.com/getlantern/kcp-go
+  version: 19559e0e938cb2af45ae30765c109f821da19b33
 - name: github.com/xtaci/smux
   version: ebec7ef2574b42a7088cd7751176483e0a27d458
 - name: github.com/xwb1989/sqlparser
