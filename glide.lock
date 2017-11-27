@@ -112,7 +112,7 @@ imports:
 - name: github.com/getlantern/preconn
   version: 9d78068db81b714e7612e5d43030ee2e1ce6c49a
 - name: github.com/getlantern/proxy
-  version: e91064ef9dcf9e46bc0f9efa37690ec8b6df0c8b
+  version: 48c563c5d3a12636447a169b786638874ced97a3
   subpackages:
   - filters
 - name: github.com/getlantern/rotator
