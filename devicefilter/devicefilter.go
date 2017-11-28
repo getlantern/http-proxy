@@ -71,6 +71,9 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	if lanternDeviceID == "" {
 		// Old lantern versions and possible cracks do not include the device ID. Just throttle them.
 		wc.ControlMessage("throttle", lanternlisteners.ThrottleRate(10))
+	} else if lanternDeviceID == "~~~~~~" {
+		// This is checkfallbacks, don't throttle it
+		return next(ctx, req)
 	} else {
 		if f.throttleConfig != nil {
 			resp, nextCtx, err := next(ctx, req)
