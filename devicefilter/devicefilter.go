@@ -69,10 +69,11 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	lanternDeviceID := req.Header.Get(common.DeviceIdHeader)
 
 	if lanternDeviceID == "" {
-		// DO NOT REMOVE THIS, AS IT IS REQUIRED FOR CHECK FALLBACKS TO WORK
-		// AND THEREFORE FOR PROXY LAUNCHING TO WORK!!!
-		log.Debugf("No %s header found from %s for request to %v",
-			common.DeviceIdHeader, req.RemoteAddr, req.Host)
+		// Old lantern versions and possible cracks do not include the device ID. Just throttle them.
+		wc.ControlMessage("throttle", lanternlisteners.ThrottleRate(10))
+	} else if lanternDeviceID == "~~~~~~" {
+		// This is checkfallbacks, don't throttle it
+		return next(ctx, req)
 	} else {
 		if f.throttleConfig != nil {
 			resp, nextCtx, err := next(ctx, req)

@@ -1,6 +1,6 @@
 # HTTP/S Proxy with extensions for Lantern
 
-[![wercker status](https://app.wercker.com/status/dd67bf2d94efc6c30e8042585a6a8fbf/m "wercker status")](https://app.wercker.com/project/bykey/dd67bf2d94efc6c30e8042585a6a8fbf)
+[![wercker status](https://app.wercker.com/status/67d1598d6205dce4aee80a9631d109e5/m/master "wercker status")](https://app.wercker.com/project/byKey/67d1598d6205dce4aee80a9631d109e5)
 
 Note - this project versions its dependencies using [glide](https://github.com/Masterminds/glide).
 
