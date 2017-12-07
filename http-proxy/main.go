@@ -63,6 +63,7 @@ var (
 	versionCheckRedirectPercentage = flag.Float64("versioncheck-redirect-percentage", 1, "The percentage of requests to be redirected in version check. Defaults to 1 (100%)")
 	googleSearchRegex              = flag.String("google-search-regex", googlefilter.DefaultSearchRegex, "Regex for detecting access to Google Search")
 	googleCaptchaRegex             = flag.String("google-captcha-regex", googlefilter.DefaultCaptchaRegex, "Regex for detecting access to Google captcha page")
+	domainFront                    = flag.Bool("domainfront", false, "enable support for domain-fronted requests from CloudFront")
 )
 
 func main() {
@@ -109,6 +110,7 @@ func main() {
 		CertFile:                *certfile,
 		CfgSvrAuthToken:         *cfgSvrAuthToken,
 		CfgSvrDomains:           *cfgSvrDomains,
+		DomainFront:             *domainFront,
 		EnableReports:           *enableReports,
 		ThrottleRefreshInterval: *throttleRefreshInterval,
 		BordaReportInterval:     *bordaReportInterval,

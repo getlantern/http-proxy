@@ -33,6 +33,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/diffserv"
+	"github.com/getlantern/http-proxy-lantern/domainfront"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/lampshade"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
@@ -66,6 +67,7 @@ type Proxy struct {
 	CertFile                       string
 	CfgSvrAuthToken                string
 	CfgSvrDomains                  string
+	DomainFront                    bool
 	EnableReports                  bool
 	HTTPS                          bool
 	IdleTimeout                    time.Duration
@@ -196,6 +198,9 @@ func (p *Proxy) createBlacklist() *blacklist.Blacklist {
 // itself.
 func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy.DialFunc, error) {
 	filterChain := filters.Join(p.bm)
+	if p.DomainFront {
+		filterChain = filterChain.Prepend(domainfront.NewFilter())
+	}
 
 	if p.Benchmark {
 		filterChain = filterChain.Append(proxyfilters.RateLimit(5000, map[string]time.Duration{
