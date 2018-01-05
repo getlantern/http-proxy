@@ -67,6 +67,7 @@ func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next 
 
 	resp, nextCtx, err := next(ctx, req)
 	if err != nil || resp == nil {
+		log.Errorf("Error hitting config server...refreshing DNS cache %v", err)
 		// If we get an error, try hitting a new config server.
 		f.refreshDNSCache()
 		return resp, nextCtx, err
@@ -83,6 +84,7 @@ func (f *ConfigServerFilter) handleFailure() {
 	// If we have enough consecutive failures, try another config server.
 	cf := atomic.AddInt32(&f.consecFailures, 1)
 	if cf > 10 {
+		log.Debugf("Too many consecutive failures...refreshing DNS cache")
 		f.refreshDNSCache()
 	}
 }
@@ -147,5 +149,7 @@ func (f *ConfigServerFilter) resolveDomain(domain string) string {
 	if len(addrs) == 0 {
 		return domain
 	}
-	return addrs[rand.Intn(len(addrs))]
+	addr := addrs[rand.Intn(len(addrs))]
+	log.Debugf("Resolved addr %v", addr)
+	return addr
 }
