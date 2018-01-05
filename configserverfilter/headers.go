@@ -65,7 +65,7 @@ func (f *ConfigServerFilter) RewriteIfNecessary(req *http.Request) {
 func (f *ConfigServerFilter) rewrite(host string, req *http.Request) {
 	req.URL.Scheme = "https"
 	prevHost := req.Host
-	req.Host = f.dnsCache[host] + ":443"
+	req.Host = f.fromDNSCache(host) + ":443"
 	req.Header.Set(common.CfgSvrAuthTokenHeader, f.AuthToken)
 	ip, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
@@ -88,6 +88,17 @@ func in(hostport string, domains []string) string {
 		}
 	}
 	return ""
+}
+
+func (f *ConfigServerFilter) fromDNSCache(host string) string {
+	resolved, ok := f.dnsCache[host]
+	if ok {
+		return resolved
+	}
+	// If for some odd reason we can't find the host in the cache, just ignore the cache and return
+	// the host
+	log.Errorf("CACHE MISS FOR %v", host)
+	return host
 }
 
 func (f *ConfigServerFilter) resolveDomain(domain string) string {
