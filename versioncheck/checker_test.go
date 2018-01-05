@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"testing"
 
+	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy"
 	"github.com/stretchr/testify/assert"
 
@@ -19,6 +20,8 @@ import (
 const (
 	ip = "8.8.8.8"
 )
+
+var logger = golog.LoggerFor("versioncheck")
 
 func TestRewrite(t *testing.T) {
 	rewriteURL := "https://versioncheck.com/badversion"
@@ -151,5 +154,8 @@ func requestViaProxy(t *testing.T, proxiedReq *http.Request, l net.Listener, ver
 	if err != nil {
 		return nil, fmt.Errorf("Unable to issue proxied request: %v", err)
 	}
-	return http.ReadResponse(bufReader, proxiedReq)
+	logger.Debugf("Sending request to %v", l.Addr().String())
+	res, err := http.ReadResponse(bufReader, proxiedReq)
+	logger.Debugf("Read response")
+	return res, err
 }
