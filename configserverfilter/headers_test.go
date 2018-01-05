@@ -20,12 +20,24 @@ func (h *dummyHandler) Apply(ctx filters.Context, req *http.Request, next filter
 	return next(ctx, req)
 }
 
+func TestDomainCache(t *testing.T) {
+	csf := New(&Options{"fake-token", []string{"site1.com", "site2.org"}})
+	ip := csf.resolveDomain("config-do-roundrobin.getiantem.org")
+	//log.Debugf("IP is: %v", ip)
+	assert.True(t, len(ip) > 0)
+
+	ip = csf.resolveDomain("somethingtotallybogus49823842304819084019.org")
+	//log.Debugf("IP is: %v", ip)
+	assert.True(t, len(ip) > 0)
+}
+
 func TestModifyRequest(t *testing.T) {
 	fakeToken := "fake-token"
 	dummyClientIP := "1.1.1.1"
 	dummyAddr := dummyClientIP + ":12345"
 	dummy := &dummyHandler{}
-	chain := filters.Join(New(&Options{fakeToken, []string{"site1.com", "site2.org"}}), dummy)
+	csf := New(&Options{fakeToken, []string{"site1.com", "site2.org"}})
+	chain := filters.Join(csf, dummy)
 
 	req, _ := http.NewRequest("GET", "http://site1.com:80/abc.gz", nil)
 	req.RemoteAddr = dummyAddr
@@ -35,7 +47,7 @@ func TestModifyRequest(t *testing.T) {
 	ctx := filters.BackgroundContext()
 	chain.Apply(ctx, req, next)
 	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
-	assert.Equal(t, "site1.com:443", dummy.req.Host, "should use port 443")
+	assert.Equal(t, csf.dnsCache["site1.com"]+":443", dummy.req.Host, "should use port 443")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
 	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should attach client ip")
 
@@ -43,7 +55,7 @@ func TestModifyRequest(t *testing.T) {
 	req.RemoteAddr = dummyAddr
 	chain.Apply(ctx, req, next)
 	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
-	assert.Equal(t, "site2.org:443", dummy.req.Host, "should use port 443")
+	assert.Equal(t, csf.dnsCache["site2.org"]+":443", dummy.req.Host, "should use port 443")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
 	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should attach client ip")
 
@@ -51,7 +63,7 @@ func TestModifyRequest(t *testing.T) {
 	req.RemoteAddr = "bad-addr"
 	chain.Apply(ctx, req, next)
 	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
-	assert.Equal(t, "site2.org:443", dummy.req.Host, "should use port 443")
+	assert.Equal(t, csf.dnsCache["site2.org"]+":443", dummy.req.Host, "should use port 443")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
 	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should not attach client ip if remote address is invalid")
 

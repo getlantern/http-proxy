@@ -5,8 +5,10 @@ package configserverfilter
 
 import (
 	"errors"
+	"math/rand"
 	"net"
 	"net/http"
+	"time"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/filters"
@@ -23,14 +25,26 @@ type Options struct {
 
 type ConfigServerFilter struct {
 	*Options
+	dnsCache map[string]string
 }
 
 func New(opts *Options) *ConfigServerFilter {
+	// Seed the random number generator.
+	rand.Seed(time.Now().Unix())
 	if opts.AuthToken == "" || len(opts.Domains) == 0 {
 		panic(errors.New("should set both config-server auth token and domains"))
 	}
 	log.Debugf("Will attach %s header on GET requests to %+v", common.CfgSvrAuthTokenHeader, opts.Domains)
-	return &ConfigServerFilter{opts}
+
+	csf := &ConfigServerFilter{opts, make(map[string]string)}
+	csf.initDNSCache()
+	return csf
+}
+
+func (f *ConfigServerFilter) initDNSCache() {
+	for _, domain := range f.Domains {
+		f.dnsCache[domain] = f.resolveDomain(domain)
+	}
 }
 
 func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
@@ -51,7 +65,7 @@ func (f *ConfigServerFilter) RewriteIfNecessary(req *http.Request) {
 func (f *ConfigServerFilter) rewrite(host string, req *http.Request) {
 	req.URL.Scheme = "https"
 	prevHost := req.Host
-	req.Host = host + ":443"
+	req.Host = f.dnsCache[host] + ":443"
 	req.Header.Set(common.CfgSvrAuthTokenHeader, f.AuthToken)
 	ip, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
@@ -74,4 +88,16 @@ func in(hostport string, domains []string) string {
 		}
 	}
 	return ""
+}
+
+func (f *ConfigServerFilter) resolveDomain(domain string) string {
+	addrs, err := net.LookupHost(domain)
+	if err != nil {
+		log.Errorf("Could not lookup %v", domain)
+		return domain
+	}
+	if len(addrs) == 0 {
+		return domain
+	}
+	return addrs[rand.Intn(len(addrs))]
 }
