@@ -84,7 +84,7 @@ func main() {
 
 	// Logging
 	// TODO: use real parameters
-	err = logging.Init("instanceid", "version", "releasedate", *logglyToken)
+	err = logging.Init("instanceid", "version", "releasedate")
 	if err != nil {
 		log.Fatal(err)
 	}
