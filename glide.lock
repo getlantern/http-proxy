@@ -243,8 +243,6 @@ imports:
   - sm4
 - name: github.com/vharitonsky/iniflags
   version: e586d5c5197c636313580bf6eb2f54522bd65147
-- name: github.com/visionmedia/go-debug
-  version: ff4a55a20a86994118644bbddc6a216da193cc13
 - name: github.com/xtaci/kcp-go
   version: 7d38835b5b7e0bb4987d516b121ba67517c47b26
 - name: github.com/xtaci/smux
