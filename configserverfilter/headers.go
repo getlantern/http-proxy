@@ -66,9 +66,10 @@ func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next 
 	f.RewriteIfNecessary(req)
 
 	resp, nextCtx, err := next(ctx, req)
-	if err != nil {
+	if err != nil || resp == nil {
 		// If we get an error, try hitting a new config server.
 		f.refreshDNSCache()
+		return resp, nextCtx, err
 	}
 
 	if resp.StatusCode < 200 || resp.StatusCode > 299 {
