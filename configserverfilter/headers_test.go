@@ -8,10 +8,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/mockconn"
 	"github.com/getlantern/proxy/filters"
 )
+
+var logger = golog.LoggerFor("configServerFilter-test")
 
 type dummyHandler struct{ req *http.Request }
 
@@ -26,8 +29,9 @@ func TestDomainCache(t *testing.T) {
 	//log.Debugf("IP is: %v", ip)
 	assert.True(t, len(ip) > 0)
 
-	ip = csf.resolveDomain("somethingtotallybogus49823842304819084019.org")
-	//log.Debugf("IP is: %v", ip)
+	// lots of DNS servers will always return *something* -- typically their own page with ads.
+	ip = csf.resolveDomain("4319480391-04931-")
+	logger.Debugf("IP is: %v", ip)
 	assert.True(t, len(ip) > 0)
 }
 
