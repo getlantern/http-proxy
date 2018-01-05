@@ -8,6 +8,8 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/getlantern/golog"
@@ -24,8 +26,11 @@ type Options struct {
 }
 
 type ConfigServerFilter struct {
-	*Options
-	dnsCache map[string]string
+	opts           *Options
+	dnsCache       map[string]string
+	cacheMutex     sync.RWMutex
+	consecFailures int32
+	refreshingDNS  bool
 }
 
 func New(opts *Options) *ConfigServerFilter {
@@ -36,27 +41,56 @@ func New(opts *Options) *ConfigServerFilter {
 	}
 	log.Debugf("Will attach %s header on GET requests to %+v", common.CfgSvrAuthTokenHeader, opts.Domains)
 
-	csf := &ConfigServerFilter{opts, make(map[string]string)}
-	csf.initDNSCache()
+	csf := &ConfigServerFilter{opts: opts, dnsCache: make(map[string]string)}
+	csf.refreshDNSCache()
 	return csf
 }
 
-func (f *ConfigServerFilter) initDNSCache() {
-	for _, domain := range f.Domains {
+func (f *ConfigServerFilter) refreshDNSCache() {
+	f.cacheMutex.Lock()
+	defer func() {
+		atomic.StoreInt32(&f.consecFailures, 0)
+		f.refreshingDNS = false
+		f.cacheMutex.Unlock()
+	}()
+	if f.refreshingDNS {
+		return
+	}
+	f.refreshingDNS = true
+	for _, domain := range f.opts.Domains {
 		f.dnsCache[domain] = f.resolveDomain(domain)
 	}
 }
 
 func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	f.RewriteIfNecessary(req)
-	return next(ctx, req)
+
+	resp, nextCtx, err := next(ctx, req)
+	if err != nil {
+		// If we get an error, try hitting a new config server.
+		f.refreshDNSCache()
+	}
+
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		f.handleFailure()
+	}
+
+	return resp, nextCtx, err
+}
+
+func (f *ConfigServerFilter) handleFailure() {
+	// If we have enough consecutive failures, try another config server.
+	cf := atomic.AddInt32(&f.consecFailures, 1)
+	if cf > 10 {
+		f.refreshDNSCache()
+	}
 }
 
 func (f *ConfigServerFilter) RewriteIfNecessary(req *http.Request) {
 	// It's unlikely that config-server will add non-GET public endpoint.
 	// Bypass all other methods, especially CONNECT (https).
 	if req.Method == "GET" {
-		if matched := in(req.Host, f.Domains); matched != "" {
+		if matched := in(req.Host, f.opts.Domains); matched != "" {
 			f.rewrite(matched, req)
 		}
 	}
@@ -66,7 +100,7 @@ func (f *ConfigServerFilter) rewrite(host string, req *http.Request) {
 	req.URL.Scheme = "https"
 	prevHost := req.Host
 	req.Host = f.fromDNSCache(host) + ":443"
-	req.Header.Set(common.CfgSvrAuthTokenHeader, f.AuthToken)
+	req.Header.Set(common.CfgSvrAuthTokenHeader, f.opts.AuthToken)
 	ip, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
 		log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
@@ -91,6 +125,8 @@ func in(hostport string, domains []string) string {
 }
 
 func (f *ConfigServerFilter) fromDNSCache(host string) string {
+	f.cacheMutex.RLock()
+	defer f.cacheMutex.RUnlock()
 	resolved, ok := f.dnsCache[host]
 	if ok {
 		return resolved
