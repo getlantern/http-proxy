@@ -34,9 +34,8 @@ type ConfigServerFilter struct {
 	random         *rand.Rand
 }
 
+// New creaetes a new filter for config server requests.
 func New(opts *Options) *ConfigServerFilter {
-	// Seed the random number generator.
-	rand.Seed(time.Now().Unix())
 	if opts.AuthToken == "" || len(opts.Domains) == 0 {
 		panic(errors.New("should set both config-server auth token and domains"))
 	}
