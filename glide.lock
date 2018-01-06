@@ -70,7 +70,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: 65d2543b8a582b18cf41ed667f65382abfb5bb6a
+  version: 9f5d04da4a4c2c36070a01cfe4988ce834a431a1
   subpackages:
   - buffers
   - commonfilter
