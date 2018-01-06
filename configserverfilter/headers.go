@@ -70,13 +70,13 @@ func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next 
 	f.RewriteIfNecessary(req)
 
 	resp, nextCtx, err := next(ctx, req)
-	if err != nil || resp == nil {
+	if err != nil && resp == nil {
 		log.Errorf("Error hitting config server...refreshing DNS cache %v", err)
 		f.handleFailure()
 		return resp, nextCtx, err
 	}
 
-	if resp.StatusCode >= 500 && resp.StatusCode < 600 {
+	if resp != nil && resp.StatusCode >= 500 && resp.StatusCode < 600 {
 		f.handleFailure()
 	}
 
