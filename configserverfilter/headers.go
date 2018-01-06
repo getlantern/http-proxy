@@ -31,6 +31,7 @@ type ConfigServerFilter struct {
 	cacheMutex     sync.RWMutex
 	consecFailures int32
 	refreshingDNS  bool
+	random         *rand.Rand
 }
 
 func New(opts *Options) *ConfigServerFilter {
@@ -41,7 +42,11 @@ func New(opts *Options) *ConfigServerFilter {
 	}
 	log.Debugf("Will attach %s header on GET requests to %+v", common.CfgSvrAuthTokenHeader, opts.Domains)
 
-	csf := &ConfigServerFilter{opts: opts, dnsCache: make(map[string]string)}
+	csf := &ConfigServerFilter{
+		opts:     opts,
+		dnsCache: make(map[string]string),
+		random:   rand.New(rand.NewSource(time.Now().Unix())),
+	}
 	csf.refreshDNSCache()
 	return csf
 }
@@ -68,8 +73,7 @@ func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next 
 	resp, nextCtx, err := next(ctx, req)
 	if err != nil || resp == nil {
 		log.Errorf("Error hitting config server...refreshing DNS cache %v", err)
-		// If we get an error, try hitting a new config server.
-		f.refreshDNSCache()
+		f.handleFailure()
 		return resp, nextCtx, err
 	}
 
@@ -149,7 +153,7 @@ func (f *ConfigServerFilter) resolveDomain(domain string) string {
 	if len(addrs) == 0 {
 		return domain
 	}
-	addr := addrs[rand.Intn(len(addrs))]
+	addr := addrs[f.random.Intn(len(addrs))]
 	log.Debugf("Resolved addr %v", addr)
 	return addr
 }

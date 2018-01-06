@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
@@ -23,7 +24,40 @@ func (h *dummyHandler) Apply(ctx filters.Context, req *http.Request, next filter
 	return next(ctx, req)
 }
 
-func TestDomainCache(t *testing.T) {
+func TestFromDNSCache(t *testing.T) {
+	csf := New(&Options{"fake-token", []string{"config-do-roundrobin.getiantem.org"}})
+	ip := csf.fromDNSCache("config-do-roundrobin.getiantem.org")
+	//log.Debugf("IP is: %v", ip)
+	assert.True(t, len(ip) > 0)
+
+	// lots of DNS servers will always return *something* -- typically their own page with ads.
+	badDomain := "4319480391-04931-"
+	badip := csf.fromDNSCache(badDomain)
+	logger.Debugf("IP is: %v", badip)
+	assert.Equal(t, badDomain, badip)
+
+	// Refresh the cache a bunch just to try to root out any race conditions
+	go csf.refreshDNSCache()
+	go csf.refreshDNSCache()
+	go csf.refreshDNSCache()
+	go csf.refreshDNSCache()
+	go csf.refreshDNSCache()
+
+	var newip string
+	count := 0
+	for count < 60 {
+		newip = csf.fromDNSCache("config-do-roundrobin.getiantem.org")
+		if ip != newip {
+			break
+		}
+		time.Sleep(20 * time.Millisecond)
+		count++
+	}
+
+	assert.NotEqual(t, ip, newip)
+}
+
+func TestResolveDomain(t *testing.T) {
 	csf := New(&Options{"fake-token", []string{"site1.com", "site2.org"}})
 	ip := csf.resolveDomain("config-do-roundrobin.getiantem.org")
 	//log.Debugf("IP is: %v", ip)
