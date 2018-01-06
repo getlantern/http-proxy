@@ -5,6 +5,7 @@ package configserverfilter
 
 import (
 	"errors"
+	"math/rand"
 	"net"
 	"net/http"
 	"sync"
@@ -45,8 +46,11 @@ func New(opts *Options) *ConfigServerFilter {
 }
 
 func (f *ConfigServerFilter) clearIPs() {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for {
-		time.Sleep(2 * time.Hour)
+		mins := 2*60 + r.Intn(30)
+		log.Debugf("Will clear the cache in %v minutes", mins)
+		time.Sleep(time.Duration(mins) * time.Minute)
 		f.ipsMutex.Lock()
 		f.ips = make(map[string]bool)
 		f.ipsMutex.Unlock()
