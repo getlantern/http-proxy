@@ -46,7 +46,7 @@ func New(opts *Options) *ConfigServerFilter {
 
 func (f *ConfigServerFilter) clearIPs() {
 	for {
-		time.Sleep(1 * time.Hour)
+		time.Sleep(2 * time.Hour)
 		f.ipsMutex.Lock()
 		f.ips = make(map[string]bool)
 		f.ipsMutex.Unlock()
@@ -61,9 +61,10 @@ func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next 
 			log.Debugf("Cache hit for client IP %v", ip)
 			return &http.Response{StatusCode: http.StatusNotModified}, ctx, nil
 		}
+		log.Debugf("Cache miss for client IP %v", ip)
 		resp, nextCtx, err := next(ctx, req)
 
-		if resp != nil && ip != "" && resp.StatusCode == http.StatusOK {
+		if resp != nil && ip != "" && (resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotModified) {
 			f.ipsMutex.Lock()
 			f.ips[ip] = true
 			f.ipsMutex.Unlock()
