@@ -76,7 +76,7 @@ func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next 
 		return resp, nextCtx, err
 	}
 
-	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+	if resp.StatusCode >= 500 && resp.StatusCode < 600 {
 		f.handleFailure()
 	}
 
