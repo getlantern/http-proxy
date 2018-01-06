@@ -84,7 +84,8 @@ func (f *ConfigServerFilter) refreshDNSCache() {
 func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	ip, cached := f.notModified(req)
 	if cached {
-		return &http.Response{StatusCode: http.StatusNotModified}, nil, nil
+		log.Debugf("Cache hit for client IP %v", ip)
+		return &http.Response{StatusCode: http.StatusNotModified}, ctx, nil
 	}
 	f.RewriteIfNecessary(req)
 
