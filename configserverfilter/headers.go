@@ -97,7 +97,7 @@ func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next 
 
 	if resp != nil && resp.StatusCode >= 500 && resp.StatusCode < 600 {
 		f.handleFailure()
-	} else if ip != "" && resp.StatusCode == http.StatusOK {
+	} else if resp != nil && ip != "" && resp.StatusCode == http.StatusOK {
 		f.ipsMutex.Lock()
 		f.ips[ip] = true
 		f.ipsMutex.Unlock()
