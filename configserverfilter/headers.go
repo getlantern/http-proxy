@@ -5,11 +5,10 @@ package configserverfilter
 
 import (
 	"errors"
-	"math/rand"
 	"net"
 	"net/http"
-	"sync"
-	"time"
+
+	lru "github.com/hashicorp/golang-lru"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/filters"
@@ -25,9 +24,8 @@ type Options struct {
 }
 
 type ConfigServerFilter struct {
-	opts     *Options
-	ips      map[string]bool
-	ipsMutex sync.RWMutex
+	opts  *Options
+	cache *lru.Cache
 }
 
 func New(opts *Options) *ConfigServerFilter {
@@ -36,25 +34,13 @@ func New(opts *Options) *ConfigServerFilter {
 	}
 	log.Debugf("Will attach %s header on GET requests to %+v", common.CfgSvrAuthTokenHeader, opts.Domains)
 
+	cache, _ := lru.New(100000)
 	csf := &ConfigServerFilter{
-		opts: opts,
-		ips:  make(map[string]bool),
+		opts:  opts,
+		cache: cache,
 	}
 
-	go csf.clearIPs()
 	return csf
-}
-
-func (f *ConfigServerFilter) clearIPs() {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for {
-		mins := 24*60 + r.Intn(30)
-		log.Debugf("Will clear the cache in %v minutes", mins)
-		time.Sleep(time.Duration(mins) * time.Minute)
-		f.ipsMutex.Lock()
-		f.ips = make(map[string]bool)
-		f.ipsMutex.Unlock()
-	}
 }
 
 func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
@@ -69,9 +55,7 @@ func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next 
 		resp, nextCtx, err := next(ctx, req)
 
 		if resp != nil && ip != "" && (resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotModified) {
-			f.ipsMutex.Lock()
-			f.ips[ip] = true
-			f.ipsMutex.Unlock()
+			f.cache.Add(ip, true)
 		}
 		return resp, nextCtx, err
 	}
@@ -86,10 +70,7 @@ func (f *ConfigServerFilter) notModified(req *http.Request) (string, bool) {
 		log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
 		return "", false
 	}
-	f.ipsMutex.RLock()
-	_, ok := f.ips[ip]
-	f.ipsMutex.RUnlock()
-	return ip, ok
+	return ip, f.cache.Contains(ip)
 }
 
 func (f *ConfigServerFilter) isConfigRequest(req *http.Request) bool {
