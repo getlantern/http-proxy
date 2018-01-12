@@ -48,7 +48,7 @@ func New(opts *Options) *ConfigServerFilter {
 func (f *ConfigServerFilter) clearIPs() {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for {
-		mins := 2*60 + r.Intn(30)
+		mins := 24*60 + r.Intn(30)
 		log.Debugf("Will clear the cache in %v minutes", mins)
 		time.Sleep(time.Duration(mins) * time.Minute)
 		f.ipsMutex.Lock()
