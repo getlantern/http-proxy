@@ -90,15 +90,11 @@ func (f *ConfigServerFilter) notModified(req *http.Request) (string, bool) {
 }
 
 func (f *ConfigServerFilter) isConfigRequest(req *http.Request) bool {
-	// It's unlikely that config-server will add non-GET public endpoint.
-	// Bypass all other methods, especially CONNECT (https).
 	matched := f.matchingDomains(req)
 	return matched != ""
 }
 
 func (f *ConfigServerFilter) RewriteIfNecessary(req *http.Request) {
-	// It's unlikely that config-server will add non-GET public endpoint.
-	// Bypass all other methods, especially CONNECT (https).
 	matched := f.matchingDomains(req)
 	if matched != "" {
 		f.rewrite(matched, req)
