@@ -110,7 +110,7 @@ func main() {
 		CertFile:                *certfile,
 		CfgSvrAuthToken:         *cfgSvrAuthToken,
 		CfgSvrDomains:           *cfgSvrDomains,
-		CfgSvrCacheTime:         *cfgSvrCacheTime,
+		CfgSvrCacheClear:        *cfgSvrCacheClear,
 		EnableReports:           *enableReports,
 		ThrottleRefreshInterval: *throttleRefreshInterval,
 		BordaReportInterval:     *bordaReportInterval,
