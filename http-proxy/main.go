@@ -28,6 +28,7 @@ var (
 	certfile                       = flag.String("cert", "", "Certificate file name")
 	cfgSvrAuthToken                = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
 	cfgSvrDomains                  = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
+	cfgSvrCacheClear               = flag.Duration("cfgsvrcacheclear", 0, "The time to clear client IP cache for Config-server requests, cache forever by default.")
 	enableReports                  = flag.Bool("enablereports", false, "Enable stats reporting")
 	throttleRefreshInterval        = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
 	bordaReportInterval            = flag.Duration("borda-report-interval", 0*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
@@ -109,6 +110,7 @@ func main() {
 		CertFile:                *certfile,
 		CfgSvrAuthToken:         *cfgSvrAuthToken,
 		CfgSvrDomains:           *cfgSvrDomains,
+		CfgSvrCacheClear:        *cfgSvrCacheClear,
 		EnableReports:           *enableReports,
 		ThrottleRefreshInterval: *throttleRefreshInterval,
 		BordaReportInterval:     *bordaReportInterval,

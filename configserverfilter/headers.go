@@ -5,8 +5,10 @@ package configserverfilter
 
 import (
 	"errors"
+	"math/rand"
 	"net"
 	"net/http"
+	"time"
 
 	lru "github.com/hashicorp/golang-lru"
 
@@ -19,8 +21,9 @@ import (
 var log = golog.LoggerFor("configServerFilter")
 
 type Options struct {
-	AuthToken string
-	Domains   []string
+	AuthToken          string
+	Domains            []string
+	ClientIPCacheClear time.Duration
 }
 
 type ConfigServerFilter struct {
@@ -40,7 +43,20 @@ func New(opts *Options) *ConfigServerFilter {
 		cache: cache,
 	}
 
+	if opts.ClientIPCacheClear > 0 {
+		go csf.clearCacheLoop(opts.ClientIPCacheClear)
+	}
+
 	return csf
+}
+
+func (f *ConfigServerFilter) clearCacheLoop(t time.Duration) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	for {
+		t := t + time.Duration(r.Intn(30))*time.Minute
+		time.Sleep(t)
+		f.cache.Purge()
+	}
 }
 
 func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
@@ -74,15 +90,11 @@ func (f *ConfigServerFilter) notModified(req *http.Request) (string, bool) {
 }
 
 func (f *ConfigServerFilter) isConfigRequest(req *http.Request) bool {
-	// It's unlikely that config-server will add non-GET public endpoint.
-	// Bypass all other methods, especially CONNECT (https).
 	matched := f.matchingDomains(req)
 	return matched != ""
 }
 
 func (f *ConfigServerFilter) RewriteIfNecessary(req *http.Request) {
-	// It's unlikely that config-server will add non-GET public endpoint.
-	// Bypass all other methods, especially CONNECT (https).
 	matched := f.matchingDomains(req)
 	if matched != "" {
 		f.rewrite(matched, req)

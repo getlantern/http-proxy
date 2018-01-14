@@ -66,6 +66,7 @@ type Proxy struct {
 	CertFile                       string
 	CfgSvrAuthToken                string
 	CfgSvrDomains                  string
+	CfgSvrCacheClear               time.Duration
 	EnableReports                  bool
 	HTTPS                          bool
 	IdleTimeout                    time.Duration
@@ -241,8 +242,9 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	var requestRewriters []func(*http.Request)
 	if p.CfgSvrAuthToken != "" || p.CfgSvrDomains != "" {
 		cfg := &configserverfilter.Options{
-			AuthToken: p.CfgSvrAuthToken,
-			Domains:   strings.Split(p.CfgSvrDomains, ","),
+			AuthToken:          p.CfgSvrAuthToken,
+			Domains:            strings.Split(p.CfgSvrDomains, ","),
+			ClientIPCacheClear: p.CfgSvrCacheClear,
 		}
 		dialerForPforward = configserverfilter.Dialer(dialerForPforward, cfg)
 		csf := configserverfilter.New(cfg)
