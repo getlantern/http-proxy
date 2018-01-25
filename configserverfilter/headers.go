@@ -26,9 +26,13 @@ type Options struct {
 }
 
 type ConfigServerFilter struct {
-	opts           *Options
-	dnsCache       map[string]string
-	cacheMutex     sync.RWMutex
+	opts          *Options
+	dnsCache      map[string]string
+	dnsCacheMutex sync.RWMutex
+
+	ips      map[string]bool
+	ipsMutex sync.RWMutex
+
 	consecFailures int32
 	refreshingDNS  bool
 	random         *rand.Rand
@@ -44,18 +48,29 @@ func New(opts *Options) *ConfigServerFilter {
 	csf := &ConfigServerFilter{
 		opts:     opts,
 		dnsCache: make(map[string]string),
+		ips:      make(map[string]bool),
 		random:   rand.New(rand.NewSource(time.Now().Unix())),
 	}
 	csf.refreshDNSCache()
+	go csf.clearIPs()
 	return csf
 }
 
+func (f *ConfigServerFilter) clearIPs() {
+	for {
+		time.Sleep(1 * time.Hour)
+		f.ipsMutex.Lock()
+		f.ips = make(map[string]bool)
+		f.ipsMutex.Unlock()
+	}
+}
+
 func (f *ConfigServerFilter) refreshDNSCache() {
-	f.cacheMutex.Lock()
+	f.dnsCacheMutex.Lock()
 	defer func() {
 		atomic.StoreInt32(&f.consecFailures, 0)
 		f.refreshingDNS = false
-		f.cacheMutex.Unlock()
+		f.dnsCacheMutex.Unlock()
 	}()
 	if f.refreshingDNS {
 		return
@@ -67,6 +82,11 @@ func (f *ConfigServerFilter) refreshDNSCache() {
 }
 
 func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+	ip, cached := f.notModified(req)
+	if cached {
+		log.Debugf("Cache hit for client IP %v", ip)
+		return &http.Response{StatusCode: http.StatusNotModified}, ctx, nil
+	}
 	f.RewriteIfNecessary(req)
 
 	resp, nextCtx, err := next(ctx, req)
@@ -78,9 +98,25 @@ func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next 
 
 	if resp != nil && resp.StatusCode >= 500 && resp.StatusCode < 600 {
 		f.handleFailure()
+	} else if resp != nil && ip != "" && resp.StatusCode == http.StatusOK {
+		f.ipsMutex.Lock()
+		f.ips[ip] = true
+		f.ipsMutex.Unlock()
 	}
 
 	return resp, nextCtx, err
+}
+
+func (f *ConfigServerFilter) notModified(req *http.Request) (string, bool) {
+	ip, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
+		return "", false
+	}
+	f.ipsMutex.RLock()
+	_, ok := f.ips[ip]
+	f.ipsMutex.RUnlock()
+	return ip, ok
 }
 
 func (f *ConfigServerFilter) handleFailure() {
@@ -131,8 +167,8 @@ func in(hostport string, domains []string) string {
 }
 
 func (f *ConfigServerFilter) fromDNSCache(host string) string {
-	f.cacheMutex.RLock()
-	defer f.cacheMutex.RUnlock()
+	f.dnsCacheMutex.RLock()
+	defer f.dnsCacheMutex.RUnlock()
 	resolved, ok := f.dnsCache[host]
 	if ok {
 		return resolved
