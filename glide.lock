@@ -1,5 +1,5 @@
 hash: 92a4750bafa5957feca5bda2f6c46655884012e54d9ba5169eeced5e053ce5dc
-updated: 2017-12-05T07:18:56.946269-06:00
+updated: 2018-01-06T08:08:17.400464-08:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: a3ad5df6c9e7dc8117f55958b4ce99bf1e0fe291
@@ -29,6 +29,8 @@ imports:
   version: 4ebf1de738443ea7f45f02dc394c4df1942a126d
 - name: github.com/dustin/go-humanize
   version: bb3d318650d48840a39aa21a027c6630e198e626
+- name: github.com/getlantern/appdir
+  version: 659a155d06e8f3dd8b9f79d6147445897499b56b
 - name: github.com/getlantern/bbrconn
   version: 9a5594c63329cf77582eccae41a8a75240a078fe
 - name: github.com/getlantern/borda
@@ -59,8 +61,6 @@ imports:
   version: c5f0cd24e7991579ba6f5f1bd20a1ad2c9f06cd4
 - name: github.com/getlantern/geolookup
   version: 823d7ff3e6eb74dd6aae38a4b52207b19abfbf66
-- name: github.com/getlantern/go-loggly
-  version: d15e28ab7389ed5d644ccb891d9d54154e43cd27
 - name: github.com/getlantern/goexpr
   version: 14f9f25038c8aeacad7093dc892c47b514a4ddc9
   subpackages:
@@ -74,7 +74,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: fb73ef725169f7e09266dfdd24c438413a39e128
+  version: 9f5d04da4a4c2c36070a01cfe4988ce834a431a1
   subpackages:
   - buffers
   - commonfilter
@@ -247,8 +247,6 @@ imports:
   - sm4
 - name: github.com/vharitonsky/iniflags
   version: e586d5c5197c636313580bf6eb2f54522bd65147
-- name: github.com/visionmedia/go-debug
-  version: ff4a55a20a86994118644bbddc6a216da193cc13
 - name: github.com/xtaci/kcp-go
   version: 37ba61a31c6c20bad922d80de2d54a914aef0ac3
 - name: github.com/xtaci/smux
