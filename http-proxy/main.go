@@ -55,6 +55,7 @@ var (
 	obfs4Dir                       = flag.String("obfs4-dir", ".", "Directory where obfs4 can store its files")
 	kcpConf                        = flag.String("kcpconf", "", "Path to file configuring kcp")
 	enhttpAddr                     = flag.String("enhttp-addr", "", "Address at which to accept encapsulated HTTP requests")
+	enhttpServerURL                = flag.String("enhttp-server-url", "", "specify a full URL for domain-fronting to this server with enhttp, required for sticky routing with CloudFront")
 	bench                          = flag.Bool("bench", false, "Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.")
 	fasttrackDomains               = flag.String("fasttrackdomains", "", "Whitelisted domains, such as the config server, pro server, etc, that should not count towards the bandwidth cap or be throttled, separated by comma")
 	tos                            = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")
@@ -65,7 +66,6 @@ var (
 	versionCheckRedirectPercentage = flag.Float64("versioncheck-redirect-percentage", 1, "The percentage of requests to be redirected in version check. Defaults to 1 (100%)")
 	googleSearchRegex              = flag.String("google-search-regex", googlefilter.DefaultSearchRegex, "Regex for detecting access to Google Search")
 	googleCaptchaRegex             = flag.String("google-captcha-regex", googlefilter.DefaultCaptchaRegex, "Regex for detecting access to Google captcha page")
-	domainFront                    = flag.Bool("domainfront", false, "enable support for domain-fronted requests from CloudFront")
 )
 
 func main() {
@@ -113,7 +113,6 @@ func main() {
 		CfgSvrAuthToken:         *cfgSvrAuthToken,
 		CfgSvrDomains:           *cfgSvrDomains,
 		CfgSvrCacheClear:        *cfgSvrCacheClear,
-		DomainFront:             *domainFront,
 		EnableReports:           *enableReports,
 		ThrottleRefreshInterval: *throttleRefreshInterval,
 		BordaReportInterval:     *bordaReportInterval,
@@ -136,6 +135,7 @@ func main() {
 		Obfs4Dir:                       *obfs4Dir,
 		KCPConf:                        *kcpConf,
 		ENHTTPAddr:                     *enhttpAddr,
+		ENHTTPServerURL:                *enhttpServerURL,
 		Benchmark:                      *bench,
 		FasttrackDomains:               *fasttrackDomains,
 		DiffServTOS:                    *tos,

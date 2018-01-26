@@ -34,7 +34,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/diffserv"
-	"github.com/getlantern/http-proxy-lantern/domainfront"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/lampshade"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
@@ -69,7 +68,7 @@ type Proxy struct {
 	CfgSvrAuthToken                string
 	CfgSvrDomains                  string
 	CfgSvrCacheClear               time.Duration
-	DomainFront                    bool
+	ENHTTPServerURL                string
 	EnableReports                  bool
 	HTTPS                          bool
 	IdleTimeout                    time.Duration
@@ -169,7 +168,8 @@ func (p *Proxy) ListenAndServe() error {
 				return
 			}
 			log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
-			enhttp.Serve(el)
+			enhttpHandler := enhttp.NewServerHandler(p.ENHTTPServerURL)
+			http.Serve(el, enhttpHandler)
 		}()
 	}
 
@@ -213,9 +213,6 @@ func (p *Proxy) createBlacklist() *blacklist.Blacklist {
 // itself.
 func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy.DialFunc, error) {
 	filterChain := filters.Join(p.bm)
-	if p.DomainFront {
-		filterChain = filterChain.Prepend(domainfront.NewFilter())
-	}
 
 	if p.Benchmark {
 		filterChain = filterChain.Append(proxyfilters.RateLimit(5000, map[string]time.Duration{
