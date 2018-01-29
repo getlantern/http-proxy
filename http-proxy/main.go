@@ -31,6 +31,8 @@ var (
 	cfgSvrCacheClear               = flag.Duration("cfgsvrcacheclear", 0, "The time to clear client IP cache for Config-server requests, cache forever by default.")
 	enableReports                  = flag.Bool("enablereports", false, "Enable stats reporting")
 	throttleRefreshInterval        = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
+	throttleThreshold              = flag.Int64("throttlethreshold", 0, "Set to a positive value to force a specific throttle threshold in bytes (rather than using one from Redis)")
+	throttleRate                   = flag.Int64("throttlerate", 0, "Set to a positive value to force a specific throttle rate in bytes/second (rather than using one from Redis)")
 	bordaReportInterval            = flag.Duration("borda-report-interval", 0*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
 	bordaSamplePercentage          = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
 	bordaBufferSize                = flag.Int("borda-buffer-size", 10000, "Size of borda buffer, caps how many distinct measurements to keep during each submit interval")
@@ -115,6 +117,8 @@ func main() {
 		CfgSvrCacheClear:        *cfgSvrCacheClear,
 		EnableReports:           *enableReports,
 		ThrottleRefreshInterval: *throttleRefreshInterval,
+		ThrottleThreshold:       *throttleThreshold,
+		ThrottleRate:            *throttleRate,
 		BordaReportInterval:     *bordaReportInterval,
 		BordaSamplePercentage:   *bordaSamplePercentage,
 		BordaBufferSize:         *bordaBufferSize,

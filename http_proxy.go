@@ -68,6 +68,7 @@ type Proxy struct {
 	CfgSvrAuthToken                string
 	CfgSvrDomains                  string
 	CfgSvrCacheClear               time.Duration
+	ENHTTPAddr                     string
 	ENHTTPServerURL                string
 	EnableReports                  bool
 	HTTPS                          bool
@@ -81,12 +82,13 @@ type Proxy struct {
 	ReportingRedisClientPK         string
 	ReportingRedisClientCert       string
 	ThrottleRefreshInterval        time.Duration
+	ThrottleThreshold              int64
+	ThrottleRate                   int64
 	Token                          string
 	TunnelPorts                    string
 	Obfs4Addr                      string
 	Obfs4Dir                       string
 	KCPConf                        string
-	ENHTTPAddr                     string
 	Benchmark                      bool
 	FasttrackDomains               string
 	DiffServTOS                    int
@@ -326,7 +328,7 @@ func (p *Proxy) loadThrottleConfig() {
 	}
 
 	var err error
-	p.throttleConfig, err = throttle.NewRedisConfig(p.rc, p.ThrottleRefreshInterval)
+	p.throttleConfig, err = throttle.NewRedisConfig(p.rc, p.ThrottleRefreshInterval, p.ThrottleThreshold, p.ThrottleRate)
 	if err != nil {
 		p.throttleConfig = nil
 		log.Errorf("Unable to read throttling config from redis, will not throttle: %v", err)
