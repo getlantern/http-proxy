@@ -3,6 +3,7 @@ package versioncheck
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net"
 	"net/http"
@@ -151,5 +152,10 @@ func requestViaProxy(t *testing.T, proxiedReq *http.Request, l net.Listener, ver
 	if err != nil {
 		return nil, fmt.Errorf("Unable to issue proxied request: %v", err)
 	}
-	return http.ReadResponse(bufReader, proxiedReq)
+	resp, err = http.ReadResponse(bufReader, proxiedReq)
+	// Ignore EOF, as that's an OK error
+	if err == io.EOF {
+		err = nil
+	}
+	return resp, err
 }
