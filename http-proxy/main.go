@@ -58,6 +58,7 @@ var (
 	kcpConf                        = flag.String("kcpconf", "", "Path to file configuring kcp")
 	enhttpAddr                     = flag.String("enhttp-addr", "", "Address at which to accept encapsulated HTTP requests")
 	enhttpServerURL                = flag.String("enhttp-server-url", "", "specify a full URL for domain-fronting to this server with enhttp, required for sticky routing with CloudFront")
+	enhttpReapIdleTime             = flag.Duration("enhttp-reapidletime", 15*time.Minute, "configure how long enhttp connections are allowed to remain idle before being forcibly closed")
 	bench                          = flag.Bool("bench", false, "Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.")
 	fasttrackDomains               = flag.String("fasttrackdomains", "", "Whitelisted domains, such as the config server, pro server, etc, that should not count towards the bandwidth cap or be throttled, separated by comma")
 	tos                            = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")

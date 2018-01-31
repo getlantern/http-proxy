@@ -70,6 +70,7 @@ type Proxy struct {
 	CfgSvrCacheClear               time.Duration
 	ENHTTPAddr                     string
 	ENHTTPServerURL                string
+	ENHTTPReapIdleTime             time.Duration
 	EnableReports                  bool
 	HTTPS                          bool
 	IdleTimeout                    time.Duration
@@ -170,8 +171,10 @@ func (p *Proxy) ListenAndServe() error {
 				return
 			}
 			log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
-			enhttpHandler := enhttp.NewServerHandler(p.ENHTTPServerURL)
-			http.Serve(el, enhttpHandler)
+			server := &http.Server{
+				Handler: enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL),
+			}
+			server.Serve(el)
 		}()
 	}
 
