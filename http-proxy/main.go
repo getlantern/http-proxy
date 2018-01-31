@@ -31,6 +31,8 @@ var (
 	cfgSvrCacheClear               = flag.Duration("cfgsvrcacheclear", 0, "The time to clear client IP cache for Config-server requests, cache forever by default.")
 	enableReports                  = flag.Bool("enablereports", false, "Enable stats reporting")
 	throttleRefreshInterval        = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
+	throttleThreshold              = flag.Int64("throttlethreshold", 0, "Set to a positive value to force a specific throttle threshold in bytes (rather than using one from Redis)")
+	throttleRate                   = flag.Int64("throttlerate", 0, "Set to a positive value to force a specific throttle rate in bytes/second (rather than using one from Redis)")
 	bordaReportInterval            = flag.Duration("borda-report-interval", 0*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
 	bordaSamplePercentage          = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
 	bordaBufferSize                = flag.Int("borda-buffer-size", 10000, "Size of borda buffer, caps how many distinct measurements to keep during each submit interval")
@@ -54,6 +56,9 @@ var (
 	obfs4Addr                      = flag.String("obfs4-addr", "", "Provide an address here in order to listen with obfs4")
 	obfs4Dir                       = flag.String("obfs4-dir", ".", "Directory where obfs4 can store its files")
 	kcpConf                        = flag.String("kcpconf", "", "Path to file configuring kcp")
+	enhttpAddr                     = flag.String("enhttp-addr", "", "Address at which to accept encapsulated HTTP requests")
+	enhttpServerURL                = flag.String("enhttp-server-url", "", "specify a full URL for domain-fronting to this server with enhttp, required for sticky routing with CloudFront")
+	enhttpReapIdleTime             = flag.Duration("enhttp-reapidletime", 15*time.Minute, "configure how long enhttp connections are allowed to remain idle before being forcibly closed")
 	bench                          = flag.Bool("bench", false, "Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.")
 	fasttrackDomains               = flag.String("fasttrackdomains", "", "Whitelisted domains, such as the config server, pro server, etc, that should not count towards the bandwidth cap or be throttled, separated by comma")
 	tos                            = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")
@@ -113,6 +118,8 @@ func main() {
 		CfgSvrCacheClear:        *cfgSvrCacheClear,
 		EnableReports:           *enableReports,
 		ThrottleRefreshInterval: *throttleRefreshInterval,
+		ThrottleThreshold:       *throttleThreshold,
+		ThrottleRate:            *throttleRate,
 		BordaReportInterval:     *bordaReportInterval,
 		BordaSamplePercentage:   *bordaSamplePercentage,
 		BordaBufferSize:         *bordaBufferSize,
@@ -132,6 +139,8 @@ func main() {
 		Obfs4Addr:                      *obfs4Addr,
 		Obfs4Dir:                       *obfs4Dir,
 		KCPConf:                        *kcpConf,
+		ENHTTPAddr:                     *enhttpAddr,
+		ENHTTPServerURL:                *enhttpServerURL,
 		Benchmark:                      *bench,
 		FasttrackDomains:               *fasttrackDomains,
 		DiffServTOS:                    *tos,

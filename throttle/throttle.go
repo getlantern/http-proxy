@@ -86,7 +86,22 @@ type config struct {
 // NewRedisConfig returns a new Config that uses the given redis client to load
 // its configuration information and reload that information every
 // refreshInterval.
-func NewRedisConfig(rc *redis.Client, refreshInterval time.Duration) (Config, error) {
+func NewRedisConfig(rc *redis.Client, refreshInterval time.Duration, forceThreshold int64, forceRate int64) (Config, error) {
+	if forceThreshold > 0 && forceRate > 0 {
+		log.Debugf("Forcing throttling threshold and rate to %d : %d", forceThreshold, forceRate)
+		desktop := make(map[string]*thresholdAndRate)
+		mobile := make(map[string]*thresholdAndRate)
+		desktop[DefaultCountryCode] = &thresholdAndRate{forceThreshold, forceRate}
+		mobile[DefaultCountryCode] = &thresholdAndRate{forceThreshold, forceRate}
+		cfg := &config{
+			rc:              rc,
+			refreshInterval: refreshInterval,
+			desktop:         desktop,
+			mobile:          mobile,
+		}
+		return cfg, nil
+	}
+
 	desktop, err := loadLimits(rc, DesktopSuffix)
 	if err != nil {
 		return nil, err

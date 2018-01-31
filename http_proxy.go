@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/kcpwrapper"
@@ -67,6 +68,9 @@ type Proxy struct {
 	CfgSvrAuthToken                string
 	CfgSvrDomains                  string
 	CfgSvrCacheClear               time.Duration
+	ENHTTPAddr                     string
+	ENHTTPServerURL                string
+	ENHTTPReapIdleTime             time.Duration
 	EnableReports                  bool
 	HTTPS                          bool
 	IdleTimeout                    time.Duration
@@ -79,6 +83,8 @@ type Proxy struct {
 	ReportingRedisClientPK         string
 	ReportingRedisClientCert       string
 	ThrottleRefreshInterval        time.Duration
+	ThrottleThreshold              int64
+	ThrottleRate                   int64
 	Token                          string
 	TunnelPorts                    string
 	Obfs4Addr                      string
@@ -156,6 +162,18 @@ func (p *Proxy) ListenAndServe() error {
 
 	log.Debugf("Listening for %v at %v", protocol, l.Addr())
 	log.Debugf("Type of listener: %v", reflect.TypeOf(l))
+
+	if p.ENHTTPAddr != "" {
+		el, err := net.Listen("tcp", p.ENHTTPAddr)
+		if err != nil {
+			return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
+		}
+		log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
+		server := &http.Server{
+			Handler: enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL),
+		}
+		go server.Serve(el)
+	}
 
 	err = srv.Serve(l, mimic.SetServerAddr)
 	if err != nil {
@@ -310,7 +328,7 @@ func (p *Proxy) loadThrottleConfig() {
 	}
 
 	var err error
-	p.throttleConfig, err = throttle.NewRedisConfig(p.rc, p.ThrottleRefreshInterval)
+	p.throttleConfig, err = throttle.NewRedisConfig(p.rc, p.ThrottleRefreshInterval, p.ThrottleThreshold, p.ThrottleRate)
 	if err != nil {
 		p.throttleConfig = nil
 		log.Errorf("Unable to read throttling config from redis, will not throttle: %v", err)

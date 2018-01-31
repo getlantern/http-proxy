@@ -36,7 +36,7 @@ func TestThrottleConfig(t *testing.T) {
 		return
 	}
 
-	cfg, err := NewRedisConfig(rc, refreshInterval)
+	cfg, err := NewRedisConfig(rc, refreshInterval, 0, 0)
 	if !assert.NoError(t, err) {
 		return
 	}
