@@ -164,18 +164,15 @@ func (p *Proxy) ListenAndServe() error {
 	log.Debugf("Type of listener: %v", reflect.TypeOf(l))
 
 	if p.ENHTTPAddr != "" {
-		go func() {
-			el, err := net.Listen("tcp", p.ENHTTPAddr)
-			if err != nil {
-				log.Errorf("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
-				return
-			}
-			log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
-			server := &http.Server{
-				Handler: enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL),
-			}
-			server.Serve(el)
-		}()
+		el, err := net.Listen("tcp", p.ENHTTPAddr)
+		if err != nil {
+			return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
+		}
+		log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
+		server := &http.Server{
+			Handler: enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL),
+		}
+		go server.Serve(el)
 	}
 
 	err = srv.Serve(l, mimic.SetServerAddr)
