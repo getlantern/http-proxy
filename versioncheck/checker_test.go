@@ -91,7 +91,7 @@ func TestRedirectConnect(t *testing.T) {
 	}
 	defer l.Close()
 
-	p := proxy.New(&proxy.Opts{
+	p, _ := proxy.New(&proxy.Opts{
 		Filter: New("3.1.1", rewriteURL, []string{originPort}, 1),
 	})
 	go p.Serve(l)
