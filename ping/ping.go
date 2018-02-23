@@ -8,9 +8,11 @@ import (
 	"math/rand"
 	"net/http"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
+	"github.com/getlantern/enhttp"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/filters"
 
@@ -66,7 +68,7 @@ func (pm *pingMiddleware) Apply(ctx filters.Context, req *http.Request, next fil
 	log.Trace("In ping")
 	pingSize := req.Header.Get(common.PingHeader)
 	pingURL := req.Header.Get(common.PingURLHeader)
-	isPingURL := req.Host == "ping-chained-server"
+	isPingURL := strings.HasPrefix(enhttp.OriginHost(req), "ping-chained-server")
 	if pingSize == "" && pingURL == "" && !isPingURL {
 		log.Trace("Bypassing ping")
 		return next(ctx, req)
