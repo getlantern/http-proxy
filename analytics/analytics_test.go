@@ -21,13 +21,13 @@ func TestNormalizeSite(t *testing.T) {
 		TrackingID:       "12345",
 		SamplePercentage: 1,
 	})
-	addrs, err := net.LookupHost("ats1.member.vip.ne1.yahoo.com")
+	addrs, err := net.LookupHost("iad30s21-in-x05.1e100.net")
 	if assert.NoError(t, err, "Should have been able to resolve yahoo.com") {
 		for port, proto := range portsAndProtos {
 			normalized := am.(*analyticsMiddleware).normalizeSite(addrs[0], port)
 			assert.Len(t, normalized, 4, "Should have gotten two sites and one protocol")
-			assert.Equal(t, "ats1.member.vip.ne1.yahoo.com", normalized[1])
-			assert.Equal(t, "/generated/yahoo.com", normalized[2])
+			assert.Equal(t, "iad30s21-in-x05.1e100.net", normalized[1])
+			assert.Equal(t, "/generated/1e100.net", normalized[2])
 			assert.Equal(t, "/protocol/"+proto, normalized[3])
 		}
 	}
