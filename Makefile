@@ -27,5 +27,9 @@ dist: require-glide require-upx
 	GOOS=linux GOARCH=amd64 BUILD_DIR=dist $(MAKE) build -o http-proxy && \
 	upx dist/http-proxy
 
+deploy: dist/http-proxy
+	s3cmd put dist/http-proxy s3://http-proxy/http-proxy && \
+	s3cmd setacl --acl-grant read:f87080f71ec0be3b9a933cbb244a6c24d4aca584ac32b3220f56d59071043747 s3://http-proxy/http-proxy
+
 clean:
 	rm -rf dist bin
