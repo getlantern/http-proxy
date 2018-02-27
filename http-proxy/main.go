@@ -74,6 +74,7 @@ var (
 func main() {
 	var err error
 
+	iniflags.SetAllowUnknownFlags(true)
 	iniflags.Parse()
 	if *version {
 		fmt.Fprintf(os.Stderr, "%s: commit %s built with %s\n", os.Args[0], revision, runtime.Version())
