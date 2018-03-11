@@ -1,15 +1,12 @@
 package configserverfilter
 
 import (
-	"crypto/tls"
-	"net"
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/mockconn"
 	"github.com/getlantern/proxy/filters"
 )
 
@@ -62,22 +59,6 @@ func TestModifyRequest(t *testing.T) {
 	assert.Equal(t, "not-config-server.org", dummy.req.Host, "should not use port 443 for other sites")
 	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should not attach token for other sites")
 	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should not attach client ip for other sites")
-}
-
-func TestDialer(t *testing.T) {
-	var address string
-	dummyDial := func(net, addr string) (net.Conn, error) {
-		address = addr
-		return mockconn.SucceedingDialer([]byte{}).Dial(net, addr)
-	}
-	d := Dialer(dummyDial, &Options{"", []string{"site1", "site2"}, 0})
-
-	c, _ := d("tcp", "site1")
-	_, ok := c.(*tls.Conn)
-	assert.True(t, ok, "should override dialer if site is in list")
-	c, _ = d("tcp", "other")
-	_, ok = c.(*tls.Conn)
-	assert.False(t, ok, "should not override dialer for other dialers")
 }
 
 func TestInitializeNoDomains(t *testing.T) {
