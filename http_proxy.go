@@ -262,9 +262,8 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	var requestRewriters []func(*http.Request)
 	if p.CfgSvrAuthToken != "" || p.CfgSvrDomains != "" {
 		cfg := &configserverfilter.Options{
-			AuthToken:          p.CfgSvrAuthToken,
-			Domains:            strings.Split(p.CfgSvrDomains, ","),
-			ClientIPCacheClear: p.CfgSvrCacheClear,
+			AuthToken: p.CfgSvrAuthToken,
+			Domains:   strings.Split(p.CfgSvrDomains, ","),
 		}
 		dialerForPforward = configserverfilter.Dialer(dialerForPforward, cfg)
 		csf := configserverfilter.New(cfg)
