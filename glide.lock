@@ -1,5 +1,5 @@
 hash: 92a4750bafa5957feca5bda2f6c46655884012e54d9ba5169eeced5e053ce5dc
-updated: 2018-02-19T15:38:22.7922932-06:00
+updated: 2018-03-19T15:21:30.1226-07:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: a3ad5df6c9e7dc8117f55958b4ce99bf1e0fe291
@@ -20,7 +20,7 @@ imports:
   - edwards25519
   - extra25519
 - name: github.com/aristanetworks/goarista
-  version: 59a9fbff37594bdf8030b4431e41eb4563189a2a
+  version: 731587b8d73c3a00e6c57f1debbb36e0fe575a35
   subpackages:
   - monotime
 - name: github.com/blang/semver
@@ -34,7 +34,7 @@ imports:
 - name: github.com/getlantern/bbrconn
   version: 9a5594c63329cf77582eccae41a8a75240a078fe
 - name: github.com/getlantern/borda
-  version: c601fcfa0cd58611fe1e56097d79da369ed426fb
+  version: 2a4da320611aaace4c9f7cab9f7d7c6fd0f16eae
   subpackages:
   - client
 - name: github.com/getlantern/byteexec
@@ -143,7 +143,7 @@ imports:
 - name: github.com/getlantern/tlsdefaults
   version: cf35cfd0b1b460b031536c9846ffcd5f7811dddb
 - name: github.com/getlantern/tlsredis
-  version: e14f04c41d2ecdeebd3481c0dbfa5c21c8666973
+  version: 5d4ed6dd3836cd7e1210a52da62ba4c4a923bfd7
 - name: github.com/getlantern/uuid
   version: 1318e7614b82cd38041b0b0bd3692d71f3901fb8
 - name: github.com/getlantern/waitforserver
@@ -210,7 +210,7 @@ imports:
 - name: github.com/klauspost/cpuid
   version: ae832f27941af41db13bd6d8efd2493e3b22415a
 - name: github.com/mikioh/tcp
-  version: 3bd3001131da0045ef55a30a207c6a3f0c29f277
+  version: a2964c74d73b11ff68e6c9bfabb496cfe29a9a60
 - name: github.com/mikioh/tcpopt
   version: 18f4a8218095cbd44df0d49c3dd91e7f2a3b12e0
 - name: github.com/mxk/go-flowrate
@@ -218,13 +218,13 @@ imports:
   subpackages:
   - flowrate
 - name: github.com/oschwald/geoip2-golang
-  version: 5b1dc16861f81d05d9836bb21c2d0d65282fc0b8
+  version: 7118115686e16b77967cdbf55d1b944fe14ad312
 - name: github.com/oschwald/maxminddb-golang
-  version: 6cf014f8bd8998776f35873ec662ba83c5c1cae7
+  version: c5bec84d1963260297932a1b7a1753c8420717a7
 - name: github.com/oxtoacart/bpool
   version: 4e1c5567d7c2dd59fa4c7c83d34c2f3528b025d6
 - name: github.com/pkg/errors
-  version: 30136e27e2ac8d167177e8a583aa4c3fea5be833
+  version: 816c9085562cd7ee03e7f8188a1cfd942858cded
 - name: github.com/rcrowley/go-metrics
   version: 8732c616f52954686704c8645fe1a9d59e9df7c1
 - name: github.com/siddontang/ledisdb
@@ -240,7 +240,7 @@ imports:
   - store/leveldb
   - store/rocksdb
 - name: github.com/stretchr/testify
-  version: be8372ae8ec5c6daaed3cc28ebf73c54b737c240
+  version: 380174f817a09abe5982a82f94ad50938a8df65d
   subpackages:
   - assert
 - name: github.com/templexxx/cpufeat
@@ -266,7 +266,7 @@ imports:
 - name: github.com/Yawning/chacha20
   version: e3b1f968fc6397b51d963fee8ec8711a47bc0ce8
 - name: golang.org/x/crypto
-  version: 432090b8f568c018896cd8a0fb0345872bbac6ce
+  version: c3a3ad6d03f7a915c0f7e194b7152974bb73d287
   subpackages:
   - blowfish
   - cast5
@@ -283,7 +283,7 @@ imports:
   - twofish
   - xtea
 - name: golang.org/x/net
-  version: cbe0f9307d0156177f9dd5dc85da1a31abc5f2fb
+  version: 92b859f39abd2d91a854c9f9c4621b2f5054a92d
   repo: https://github.com/golang/net
   vcs: git
   subpackages:
@@ -299,14 +299,14 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/sys
-  version: 37707fdb30a5b38865cfb95e5aab41707daec7fd
+  version: d8e400bc7db4870d786864138af681469693d18c
   repo: https://github.com/golang/sys
   vcs: git
   subpackages:
   - unix
   - windows
 - name: golang.org/x/text
-  version: 4e4a3210bb54bb31f6ab2cdca2edcc0b50c420c1
+  version: 8c34f848e18c4bd34d02db7f19a0ed1a0a8f5852
   subpackages:
   - secure/bidirule
   - transform
@@ -324,11 +324,11 @@ imports:
   - internal/modules
   - internal/remote_api
 - name: google.golang.org/genproto
-  version: 2b5a72b8730b0b16380010cfe5286c42108d88e7
+  version: f8c8703595236ae70fdf8789ecb656ea0bcdcf46
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: dfa18343df54bda471a4b53677aa7c0d0df882d1
+  version: 738eb6b62fe9a30ddfe19934b0a22b1a66fbb661
   subpackages:
   - balancer
   - balancer/base
@@ -367,7 +367,7 @@ testImports:
   - crc64
   - nopdecoder
 - name: github.com/davecgh/go-spew
-  version: 87df7c60d5820d0f8ae11afede5aa52325c09717
+  version: 8991bc29aa16c548c550c7ff78260e27b9ab7c73
   subpackages:
   - spew
 - name: github.com/edsrzf/mmap-go
@@ -375,7 +375,7 @@ testImports:
 - name: github.com/glendc/gopher-json
   version: dc4743023d0c166c1b844da8fc688e57ec65fe0b
 - name: github.com/pelletier/go-toml
-  version: acdc4509485b587f5e675510c4f2c63e90ff68a8
+  version: 05bcc0fb0d3e60da4b8dd5bd7e0ea563eb4ca943
 - name: github.com/pmezard/go-difflib
   version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:
@@ -396,7 +396,7 @@ testImports:
 - name: github.com/siddontang/rdb
   version: fc89ed2e418d27e3ea76e708e54276d2b44ae9cf
 - name: github.com/syndtr/goleveldb
-  version: 211f780988068502fe874c44dae530528ebd840f
+  version: 169b1b37be738edb2813dab48c97a549bcf99bb5
   subpackages:
   - leveldb
   - leveldb/cache
@@ -411,11 +411,11 @@ testImports:
   - leveldb/table
   - leveldb/util
 - name: github.com/ugorji/go
-  version: b5b949564861e43a03568a0b134c135cf318e5c8
+  version: 02537d3a3e32ef636a53519265d211bd208ca488
   subpackages:
   - codec
 - name: github.com/yuin/gopher-lua
-  version: 7d7bc8747e3f614c5c587729a341fe7d8903cdb8
+  version: 84ea3a3c79b3c4b3b39606cc96f255cd63635ce0
   subpackages:
   - ast
   - parse

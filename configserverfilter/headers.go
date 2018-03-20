@@ -5,12 +5,8 @@ package configserverfilter
 
 import (
 	"errors"
-	"math/rand"
 	"net"
 	"net/http"
-	"time"
-
-	lru "github.com/hashicorp/golang-lru"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/filters"
@@ -21,14 +17,12 @@ import (
 var log = golog.LoggerFor("configServerFilter")
 
 type Options struct {
-	AuthToken          string
-	Domains            []string
-	ClientIPCacheClear time.Duration
+	AuthToken string
+	Domains   []string
 }
 
 type ConfigServerFilter struct {
-	opts  *Options
-	cache *lru.Cache
+	opts *Options
 }
 
 func New(opts *Options) *ConfigServerFilter {
@@ -37,61 +31,14 @@ func New(opts *Options) *ConfigServerFilter {
 	}
 	log.Debugf("Will attach %s header on GET requests to %+v", common.CfgSvrAuthTokenHeader, opts.Domains)
 
-	cache, _ := lru.New(100000)
-	csf := &ConfigServerFilter{
-		opts:  opts,
-		cache: cache,
-	}
-
-	if opts.ClientIPCacheClear > 0 {
-		go csf.clearCacheLoop(opts.ClientIPCacheClear)
-	}
-
-	return csf
-}
-
-func (f *ConfigServerFilter) clearCacheLoop(t time.Duration) {
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	for {
-		t := t + time.Duration(r.Intn(30))*time.Minute
-		time.Sleep(t)
-		f.cache.Purge()
+	return &ConfigServerFilter{
+		opts: opts,
 	}
 }
 
 func (f *ConfigServerFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	f.RewriteIfNecessary(req)
-	if f.isConfigRequest(req) {
-		ip, cached := f.notModified(req)
-		if cached {
-			log.Debugf("Cache hit for client IP %v", ip)
-			return &http.Response{StatusCode: http.StatusNotModified}, ctx, nil
-		}
-		log.Debugf("Cache miss for client IP %v", ip)
-		resp, nextCtx, err := next(ctx, req)
-
-		if resp != nil && ip != "" && (resp.StatusCode == http.StatusOK || resp.StatusCode == http.StatusNotModified) {
-			f.cache.Add(ip, true)
-		}
-		return resp, nextCtx, err
-	}
-
 	return next(ctx, req)
-
-}
-
-func (f *ConfigServerFilter) notModified(req *http.Request) (string, bool) {
-	ip, _, err := net.SplitHostPort(req.RemoteAddr)
-	if err != nil {
-		log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
-		return "", false
-	}
-	return ip, f.cache.Contains(ip)
-}
-
-func (f *ConfigServerFilter) isConfigRequest(req *http.Request) bool {
-	matched := f.matchingDomains(req)
-	return matched != ""
 }
 
 func (f *ConfigServerFilter) RewriteIfNecessary(req *http.Request) {
