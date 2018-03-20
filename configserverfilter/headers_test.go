@@ -22,7 +22,7 @@ func TestModifyRequest(t *testing.T) {
 	dummyClientIP := "1.1.1.1"
 	dummyAddr := dummyClientIP + ":12345"
 	dummy := &dummyHandler{}
-	chain := filters.Join(New(&Options{fakeToken, []string{"site1.com", "site2.org"}, 0}), dummy)
+	chain := filters.Join(New(&Options{fakeToken, []string{"site1.com", "site2.org"}}), dummy)
 
 	req, _ := http.NewRequest("GET", "http://site1.com:80/abc.gz", nil)
 	req.RemoteAddr = dummyAddr

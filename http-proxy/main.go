@@ -28,7 +28,6 @@ var (
 	certfile                       = flag.String("cert", "", "Certificate file name")
 	cfgSvrAuthToken                = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
 	cfgSvrDomains                  = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
-	cfgSvrCacheClear               = flag.Duration("cfgsvrcacheclear", 0, "The time to clear client IP cache for Config-server requests, cache forever by default.")
 	enableReports                  = flag.Bool("enablereports", false, "Enable stats reporting")
 	throttleRefreshInterval        = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
 	throttleThreshold              = flag.Int64("throttlethreshold", 0, "Set to a positive value to force a specific throttle threshold in bytes (rather than using one from Redis)")
@@ -116,7 +115,6 @@ func main() {
 		CertFile:                *certfile,
 		CfgSvrAuthToken:         *cfgSvrAuthToken,
 		CfgSvrDomains:           *cfgSvrDomains,
-		CfgSvrCacheClear:        *cfgSvrCacheClear,
 		EnableReports:           *enableReports,
 		ThrottleRefreshInterval: *throttleRefreshInterval,
 		ThrottleThreshold:       *throttleThreshold,

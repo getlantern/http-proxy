@@ -4,7 +4,6 @@ import (
 	"crypto/tls"
 	"net"
 	"testing"
-	"time"
 
 	"github.com/getlantern/mockconn"
 	"github.com/stretchr/testify/assert"
@@ -14,9 +13,8 @@ func TestDialerConfigServer(t *testing.T) {
 	domains := make([]string, 0)
 	domains = append(domains, "config.getiantem.org")
 	opts := &Options{
-		AuthToken:          "",
-		Domains:            domains,
-		ClientIPCacheClear: time.Hour * 2,
+		AuthToken: "",
+		Domains:   domains,
 	}
 	dial := Dialer(net.Dial, opts)
 	conn, err := dial("tcp", "config.getiantem.org:443")
@@ -30,7 +28,7 @@ func TestDialer(t *testing.T) {
 		address = addr
 		return mockconn.SucceedingDialer([]byte{}).Dial(net, addr)
 	}
-	d := Dialer(dummyDial, &Options{"", []string{"site1", "site2"}, 0})
+	d := Dialer(dummyDial, &Options{"", []string{"site1", "site2"}})
 
 	c, _ := d("tcp", "site1")
 	_, ok := c.(*tls.Conn)
