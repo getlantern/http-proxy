@@ -1,8 +1,8 @@
 hash: 92a4750bafa5957feca5bda2f6c46655884012e54d9ba5169eeced5e053ce5dc
-updated: 2018-03-19T15:21:30.1226-07:00
+updated: 2018-03-28T11:56:07.438347-05:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
-  version: a3ad5df6c9e7dc8117f55958b4ce99bf1e0fe291
+  version: 7d56ec4f381e8b1aedfda360594e35a5731b5337
 - name: git.torproject.org/pluggable-transports/obfs4.git
   version: af4824cb0b2c36a0eba4bc1590eb0737302e992e
   subpackages:
@@ -20,7 +20,7 @@ imports:
   - edwards25519
   - extra25519
 - name: github.com/aristanetworks/goarista
-  version: 731587b8d73c3a00e6c57f1debbb36e0fe575a35
+  version: 9cf7f6b188ea30684caffe3d18e03e61d7193e25
   subpackages:
   - monotime
 - name: github.com/blang/semver
@@ -30,7 +30,7 @@ imports:
 - name: github.com/dustin/go-humanize
   version: bb3d318650d48840a39aa21a027c6630e198e626
 - name: github.com/getlantern/appdir
-  version: 659a155d06e8f3dd8b9f79d6147445897499b56b
+  version: 7c0f9d241ea78ff68bf3aecfe2ea2009ff8500cf
 - name: github.com/getlantern/bbrconn
   version: 9a5594c63329cf77582eccae41a8a75240a078fe
 - name: github.com/getlantern/borda
@@ -78,7 +78,7 @@ imports:
 - name: github.com/getlantern/hidden
   version: d52a649ab33af200943bb599898dbdcfdbc94cb7
 - name: github.com/getlantern/http-proxy
-  version: bf1eb8b9e947dba5167d74bb9270ecaed940725b
+  version: 8f8c6ce1e943b07d9216279588118f428537e6f9
   subpackages:
   - buffers
   - commonfilter
@@ -118,9 +118,9 @@ imports:
 - name: github.com/getlantern/ops
   version: 37353306c90844c8e0591956f56611f46299d202
 - name: github.com/getlantern/preconn
-  version: 9d78068db81b714e7612e5d43030ee2e1ce6c49a
+  version: 0b5766010efe7a5fd5c9c5675ed83ed167908418
 - name: github.com/getlantern/proxy
-  version: bf5c9f61677cf800e1b560a10c89ea5955f74f65
+  version: afe965b8c237b91043ad31beac695e3224c8c34e
   subpackages:
   - filters
 - name: github.com/getlantern/reconn
@@ -168,7 +168,7 @@ imports:
   subpackages:
   - lru
 - name: github.com/golang/protobuf
-  version: bbd03ef6da3a115852eaf24c8a1c46aeb39aa175
+  version: e09c5db296004fbe3f74490e84dcd62c3c5ddb1b
   subpackages:
   - proto
   - ptypes
@@ -208,11 +208,13 @@ imports:
   subpackages:
   - simplelru
 - name: github.com/klauspost/cpuid
-  version: ae832f27941af41db13bd6d8efd2493e3b22415a
+  version: 30e450625213468c7ec31fec6102dab6504adcc9
 - name: github.com/mikioh/tcp
   version: a2964c74d73b11ff68e6c9bfabb496cfe29a9a60
 - name: github.com/mikioh/tcpopt
   version: 18f4a8218095cbd44df0d49c3dd91e7f2a3b12e0
+- name: github.com/mitchellh/go-homedir
+  version: b8bc1bf767474819792c23f32d8286a45736f1c6
 - name: github.com/mxk/go-flowrate
   version: cca7078d478f8520f85629ad7c68962d31ed7682
   subpackages:
@@ -228,7 +230,7 @@ imports:
 - name: github.com/rcrowley/go-metrics
   version: 8732c616f52954686704c8645fe1a9d59e9df7c1
 - name: github.com/siddontang/ledisdb
-  version: 17ea9a433d4de59d4d1f30a8e93f8298b3a381b1
+  version: 36de957bf3a22a4785e8ce3d111b9a20de0d36f0
   subpackages:
   - config
   - ledis
@@ -240,7 +242,7 @@ imports:
   - store/leveldb
   - store/rocksdb
 - name: github.com/stretchr/testify
-  version: 380174f817a09abe5982a82f94ad50938a8df65d
+  version: c679ae2cc0cb27ec3293fea7e254e47386f05d69
   subpackages:
   - assert
 - name: github.com/templexxx/cpufeat
@@ -266,7 +268,7 @@ imports:
 - name: github.com/Yawning/chacha20
   version: e3b1f968fc6397b51d963fee8ec8711a47bc0ce8
 - name: golang.org/x/crypto
-  version: c3a3ad6d03f7a915c0f7e194b7152974bb73d287
+  version: 88942b9c40a4c9d203b82b3731787b672d6e809b
   subpackages:
   - blowfish
   - cast5
@@ -283,7 +285,7 @@ imports:
   - twofish
   - xtea
 - name: golang.org/x/net
-  version: 92b859f39abd2d91a854c9f9c4621b2f5054a92d
+  version: 6078986fec03a1dcc236c34816c71b0e05018fda
   repo: https://github.com/golang/net
   vcs: git
   subpackages:
@@ -299,21 +301,21 @@ imports:
   - lex/httplex
   - trace
 - name: golang.org/x/sys
-  version: d8e400bc7db4870d786864138af681469693d18c
+  version: 13d03a9a82fba647c21a0ef8fba44a795d0f0835
   repo: https://github.com/golang/sys
   vcs: git
   subpackages:
   - unix
   - windows
 - name: golang.org/x/text
-  version: 8c34f848e18c4bd34d02db7f19a0ed1a0a8f5852
+  version: ece95c760240037f89ebcbdd7155ac8cb52e38fa
   subpackages:
   - secure/bidirule
   - transform
   - unicode/bidi
   - unicode/norm
 - name: google.golang.org/appengine
-  version: 5bee14b453b4c71be47ec1781b0fa61c2ea182db
+  version: 540132eeda33c2b26cca331a6adfd50519cd29f7
   subpackages:
   - datastore
   - internal
@@ -324,11 +326,11 @@ imports:
   - internal/modules
   - internal/remote_api
 - name: google.golang.org/genproto
-  version: f8c8703595236ae70fdf8789ecb656ea0bcdcf46
+  version: ab0870e398d5dd054b868c0db1481ab029b9a9f2
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 738eb6b62fe9a30ddfe19934b0a22b1a66fbb661
+  version: f72b28a6d170d0938afd483331ba4e5d733785ae
   subpackages:
   - balancer
   - balancer/base
@@ -375,7 +377,7 @@ testImports:
 - name: github.com/glendc/gopher-json
   version: dc4743023d0c166c1b844da8fc688e57ec65fe0b
 - name: github.com/pelletier/go-toml
-  version: 05bcc0fb0d3e60da4b8dd5bd7e0ea563eb4ca943
+  version: 66540cf1fcd2c3aee6f6787dfa32a6ae9a870f12
 - name: github.com/pmezard/go-difflib
   version: 792786c7400a136282c1664665ae0a8db921c6c2
   subpackages:
