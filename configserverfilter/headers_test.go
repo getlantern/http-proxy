@@ -31,26 +31,17 @@ func TestModifyRequest(t *testing.T) {
 	}
 	ctx := filters.BackgroundContext()
 	chain.Apply(ctx, req, next)
-	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
-	assert.Equal(t, "site1.com:443", dummy.req.Host, "should use port 443")
-	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
-	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should attach client ip")
+	assert.Equal(t, "", dummy.req.Host, "should have blank host")
 
 	req, _ = http.NewRequest("GET", "http://site2.org/abc.gz", nil)
 	req.RemoteAddr = dummyAddr
 	chain.Apply(ctx, req, next)
-	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
-	assert.Equal(t, "site2.org:443", dummy.req.Host, "should use port 443")
-	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
-	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should attach client ip")
+	assert.Equal(t, "", dummy.req.Host, "should have blank host")
 
 	req, _ = http.NewRequest("GET", "http://site2.org:443/abc.gz", nil)
 	req.RemoteAddr = "bad-addr"
 	chain.Apply(ctx, req, next)
-	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
-	assert.Equal(t, "site2.org:443", dummy.req.Host, "should use port 443")
-	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
-	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should not attach client ip if remote address is invalid")
+	assert.Equal(t, "", dummy.req.Host, "should have blank host")
 
 	req, _ = http.NewRequest("GET", "http://not-config-server.org/abc.gz", nil)
 	req.RemoteAddr = dummyAddr

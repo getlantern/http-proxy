@@ -1,5 +1,5 @@
 hash: 92a4750bafa5957feca5bda2f6c46655884012e54d9ba5169eeced5e053ce5dc
-updated: 2018-03-28T11:56:07.438347-05:00
+updated: 2018-04-03T16:51:45.7027344-05:00
 imports:
 - name: git.torproject.org/pluggable-transports/goptlib.git
   version: 7d56ec4f381e8b1aedfda360594e35a5731b5337
@@ -168,7 +168,7 @@ imports:
   subpackages:
   - lru
 - name: github.com/golang/protobuf
-  version: e09c5db296004fbe3f74490e84dcd62c3c5ddb1b
+  version: bbd03ef6da3a115852eaf24c8a1c46aeb39aa175
   subpackages:
   - proto
   - ptypes

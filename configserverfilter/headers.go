@@ -60,16 +60,15 @@ func (f *ConfigServerFilter) matchingDomains(req *http.Request) string {
 }
 
 func (f *ConfigServerFilter) rewrite(host string, req *http.Request) {
-	req.URL.Scheme = "https"
 	prevHost := req.Host
-	req.Host = host + ":443"
-	req.Header.Set(common.CfgSvrAuthTokenHeader, f.opts.AuthToken)
+	// Temporarily set a blank host so that all config server requests immediately fail
+	req.Host = ""
+	req.URL.Host = ""
 	ip, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
 		log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
 		return
 	}
-	req.Header.Set(common.CfgSvrClientIPHeader, ip)
 	log.Debugf("Rewrote request from %s to %s as \"GET %s\", host %s", ip, prevHost, req.URL.String(), req.Host)
 }
 
