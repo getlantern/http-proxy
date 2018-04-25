@@ -3,7 +3,7 @@
 # If you want Google's container you would reference google/golang
 # Read more about containers on our dev center
 # http://devcenter.wercker.com/docs/containers/index.html
-box: golang:1.9
+box: golang:1.10.1
 # This is the build pipeline. Pipelines are the core of wercker
 # Read more about pipelines on our dev center
 # http://devcenter.wercker.com/docs/pipelines/index.html
@@ -18,18 +18,15 @@ build:
     - wercker/setup-go-workspace:
       package-dir: github.com/getlantern/http-proxy-lantern
     - script:
-      name: get glide
+      name: get dep
       code: |
-        cd /tmp
-        curl -L https://github.com/Masterminds/glide/releases/download/v0.12.3/glide-v0.12.3-linux-amd64.tar.gz -o glide.tar.gz
-        tar -xf glide.tar.gz
-        sudo mv linux-amd64/glide /usr/local/bin/
+        curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
     - script:
-      name: glide install
+      name: dep ensure
       code: |
-        glide install
+        dep ensure
     # Test the project
     - script:
       name: go test -race
       code: |
-        go test -race $(glide novendor)
+        go test -race $(go list | grep -v vendor)
