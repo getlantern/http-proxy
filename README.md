@@ -2,9 +2,9 @@
 
 [![wercker status](https://app.wercker.com/status/67d1598d6205dce4aee80a9631d109e5/m/master "wercker status")](https://app.wercker.com/project/byKey/67d1598d6205dce4aee80a9631d109e5)
 
-Note - this project versions its dependencies using [glide](https://github.com/Masterminds/glide).
+Note - this project versions its dependencies using [dep](https://github.com/golang/dep).
 
-Just run `glide install` to download the vendored packages.
+Just run `dep ensure` to download the vendored packages.
 
 These are Lantern-specific middleware components for the HTTP Proxy in Go:
 
@@ -21,7 +21,7 @@ These are Lantern-specific middleware components for the HTTP Proxy in Go:
 
 ### Usage
 
-Build it with `glide install && go build` or with `make build`.
+Build it with `dep ensure && go build` or with `make build`.
 
 To get list of the command line options, please run `http-proxy-lantern -help`.
 
