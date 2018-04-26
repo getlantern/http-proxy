@@ -23,6 +23,9 @@ build:
       hostname: github.com
       fingerprint: D7:9F:07:61:10:B3:92:93:E3:49:AC:89:84:5B:03:80:C1:9E:2F:8B
       type: rsa
+    - script:
+      name: force git access via ssh
+      code: git config --global url."git@github.com:".insteadOf "https://github.com/"
     - wercker/setup-go-workspace:
       package-dir: github.com/getlantern/http-proxy-lantern
     - script:
