@@ -18,7 +18,7 @@ build:
     - wercker/setup-go-workspace:
       package-dir: github.com/getlantern/http-proxy-lantern
     - add-ssh-key:
-      keyname: wercker-http-proxy-lantern
+      keyname: LANTERNWERCKER_KEY
       host: github.com
     # For https://github.com/wercker/step-add-to-known_hosts/issues/13
     - add-to-known_hosts@2.0.1:
