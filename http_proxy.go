@@ -127,7 +127,8 @@ func (p *Proxy) ListenAndServe() error {
 		Dial:        dial,
 		Filter:      filterChain.Prepend(opsfilter.New(p.bm)),
 	})
-	srv.Allow = blacklist.OnConnect
+	// Temporarily disable blacklisting
+	// srv.Allow = blacklist.OnConnect
 	p.applyThrottling(srv, bwReporting)
 	srv.AddListenerWrappers(bwReporting.wrapper)
 	if p.Obfs4Addr != "" {
