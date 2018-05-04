@@ -224,6 +224,7 @@
   revision = "7a71d2e71cf253f64b9610ce7aa9ddfc58aa9b2a"
 
 [[projects]]
+  branch = "master"
   name = "github.com/getlantern/kcp-go"
   packages = ["."]
   revision = "19559e0e938cb2af45ae30765c109f821da19b33"
@@ -634,6 +635,30 @@
   ]
   revision = "cfa635847112c5dc4782e128fa7e0d05fdbfb394"
 
+[[projects]]
+  branch = "master"
+  name = "github.com/templexxx/cpufeat"
+  packages = ["."]
+  revision = "3794dfbfb04749f896b521032f69383f24c3687e"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/templexxx/reedsolomon"
+  packages = ["."]
+  revision = "7092926d7d05c415fabb892b1464a03f8228ab80"
+
+[[projects]]
+  name = "github.com/templexxx/xor"
+  packages = ["."]
+  revision = "0af8e873c554da75f37f2049cdffda804533d44c"
+  version = "0.1.2"
+
+[[projects]]
+  name = "github.com/tjfoc/gmsm"
+  packages = ["sm4"]
+  revision = "98aa888b79d8de04afe0fccf45ed10594efc858b"
+  version = "v1.1"
+  
 [[projects]]
   name = "github.com/ugorji/go"
   packages = ["codec"]
