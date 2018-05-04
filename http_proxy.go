@@ -103,6 +103,10 @@ type Proxy struct {
 	VersionCheckRedirectPercentage float64
 	GoogleSearchRegex              string
 	GoogleCaptchaRegex             string
+	BlacklistMaxIdleTime           time.Duration
+	BlacklistMaxConnectInterval    time.Duration
+	BlacklistAllowedFailures       int
+	BlacklistExpiration            time.Duration
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -217,10 +221,10 @@ func (p *Proxy) setBenchmarkMode() {
 
 func (p *Proxy) createBlacklist() *blacklist.Blacklist {
 	return blacklist.New(blacklist.Options{
-		MaxIdleTime:        30 * time.Second,
-		MaxConnectInterval: 5 * time.Second,
-		AllowedFailures:    10,
-		Expiration:         6 * time.Hour,
+		MaxIdleTime:        p.BlacklistMaxIdleTime,        //30 * time.Second,
+		MaxConnectInterval: p.BlacklistMaxConnectInterval, // 5 * time.Second,
+		AllowedFailures:    p.BlacklistAllowedFailures,    // 10,
+		Expiration:         p.BlacklistExpiration,         //6 * time.Hour,
 	})
 }
 

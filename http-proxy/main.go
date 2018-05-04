@@ -68,6 +68,10 @@ var (
 	versionCheckRedirectPercentage = flag.Float64("versioncheck-redirect-percentage", 1, "The percentage of requests to be redirected in version check. Defaults to 1 (100%)")
 	googleSearchRegex              = flag.String("google-search-regex", googlefilter.DefaultSearchRegex, "Regex for detecting access to Google Search")
 	googleCaptchaRegex             = flag.String("google-captcha-regex", googlefilter.DefaultCaptchaRegex, "Regex for detecting access to Google captcha page")
+	blacklistMaxIdleTime           = flag.Duration("blacklist-max-idle-time", 2*time.Minute, "How long to wait for an HTTP request before considering a connection failed for blacklisting")
+	blacklistMaxConnectInterval    = flag.Duration("blacklist-max-connect-interval", 10*time.Second, "Successive connection attempts within this interval will be treated as a single attempt for blacklisting")
+	blacklistAllowedFailures       = flag.Int("blacklist-allowed-failures", 100, "The number of failed connection attempts we tolerate before blacklisting an IP address")
+	blacklistExpiration            = flag.Duration("blacklist-expiration", 6*time.Hour, "How long to wait before removing an ip from the blacklist")
 )
 
 func main() {
@@ -151,6 +155,10 @@ func main() {
 		VersionCheckRedirectPercentage: *versionCheckRedirectPercentage,
 		GoogleSearchRegex:              *googleSearchRegex,
 		GoogleCaptchaRegex:             *googleCaptchaRegex,
+		BlacklistMaxIdleTime:           *blacklistMaxIdleTime,
+		BlacklistMaxConnectInterval:    *blacklistMaxConnectInterval,
+		BlacklistAllowedFailures:       *blacklistAllowedFailures,
+		BlacklistExpiration:            *blacklistExpiration,
 	}
 
 	err = p.ListenAndServe()
