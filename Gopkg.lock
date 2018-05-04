@@ -227,7 +227,6 @@
   name = "github.com/getlantern/kcp-go"
   packages = ["."]
   revision = "19559e0e938cb2af45ae30765c109f821da19b33"
-  version = "v20160629"
 
 [[projects]]
   branch = "master"
