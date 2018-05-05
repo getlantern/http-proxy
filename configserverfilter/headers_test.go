@@ -25,6 +25,7 @@ func TestModifyRequest(t *testing.T) {
 	chain := filters.Join(New(&Options{fakeToken, []string{"site1.com", "site2.org"}}), dummy)
 
 	req, _ := http.NewRequest("GET", "http://site1.com:80/abc.gz", nil)
+	req.URL.Host = ""
 	req.RemoteAddr = dummyAddr
 	next := func(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
 		return nil, ctx, nil
@@ -33,30 +34,37 @@ func TestModifyRequest(t *testing.T) {
 	chain.Apply(ctx, req, next)
 	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
 	assert.Equal(t, "site1.com:443", dummy.req.Host, "should use port 443")
+	assert.Equal(t, "site1.com", dummy.req.URL.Host, "request URL should contain host")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
 	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should attach client ip")
 
 	req, _ = http.NewRequest("GET", "http://site2.org/abc.gz", nil)
+	req.URL.Host = ""
 	req.RemoteAddr = dummyAddr
 	chain.Apply(ctx, req, next)
 	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
 	assert.Equal(t, "site2.org:443", dummy.req.Host, "should use port 443")
+	assert.Equal(t, "site2.org", dummy.req.URL.Host, "request URL should contain host")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
 	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should attach client ip")
 
 	req, _ = http.NewRequest("GET", "http://site2.org:443/abc.gz", nil)
+	req.URL.Host = ""
 	req.RemoteAddr = "bad-addr"
 	chain.Apply(ctx, req, next)
 	assert.Equal(t, "https", dummy.req.URL.Scheme, "should rewrite to https")
 	assert.Equal(t, "site2.org:443", dummy.req.Host, "should use port 443")
+	assert.Equal(t, "site2.org", dummy.req.URL.Host, "request URL should contain host")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
 	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should not attach client ip if remote address is invalid")
 
 	req, _ = http.NewRequest("GET", "http://not-config-server.org/abc.gz", nil)
+	req.URL.Host = ""
 	req.RemoteAddr = dummyAddr
 	chain.Apply(ctx, req, next)
 	assert.Equal(t, "http", dummy.req.URL.Scheme, "should not rewrite to https for other sites")
 	assert.Equal(t, "not-config-server.org", dummy.req.Host, "should not use port 443 for other sites")
+	assert.Equal(t, "", dummy.req.URL.Host, "request URL should contain original host")
 	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should not attach token for other sites")
 	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should not attach client ip for other sites")
 }

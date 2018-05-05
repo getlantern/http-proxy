@@ -63,6 +63,7 @@ func (f *ConfigServerFilter) rewrite(host string, req *http.Request) {
 	req.URL.Scheme = "https"
 	prevHost := req.Host
 	req.Host = host + ":443"
+	req.URL.Host = host
 	req.Header.Set(common.CfgSvrAuthTokenHeader, f.opts.AuthToken)
 	ip, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
