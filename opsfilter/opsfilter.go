@@ -9,7 +9,6 @@ import (
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy/filters"
 
-	"github.com/getlantern/borda/client"
 	"github.com/getlantern/http-proxy-lantern/bbr"
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy/listeners"
