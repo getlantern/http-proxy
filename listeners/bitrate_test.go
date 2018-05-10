@@ -70,7 +70,7 @@ func TestLimited(t *testing.T) {
 	}
 	fmt.Printf("Written %v bytes\n", n)
 
-	timer := time.NewTimer(time.Second)
+	timer := time.NewTimer(950 * time.Millisecond)
 
 	totalRead := 0
 Done:
