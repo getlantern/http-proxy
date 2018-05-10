@@ -8,6 +8,7 @@ import (
 	_ "net/http/pprof"
 	"os"
 	"reflect"
+	"regexp"
 	"strconv"
 	"strings"
 	"time"
@@ -54,6 +55,8 @@ const (
 
 var (
 	log = golog.LoggerFor("lantern-proxy")
+
+	proxyNameRegex = regexp.MustCompile(`(fp-([a-z0-9]+-)?([a-z0-9]+)-[0-9]{8}-[0-9]+)(-.+)?`)
 )
 
 // Proxy is an HTTP proxy.
@@ -100,6 +103,11 @@ type Proxy struct {
 	VersionCheckRedirectPercentage float64
 	GoogleSearchRegex              string
 	GoogleCaptchaRegex             string
+	BlacklistMaxIdleTime           time.Duration
+	BlacklistMaxConnectInterval    time.Duration
+	BlacklistAllowedFailures       int
+	BlacklistExpiration            time.Duration
+	ProxyName                      string
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -192,6 +200,22 @@ func (p *Proxy) setupOpsContext() {
 		log.Debugf("Will report with proxy_host: %v", p.ExternalIP)
 		ops.SetGlobal("proxy_host", p.ExternalIP)
 	}
+	proxyName, dc := proxyName(p.ProxyName)
+	// Only set proxy name if it follows our naming convention
+	if proxyName != "" {
+		log.Debugf("Will report with proxy_name %v in dc %v", proxyName, dc)
+		ops.SetGlobal("proxy_name", proxyName)
+		ops.SetGlobal("dc", dc)
+	}
+}
+
+func proxyName(hostname string) (proxyName string, dc string) {
+	match := proxyNameRegex.FindStringSubmatch(hostname)
+	// Only set proxy name if it follows our naming convention
+	if len(match) != 5 {
+		return "", ""
+	}
+	return match[1], match[3]
 }
 
 func (p *Proxy) setBenchmarkMode() {
@@ -204,10 +228,10 @@ func (p *Proxy) setBenchmarkMode() {
 
 func (p *Proxy) createBlacklist() *blacklist.Blacklist {
 	return blacklist.New(blacklist.Options{
-		MaxIdleTime:        30 * time.Second,
-		MaxConnectInterval: 5 * time.Second,
-		AllowedFailures:    10,
-		Expiration:         6 * time.Hour,
+		MaxIdleTime:        p.BlacklistMaxIdleTime,        // 30 * time.Second,
+		MaxConnectInterval: p.BlacklistMaxConnectInterval, // 5 * time.Second,
+		AllowedFailures:    p.BlacklistAllowedFailures,    // 10,
+		Expiration:         p.BlacklistExpiration,         // 6 * time.Hour,
 	})
 }
 

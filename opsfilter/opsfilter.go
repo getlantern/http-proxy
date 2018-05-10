@@ -9,7 +9,6 @@ import (
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy/filters"
 
-	"github.com/getlantern/borda/client"
 	"github.com/getlantern/http-proxy-lantern/bbr"
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy/listeners"
@@ -66,12 +65,6 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 
 	resp, nextCtx, nextErr := next(ctx, req)
 	op.FailIf(nextErr)
-
-	// Add available bandwidth estimate
-	abe := f.bm.ABE(ctx)
-	if abe > 0 {
-		op.Set("est_mbps", client.Float(abe))
-	}
 
 	return resp, nextCtx, nextErr
 }

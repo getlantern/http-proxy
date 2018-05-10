@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/getlantern/golog"
+	"github.com/getlantern/ops"
 )
 
 var (
@@ -20,8 +21,8 @@ type Options struct {
 	// and seeing a successful HTTP request before we mark the connection as
 	// failed.
 	MaxIdleTime time.Duration
-	// The maximum interval between two consecutive connect attempts from same
-	// IP to make the IP as a counting target.
+	// Consecutive connection attempts within this interval will be treated as a
+	// single attempt.
 	MaxConnectInterval time.Duration
 	// The number of consecutive failures allowed before an IP is blacklisted
 	AllowedFailures int
@@ -148,6 +149,7 @@ func (bl *Blacklist) checkForIdlers() {
 			count := bl.failureCounts[ip] + 1
 			bl.failureCounts[ip] = count
 			if count >= bl.allowedFailures {
+				ops.Begin("blacklist").Set("client_ip", ip).End()
 				_ = log.Errorf("Blacklisting %v", ip)
 				blacklistAdditions = append(blacklistAdditions, ip)
 			}
