@@ -40,4 +40,4 @@ build:
     - script:
       name: go test -race
       code: |
-        go test -race $(go list | grep -v vendor)
+        go test -race $(go list ./...)
