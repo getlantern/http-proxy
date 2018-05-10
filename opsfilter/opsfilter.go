@@ -39,8 +39,7 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 		originHost = req.Host
 	}
 
-	op := ops.
-		Begin("proxy").
+	op := ops.Begin("proxy").
 		Set("device_id", deviceID).
 		Set("origin", req.Host).
 		Set("origin_host", originHost).
@@ -66,6 +65,7 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 	wc.ControlMessage("measured", opsCtx)
 
 	resp, nextCtx, nextErr := next(ctx, req)
+	op.FailIf(nextErr)
 
 	// Add available bandwidth estimate
 	abe := f.bm.ABE(ctx)
