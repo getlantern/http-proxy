@@ -207,6 +207,8 @@ func (p *Proxy) setupOpsContext() {
 		ops.SetGlobal("proxy_name", proxyName)
 		ops.SetGlobal("dc", dc)
 	}
+	ops.SetGlobal("proxy_protocol", p.proxyProtocol())
+	ops.SetGlobal("is_pro", p.Pro)
 }
 
 func proxyName(hostname string) (proxyName string, dc string) {
@@ -216,6 +218,16 @@ func proxyName(hostname string) (proxyName string, dc string) {
 		return "", ""
 	}
 	return match[1], match[3]
+}
+
+func (p *Proxy) proxyProtocol() string {
+	if p.LampshadeAddr != "" {
+		return "lampshade"
+	}
+	if p.KCPConf != "" {
+		return "kcp"
+	}
+	return "https"
 }
 
 func (p *Proxy) setBenchmarkMode() {
