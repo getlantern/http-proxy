@@ -203,7 +203,7 @@
     "proxyfilters",
     "server"
   ]
-  revision = "a70d540e9a297bd97a7b8702061899cf5a3596ba"
+  revision = "c8b940c610a4934cf5882c4323deb83d5f33530f"
 
 [[projects]]
   branch = "master"
