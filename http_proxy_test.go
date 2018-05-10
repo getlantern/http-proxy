@@ -89,6 +89,26 @@ func TestMain(m *testing.M) {
 	os.Exit(m.Run())
 }
 
+func TestProxyName(t *testing.T) {
+	runTest := func(expectMatch bool, name string, expectedName, expectedDatacenter string) {
+		resultName, resultDC := proxyName(name)
+		if !expectMatch {
+			assert.Empty(t, resultName)
+			assert.Empty(t, resultDC)
+		} else {
+			assert.Equal(t, expectedName, resultName)
+			assert.Equal(t, expectedDatacenter, resultDC)
+		}
+	}
+
+	runTest(true, "fp-https-donyc3-20180101-006-kcp", "fp-https-donyc3-20180101-006", "donyc3")
+	runTest(true, "fp-donyc3-20180101-006-kcp", "fp-donyc3-20180101-006", "donyc3")
+	runTest(true, "fp-donyc3-20180101-006", "fp-donyc3-20180101-006", "donyc3")
+	runTest(true, "fp-obfs4-donyc3-20160715-005", "fp-obfs4-donyc3-20160715-005", "donyc3")
+	runTest(false, "fp-14325-adsfds-006", "", "")
+	runTest(false, "cloudcompile", "", "")
+}
+
 // Keep this one first to avoid measuring previous connections
 func TestReportStats(t *testing.T) {
 	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"

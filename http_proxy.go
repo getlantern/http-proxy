@@ -56,7 +56,7 @@ const (
 var (
 	log = golog.LoggerFor("lantern-proxy")
 
-	proxyNameRegex = regexp.MustCompile(`(fp-([a-z]+-)?([a-z0-9]+)-[0-9]{8}-[0-9]+)(-.+)?`)
+	proxyNameRegex = regexp.MustCompile(`(fp-([a-z0-9]+-)?([a-z0-9]+)-[0-9]{8}-[0-9]+)(-.+)?`)
 )
 
 // Proxy is an HTTP proxy.
@@ -200,15 +200,26 @@ func (p *Proxy) setupOpsContext() {
 		ops.SetGlobal("proxy_host", p.ExternalIP)
 	}
 	hostname, _ := os.Hostname()
-	match := proxyNameRegex.FindStringSubmatch(hostname)
+	proxyName, dc := proxyName(hostname)
 	// Only set proxy name if it follows our naming convention
-	if len(match) == 5 {
-		proxyName := match[1]
-		dc := match[3]
+	if proxyName != "" {
 		log.Debugf("Will report with proxy_name %v in dc %v", proxyName, dc)
 		ops.SetGlobal("proxy_name", proxyName)
 		ops.SetGlobal("dc", dc)
 	}
+}
+
+func proxyName(hostname string) (string, string) {
+	match := proxyNameRegex.FindStringSubmatch(hostname)
+	// Only set proxy name if it follows our naming convention
+	if len(match) != 5 {
+		return "", ""
+	}
+
+	proxyName := match[1]
+	dc := match[3]
+	log.Debugf("Will report with proxy_name %v in dc %v", proxyName, dc)
+	return proxyName, dc
 }
 
 func (p *Proxy) setBenchmarkMode() {
