@@ -60,7 +60,7 @@ func (f *ConfigServerFilter) matchingDomains(req *http.Request) string {
 }
 
 func (f *ConfigServerFilter) rewrite(host string, req *http.Request) {
-	req.URL.Scheme = "https"
+	req.URL.Scheme = ""
 	prevHost := req.Host
 	req.Host = host + ":443"
 	req.Header.Set(common.CfgSvrAuthTokenHeader, f.opts.AuthToken)
