@@ -24,6 +24,8 @@ var (
 	log      = golog.LoggerFor("lantern-proxy")
 	revision = "unknown" // overridden by Makefile
 
+	hostname, _ = os.Hostname()
+
 	addr                           = flag.String("addr", ":8080", "Address to listen")
 	certfile                       = flag.String("cert", "", "Certificate file name")
 	cfgSvrAuthToken                = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
@@ -72,6 +74,7 @@ var (
 	blacklistMaxConnectInterval    = flag.Duration("blacklist-max-connect-interval", 10*time.Second, "Successive connection attempts within this interval will be treated as a single attempt for blacklisting")
 	blacklistAllowedFailures       = flag.Int("blacklist-allowed-failures", 100, "The number of failed connection attempts we tolerate before blacklisting an IP address")
 	blacklistExpiration            = flag.Duration("blacklist-expiration", 6*time.Hour, "How long to wait before removing an ip from the blacklist")
+	proxyName                      = flag.String("proxyname", hostname, "The name of this proxy (defaults to hostname)")
 )
 
 func main() {
@@ -159,6 +162,7 @@ func main() {
 		BlacklistMaxConnectInterval:    *blacklistMaxConnectInterval,
 		BlacklistAllowedFailures:       *blacklistAllowedFailures,
 		BlacklistExpiration:            *blacklistExpiration,
+		ProxyName:                      *proxyName,
 	}
 
 	err = p.ListenAndServe()

@@ -107,6 +107,7 @@ type Proxy struct {
 	BlacklistMaxConnectInterval    time.Duration
 	BlacklistAllowedFailures       int
 	BlacklistExpiration            time.Duration
+	ProxyName                      string
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -199,8 +200,7 @@ func (p *Proxy) setupOpsContext() {
 		log.Debugf("Will report with proxy_host: %v", p.ExternalIP)
 		ops.SetGlobal("proxy_host", p.ExternalIP)
 	}
-	hostname, _ := os.Hostname()
-	proxyName, dc := proxyName(hostname)
+	proxyName, dc := proxyName(p.ProxyName)
 	// Only set proxy name if it follows our naming convention
 	if proxyName != "" {
 		log.Debugf("Will report with proxy_name %v in dc %v", proxyName, dc)
@@ -209,17 +209,13 @@ func (p *Proxy) setupOpsContext() {
 	}
 }
 
-func proxyName(hostname string) (string, string) {
+func proxyName(hostname string) (proxyName string, dc string) {
 	match := proxyNameRegex.FindStringSubmatch(hostname)
 	// Only set proxy name if it follows our naming convention
 	if len(match) != 5 {
 		return "", ""
 	}
-
-	proxyName := match[1]
-	dc := match[3]
-	log.Debugf("Will report with proxy_name %v in dc %v", proxyName, dc)
-	return proxyName, dc
+	return match[1], match[3]
 }
 
 func (p *Proxy) setBenchmarkMode() {
@@ -232,10 +228,10 @@ func (p *Proxy) setBenchmarkMode() {
 
 func (p *Proxy) createBlacklist() *blacklist.Blacklist {
 	return blacklist.New(blacklist.Options{
-		MaxIdleTime:        p.BlacklistMaxIdleTime,        //30 * time.Second,
+		MaxIdleTime:        p.BlacklistMaxIdleTime,        // 30 * time.Second,
 		MaxConnectInterval: p.BlacklistMaxConnectInterval, // 5 * time.Second,
 		AllowedFailures:    p.BlacklistAllowedFailures,    // 10,
-		Expiration:         p.BlacklistExpiration,         //6 * time.Hour,
+		Expiration:         p.BlacklistExpiration,         // 6 * time.Hour,
 	})
 }
 
