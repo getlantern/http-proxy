@@ -30,3 +30,7 @@ func (bm *noopMiddleware) Wrap(l net.Listener) net.Listener {
 func (bm *noopMiddleware) ABE(ctx filters.Context) float64 {
 	return 0
 }
+
+func (bm *noopMiddleware) ProbeUpstream(url string) {
+	return
+}

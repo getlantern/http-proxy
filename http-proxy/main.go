@@ -75,6 +75,7 @@ var (
 	blacklistAllowedFailures       = flag.Int("blacklist-allowed-failures", 100, "The number of failed connection attempts we tolerate before blacklisting an IP address")
 	blacklistExpiration            = flag.Duration("blacklist-expiration", 6*time.Hour, "How long to wait before removing an ip from the blacklist")
 	proxyName                      = flag.String("proxyname", hostname, "The name of this proxy (defaults to hostname)")
+	bbrUpstreamProbeURL            = flag.String("bbrprobeurl", "", "optional URL to probe for upstream BBR bandwidth estimates")
 )
 
 func main() {
@@ -163,6 +164,7 @@ func main() {
 		BlacklistAllowedFailures:       *blacklistAllowedFailures,
 		BlacklistExpiration:            *blacklistExpiration,
 		ProxyName:                      *proxyName,
+		BBRUpstreamProbeURL:            *bbrUpstreamProbeURL,
 	}
 
 	err = p.ListenAndServe()

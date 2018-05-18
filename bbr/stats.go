@@ -112,13 +112,18 @@ func (s *stats) clear() {
 }
 
 // estABE estimates the ABE at bytes_sent = 2.5 MB using a logarithmic
-// regression on the most recent measurements
-func (s *stats) estABE() float64 {
+// regression on the most recent measurements. If upstreamABE is non-zero, this
+// returns the lesser of the tracked ABE and the upstreamABE.
+func (s *stats) estABE(upstreamABE float64) float64 {
 	s.mx.RLock()
 	enoughData := s.size >= minSamples
 	s.mx.RUnlock()
 	if !enoughData {
 		return 0
 	}
-	return s.emaABE.Get()
+	downstreamABE := s.emaABE.Get()
+	if upstreamABE > upstreamABEUnknown && upstreamABE < downstreamABE {
+		return upstreamABE
+	}
+	return downstreamABE
 }
