@@ -59,6 +59,17 @@ func (tar thresholdAndRate) rate() int64 {
 	return tar[1]
 }
 
+func NewForcedConfig(forceThreshold int64, forceRate int64) Config {
+	return forcedConfig{forceThreshold, forceRate}
+}
+
+type forcedConfig thresholdAndRate
+
+func (cfg forcedConfig) ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64) {
+	tar := thresholdAndRate(cfg)
+	return tar.threshold(), tar.rate()
+}
+
 func parseThresholdAndRate(limit string) (*thresholdAndRate, error) {
 	parts := strings.Split(limit, "|")
 	if len(parts) != 2 {
@@ -75,7 +86,7 @@ func parseThresholdAndRate(limit string) (*thresholdAndRate, error) {
 	return &thresholdAndRate{threshold, rate}, nil
 }
 
-type config struct {
+type redisConfig struct {
 	rc              *redis.Client
 	refreshInterval time.Duration
 	desktop         map[string]*thresholdAndRate
@@ -86,22 +97,7 @@ type config struct {
 // NewRedisConfig returns a new Config that uses the given redis client to load
 // its configuration information and reload that information every
 // refreshInterval.
-func NewRedisConfig(rc *redis.Client, refreshInterval time.Duration, forceThreshold int64, forceRate int64) (Config, error) {
-	if forceThreshold > 0 && forceRate > 0 {
-		log.Debugf("Forcing throttling threshold and rate to %d : %d", forceThreshold, forceRate)
-		desktop := make(map[string]*thresholdAndRate)
-		mobile := make(map[string]*thresholdAndRate)
-		desktop[DefaultCountryCode] = &thresholdAndRate{forceThreshold, forceRate}
-		mobile[DefaultCountryCode] = &thresholdAndRate{forceThreshold, forceRate}
-		cfg := &config{
-			rc:              rc,
-			refreshInterval: refreshInterval,
-			desktop:         desktop,
-			mobile:          mobile,
-		}
-		return cfg, nil
-	}
-
+func NewRedisConfig(rc *redis.Client, refreshInterval time.Duration) (Config, error) {
 	desktop, err := loadLimits(rc, DesktopSuffix)
 	if err != nil {
 		return nil, err
@@ -110,7 +106,7 @@ func NewRedisConfig(rc *redis.Client, refreshInterval time.Duration, forceThresh
 	if err != nil {
 		return nil, err
 	}
-	cfg := &config{
+	cfg := &redisConfig{
 		rc:              rc,
 		refreshInterval: refreshInterval,
 		desktop:         desktop,
@@ -147,7 +143,7 @@ func loadLimits(rc *redis.Client, suffix string) (map[string]*thresholdAndRate, 
 	return limits, nil
 }
 
-func (cfg *config) keepCurrent() {
+func (cfg *redisConfig) keepCurrent() {
 	if cfg.refreshInterval <= 0 {
 		log.Debugf("Defaulting refresh interval to %v", DefaultRefreshInterval)
 		cfg.refreshInterval = DefaultRefreshInterval
@@ -174,7 +170,7 @@ func (cfg *config) keepCurrent() {
 	}
 }
 
-func (cfg *config) ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64) {
+func (cfg *redisConfig) ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64) {
 	isDesktop := len(deviceID) == 8
 	var limits map[string]*thresholdAndRate
 	cfg.mx.RLock()
