@@ -45,7 +45,7 @@ var (
 	logglyToken                    = flag.String("logglytoken", "", "Token used to report to loggly.com, not reporting if empty")
 	_                              = flag.Uint64("maxconns", 0, "Max number of simultaneous allowed connections, unused")
 	pprofAddr                      = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
-	pro                            = flag.Bool("pro", false, "Set to true to make this a pro proxy (no bandwidth limiting)")
+	pro                            = flag.Bool("pro", false, "Set to true to make this a pro proxy (no bandwidth limiting unless forced throttling)")
 	proxiedSitesSamplePercentage   = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
 	proxiedSitesTrackingId         = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
 	reportingRedisAddr             = flag.String("reportingredis", "", "The address of the reporting Redis instance in \"redis[s]://host:port\" format")
