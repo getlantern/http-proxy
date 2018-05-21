@@ -360,21 +360,25 @@ func (p *Proxy) configureBandwidthReporting() *reportingConfig {
 }
 
 func (p *Proxy) loadThrottleConfig() {
-	if p.Pro || p.rc == nil {
+	if p.ThrottleThreshold > 0 && p.ThrottleRate > 0 {
+		log.Debugf("Forcing throttling threshold and rate to %d : %d",
+			p.ThrottleThreshold,
+			p.ThrottleRate)
+		p.throttleConfig = throttle.NewForcedConfig(p.ThrottleThreshold, p.ThrottleRate)
+	} else if !p.Pro && p.ThrottleRefreshInterval > 0 && p.rc != nil {
+		var err error
+		p.throttleConfig, err = throttle.NewRedisConfig(p.rc, p.ThrottleRefreshInterval)
+		if err != nil {
+			log.Errorf("Unable to read throttling config from redis, will not throttle: %v", err)
+		}
+	} else {
 		log.Debug("Not loading throttle config")
 		return
-	}
-
-	var err error
-	p.throttleConfig, err = throttle.NewRedisConfig(p.rc, p.ThrottleRefreshInterval, p.ThrottleThreshold, p.ThrottleRate)
-	if err != nil {
-		p.throttleConfig = nil
-		log.Errorf("Unable to read throttling config from redis, will not throttle: %v", err)
 	}
 }
 
 func (p *Proxy) applyThrottling(srv *server.Server, rc *reportingConfig) {
-	if p.Pro || p.throttleConfig == nil {
+	if p.throttleConfig == nil {
 		log.Debug("Throttling is disabled")
 	}
 	if !rc.enabled {

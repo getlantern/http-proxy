@@ -61,6 +61,7 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
 		EnableReports:      true,
 		IdleTimeout:        1 * time.Minute,
 		Pro:                pro,
+		ThrottleRefreshInterval: throttle.DefaultRefreshInterval,
 	}
 	go func() {
 		assert.NoError(t, proxy.ListenAndServe())

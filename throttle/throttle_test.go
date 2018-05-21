@@ -15,6 +15,12 @@ const (
 	mobileDeviceID  = "123456789"
 )
 
+func doTest(t *testing.T, cfg Config, deviceID string, countryCode string, expectedThreshold int64, expectedRate int64) {
+	threshold, rate := cfg.ThresholdAndRateFor(deviceID, countryCode)
+	assert.EqualValues(t, expectedThreshold, threshold)
+	assert.EqualValues(t, expectedRate, rate)
+}
+
 func TestThrottleConfig(t *testing.T) {
 	r, err := testredis.Open()
 	if !assert.NoError(t, err) {
@@ -36,24 +42,18 @@ func TestThrottleConfig(t *testing.T) {
 		return
 	}
 
-	cfg, err := NewRedisConfig(rc, refreshInterval, 0, 0)
+	cfg, err := NewRedisConfig(rc, refreshInterval)
 	if !assert.NoError(t, err) {
 		return
 	}
 
-	doTest := func(deviceID string, countryCode string, expectedThreshold int64, expectedRate int64) {
-		threshold, rate := cfg.ThresholdAndRateFor(deviceID, countryCode)
-		assert.EqualValues(t, expectedThreshold, threshold)
-		assert.EqualValues(t, expectedRate, rate)
-	}
+	doTest(t, cfg, desktopDeviceID, "cn", 50, 5)
+	doTest(t, cfg, desktopDeviceID, "us", 60, 6)
+	doTest(t, cfg, desktopDeviceID, "", 60, 6)
 
-	doTest(desktopDeviceID, "cn", 50, 5)
-	doTest(desktopDeviceID, "us", 60, 6)
-	doTest(desktopDeviceID, "", 60, 6)
-
-	doTest(mobileDeviceID, "cn", 30, 3)
-	doTest(mobileDeviceID, "us", 40, 4)
-	doTest(mobileDeviceID, "", 40, 4)
+	doTest(t, cfg, mobileDeviceID, "cn", 30, 3)
+	doTest(t, cfg, mobileDeviceID, "us", 40, 4)
+	doTest(t, cfg, mobileDeviceID, "", 40, 4)
 
 	// update settings
 	if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{
@@ -71,17 +71,27 @@ func TestThrottleConfig(t *testing.T) {
 	}
 	time.Sleep(refreshInterval * 2)
 
-	doTest(desktopDeviceID, "cn", 500, 50)
-	doTest(desktopDeviceID, "us", 600, 60)
-	doTest(desktopDeviceID, "bl", 600, 60)
-	doTest(desktopDeviceID, "bt", 600, 60)
-	doTest(desktopDeviceID, "br", 600, 60)
-	doTest(desktopDeviceID, "", 600, 60)
+	doTest(t, cfg, desktopDeviceID, "cn", 500, 50)
+	doTest(t, cfg, desktopDeviceID, "us", 600, 60)
+	doTest(t, cfg, desktopDeviceID, "bl", 600, 60)
+	doTest(t, cfg, desktopDeviceID, "bt", 600, 60)
+	doTest(t, cfg, desktopDeviceID, "br", 600, 60)
+	doTest(t, cfg, desktopDeviceID, "", 600, 60)
 
-	doTest(mobileDeviceID, "cn", 300, 30)
-	doTest(mobileDeviceID, "us", 400, 40)
-	doTest(mobileDeviceID, "bl", 400, 40)
-	doTest(mobileDeviceID, "bt", 400, 40)
-	doTest(mobileDeviceID, "br", 400, 40)
-	doTest(mobileDeviceID, "", 400, 40)
+	doTest(t, cfg, mobileDeviceID, "cn", 300, 30)
+	doTest(t, cfg, mobileDeviceID, "us", 400, 40)
+	doTest(t, cfg, mobileDeviceID, "bl", 400, 40)
+	doTest(t, cfg, mobileDeviceID, "bt", 400, 40)
+	doTest(t, cfg, mobileDeviceID, "br", 400, 40)
+	doTest(t, cfg, mobileDeviceID, "", 400, 40)
+}
+
+func TestForcedConfig(t *testing.T) {
+	cfg := NewForcedConfig(1024, 512)
+	doTest(t, cfg, mobileDeviceID, "", 1024, 512)
+	doTest(t, cfg, desktopDeviceID, "", 1024, 512)
+	doTest(t, cfg, mobileDeviceID, "cn", 1024, 512)
+	doTest(t, cfg, desktopDeviceID, "cn", 1024, 512)
+	doTest(t, cfg, mobileDeviceID, "bl", 1024, 512)
+	doTest(t, cfg, desktopDeviceID, "bl", 1024, 512)
 }
