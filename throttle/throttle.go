@@ -59,6 +59,7 @@ func (tar thresholdAndRate) rate() int64 {
 	return tar[1]
 }
 
+// NewRedisConfig returns a new Config that uses the forced threshold and rate.
 func NewForcedConfig(forceThreshold int64, forceRate int64) Config {
 	return forcedConfig{forceThreshold, forceRate}
 }
