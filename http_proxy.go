@@ -108,6 +108,7 @@ type Proxy struct {
 	BlacklistAllowedFailures       int
 	BlacklistExpiration            time.Duration
 	ProxyName                      string
+	BBRUpstreamProbeURL            string
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -119,6 +120,9 @@ func (p *Proxy) ListenAndServe() error {
 	p.setupOpsContext()
 	p.setBenchmarkMode()
 	p.bm = bbr.New()
+	if p.BBRUpstreamProbeURL != "" {
+		go p.bm.ProbeUpstream(p.BBRUpstreamProbeURL)
+	}
 	p.initRedisClient()
 	p.loadThrottleConfig()
 

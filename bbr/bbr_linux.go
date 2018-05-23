@@ -1,10 +1,11 @@
+// +build linux
+
 package bbr
 
 import (
 	"fmt"
 	"net"
 	"net/http"
-	"runtime"
 	"sync"
 
 	"github.com/getlantern/bbrconn"
@@ -18,18 +19,16 @@ import (
 
 type middleware struct {
 	statsByClient map[string]*stats
-	mx            sync.Mutex
+	upstreamABE   uint64
+
+	mx sync.Mutex
 }
 
 func New() Middleware {
-	if runtime.GOOS == "linux" {
-		log.Debug("Tracking bbr metrics on Linux")
-		return &middleware{
-			statsByClient: make(map[string]*stats),
-		}
+	log.Debug("Tracking bbr metrics on Linux")
+	return &middleware{
+		statsByClient: make(map[string]*stats),
 	}
-	log.Debugf("Not tracking bbr metrics on %v", runtime.GOOS)
-	return &noopMiddleware{}
 }
 
 // Apply implements the interface filters.Filter.
@@ -73,7 +72,7 @@ func (bm *middleware) AddMetrics(ctx filters.Context, req *http.Request, resp *h
 	if resp.Header == nil {
 		resp.Header = make(http.Header, 1)
 	}
-	resp.Header.Set(common.BBRAvailableBandwidthEstimateHeader, fmt.Sprint(s.estABE()))
+	resp.Header.Set(common.BBRAvailableBandwidthEstimateHeader, fmt.Sprint(s.estABE(bm.getUpstreamABE())))
 }
 
 func (bm *middleware) statsFor(conn net.Conn) *stats {
@@ -109,7 +108,7 @@ func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, b
 			op.Set("tcp_rtt", borda.Avg(float64(info.RTT/nanosPerMilli)))
 			op.Set("tcp_segments_sent", borda.Sum(float64(info.Sys.SegsOut)))
 			op.Set("tcp_segments_sent_retransmitted", borda.Sum(float64(info.Sys.TotalRetransSegs)))
-			estMbps := s.estABE()
+			estMbps := s.estABE(bm.getUpstreamABE())
 			if estMbps > 0 {
 				// Report ABE if available
 				op.Set("est_mbps", borda.Avg(estMbps))
@@ -132,7 +131,7 @@ func (bm *middleware) ABE(ctx filters.Context) float64 {
 	if conn == nil {
 		return 0
 	}
-	return bm.statsFor(conn).estABE()
+	return bm.statsFor(conn).estABE(bm.getUpstreamABE())
 }
 
 type bbrlistener struct {
@@ -148,21 +147,4 @@ func (l *bbrlistener) Accept() (net.Conn, error) {
 	return bbrconn.Wrap(conn, func(bytesSent int, info *tcpinfo.Info, bbrInfo *tcpinfo.BBRInfo, err error) {
 		l.bm.track(true, l.bm.statsFor(conn), conn.RemoteAddr(), bytesSent, info, bbrInfo, err)
 	})
-}
-
-type noopMiddleware struct{}
-
-func (nm *noopMiddleware) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
-	return next(ctx, req)
-}
-
-func (nm *noopMiddleware) AddMetrics(ctx filters.Context, req *http.Request, resp *http.Response) {
-}
-
-func (nm *noopMiddleware) Wrap(l net.Listener) net.Listener {
-	return l
-}
-
-func (nm *noopMiddleware) ABE(ctx filters.Context) float64 {
-	return 0
 }

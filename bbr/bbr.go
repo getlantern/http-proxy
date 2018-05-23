@@ -43,4 +43,9 @@ type Middleware interface {
 	// ABE returns an estimate of the available bandwidth in Mbps for the given
 	// Context
 	ABE(ctx filters.Context) float64
+
+	// ProbeUpstream continuously probes the upstream URL and uses the BBR estimates
+	// returned from upstream to determine the weakest link and adjust the ABE returned
+	// in ABE().
+	ProbeUpstream(url string)
 }

@@ -8,7 +8,7 @@ import (
 
 func TestEstimate(t *testing.T) {
 	s := newStats()
-	est := s.estABE()
+	est := s.estABE(20)
 	assert.EqualValues(t, 0, est)
 	ignored := 0
 	for i, d := range data {
@@ -21,8 +21,16 @@ func TestEstimate(t *testing.T) {
 		if i-ignored >= limit-1 {
 			assert.Equal(t, limit, s.size)
 		}
-		est = s.estABE()
-		t.Log(est)
+		est = s.estABE(5000)
+		t.Logf("Estimate: %v", est)
+		assert.False(t, est == 5000, "When downstream estimate is less than 5000, it should be used")
+		if est > 0 {
+			est2 := s.estABE(0)
+			t.Logf("Estimate 2: %v", est2)
+			assert.EqualValues(t, est, est2, "When upstream is 0, downstream should be used")
+			est2 = s.estABE(0.0005)
+			assert.EqualValues(t, est2, 0.0005, "When upstream is less than downstream, it should be used")
+		}
 	}
 }
 

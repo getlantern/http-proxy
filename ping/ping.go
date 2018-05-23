@@ -5,7 +5,6 @@ package ping
 import (
 	"fmt"
 	"io"
-	"math/rand"
 	"net/http"
 	"strconv"
 	"strings"
@@ -24,26 +23,9 @@ var (
 
 	letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-	// Data is 1 KB of random data
-	data []byte
+	// data is 1 KB of random data
+	data = common.RandStringData(1024)
 )
-
-func init() {
-	rand.Seed(time.Now().UnixNano())
-
-	data = []byte(randStringRunes(1024))
-	data[1023] = '\n'
-}
-
-// randStringRunes generates a random string of the given length.
-// Taken from http://stackoverflow.com/questions/22892120/how-to-generate-a-random-string-of-a-fixed-length-in-golang.
-func randStringRunes(n int) string {
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
-	}
-	return string(b)
-}
 
 // pingMiddleware intercepts ping requests and returns some random data
 type pingMiddleware struct {
