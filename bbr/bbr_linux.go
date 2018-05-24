@@ -103,7 +103,7 @@ func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, b
 			if err == nil {
 				op.Set("client_ip", clientIP)
 			}
-			op.Set("bytes_sent", borda.Sum(bytesSent))
+			op.Set("tcp_bytes_sent", borda.Sum(bytesSent))
 			op.Set("tcp_sender_mss", borda.Avg(float64(info.SenderMSS)))
 			op.Set("tcp_rtt", borda.Avg(float64(info.RTT/nanosPerMilli)))
 			op.Set("tcp_segments_sent", borda.Sum(float64(info.Sys.SegsOut)))
