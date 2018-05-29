@@ -33,9 +33,9 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 	return &bitrateConn{
 		WrapConnEmbeddable: wc,
 		Conn:               c,
-		throttle:           NoThrottle,
-		freader:            flowrate.NewReader(c, int64(0)),
-		fwriter:            flowrate.NewWriter(c, int64(0)),
+		rm:                 flowrate.New(0, 0),
+		wm:                 flowrate.New(0, 0),
+		throttle:           0,
 	}, err
 }
 
@@ -43,25 +43,38 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 type bitrateConn struct {
 	listeners.WrapConnEmbeddable
 	net.Conn
-	throttle ThrottleRate
-	freader  *flowrate.Reader
-	fwriter  *flowrate.Writer
+	rm       *flowrate.Monitor
+	wm       *flowrate.Monitor
+	throttle int64
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	if c.throttle == NoThrottle {
+	if c.throttle == 0 {
 		return c.Conn.Read(p)
-	} else {
-		return c.freader.Read(p)
 	}
+	s := c.rm.Limit(len(p), c.throttle, true)
+	if s > 0 {
+		n, err = c.rm.IO(c.Conn.Read(p[:s]))
+	}
+	return
 }
 
 func (c *bitrateConn) Write(p []byte) (n int, err error) {
-	if c.throttle == NoThrottle {
+	if c.throttle == 0 {
 		return c.Conn.Write(p)
-	} else {
-		return c.fwriter.Write(p)
 	}
+	var i int
+	for len(p) > 0 && err == nil {
+		s := c.wm.Limit(len(p), c.throttle, true)
+		if s > 0 {
+			i, err = c.wm.IO(c.Conn.Write(p[:s]))
+		} else {
+			return n, flowrate.ErrLimit
+		}
+		p = p[i:]
+		n += i
+	}
+	return
 }
 
 func (c *bitrateConn) OnState(s http.ConnState) {
@@ -75,9 +88,7 @@ func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	// pro-user message always overrides the active flag
 	if msgType == "throttle" {
 		rate := data.(ThrottleRate)
-		c.throttle = rate
-		c.freader.SetLimit(int64(c.throttle))
-		c.fwriter.SetLimit(int64(c.throttle))
+		c.throttle = int64(rate)
 		log.Debugf("Throttling connection to %v per second", humanize.Bytes(uint64(rate)))
 	}
 
