@@ -24,6 +24,10 @@ var (
 	log = golog.LoggerFor("devicefilter")
 
 	epoch = time.Date(2016, 1, 1, 0, 0, 0, 0, time.UTC)
+
+	// Old lantern versions and possible cracks do not include the device
+	// ID. Just throttle them.
+	alwaysThrottle = listeners.NewRateLimiter(10)
 )
 
 // deviceFilterPre does the device-based filtering
@@ -69,8 +73,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	lanternDeviceID := req.Header.Get(common.DeviceIdHeader)
 
 	if lanternDeviceID == "" {
-		// Old lantern versions and possible cracks do not include the device ID. Just throttle them.
-		wc.ControlMessage("throttle", lanternlisteners.ThrottleRate(10))
+		wc.ControlMessage("throttle", alwaysThrottle)
 	} else if lanternDeviceID == "~~~~~~" {
 		// This is checkfallbacks, don't throttle it
 		return next(ctx, req)
@@ -103,7 +106,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 			}
 			resp.Header.Set(common.XBQHeader, fmt.Sprintf("%d/%d/%d", uMiB, threshold/(1024*1024), int64(u.AsOf.Sub(epoch).Seconds())))
 			if u.Bytes > threshold {
-				wc.ControlMessage("throttle", lanternlisteners.ThrottleRate(rate))
+				wc.ControlMessage("throttle", listeners.NewRateLimiter(rate))
 			}
 			return resp, nextCtx, err
 		}

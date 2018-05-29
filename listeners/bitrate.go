@@ -15,6 +15,20 @@ var (
 	NoThrottle = ThrottleRate(0)
 )
 
+type RateLimiter struct {
+	rm   *flowrate.Monitor
+	wm   *flowrate.Monitor
+	rate int64
+}
+
+func NewRateLimiter(rate int64) *RateLimiter {
+	return &RateLimiter{flowrate.New(0, 0), flowrate.New(0, 0), rate}
+}
+
+func (l *RateLimiter) SetRate(rate int64) {
+	l.rate = rate
+}
+
 type bitrateListener struct {
 	net.Listener
 }
@@ -33,9 +47,7 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 	return &bitrateConn{
 		WrapConnEmbeddable: wc,
 		Conn:               c,
-		rm:                 flowrate.New(0, 0),
-		wm:                 flowrate.New(0, 0),
-		throttle:           0,
+		limiter:            NewRateLimiter(0),
 	}, err
 }
 
@@ -43,31 +55,29 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 type bitrateConn struct {
 	listeners.WrapConnEmbeddable
 	net.Conn
-	rm       *flowrate.Monitor
-	wm       *flowrate.Monitor
-	throttle int64
+	limiter *RateLimiter
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	if c.throttle == 0 {
+	if c.limiter.rate == 0 {
 		return c.Conn.Read(p)
 	}
-	s := c.rm.Limit(len(p), c.throttle, true)
+	s := c.limiter.rm.Limit(len(p), c.limiter.rate, true)
 	if s > 0 {
-		n, err = c.rm.IO(c.Conn.Read(p[:s]))
+		n, err = c.limiter.rm.IO(c.Conn.Read(p[:s]))
 	}
 	return
 }
 
 func (c *bitrateConn) Write(p []byte) (n int, err error) {
-	if c.throttle == 0 {
+	if c.limiter.rate == 0 {
 		return c.Conn.Write(p)
 	}
 	var i int
 	for len(p) > 0 && err == nil {
-		s := c.wm.Limit(len(p), c.throttle, true)
+		s := c.limiter.wm.Limit(len(p), c.limiter.rate, true)
 		if s > 0 {
-			i, err = c.wm.IO(c.Conn.Write(p[:s]))
+			i, err = c.limiter.wm.IO(c.Conn.Write(p[:s]))
 		} else {
 			return n, flowrate.ErrLimit
 		}
@@ -87,9 +97,8 @@ func (c *bitrateConn) OnState(s http.ConnState) {
 func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	// pro-user message always overrides the active flag
 	if msgType == "throttle" {
-		rate := data.(ThrottleRate)
-		c.throttle = int64(rate)
-		log.Debugf("Throttling connection to %v per second", humanize.Bytes(uint64(rate)))
+		c.limiter = data.(*RateLimiter)
+		log.Debugf("Throttling connection to %v per second", humanize.Bytes(uint64(c.limiter.rate)))
 	}
 
 	if c.WrapConnEmbeddable != nil {
