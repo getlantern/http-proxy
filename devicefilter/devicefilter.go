@@ -27,7 +27,7 @@ var (
 
 	// Old lantern versions and possible cracks do not include the device
 	// ID. Just throttle them.
-	alwaysThrottle = listeners.NewRateLimiter(10)
+	alwaysThrottle = lanternlisteners.NewRateLimiter(10)
 )
 
 // deviceFilterPre does the device-based filtering
@@ -83,7 +83,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 			// Throttling enabled
 			u := usage.Get(lanternDeviceID)
 			if u == nil {
-				// Eagerly request device ID data to Redis and store it in usage
+				// Eagerly request device ID data from Redis and store it in usage
 				f.deviceFetcher.RequestNewDeviceUsage(lanternDeviceID)
 				return resp, nextCtx, err
 			}
@@ -106,7 +106,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 			}
 			resp.Header.Set(common.XBQHeader, fmt.Sprintf("%d/%d/%d", uMiB, threshold/(1024*1024), int64(u.AsOf.Sub(epoch).Seconds())))
 			if u.Bytes > threshold {
-				wc.ControlMessage("throttle", listeners.NewRateLimiter(rate))
+				wc.ControlMessage("throttle", lanternlisteners.NewRateLimiter(rate))
 			}
 			return resp, nextCtx, err
 		}
