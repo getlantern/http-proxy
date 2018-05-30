@@ -7,6 +7,8 @@ import (
 	"net/http/httputil"
 	"time"
 
+	"github.com/hashicorp/golang-lru"
+
 	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/filters"
 
@@ -35,6 +37,7 @@ type deviceFilterPre struct {
 	deviceFetcher    *redis.DeviceFetcher
 	throttleConfig   throttle.Config
 	fasttrackDomains *common.FasttrackDomains
+	limiters         *lru.Cache
 }
 
 // deviceFilterPost cleans up
@@ -47,10 +50,16 @@ func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, fasttrackDo
 		log.Debug("Throttling enabled")
 	}
 
+	limiters, err := lru.New(10000)
+	if err != nil {
+		panic(err)
+	}
+
 	return &deviceFilterPre{
 		deviceFetcher:    df,
 		throttleConfig:   throttleConfig,
 		fasttrackDomains: fasttrackDomains,
+		limiters:         limiters,
 	}
 }
 
@@ -106,7 +115,14 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 			}
 			resp.Header.Set(common.XBQHeader, fmt.Sprintf("%d/%d/%d", uMiB, threshold/(1024*1024), int64(u.AsOf.Sub(epoch).Seconds())))
 			if u.Bytes > threshold {
-				wc.ControlMessage("throttle", lanternlisteners.NewRateLimiter(rate))
+				limiter, exists := f.limiters.Get(lanternDeviceID)
+				if !exists {
+					limiter = lanternlisteners.NewRateLimiter(rate)
+					f.limiters.Add(lanternDeviceID, limiter)
+				} else {
+					limiter.(*lanternlisteners.RateLimiter).SetRate(rate)
+				}
+				wc.ControlMessage("throttle", limiter)
 			}
 			return resp, nextCtx, err
 		}
