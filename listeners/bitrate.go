@@ -3,6 +3,7 @@ package listeners
 import (
 	"net"
 	"net/http"
+	"sync/atomic"
 
 	"github.com/dustin/go-humanize"
 	"github.com/getlantern/http-proxy/listeners"
@@ -26,7 +27,11 @@ func NewRateLimiter(rate int64) *RateLimiter {
 }
 
 func (l *RateLimiter) SetRate(rate int64) {
-	l.rate = rate
+	atomic.StoreInt64(&l.rate, rate)
+}
+
+func (l *RateLimiter) getRate() int64 {
+	return atomic.LoadInt64(&l.rate)
 }
 
 type bitrateListener struct {
@@ -59,10 +64,11 @@ type bitrateConn struct {
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	if c.limiter.rate == 0 {
+	rate := c.limiter.getRate()
+	if rate == 0 {
 		return c.Conn.Read(p)
 	}
-	s := c.limiter.rm.Limit(len(p), c.limiter.rate, true)
+	s := c.limiter.rm.Limit(len(p), rate, true)
 	if s > 0 {
 		n, err = c.limiter.rm.IO(c.Conn.Read(p[:s]))
 	}
@@ -70,12 +76,13 @@ func (c *bitrateConn) Read(p []byte) (n int, err error) {
 }
 
 func (c *bitrateConn) Write(p []byte) (n int, err error) {
-	if c.limiter.rate == 0 {
+	rate := c.limiter.getRate()
+	if rate == 0 {
 		return c.Conn.Write(p)
 	}
 	var i int
 	for len(p) > 0 && err == nil {
-		s := c.limiter.wm.Limit(len(p), c.limiter.rate, true)
+		s := c.limiter.wm.Limit(len(p), rate, true)
 		if s > 0 {
 			i, err = c.limiter.wm.IO(c.Conn.Write(p[:s]))
 		} else {
@@ -98,7 +105,8 @@ func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	// pro-user message always overrides the active flag
 	if msgType == "throttle" {
 		c.limiter = data.(*RateLimiter)
-		log.Debugf("Throttling connection to %v per second", humanize.Bytes(uint64(c.limiter.rate)))
+		rate := c.limiter.getRate()
+		log.Debugf("Throttling connection to %v per second", humanize.Bytes(uint64(rate)))
 	}
 
 	if c.WrapConnEmbeddable != nil {
