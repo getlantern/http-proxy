@@ -7,6 +7,7 @@ import (
 	"net/http/httputil"
 	"time"
 
+	"github.com/dustin/go-humanize"
 	"github.com/hashicorp/golang-lru"
 
 	"github.com/getlantern/golog"
@@ -27,8 +28,6 @@ var (
 
 	epoch = time.Date(2016, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	// Old lantern versions and possible cracks do not include the device
-	// ID. Just throttle them.
 	alwaysThrottle = lanternlisteners.NewRateLimiter(10)
 )
 
@@ -82,6 +81,8 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	lanternDeviceID := req.Header.Get(common.DeviceIdHeader)
 
 	if lanternDeviceID == "" {
+		// Old lantern versions and possible cracks do not include the device
+		// ID. Just throttle them.
 		wc.ControlMessage("throttle", alwaysThrottle)
 	} else if lanternDeviceID == "~~~~~~" {
 		// This is checkfallbacks, don't throttle it
@@ -117,6 +118,8 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 			if u.Bytes > threshold {
 				limiter, exists := f.limiters.Get(lanternDeviceID)
 				if !exists {
+					log.Debugf("Throttling device %s to %v per second", lanternDeviceID,
+						humanize.Bytes(uint64(rate)))
 					limiter = lanternlisteners.NewRateLimiter(rate)
 					f.limiters.Add(lanternDeviceID, limiter)
 				} else {

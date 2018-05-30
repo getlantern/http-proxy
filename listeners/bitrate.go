@@ -5,15 +5,9 @@ import (
 	"net/http"
 	"sync/atomic"
 
-	"github.com/dustin/go-humanize"
-	"github.com/getlantern/http-proxy/listeners"
 	"github.com/mxk/go-flowrate/flowrate"
-)
 
-type ThrottleRate int64
-
-var (
-	NoThrottle = ThrottleRate(0)
+	"github.com/getlantern/http-proxy/listeners"
 )
 
 type RateLimiter struct {
@@ -105,8 +99,6 @@ func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	// pro-user message always overrides the active flag
 	if msgType == "throttle" {
 		c.limiter = data.(*RateLimiter)
-		rate := c.limiter.getRate()
-		log.Debugf("Throttling connection to %v per second", humanize.Bytes(uint64(rate)))
 	}
 
 	if c.WrapConnEmbeddable != nil {
