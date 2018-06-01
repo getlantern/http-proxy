@@ -103,6 +103,11 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	}
 	threshold, rate := f.throttleConfig.ThresholdAndRateFor(lanternDeviceID, u.CountryCode)
 	if u.Bytes > threshold {
+		// Try best to use one limiter for all connections from the device.
+		// Access to the limiters LRU is not sequentialize, so two or more
+		// goroutines may each create a new limiter and pass to the connection.
+		// In the worst case, it falls back to throttling per connection, which
+		// is still acceptable.
 		limiter, exists := f.limiters.Get(lanternDeviceID)
 		if !exists {
 			limiter = lanternlisteners.NewRateLimiter(rate)
