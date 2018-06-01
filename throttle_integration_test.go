@@ -3,7 +3,9 @@ package proxy
 import (
 	"io"
 	"io/ioutil"
+	"math/rand"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"strings"
@@ -32,6 +34,11 @@ func TestThrottlingPro(t *testing.T) {
 }
 
 func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
+	sizeHeader := "X-Test-Size"
+	originSite := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		n, _ := strconv.Atoi(req.Header.Get(sizeHeader))
+		io.CopyN(rw, rand.New(rand.NewSource(time.Now().UnixNano())), int64(n))
+	}))
 	origMeasuredReportingInterval := measuredReportingInterval
 	measuredReportingInterval = 10 * time.Millisecond
 	defer func() {
@@ -62,6 +69,7 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
 		IdleTimeout:        1 * time.Minute,
 		Pro:                pro,
 		ThrottleRefreshInterval: throttle.DefaultRefreshInterval,
+		TestingLocal:            true,
 	}
 	go func() {
 		assert.NoError(t, proxy.ListenAndServe())
@@ -80,10 +88,11 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
 		},
 	}
 
-	makeRequest := func(url string) (*http.Response, error) {
+	makeRequest := func(url string, testSize int) (*http.Response, error) {
 		req, _ := http.NewRequest(http.MethodGet, url, nil)
 		req.Header.Set(common.TokenHeader, validToken)
 		req.Header.Set(common.DeviceIdHeader, deviceId)
+		req.Header.Set(sizeHeader, strconv.Itoa(testSize))
 
 		resp, err := client.Do(req)
 		if err != nil {
@@ -94,13 +103,13 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
 		return resp, err
 	}
 
-	resp, err := makeRequest("http://download.thinkbroadband.com/5MB.zip")
+	resp, err := makeRequest(originSite.URL, 5*1024*1024)
 	if !assert.NoError(t, err) {
 		return
 	}
 
-	time.Sleep(measuredReportingInterval * 30)
-	resp, err = makeRequest("http://www.scmp.com/frontpage/international")
+	time.Sleep(1 * time.Second)
+	resp, err = makeRequest(originSite.URL, 1000)
 	if !assert.NoError(t, err) {
 		return
 	}
