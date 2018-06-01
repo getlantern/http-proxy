@@ -119,8 +119,8 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	if resp == nil || err != nil {
 		return resp, nextCtx, err
 	}
-	// Encode usage information in a header. The header is expected to follow
-	// this format:
+	// Encode usage information before this request in a header. The header is
+	// expected to follow this format:
 	//
 	// <used>/<allowed>/<asof>
 	//
