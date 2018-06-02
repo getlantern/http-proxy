@@ -26,15 +26,23 @@ const (
 	proServerAddr  = "127.0.0.1:18712"
 )
 
-func TestThrottlingFree(t *testing.T) {
-	doTestThrottling(t, false, freeServerAddr)
+func TestThrottlingFreeNoForce(t *testing.T) {
+	doTestThrottling(t, false, false, freeServerAddr)
 }
 
-func TestThrottlingPro(t *testing.T) {
-	doTestThrottling(t, true, proServerAddr)
+func TestThrottlingFreeForce(t *testing.T) {
+	doTestThrottling(t, false, true, freeServerAddr)
 }
 
-func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
+func TestThrottlingProNoForce(t *testing.T) {
+	doTestThrottling(t, true, false, proServerAddr)
+}
+
+func TestThrottlingProForce(t *testing.T) {
+	doTestThrottling(t, true, true, proServerAddr)
+}
+
+func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string) {
 	sizeHeader := "X-Test-Size"
 	originSite := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		n, _ := strconv.Atoi(req.Header.Get(sizeHeader))
@@ -72,6 +80,10 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
 		Pro:                pro,
 		ThrottleRefreshInterval: throttle.DefaultRefreshInterval,
 		TestingLocal:            true,
+	}
+	if forceThrottling {
+		proxy.ThrottleThreshold = 10485760
+		proxy.ThrottleRate = 1024
 	}
 	go func() {
 		assert.NoError(t, proxy.ListenAndServe())

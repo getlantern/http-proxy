@@ -37,6 +37,7 @@ type deviceFilterPre struct {
 	throttleConfig   throttle.Config
 	fasttrackDomains *common.FasttrackDomains
 	limiters         *lru.Cache
+	sendXBQHeader    bool
 }
 
 // deviceFilterPost cleans up
@@ -44,7 +45,7 @@ type deviceFilterPost struct {
 	bl *blacklist.Blacklist
 }
 
-func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, fasttrackDomains *common.FasttrackDomains) filters.Filter {
+func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, fasttrackDomains *common.FasttrackDomains, sendXBQHeader bool) filters.Filter {
 	if throttleConfig != nil {
 		log.Debug("Throttling enabled")
 	}
@@ -59,6 +60,7 @@ func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, fasttrackDo
 		throttleConfig:   throttleConfig,
 		fasttrackDomains: fasttrackDomains,
 		limiters:         limiters,
+		sendXBQHeader:    sendXBQHeader,
 	}
 }
 
@@ -122,6 +124,9 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 
 	resp, nextCtx, err := next(ctx, req)
 	if resp == nil || err != nil {
+		return resp, nextCtx, err
+	}
+	if !f.sendXBQHeader {
 		return resp, nextCtx, err
 	}
 	// Encode usage information before this request in a header. The header is
