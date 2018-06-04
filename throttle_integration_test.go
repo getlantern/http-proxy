@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"math/rand"
@@ -21,28 +22,35 @@ import (
 	"github.com/getlantern/http-proxy-lantern/throttle"
 )
 
-const (
-	freeServerAddr = "127.0.0.1:18711"
-	proServerAddr  = "127.0.0.1:18712"
+var (
+	addrs = []string{
+		"127.0.0.1:18711",
+		"127.0.0.1:18712",
+		"127.0.0.1:18713",
+		"127.0.0.1:18714",
+	}
 )
 
 func TestThrottlingFreeNoForce(t *testing.T) {
-	doTestThrottling(t, false, false, freeServerAddr)
+	doTestThrottling(t, false, false, addrs[0])
 }
 
 func TestThrottlingFreeForce(t *testing.T) {
-	doTestThrottling(t, false, true, freeServerAddr)
+	doTestThrottling(t, false, true, addrs[1])
 }
 
 func TestThrottlingProNoForce(t *testing.T) {
-	doTestThrottling(t, true, false, proServerAddr)
+	doTestThrottling(t, true, false, addrs[2])
 }
 
 func TestThrottlingProForce(t *testing.T) {
-	doTestThrottling(t, true, true, proServerAddr)
+	doTestThrottling(t, true, true, addrs[3])
 }
 
 func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string) {
+	// Generate random device ID to break inter-dependency across tests, as
+	// testredis doesn't re-initialize across tests.
+	deviceId := fmt.Sprintf("dev-%d", rand.Int())
 	sizeHeader := "X-Test-Size"
 	originSite := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
 		n, _ := strconv.Atoi(req.Header.Get(sizeHeader))
