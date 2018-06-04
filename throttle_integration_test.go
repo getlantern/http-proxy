@@ -22,40 +22,13 @@ import (
 	"github.com/getlantern/http-proxy-lantern/throttle"
 )
 
-var (
-	addrs = []string{
-		"127.0.0.1:18711",
-		"127.0.0.1:18712",
-		"127.0.0.1:18713",
-		"127.0.0.1:18714",
+func TestThrottling(t *testing.T) {
+	params := [][]string{
+		[]string{"Free config from Redis", "false", "false", "127.0.0.1:18711"},
+		[]string{"Free force throttling", "false", "true", "127.0.0.1:18712"},
+		[]string{"Pro config from Redis", "true", "false", "127.0.0.1:18713"},
+		[]string{"Pro force throttling", "true", "true", "127.0.0.1:18714"},
 	}
-)
-
-func TestThrottlingFreeNoForce(t *testing.T) {
-	doTestThrottling(t, false, false, addrs[0])
-}
-
-func TestThrottlingFreeForce(t *testing.T) {
-	doTestThrottling(t, false, true, addrs[1])
-}
-
-func TestThrottlingProNoForce(t *testing.T) {
-	doTestThrottling(t, true, false, addrs[2])
-}
-
-func TestThrottlingProForce(t *testing.T) {
-	doTestThrottling(t, true, true, addrs[3])
-}
-
-func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string) {
-	// Generate random device ID to break inter-dependency across tests, as
-	// testredis doesn't re-initialize across tests.
-	deviceId := fmt.Sprintf("dev-%d", rand.Int())
-	sizeHeader := "X-Test-Size"
-	originSite := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		n, _ := strconv.Atoi(req.Header.Get(sizeHeader))
-		io.CopyN(rw, rand.New(rand.NewSource(time.Now().UnixNano())), int64(n))
-	}))
 
 	origMeasuredReportingInterval := measuredReportingInterval
 	measuredReportingInterval = 10 * time.Millisecond
@@ -68,6 +41,19 @@ func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string
 		return
 	}
 	defer r.Close()
+
+	for _, test := range params {
+		t.Run(test[0], func(t *testing.T) { doTestThrottling(t, test[1] == "true", test[2] == "true", test[3], r) })
+	}
+}
+
+func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string, r testredis.Redis) {
+	deviceId := fmt.Sprintf("dev-%d", rand.Int())
+	sizeHeader := "X-Test-Size"
+	originSite := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		n, _ := strconv.Atoi(req.Header.Get(sizeHeader))
+		io.CopyN(rw, rand.New(rand.NewSource(time.Now().UnixNano())), int64(n))
+	}))
 
 	rc := r.Client()
 	defer rc.Close()
