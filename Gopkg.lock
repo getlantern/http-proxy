@@ -289,13 +289,12 @@
   revision = "0b5766010efe7a5fd5c9c5675ed83ed167908418"
 
 [[projects]]
-  branch = "master"
   name = "github.com/getlantern/proxy"
   packages = [
     ".",
     "filters"
   ]
-  revision = "afe965b8c237b91043ad31beac695e3224c8c34e"
+  revision = "9ac55af9051178c2bc330c73f1cd41b2508e132a"
 
 [[projects]]
   branch = "master"
@@ -798,6 +797,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "907d8ac48c32c7e651f29a7fe06a37ff688280811a74ecf7d71896df8365a425"
+  inputs-digest = "1f5110809585d4c35a25029e0babfca1b410f97d0d3674370470a77f41bba8fb"
   solver-name = "gps-cdcl"
   solver-version = 1

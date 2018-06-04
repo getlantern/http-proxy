@@ -2,6 +2,7 @@ package versioncheck
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -12,6 +13,7 @@ import (
 	"testing"
 
 	"github.com/getlantern/proxy"
+	"github.com/getlantern/proxy/filters"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/getlantern/http-proxy-lantern/common"
@@ -93,6 +95,10 @@ func TestRedirectConnect(t *testing.T) {
 
 	p, _ := proxy.New(&proxy.Opts{
 		Filter: New("3.1.1", rewriteURL, []string{originPort}, 1),
+		OnError: func(ctx filters.Context, req *http.Request, read bool, err error) *http.Response {
+			t.Logf("error handling request %+v:\n%v", req, err)
+			return nil
+		},
 	})
 	go p.Serve(l)
 
@@ -142,7 +148,8 @@ func requestViaProxy(t *testing.T, proxiedReq *http.Request, l net.Listener, ver
 	if err != nil {
 		return nil, fmt.Errorf("Unable to issue CONNECT request: %v", err)
 	}
-	bufReader := bufio.NewReader(proxyConn)
+	var buffer bytes.Buffer
+	bufReader := bufio.NewReader(io.TeeReader(proxyConn, &buffer))
 	resp, err := http.ReadResponse(bufReader, req)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to read CONNECT response: %v", err)
@@ -157,5 +164,6 @@ func requestViaProxy(t *testing.T, proxiedReq *http.Request, l net.Listener, ver
 	if err == io.EOF {
 		err = nil
 	}
+	t.Logf("Full response:\n%s", buffer.String())
 	return resp, err
 }
