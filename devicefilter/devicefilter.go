@@ -45,6 +45,22 @@ type deviceFilterPost struct {
 	bl *blacklist.Blacklist
 }
 
+// NewPre creates a filter which throttling all connections from a device if its data usage threshold is reached.
+// * df is used to fetch device data usage across all proxies from a central Redis.
+// * throttleConfig is to determine the threshold and throttle rate. They can
+// be fixed values or fetched from Redis periodically.
+// * If fasttrackDomains is given, it skips throttling for the fasttrackDomains, if any.
+// * If sendXBQHeader is true, it attaches a common.XBQHeader to inform the
+// clients the usage information before this request is made. The header is
+// expected to follow this format:
+//
+// <used>/<allowed>/<asof>
+//
+// <used> is the string representation of a 64-bit unsigned integer
+// <allowed> is the string representation of a 64-bit unsigned integer
+// <asof> is the 64-bit signed integer representing seconds since a custom
+// epoch (00:00:00 01/01/2016 UTC).
+
 func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, fasttrackDomains *common.FasttrackDomains, sendXBQHeader bool) filters.Filter {
 	if throttleConfig != nil {
 		log.Debug("Throttling enabled")
@@ -129,15 +145,6 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	if !f.sendXBQHeader {
 		return resp, nextCtx, err
 	}
-	// Encode usage information before this request in a header. The header is
-	// expected to follow this format:
-	//
-	// <used>/<allowed>/<asof>
-	//
-	// <used> is the string representation of a 64-bit unsigned integer
-	// <allowed> is the string representation of a 64-bit unsigned integer
-	// <asof> is the 64-bit signed integer representing seconds since a custom
-	// epoch (00:00:00 01/01/2016 UTC).
 	if resp.Header == nil {
 		resp.Header = make(http.Header, 1)
 	}
