@@ -148,3 +148,7 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+  name = "github.com/juju/ratelimit"
+  version = "1.0.1"

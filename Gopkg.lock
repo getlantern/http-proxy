@@ -479,6 +479,12 @@
   revision = "0fb14efe8c47ae851c0034ed7a448854d3d34cf3"
 
 [[projects]]
+  name = "github.com/juju/ratelimit"
+  packages = ["."]
+  revision = "59fac5042749a5afb9af70e813da1dd5474f0167"
+  version = "1.0.1"
+
+[[projects]]
   branch = "master"
   name = "github.com/mikioh/tcp"
   packages = ["."]
@@ -798,6 +804,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "907d8ac48c32c7e651f29a7fe06a37ff688280811a74ecf7d71896df8365a425"
+  inputs-digest = "b24cc4a67ccfc5b4a9c96827ec541cdc055e7bb09c2cc5f496fbd29f7a340350"
   solver-name = "gps-cdcl"
   solver-version = 1

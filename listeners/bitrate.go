@@ -3,29 +3,53 @@ package listeners
 import (
 	"net"
 	"net/http"
-	"sync/atomic"
+	"sync"
 
-	"github.com/mxk/go-flowrate/flowrate"
+	"github.com/juju/ratelimit"
 
 	"github.com/getlantern/http-proxy/listeners"
 )
 
 type RateLimiter struct {
-	rm   *flowrate.Monitor
-	wm   *flowrate.Monitor
+	r    *ratelimit.Bucket
+	w    *ratelimit.Bucket
 	rate int64
+	mx   sync.RWMutex
 }
 
 func NewRateLimiter(rate int64) *RateLimiter {
-	return &RateLimiter{flowrate.New(0, 0), flowrate.New(0, 0), rate}
+	l := &RateLimiter{}
+	l.SetRate(rate)
+	return l
 }
 
 func (l *RateLimiter) SetRate(rate int64) {
-	atomic.StoreInt64(&l.rate, rate)
+	l.mx.Lock()
+	if l.rate != rate {
+		l.rate = rate
+		if rate > 0 {
+			l.r = ratelimit.NewBucketWithRate(float64(rate), rate)
+			l.w = ratelimit.NewBucketWithRate(float64(rate), rate)
+		} else {
+			l.r = nil
+			l.w = nil
+		}
+	}
+	l.mx.Unlock()
 }
 
-func (l *RateLimiter) getRate() int64 {
-	return atomic.LoadInt64(&l.rate)
+func (l *RateLimiter) getReadBucket() (b *ratelimit.Bucket) {
+	l.mx.RLock()
+	b = l.r
+	l.mx.RUnlock()
+	return
+}
+
+func (l *RateLimiter) getWriteBucket() (b *ratelimit.Bucket) {
+	l.mx.RLock()
+	b = l.w
+	l.mx.RUnlock()
+	return
 }
 
 type bitrateListener struct {
@@ -58,30 +82,33 @@ type bitrateConn struct {
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	rate := c.limiter.getRate()
-	if rate == 0 {
-		return c.Conn.Read(p)
+	bucket := c.limiter.getReadBucket()
+	if bucket != nil {
+		s := bucket.TakeAvailable(int64(len(p)))
+		if s == 0 {
+			bucket.Wait(1)
+			s = 1
+		}
+		p = p[:s]
 	}
-	s := c.limiter.rm.Limit(len(p), rate, true)
-	if s > 0 {
-		n, err = c.limiter.rm.IO(c.Conn.Read(p[:s]))
-	}
-	return
+
+	return c.Conn.Read(p)
 }
 
 func (c *bitrateConn) Write(p []byte) (n int, err error) {
-	rate := c.limiter.getRate()
-	if rate == 0 {
+	bucket := c.limiter.getWriteBucket()
+	if bucket == nil {
 		return c.Conn.Write(p)
 	}
+
 	var i int
 	for len(p) > 0 && err == nil {
-		s := c.limiter.wm.Limit(len(p), rate, true)
-		if s > 0 {
-			i, err = c.limiter.wm.IO(c.Conn.Write(p[:s]))
-		} else {
-			return n, flowrate.ErrLimit
+		s := bucket.TakeAvailable(int64(len(p)))
+		if s == 0 {
+			bucket.Wait(1)
+			s = 1
 		}
+		i, err = c.Conn.Write(p[:s])
 		p = p[i:]
 		n += i
 	}
