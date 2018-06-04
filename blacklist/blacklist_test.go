@@ -20,7 +20,7 @@ func TestBlacklistSucceed(t *testing.T) {
 }
 
 func TestBlacklistFail(t *testing.T) {
-	maxIdleTime := 5 * time.Millisecond
+	maxIdleTime := 10 * time.Millisecond
 	bl := New(Options{
 		MaxIdleTime:        maxIdleTime,
 		MaxConnectInterval: maxIdleTime * 5,
