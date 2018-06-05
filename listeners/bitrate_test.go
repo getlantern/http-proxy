@@ -83,7 +83,10 @@ Done:
 		}
 	}
 
-	assert.Equal(t, bitrateLimit, totalRead, "Read an unexpected number of bytes! Rate limiting is not working")
+	// the limiters token bucket algorithm starts "full", so
+	// we get the limit + the amount permitted in 950 milliseconds.
+	// (thus, the amount read should be less than twice the limit)
+	assert.True(t, 2*bitrateLimit > totalRead && totalRead > bitrateLimit, "Read an unexpected number of bytes (%d)! Rate limiting is not working", totalRead)
 }
 
 var onceStd, onceInThr, onceThr sync.Once
