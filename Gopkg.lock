@@ -2,6 +2,17 @@
 
 
 [[projects]]
+  name = "cloud.google.com/go"
+  packages = [
+    "compute/metadata",
+    "errorreporting",
+    "errorreporting/apiv1beta1",
+    "internal/version"
+  ]
+  revision = "0fd7230b2a7505833d5f69b75cbd6c9582401479"
+  version = "v0.23.0"
+
+[[projects]]
   branch = "master"
   name = "git.torproject.org/pluggable-transports/goptlib.git"
   packages = ["."]
@@ -203,7 +214,7 @@
     "proxyfilters",
     "server"
   ]
-  revision = "c8b940c610a4934cf5882c4323deb83d5f33530f"
+  revision = "662c84f4d29d565458575bd6fe995f06845e90ba"
 
 [[projects]]
   branch = "master"
@@ -405,6 +416,7 @@
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
+    "protoc-gen-go/descriptor",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
@@ -468,6 +480,12 @@
   name = "github.com/gonum/stat"
   packages = ["."]
   revision = "ec9c8a1062f4be6c6ad671f0f5dba12d4a76826d"
+
+[[projects]]
+  name = "github.com/googleapis/gax-go"
+  packages = ["."]
+  revision = "317e0006254c44a0ac427cc52a0e083ff0b9622f"
+  version = "v2.0.0"
 
 [[projects]]
   branch = "master"
@@ -666,6 +684,26 @@
   revision = "84ea3a3c79b3c4b3b39606cc96f255cd63635ce0"
 
 [[projects]]
+  name = "go.opencensus.io"
+  packages = [
+    "exporter/stackdriver/propagation",
+    "internal",
+    "internal/tagencoding",
+    "plugin/ocgrpc",
+    "plugin/ochttp",
+    "plugin/ochttp/propagation/b3",
+    "stats",
+    "stats/internal",
+    "stats/view",
+    "tag",
+    "trace",
+    "trace/internal",
+    "trace/propagation"
+  ]
+  revision = "0095aec66ae14801c6711210f6f0716411cefdd3"
+  version = "v0.8.0"
+
+[[projects]]
   name = "golang.org/x/crypto"
   packages = [
     "blowfish",
@@ -690,6 +728,7 @@
   packages = [
     "bpf",
     "context",
+    "context/ctxhttp",
     "http2",
     "http2/hpack",
     "idna",
@@ -702,6 +741,24 @@
   ]
   revision = "6078986fec03a1dcc236c34816c71b0e05018fda"
   source = "https://github.com/golang/net"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/oauth2"
+  packages = [
+    ".",
+    "google",
+    "internal",
+    "jws",
+    "jwt"
+  ]
+  revision = "1e0a3fa8ba9a5c9eb35c271780101fdaf1b205d7"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sync"
+  packages = ["semaphore"]
+  revision = "1d60e4601c6fd243af51cc01ddf169918a5407ca"
 
 [[projects]]
   name = "golang.org/x/sys"
@@ -734,6 +791,21 @@
   revision = "ece95c760240037f89ebcbdd7155ac8cb52e38fa"
 
 [[projects]]
+  branch = "master"
+  name = "google.golang.org/api"
+  packages = [
+    "googleapi/transport",
+    "internal",
+    "iterator",
+    "option",
+    "support/bundler",
+    "transport",
+    "transport/grpc",
+    "transport/http"
+  ]
+  revision = "8e9de5a6de6d356eb08ebb58f6daab313283c6b0"
+
+[[projects]]
   name = "google.golang.org/appengine"
   packages = [
     ".",
@@ -744,13 +816,23 @@
     "internal/datastore",
     "internal/log",
     "internal/modules",
-    "internal/remote_api"
+    "internal/remote_api",
+    "internal/socket",
+    "internal/urlfetch",
+    "socket",
+    "urlfetch"
   ]
   revision = "540132eeda33c2b26cca331a6adfd50519cd29f7"
 
 [[projects]]
   name = "google.golang.org/genproto"
-  packages = ["googleapis/rpc/status"]
+  packages = [
+    "googleapis/api/annotations",
+    "googleapis/api/label",
+    "googleapis/api/monitoredres",
+    "googleapis/devtools/clouderrorreporting/v1beta1",
+    "googleapis/rpc/status"
+  ]
   revision = "ab0870e398d5dd054b868c0db1481ab029b9a9f2"
 
 [[projects]]
@@ -763,6 +845,7 @@
     "codes",
     "connectivity",
     "credentials",
+    "credentials/oauth",
     "encoding",
     "encoding/proto",
     "grpclb/grpc_lb_v1/messages",
@@ -798,6 +881,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "907d8ac48c32c7e651f29a7fe06a37ff688280811a74ecf7d71896df8365a425"
+  inputs-digest = "a575beac223b9193ed73574a6b56ad8f373ed34a5cb9778a041f0feee53cab79"
   solver-name = "gps-cdcl"
   solver-version = 1
