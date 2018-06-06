@@ -274,7 +274,7 @@
   branch = "master"
   name = "github.com/getlantern/netx"
   packages = ["."]
-  revision = "06a8a15aede91b4274bb0272108e16a4eabeca19"
+  revision = "60f103502ab89121b4e3b93796834e569a453595"
 
 [[projects]]
   branch = "master"
