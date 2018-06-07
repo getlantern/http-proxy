@@ -80,7 +80,7 @@ var (
 	blacklistExpiration            = flag.Duration("blacklist-expiration", 6*time.Hour, "How long to wait before removing an ip from the blacklist")
 	proxyName                      = flag.String("proxyname", hostname, "The name of this proxy (defaults to hostname)")
 	bbrUpstreamProbeURL            = flag.String("bbrprobeurl", "", "optional URL to probe for upstream BBR bandwidth estimates")
-	stackdriverProjectID           = flag.String("stackdriver-project-id", "", "Optional project ID for stackdriver error reporting")
+	stackdriverProjectID           = flag.String("stackdriver-project-id", "", "Optional project ID for stackdriver error reporting as in http-proxy-lantern")
 )
 
 var errorClient *errorreporting.Client
