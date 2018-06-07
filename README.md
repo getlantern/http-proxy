@@ -55,7 +55,7 @@ Run the server with:
 
 ```
 cd http-proxy
-go install && http-proxy -https -token <your-token> -enablereports -stackdriver-project-id http-proxy-lantern
+go install && http-proxy -https -token <your-token> -enablereports -stackdriver-project-id http-proxy-lantern -stackdriver-creds /Users/afisk/lantern_aws/salt/http_proxy/lantern-stackdriver.json
 ```
 
 Run a Lantern client accordingly, as in:

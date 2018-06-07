@@ -81,6 +81,7 @@ var (
 	proxyName                      = flag.String("proxyname", hostname, "The name of this proxy (defaults to hostname)")
 	bbrUpstreamProbeURL            = flag.String("bbrprobeurl", "", "optional URL to probe for upstream BBR bandwidth estimates")
 	stackdriverProjectID           = flag.String("stackdriver-project-id", "", "Optional project ID for stackdriver error reporting as in http-proxy-lantern")
+	stackdriverCreds               = flag.String("stackdriver-creds", "", "Optional full json file path containing stackdriver credentials")
 )
 
 var errorClient *errorreporting.Client
@@ -122,8 +123,8 @@ func main() {
 		log.Fatal("version check redirect URL should not empty")
 	}
 
-	if *stackdriverProjectID != "" {
-		stackdrivererror.Enable(ctx, *stackdriverProjectID)
+	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
+		stackdrivererror.Enable(ctx, *stackdriverProjectID, *stackdriverCreds)
 	}
 
 	go periodicallyForceGC()
