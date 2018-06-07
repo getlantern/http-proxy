@@ -55,7 +55,7 @@ Run the server with:
 
 ```
 cd http-proxy
-go install && http-proxy -https -token <your-token> -enablereports -throttlebps 50000 -throttlethreshold 500000000
+go install && http-proxy -https -token <your-token> -enablereports -stackdriver-project-id http-proxy-lantern
 ```
 
 Run a Lantern client accordingly, as in:
