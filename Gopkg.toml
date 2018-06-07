@@ -1,6 +1,6 @@
 # Gopkg.toml example
 #
-# Refer to https://github.com/golang/dep/blob/master/docs/Gopkg.toml.md
+# Refer to https://golang.github.io/dep/docs/Gopkg.toml.html
 # for detailed Gopkg.toml documentation.
 #
 # required = ["github.com/user/thing/cmd/thing"]
@@ -26,12 +26,20 @@
 
 
 [[constraint]]
-  branch = "master"
   name = "git.torproject.org/pluggable-transports/goptlib.git"
+  version = "0.7.0"
+
+[[constraint]]
+  branch = "master"
+  name = "git.torproject.org/pluggable-transports/obfs4.git"
 
 [[constraint]]
   name = "github.com/blang/semver"
-  version = "~3.5.0"
+  version = "3.5.1"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/dustin/go-humanize"
 
 [[constraint]]
   branch = "master"
@@ -39,7 +47,15 @@
 
 [[constraint]]
   branch = "master"
+  name = "github.com/getlantern/borda"
+
+[[constraint]]
+  branch = "master"
   name = "github.com/getlantern/ema"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/getlantern/enhttp"
 
 [[constraint]]
   branch = "master"
@@ -61,9 +77,25 @@
   branch = "master"
   name = "github.com/getlantern/kcpwrapper"
 
+# This override is necessary to keep dep ensure from pointint at a branch of
+# kcp-go. I don't know why it does that, but it does.
+[[override]]
+  branch = "master"
+  name = "github.com/getlantern/kcp-go"
+
+# This override is necessary because our kcp-go branch doesn't work with the
+# latest revision of this project.
+[[override]]
+  name = "github.com/templexxx/reedsolomon"
+  revision = "7092926d7d05c415fabb892b1464a03f8228ab80"
+
 [[constraint]]
   branch = "master"
   name = "github.com/getlantern/keyman"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/getlantern/lampshade"
 
 [[constraint]]
   branch = "master"
@@ -106,12 +138,16 @@
   name = "github.com/getlantern/tlsredis"
 
 [[constraint]]
-  branch = "master"
   name = "github.com/getlantern/waitforserver"
+  version = "1.0.0"
 
 [[constraint]]
   branch = "master"
   name = "github.com/getlantern/withtimeout"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/getlantern/zenodb"
 
 [[constraint]]
   branch = "master"
@@ -131,15 +167,19 @@
 
 [[constraint]]
   branch = "master"
+  name = "github.com/rcrowley/go-metrics"
+
+[[constraint]]
   name = "github.com/stretchr/testify"
+  version = "1.2.1"
 
 [[constraint]]
   branch = "master"
   name = "github.com/vharitonsky/iniflags"
 
 [[constraint]]
+  branch = "master"
   name = "golang.org/x/net"
-  source = "https://github.com/golang/net"
 
 [[constraint]]
   name = "gopkg.in/redis.v5"
