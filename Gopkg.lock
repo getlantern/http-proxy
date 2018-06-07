@@ -503,12 +503,6 @@
   revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/mxk/go-flowrate"
-  packages = ["flowrate"]
-  revision = "cca7078d478f8520f85629ad7c68962d31ed7682"
-
-[[projects]]
   name = "github.com/oschwald/geoip2-golang"
   packages = ["."]
   revision = "7118115686e16b77967cdbf55d1b944fe14ad312"
@@ -804,6 +798,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "b24cc4a67ccfc5b4a9c96827ec541cdc055e7bb09c2cc5f496fbd29f7a340350"
+  inputs-digest = "f421cce4c6a5d9ed15f0f4fa1cfa0d02380341706f72680515b2d1b7b17874a0"
   solver-name = "gps-cdcl"
   solver-version = 1

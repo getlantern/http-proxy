@@ -127,10 +127,6 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/mxk/go-flowrate"
-
-[[constraint]]
-  branch = "master"
   name = "github.com/stretchr/testify"
 
 [[constraint]]
