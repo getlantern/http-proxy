@@ -337,8 +337,8 @@
 [[projects]]
   name = "github.com/getlantern/stack"
   packages = ["."]
-  revision = "ac4c579c437a23e1a15814c867ccb82122fb383b"
-  version = "v1.5.0"
+  revision = "02f928aad224fbccd50d66edd776fc9d1e9f2f2b"
+  version = "1.5.1"
 
 [[projects]]
   branch = "master"
@@ -373,8 +373,8 @@
 [[projects]]
   name = "github.com/getlantern/waitforserver"
   packages = ["."]
-  revision = "ad6d74f49f79ff739f2d82fbaee93bc7da7fcdc8"
-  version = "v1.0.0"
+  revision = "381a5878bd8ecb7001c361f2d5dcc3358460aa3e"
+  version = "v1.0.1"
 
 [[projects]]
   branch = "master"
@@ -804,8 +804,8 @@
     "tap",
     "transport"
   ]
-  revision = "22a49e732a507a11ac524e4ea5fd1a3e384b6fb8"
-  version = "v1.12.1"
+  revision = "7a6a684ca69eb4cae85ad0a484f2e531598c047b"
+  version = "v1.12.2"
 
 [[projects]]
   name = "gopkg.in/redis.v5"
