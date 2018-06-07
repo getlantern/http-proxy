@@ -12,10 +12,8 @@ import (
 var errorClient *errorreporting.Client
 
 // Enable enables reporting errors to stackdriver.
-func Enable(ctx context.Context) {
-	log.Printf("Enabling stackdriver error reporting")
-	projectID := "lantern-http-proxy"
-
+func Enable(ctx context.Context, projectID string) {
+	log.Printf("Enabling stackdriver error reporting for project %v", projectID)
 	var err error
 	errorClient, err = errorreporting.NewClient(ctx, projectID, errorreporting.Config{
 		ServiceName: "lantern-http-proxy-service",
@@ -24,7 +22,7 @@ func Enable(ctx context.Context) {
 		},
 	})
 	if err != nil {
-		log.Printf("Error setting up stackdriver error reporting?")
+		log.Printf("Error setting up stackdriver error reporting? %v", err)
 		return
 	}
 

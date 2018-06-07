@@ -80,7 +80,7 @@ var (
 	blacklistExpiration            = flag.Duration("blacklist-expiration", 6*time.Hour, "How long to wait before removing an ip from the blacklist")
 	proxyName                      = flag.String("proxyname", hostname, "The name of this proxy (defaults to hostname)")
 	bbrUpstreamProbeURL            = flag.String("bbrprobeurl", "", "optional URL to probe for upstream BBR bandwidth estimates")
-	enableStackdriverError         = flag.Bool("enable-stackdriver-error", false, "Enable stackdriver error reporting")
+	stackdriverProjectID           = flag.String("stackdriver-project-id", "", "Optional project ID for stackdriver error reporting")
 )
 
 var errorClient *errorreporting.Client
@@ -122,8 +122,8 @@ func main() {
 		log.Fatal("version check redirect URL should not empty")
 	}
 
-	if *enableStackdriverError {
-		stackdrivererror.Enable(ctx)
+	if *stackdriverProjectID != "" {
+		stackdrivererror.Enable(ctx, *stackdriverProjectID)
 	}
 
 	go periodicallyForceGC()
