@@ -224,10 +224,10 @@
   revision = "7a71d2e71cf253f64b9610ce7aa9ddfc58aa9b2a"
 
 [[projects]]
-  branch = "master"
   name = "github.com/getlantern/kcp-go"
   packages = ["."]
   revision = "19559e0e938cb2af45ae30765c109f821da19b33"
+  version = "v20180607"
 
 [[projects]]
   branch = "master"
@@ -823,6 +823,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "11a5af68b43e5efd5a66412cb3a1e76eb81c20d817ca49dbbe43023ce49d395e"
+  inputs-digest = "7204fd3a3deb8d238771bb018952e215107eedb08dfac3aea96ea34652ec83d7"
   solver-name = "gps-cdcl"
   solver-version = 1

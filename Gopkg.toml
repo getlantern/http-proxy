@@ -77,12 +77,6 @@
   branch = "master"
   name = "github.com/getlantern/kcpwrapper"
 
-# This override is necessary to keep dep ensure from pointint at a branch of
-# kcp-go. I don't know why it does that, but it does.
-[[override]]
-  branch = "master"
-  name = "github.com/getlantern/kcp-go"
-
 # This override is necessary because our kcp-go branch doesn't work with the
 # latest revision of this project.
 [[override]]
