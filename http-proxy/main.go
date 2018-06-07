@@ -178,10 +178,10 @@ func main() {
 	}
 
 	err := p.ListenAndServe()
-	stackdrivererror.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
+	stackdrivererror.Close()
 }
 
 func periodicallyForceGC() {
