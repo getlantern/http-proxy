@@ -19,6 +19,7 @@
   revision = "7d56ec4f381e8b1aedfda360594e35a5731b5337"
 
 [[projects]]
+  branch = "master"
   name = "git.torproject.org/pluggable-transports/obfs4.git"
   packages = [
     "common/csrand",
@@ -30,7 +31,7 @@
     "transports/obfs4",
     "transports/obfs4/framing"
   ]
-  revision = "af4824cb0b2c36a0eba4bc1590eb0737302e992e"
+  revision = "89c21805c212bcc2f5a0c4ffdadf424cbff1c7c9"
 
 [[projects]]
   branch = "master"
@@ -48,15 +49,22 @@
   revision = "5312a61534124124185d41f09206b9fef1d88403"
 
 [[projects]]
+  branch = "master"
   name = "github.com/aristanetworks/goarista"
   packages = ["monotime"]
-  revision = "9cf7f6b188ea30684caffe3d18e03e61d7193e25"
+  revision = "59944ff78bc1de686b0aba1444dfd380f48f03d4"
 
 [[projects]]
   name = "github.com/blang/semver"
   packages = ["."]
   revision = "2ee87856327ba09384cabd113bc6b5d174e9ec0f"
   version = "v3.5.1"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/codahale/hdrhistogram"
+  packages = ["."]
+  revision = "3a0bb77429bd3a61596f5e8a3172445844342120"
 
 [[projects]]
   branch = "master"
@@ -81,9 +89,10 @@
   version = "v1.1.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/dustin/go-humanize"
   packages = ["."]
-  revision = "bb3d318650d48840a39aa21a027c6630e198e626"
+  revision = "02af3965c54e8cacf948b97fef38925c4120652c"
 
 [[projects]]
   branch = "master"
@@ -104,9 +113,10 @@
   revision = "9a5594c63329cf77582eccae41a8a75240a078fe"
 
 [[projects]]
+  branch = "master"
   name = "github.com/getlantern/borda"
   packages = ["client"]
-  revision = "2a4da320611aaace4c9f7cab9f7d7c6fd0f16eae"
+  revision = "41aa58c60b3cf55da37a10817235f7eba0ed8310"
 
 [[projects]]
   branch = "master"
@@ -115,9 +125,10 @@
   revision = "4cfb26ec74f460fda433dc06fddfbad7ddee3072"
 
 [[projects]]
+  branch = "master"
   name = "github.com/getlantern/bytemap"
   packages = ["."]
-  revision = "ae8427dbf355130b32e5261c108917a630f7c36c"
+  revision = "c7bf952233bcc421fcbd185f601e117d45df89c7"
 
 [[projects]]
   branch = "master"
@@ -147,9 +158,10 @@
   revision = "d906ee7c3465210c328abbe6ea0f855db9db679c"
 
 [[projects]]
+  branch = "master"
   name = "github.com/getlantern/enhttp"
   packages = ["."]
-  revision = "a0fc6a99dbea1d3c2784fd569351514201209267"
+  revision = "06cfcf06160d10ec1cc9d1b92452dd4d17cb684a"
 
 [[projects]]
   branch = "master"
@@ -223,10 +235,10 @@
   revision = "7a71d2e71cf253f64b9610ce7aa9ddfc58aa9b2a"
 
 [[projects]]
-  branch = "master"
   name = "github.com/getlantern/kcp-go"
   packages = ["."]
   revision = "19559e0e938cb2af45ae30765c109f821da19b33"
+  version = "v20180607"
 
 [[projects]]
   branch = "master"
@@ -244,15 +256,16 @@
   revision = "f55e7280e93a8802a175e9c4beccad873f3fdf43"
 
 [[projects]]
+  branch = "master"
   name = "github.com/getlantern/lampshade"
   packages = ["."]
-  revision = "b10a301ad56e92a66ef15f22c7ba921e6b84a884"
+  revision = "9db638956a9c91ab0df99c4ac338276b872fc7b1"
 
 [[projects]]
   branch = "master"
   name = "github.com/getlantern/measured"
   packages = ["."]
-  revision = "0582bf799783fba9a890459155817f1cbcf00f17"
+  revision = "4f4439b4ec7235f8ae7a4455f9b0a5f381e483dc"
 
 [[projects]]
   branch = "master"
@@ -333,10 +346,10 @@
   revision = "a879d8035f3cd754fdda965da8305bb9d04ec439"
 
 [[projects]]
-  branch = "master"
   name = "github.com/getlantern/stack"
   packages = ["."]
   revision = "02f928aad224fbccd50d66edd776fc9d1e9f2f2b"
+  version = "1.5.1"
 
 [[projects]]
   branch = "master"
@@ -369,16 +382,16 @@
   revision = "1318e7614b82cd38041b0b0bd3692d71f3901fb8"
 
 [[projects]]
-  branch = "master"
   name = "github.com/getlantern/waitforserver"
   packages = ["."]
   revision = "381a5878bd8ecb7001c361f2d5dcc3358460aa3e"
+  version = "v1.0.1"
 
 [[projects]]
   branch = "master"
   name = "github.com/getlantern/wal"
   packages = ["."]
-  revision = "028a06aadcb93566469b90c0765fd2c1354718cc"
+  revision = "e99945fbd2d236833907d9539e79b7a8ea604b04"
 
 [[projects]]
   branch = "master"
@@ -387,6 +400,7 @@
   revision = "511f017cd91361be75ad73fee96e466a5d790312"
 
 [[projects]]
+  branch = "master"
   name = "github.com/getlantern/zenodb"
   packages = [
     "bytetree",
@@ -398,7 +412,7 @@
     "rpc",
     "sql"
   ]
-  revision = "149af1c4059e3d7322eaa517949d83e7a780190a"
+  revision = "ca576033eabcf437af6a7ff93417d89cf3d61a90"
 
 [[projects]]
   name = "github.com/glendc/gopher-json"
@@ -410,7 +424,7 @@
   branch = "master"
   name = "github.com/golang/groupcache"
   packages = ["lru"]
-  revision = "66deaeb636dff1ac7d938ce666d090556056a4b0"
+  revision = "24b0969c4cb722950103eed87108c8d291a8df00"
 
 [[projects]]
   name = "github.com/golang/protobuf"
@@ -420,15 +434,17 @@
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
+    "ptypes/struct",
     "ptypes/timestamp"
   ]
-  revision = "bbd03ef6da3a115852eaf24c8a1c46aeb39aa175"
+  revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
   name = "github.com/golang/snappy"
   packages = ["."]
-  revision = "553a641470496b2327abcac10b36396bd98e45c9"
+  revision = "2e65f85255dbc3072edf28d6b5b8efc472979f5a"
 
 [[projects]]
   branch = "master"
@@ -512,7 +528,7 @@
   branch = "master"
   name = "github.com/mitchellh/go-homedir"
   packages = ["."]
-  revision = "b8bc1bf767474819792c23f32d8286a45736f1c6"
+  revision = "3864e76763d94a6df2f9960b16a20a33da9f9a66"
 
 [[projects]]
   branch = "master"
@@ -539,16 +555,16 @@
   revision = "4e1c5567d7c2dd59fa4c7c83d34c2f3528b025d6"
 
 [[projects]]
-  branch = "master"
   name = "github.com/pelletier/go-toml"
   packages = ["."]
-  revision = "66540cf1fcd2c3aee6f6787dfa32a6ae9a870f12"
+  revision = "c01d1270ff3e442a8a57cddc1c92dc1138598194"
+  version = "v1.2.0"
 
 [[projects]]
-  branch = "master"
   name = "github.com/pkg/errors"
   packages = ["."]
-  revision = "816c9085562cd7ee03e7f8188a1cfd942858cded"
+  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
+  version = "v0.8.0"
 
 [[projects]]
   name = "github.com/pmezard/go-difflib"
@@ -557,9 +573,10 @@
   version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
   name = "github.com/rcrowley/go-metrics"
   packages = ["."]
-  revision = "8732c616f52954686704c8645fe1a9d59e9df7c1"
+  revision = "e2704e165165ec55d062f5919b4b29494e9fa790"
 
 [[projects]]
   branch = "master"
@@ -574,12 +591,13 @@
     "snappy",
     "sync2"
   ]
-  revision = "cb568a3e5cc06256f91a2da5a87455f717eb33f4"
+  revision = "bdc77568d726a8702315ec4eafda030b6abc4f43"
 
 [[projects]]
+  branch = "master"
   name = "github.com/siddontang/goredis"
   packages = ["."]
-  revision = "760763f78400635ed7b9b115511b8ed06035e908"
+  revision = "0b4019cbd7b74d182c4b0228bc1ee0a8ae6c8b8d"
 
 [[projects]]
   name = "github.com/siddontang/ledisdb"
@@ -594,7 +612,8 @@
     "store/leveldb",
     "store/rocksdb"
   ]
-  revision = "36de957bf3a22a4785e8ce3d111b9a20de0d36f0"
+  revision = "56900470a899883f691bcdf6bea4ac547f2a9a6f"
+  version = "v0.6"
 
 [[projects]]
   branch = "master"
@@ -603,10 +622,10 @@
   revision = "fc89ed2e418d27e3ea76e708e54276d2b44ae9cf"
 
 [[projects]]
-  branch = "master"
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "c679ae2cc0cb27ec3293fea7e254e47386f05d69"
+  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
+  version = "v1.2.1"
 
 [[projects]]
   name = "github.com/syndtr/goleveldb"
@@ -633,10 +652,10 @@
   revision = "3794dfbfb04749f896b521032f69383f24c3687e"
 
 [[projects]]
-  branch = "master"
   name = "github.com/templexxx/reedsolomon"
   packages = ["."]
-  revision = "7092926d7d05c415fabb892b1464a03f8228ab80"
+  revision = "4ec6abdbe370c3f16acc9cbf938ac7be6ed01b2a"
+  version = "1.0.0"
 
 [[projects]]
   name = "github.com/templexxx/xor"
@@ -653,13 +672,14 @@
 [[projects]]
   name = "github.com/ugorji/go"
   packages = ["codec"]
-  revision = "02537d3a3e32ef636a53519265d211bd208ca488"
+  revision = "b4c50a2b199d93b13dc15e78929cfb23bfdf21ab"
+  version = "v1.1.1"
 
 [[projects]]
   branch = "master"
   name = "github.com/vharitonsky/iniflags"
   packages = ["."]
-  revision = "e2b4a6da96d46d6660e977fe22eda5ea0f2b35d2"
+  revision = "a33cd0b5f3de9ef5e89c90ab2f1ebe3f71ad1ece"
 
 [[projects]]
   name = "github.com/xtaci/smux"
@@ -671,9 +691,10 @@
   branch = "master"
   name = "github.com/xwb1989/sqlparser"
   packages = ["dependency/hack"]
-  revision = "da747e0c62c4e145ebd7484cf69f92c0dd192305"
+  revision = "120387863bf27d04bc07db8015110a6e96d0146c"
 
 [[projects]]
+  branch = "master"
   name = "github.com/yuin/gopher-lua"
   packages = [
     ".",
@@ -681,12 +702,13 @@
     "parse",
     "pm"
   ]
-  revision = "84ea3a3c79b3c4b3b39606cc96f255cd63635ce0"
+  revision = "b0fa786cf4ea360285924c4a7fd42325be57aec8"
 
 [[projects]]
   name = "go.opencensus.io"
   packages = [
     "exporter/stackdriver/propagation",
+    "exporterutil",
     "internal",
     "internal/tagencoding",
     "plugin/ocgrpc",
@@ -700,10 +722,11 @@
     "trace/internal",
     "trace/propagation"
   ]
-  revision = "0095aec66ae14801c6711210f6f0716411cefdd3"
-  version = "v0.8.0"
+  revision = "5897c5ce32247fc8af19c7710abd96e3304fb43c"
+  version = "v0.12.0"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/crypto"
   packages = [
     "blowfish",
@@ -721,14 +744,16 @@
     "twofish",
     "xtea"
   ]
-  revision = "88942b9c40a4c9d203b82b3731787b672d6e809b"
+  revision = "8ac0e0d97ce45cd83d1d7243c060cb8461dda5e9"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/net"
   packages = [
     "bpf",
     "context",
     "context/ctxhttp",
+    "http/httpguts",
     "http2",
     "http2/hpack",
     "idna",
@@ -736,10 +761,9 @@
     "internal/socket",
     "internal/timeseries",
     "ipv4",
-    "lex/httplex",
     "trace"
   ]
-  revision = "6078986fec03a1dcc236c34816c71b0e05018fda"
+  revision = "1e491301e022f8f977054da4c2d852decd59571f"
   source = "https://github.com/golang/net"
 
 [[projects]]
@@ -761,12 +785,14 @@
   revision = "1d60e4601c6fd243af51cc01ddf169918a5407ca"
 
 [[projects]]
+  branch = "master"
   name = "golang.org/x/sys"
   packages = [
+    "cpu",
     "unix",
     "windows"
   ]
-  revision = "13d03a9a82fba647c21a0ef8fba44a795d0f0835"
+  revision = "9527bec2660bd847c050fda93a0f0c6dee0800bb"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -775,8 +801,6 @@
     "collate/build",
     "internal/colltab",
     "internal/gen",
-    "internal/language",
-    "internal/language/compact",
     "internal/tag",
     "internal/triegen",
     "internal/ucd",
@@ -788,7 +812,8 @@
     "unicode/norm",
     "unicode/rangetable"
   ]
-  revision = "ece95c760240037f89ebcbdd7155ac8cb52e38fa"
+  revision = "f21a4dfb5e38f5895301dc265a8def02365cc3d0"
+  version = "v0.3.0"
 
 [[projects]]
   branch = "master"
@@ -803,7 +828,7 @@
     "transport/grpc",
     "transport/http"
   ]
-  revision = "8e9de5a6de6d356eb08ebb58f6daab313283c6b0"
+  revision = "4d8a15a217e46f47fb724569d74702bec99852d3"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -822,9 +847,11 @@
     "socket",
     "urlfetch"
   ]
-  revision = "540132eeda33c2b26cca331a6adfd50519cd29f7"
+  revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
+  version = "v1.0.0"
 
 [[projects]]
+  branch = "master"
   name = "google.golang.org/genproto"
   packages = [
     "googleapis/api/annotations",
@@ -833,7 +860,7 @@
     "googleapis/devtools/clouderrorreporting/v1beta1",
     "googleapis/rpc/status"
   ]
-  revision = "ab0870e398d5dd054b868c0db1481ab029b9a9f2"
+  revision = "32ee49c4dd805befd833990acba36cb75042378c"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -842,6 +869,7 @@
     "balancer",
     "balancer/base",
     "balancer/roundrobin",
+    "channelz",
     "codes",
     "connectivity",
     "credentials",
@@ -863,7 +891,8 @@
     "tap",
     "transport"
   ]
-  revision = "f72b28a6d170d0938afd483331ba4e5d733785ae"
+  revision = "7a6a684ca69eb4cae85ad0a484f2e531598c047b"
+  version = "v1.12.2"
 
 [[projects]]
   name = "gopkg.in/redis.v5"
@@ -881,6 +910,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a575beac223b9193ed73574a6b56ad8f373ed34a5cb9778a041f0feee53cab79"
+  inputs-digest = "a7faacf9c82fe701faab59a16e76047cbaa8c2ffe87ce5a494b7f14e5c2ff0af"
   solver-name = "gps-cdcl"
   solver-version = 1
