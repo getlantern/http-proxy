@@ -111,7 +111,8 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 			"server_bps_recv_min":        borda.Min(stats.RecvMin),
 			"server_bps_recv_max":        borda.Max(stats.RecvMax),
 			"server_bps_recv_avg":        borda.WeightedAvg(stats.RecvAvg, float64(stats.RecvTotal)),
-			"server_connection_duration": borda.Avg(float64(stats.Duration) / nanosPerSecond),
+			"server_connection":          borda.Float(1),
+			"server_connection_duration": borda.Float(float64(stats.Duration) / nanosPerSecond),
 		}
 		log.Debugf("xfer: %v %v", ctx, vals)
 
