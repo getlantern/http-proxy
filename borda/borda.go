@@ -14,6 +14,10 @@ import (
 	"github.com/getlantern/zenodb/rpc"
 )
 
+const (
+	nanosPerSecond = 1000 * 1000 * 1000
+)
+
 var (
 	log = golog.LoggerFor("lantern-proxy-borda")
 
@@ -97,24 +101,36 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 			return
 		}
 
+		ctx["op"] = "xfer"
+		vals := map[string]borda.Val{
+			"server_bytes_sent":          borda.Float(stats.SentTotal),
+			"server_bps_sent_min":        borda.Min(stats.SentMin),
+			"server_bps_sent_max":        borda.Max(stats.SentMax),
+			"server_bps_sent_avg":        borda.WeightedAvg(stats.SentAvg, float64(stats.SentTotal)),
+			"server_bytes_recv":          borda.Float(stats.RecvTotal),
+			"server_bps_recv_min":        borda.Min(stats.RecvMin),
+			"server_bps_recv_max":        borda.Max(stats.RecvMax),
+			"server_bps_recv_avg":        borda.WeightedAvg(stats.RecvAvg, float64(stats.RecvTotal)),
+			"server_connection_duration": borda.Avg(float64(stats.Duration) / nanosPerSecond),
+		}
+		log.Debugf("xfer: %v %v", ctx, vals)
+
 		if !inSample(ctx) {
 			return
 		}
 
-		ctx["op"] = "xfer"
-		vals := map[string]borda.Val{
-			"server_bytes_sent":   borda.Float(stats.SentTotal),
-			"server_bps_sent_min": borda.Min(stats.SentMin),
-			"server_bps_sent_max": borda.Max(stats.SentMax),
-			"server_bps_sent_avg": borda.WeightedAvg(stats.SentAvg, float64(stats.SentTotal)),
-			"server_bytes_recv":   borda.Float(stats.RecvTotal),
-			"server_bps_recv_min": borda.Min(stats.RecvMin),
-			"server_bps_recv_max": borda.Max(stats.RecvMax),
-			"server_bps_recv_avg": borda.WeightedAvg(stats.RecvAvg, float64(stats.RecvTotal)),
-		}
 		reportErr := reportToBorda(vals, ctx)
 		if reportErr != nil {
 			log.Errorf("Error reporting error to borda: %v", reportErr)
 		}
+	}
+}
+
+// ConnectionTypedBordaReporter adds a conn_type dimension to measured stats
+// reported to Borda.
+func ConnectionTypedBordaReporter(connType string, bordaReporter listeners.MeasuredReportFN) listeners.MeasuredReportFN {
+	return func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
+		ctx["conn_type"] = connType
+		bordaReporter(ctx, stats, deltaStats, final)
 	}
 }
