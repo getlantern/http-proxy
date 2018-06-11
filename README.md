@@ -100,3 +100,9 @@ You can use the following command to do all this automatically:
 ```
 make dist
 ```
+
+Once you've build a binary for distribution, you can deploy it to all live proxies with:
+
+```
+make deploy
+```
