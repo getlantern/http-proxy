@@ -13,10 +13,10 @@
   version = "v0.23.0"
 
 [[projects]]
-  branch = "master"
   name = "git.torproject.org/pluggable-transports/goptlib.git"
   packages = ["."]
-  revision = "7d56ec4f381e8b1aedfda360594e35a5731b5337"
+  revision = "fcc1d072d63b3e843495d4af4c0f522ddbb9fefc"
+  version = "0.7"
 
 [[projects]]
   branch = "master"
@@ -116,7 +116,7 @@
   branch = "master"
   name = "github.com/getlantern/borda"
   packages = ["client"]
-  revision = "41aa58c60b3cf55da37a10817235f7eba0ed8310"
+  revision = "506db6a5d7e6d3bb60e13b4b8b1e9e11b9c17f42"
 
 [[projects]]
   branch = "master"
@@ -265,7 +265,7 @@
   branch = "master"
   name = "github.com/getlantern/measured"
   packages = ["."]
-  revision = "4f4439b4ec7235f8ae7a4455f9b0a5f381e483dc"
+  revision = "58aa379db63a19b9f8e9d3e940676619082bdd0a"
 
 [[projects]]
   branch = "master"
@@ -412,7 +412,7 @@
     "rpc",
     "sql"
   ]
-  revision = "ca576033eabcf437af6a7ff93417d89cf3d61a90"
+  revision = "57ba9d868caa3733b2e5e5033996cf0bbdcbc6b0"
 
 [[projects]]
   name = "github.com/glendc/gopher-json"
@@ -654,8 +654,7 @@
 [[projects]]
   name = "github.com/templexxx/reedsolomon"
   packages = ["."]
-  revision = "4ec6abdbe370c3f16acc9cbf938ac7be6ed01b2a"
-  version = "1.0.0"
+  revision = "7092926d7d05c415fabb892b1464a03f8228ab80"
 
 [[projects]]
   name = "github.com/templexxx/xor"
@@ -707,8 +706,8 @@
 [[projects]]
   name = "go.opencensus.io"
   packages = [
+    ".",
     "exporter/stackdriver/propagation",
-    "exporterutil",
     "internal",
     "internal/tagencoding",
     "plugin/ocgrpc",
@@ -722,8 +721,8 @@
     "trace/internal",
     "trace/propagation"
   ]
-  revision = "5897c5ce32247fc8af19c7710abd96e3304fb43c"
-  version = "v0.12.0"
+  revision = "6edeb78af2d9e4f169abb223feaef35da2e45d06"
+  version = "v0.13.0"
 
 [[projects]]
   branch = "master"
@@ -744,7 +743,7 @@
     "twofish",
     "xtea"
   ]
-  revision = "8ac0e0d97ce45cd83d1d7243c060cb8461dda5e9"
+  revision = "b47b1587369238182299fe4dad77d05b8b461e06"
 
 [[projects]]
   branch = "master"
@@ -764,7 +763,6 @@
     "trace"
   ]
   revision = "1e491301e022f8f977054da4c2d852decd59571f"
-  source = "https://github.com/golang/net"
 
 [[projects]]
   branch = "master"
@@ -828,7 +826,7 @@
     "transport/grpc",
     "transport/http"
   ]
-  revision = "4d8a15a217e46f47fb724569d74702bec99852d3"
+  revision = "ef86ce4234efee96020bde00391d6a9cfae66561"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -860,7 +858,7 @@
     "googleapis/devtools/clouderrorreporting/v1beta1",
     "googleapis/rpc/status"
   ]
-  revision = "32ee49c4dd805befd833990acba36cb75042378c"
+  revision = "81158efcc9f219c511e4d3c0d61a0e6e49c01a24"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -910,6 +908,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a7faacf9c82fe701faab59a16e76047cbaa8c2ffe87ce5a494b7f14e5c2ff0af"
+  inputs-digest = "07963bcd651ac62767a4044ab690b0e002fb764aca2cdf79d731268ffffc40c0"
   solver-name = "gps-cdcl"
   solver-version = 1
