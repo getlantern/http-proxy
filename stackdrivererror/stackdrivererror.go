@@ -11,13 +11,13 @@ import (
 	"cloud.google.com/go/errorreporting"
 )
 
-var errorClient *errorreporting.Client
+// Close is a function to close the client.
+type Close func()
 
 // Enable enables reporting errors to stackdriver.
-func Enable(ctx context.Context, projectID, stackdriverCreds string) {
+func Enable(ctx context.Context, projectID, stackdriverCreds string) Close {
 	log.Printf("Enabling stackdriver error reporting for project %v", projectID)
-	var err error
-	errorClient, err = errorreporting.NewClient(ctx, projectID, errorreporting.Config{
+	errorClient, err := errorreporting.NewClient(ctx, projectID, errorreporting.Config{
 		ServiceName: "lantern-http-proxy-service",
 		OnError: func(err error) {
 			log.Printf("Could not log error: %v", err)
@@ -25,7 +25,7 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string) {
 	}, option.WithCredentialsFile(stackdriverCreds))
 	if err != nil {
 		log.Printf("Error setting up stackdriver error reporting? %v", err)
-		return
+		return func() {}
 	}
 
 	var reporter = func(err error, linePrefix string, severity golog.Severity, ctx map[string]interface{}) {
@@ -38,11 +38,7 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string) {
 	}
 
 	golog.RegisterReporter(reporter)
-}
-
-// Close closes the stackdriver error reporting client.
-func Close() {
-	if errorClient != nil {
+	return func() {
 		errorClient.Close()
 		errorClient.Flush()
 	}

@@ -124,7 +124,8 @@ func main() {
 	}
 
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
-		stackdrivererror.Enable(ctx, *stackdriverProjectID, *stackdriverCreds)
+		close := stackdrivererror.Enable(ctx, *stackdriverProjectID, *stackdriverCreds)
+		defer close()
 	}
 
 	go periodicallyForceGC()
@@ -182,7 +183,6 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	stackdrivererror.Close()
 }
 
 func periodicallyForceGC() {
