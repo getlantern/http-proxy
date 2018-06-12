@@ -277,7 +277,8 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	} else {
 		fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
 		filterChain = filterChain.Append(
-			proxy.OnFirstOnly(devicefilter.NewPre(redis.NewDeviceFetcher(p.rc), p.throttleConfig, fd)),
+			proxy.OnFirstOnly(devicefilter.NewPre(
+				redis.NewDeviceFetcher(p.rc), p.throttleConfig, fd, !p.Pro)),
 		)
 	}
 

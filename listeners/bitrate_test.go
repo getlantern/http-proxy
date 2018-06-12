@@ -42,7 +42,7 @@ func server(t *testing.T, ready *chan struct{}, bytesReadChan *chan int) *bitrat
 	*ready <- struct{}{}
 
 	conn, err := bl.Accept()
-	conn.(*bitrateConn).ControlMessage("throttle", ThrottleRate(bitrateLimit))
+	conn.(*bitrateConn).ControlMessage("throttle", NewRateLimiter(bitrateLimit))
 
 	go handleConn(t, conn, bytesReadChan)
 
@@ -83,7 +83,10 @@ Done:
 		}
 	}
 
-	assert.Equal(t, bitrateLimit, totalRead, "Read an unexpected number of bytes! Rate limiting is not working")
+	// the limiters token bucket algorithm starts "full", so
+	// we get the limit + the amount permitted in 950 milliseconds.
+	// (thus, the amount read should be less than twice the limit)
+	assert.True(t, 2*bitrateLimit > totalRead && totalRead > bitrateLimit, "Read an unexpected number of bytes (%d)! Rate limiting is not working", totalRead)
 }
 
 var onceStd, onceInThr, onceThr sync.Once
@@ -116,7 +119,7 @@ func benchSrv(wg *sync.WaitGroup, useThrottle, enableBitrate bool, port string) 
 			}
 
 			if useThrottle {
-				conn.(*bitrateConn).ControlMessage("throttle", ThrottleRate(1024*1024*1024))
+				conn.(*bitrateConn).ControlMessage("throttle", NewRateLimiter(1024*1024*1024))
 			}
 
 			go func() {

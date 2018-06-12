@@ -1,12 +1,19 @@
 package proxy
 
 import (
+	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
+	"math/rand"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"strconv"
 	"strings"
+	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -18,20 +25,14 @@ import (
 	"github.com/getlantern/http-proxy-lantern/throttle"
 )
 
-const (
-	freeServerAddr = "127.0.0.1:18711"
-	proServerAddr  = "127.0.0.1:18712"
-)
+func TestThrottling(t *testing.T) {
+	params := [][]string{
+		[]string{"Free config from Redis", "false", "false", "127.0.0.1:18711"},
+		[]string{"Free force throttling", "false", "true", "127.0.0.1:18712"},
+		[]string{"Pro config from Redis", "true", "false", "127.0.0.1:18713"},
+		[]string{"Pro force throttling", "true", "true", "127.0.0.1:18714"},
+	}
 
-func TestThrottlingFree(t *testing.T) {
-	doTestThrottling(t, false, freeServerAddr)
-}
-
-func TestThrottlingPro(t *testing.T) {
-	doTestThrottling(t, true, proServerAddr)
-}
-
-func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
 	origMeasuredReportingInterval := measuredReportingInterval
 	measuredReportingInterval = 10 * time.Millisecond
 	defer func() {
@@ -44,14 +45,32 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
 	}
 	defer r.Close()
 
+	for _, test := range params {
+		t.Run(test[0], func(t *testing.T) { doTestThrottling(t, test[1] == "true", test[2] == "true", test[3], r) })
+	}
+}
+
+func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string, r testredis.Redis) {
+	deviceId := fmt.Sprintf("dev-%d", rand.Int())
+	sizeHeader := "X-Test-Size"
+	originSite := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		n, _ := strconv.Atoi(req.Header.Get(sizeHeader))
+		io.CopyN(rw, rand.New(rand.NewSource(time.Now().UnixNano())), int64(n))
+	}))
+
 	rc := r.Client()
 	defer rc.Close()
 
-	if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{throttle.DefaultCountryCode: "10485760|1048576"}).Err()) {
+	if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{throttle.DefaultCountryCode: "10485760|1024"}).Err()) {
 		return
 	}
-	if !assert.NoError(t, rc.HMSet("_throttle:mobile", map[string]string{throttle.DefaultCountryCode: "10485760|1048576"}).Err()) {
+	if !assert.NoError(t, rc.HMSet("_throttle:mobile", map[string]string{throttle.DefaultCountryCode: "10485760|1024"}).Err()) {
 		return
+	}
+
+	throttleRate := 1024
+	durationForBytes := func(b int) time.Duration {
+		return time.Duration(1000*float64(b)/float64(throttleRate)) * time.Millisecond
 	}
 
 	proxy := &Proxy{
@@ -62,6 +81,11 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
 		IdleTimeout:        1 * time.Minute,
 		Pro:                pro,
 		ThrottleRefreshInterval: throttle.DefaultRefreshInterval,
+		TestingLocal:            true,
+	}
+	if forceThrottling {
+		proxy.ThrottleThreshold = 10485760
+		proxy.ThrottleRate = int64(throttleRate)
 	}
 	go func() {
 		assert.NoError(t, proxy.ListenAndServe())
@@ -71,44 +95,70 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
 		return
 	}
 
-	client := &http.Client{
-		Transport: &http.Transport{
-			DisableKeepAlives: true,
-			Proxy: func(req *http.Request) (*url.URL, error) {
-				return url.Parse("http://" + serverAddr)
-			},
-		},
-	}
+	makeRequest := func(u string, testSize int) (*http.Response, int, error) {
 
-	makeRequest := func(url string) (*http.Response, error) {
-		req, _ := http.NewRequest(http.MethodGet, url, nil)
+		var conn *ReadSizeConn
+		client := &http.Client{
+			Transport: &http.Transport{
+				DisableKeepAlives: true,
+				Proxy: func(req *http.Request) (*url.URL, error) {
+					return url.Parse("http://" + serverAddr)
+				},
+				DialContext: func(ctx context.Context, network, addr string) (net.Conn, error) {
+					var d net.Dialer
+					c, err := d.DialContext(ctx, network, addr)
+					if err != nil {
+						return nil, err
+					}
+					wrapped := &ReadSizeConn{Conn: c}
+					conn = wrapped
+					return wrapped, nil
+				},
+			},
+		}
+
+		req, _ := http.NewRequest(http.MethodGet, u, nil)
 		req.Header.Set(common.TokenHeader, validToken)
 		req.Header.Set(common.DeviceIdHeader, deviceId)
+		req.Header.Set(sizeHeader, strconv.Itoa(testSize))
 
 		resp, err := client.Do(req)
 		if err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 
 		_, err = io.Copy(ioutil.Discard, resp.Body)
-		return resp, err
+
+		rs := 0
+		if conn != nil {
+			rs = conn.readSize
+		}
+		return resp, rs, err
 	}
 
-	resp, err := makeRequest("http://download.thinkbroadband.com/5MB.zip")
+	resp, _, err := makeRequest(originSite.URL, 9*1024*1024)
 	if !assert.NoError(t, err) {
 		return
 	}
 
-	time.Sleep(measuredReportingInterval * 30)
-	resp, err = makeRequest("http://www.scmp.com/frontpage/international")
+	resp, _, err = makeRequest(originSite.URL, 2*1024*1024)
 	if !assert.NoError(t, err) {
 		return
 	}
 
+	time.Sleep(2 * time.Second)
+	resp, _, err = makeRequest(originSite.URL, throttleRate) // empty initially full bucket
+	start := time.Now()
+	resp, sz, err := makeRequest(originSite.URL, 512)
+	if !assert.NoError(t, err) {
+		return
+	}
 	xbq := resp.Header.Get(common.XBQHeader)
 	if pro {
 		assert.Empty(t, xbq)
 	} else {
+		assert.InDelta(t, durationForBytes(sz), time.Since(start), float64(150*time.Millisecond),
+			"throttling should be in effect for Free proxy")
 		if !assert.NotEmpty(t, xbq) {
 			return
 		}
@@ -120,6 +170,23 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
 
 		assert.NotEqual(t, "0", parts[0], "Should show some usage")
 		assert.Equal(t, "10", parts[1], "Should show correct bandwidth limit")
+
+		// Now test throttling concurrent connections from a single device
+		var sz int64
+		start := time.Now()
+		var wg sync.WaitGroup
+		for i := 0; i < 4; i++ {
+			wg.Add(1)
+			go func() {
+				_, ss, err := makeRequest(originSite.URL, 512)
+				atomic.AddInt64(&sz, int64(ss))
+				wg.Done()
+				assert.NoError(t, err)
+			}()
+		}
+		wg.Wait()
+		assert.InDelta(t, durationForBytes(int(sz)), time.Since(start), float64(150*time.Millisecond),
+			"throttling should be applied to the total traffic generated by the device")
 	}
 
 	result, err := rc.HMGet("_client:"+deviceId, "bytesIn", "bytesOut", "countryCode", "clientIP").Result()
@@ -145,4 +212,16 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string) {
 		return
 	}
 	log.Debug(ttl)
+}
+
+// utility for observing bytes read
+type ReadSizeConn struct {
+	net.Conn
+	readSize int
+}
+
+func (c *ReadSizeConn) Read(b []byte) (n int, err error) {
+	n, err = c.Conn.Read(b)
+	c.readSize += n
+	return
 }

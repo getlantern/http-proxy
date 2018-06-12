@@ -3,17 +3,54 @@ package listeners
 import (
 	"net"
 	"net/http"
+	"sync"
 
-	"github.com/dustin/go-humanize"
+	"github.com/juju/ratelimit"
+
 	"github.com/getlantern/http-proxy/listeners"
-	"github.com/mxk/go-flowrate/flowrate"
 )
 
-type ThrottleRate int64
+type RateLimiter struct {
+	r    *ratelimit.Bucket
+	w    *ratelimit.Bucket
+	rate int64
+	mx   sync.RWMutex
+}
 
-var (
-	NoThrottle = ThrottleRate(0)
-)
+func NewRateLimiter(rate int64) *RateLimiter {
+	l := &RateLimiter{}
+	l.SetRate(rate)
+	return l
+}
+
+func (l *RateLimiter) SetRate(rate int64) {
+	l.mx.Lock()
+	if l.rate != rate {
+		l.rate = rate
+		if rate > 0 {
+			l.r = ratelimit.NewBucketWithRate(float64(rate), rate)
+			l.w = ratelimit.NewBucketWithRate(float64(rate), rate)
+		} else {
+			l.r = nil
+			l.w = nil
+		}
+	}
+	l.mx.Unlock()
+}
+
+func (l *RateLimiter) getReadBucket() (b *ratelimit.Bucket) {
+	l.mx.RLock()
+	b = l.r
+	l.mx.RUnlock()
+	return
+}
+
+func (l *RateLimiter) getWriteBucket() (b *ratelimit.Bucket) {
+	l.mx.RLock()
+	b = l.w
+	l.mx.RUnlock()
+	return
+}
 
 type bitrateListener struct {
 	net.Listener
@@ -33,9 +70,7 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 	return &bitrateConn{
 		WrapConnEmbeddable: wc,
 		Conn:               c,
-		throttle:           NoThrottle,
-		freader:            flowrate.NewReader(c, int64(0)),
-		fwriter:            flowrate.NewWriter(c, int64(0)),
+		limiter:            NewRateLimiter(0),
 	}, err
 }
 
@@ -43,25 +78,41 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 type bitrateConn struct {
 	listeners.WrapConnEmbeddable
 	net.Conn
-	throttle ThrottleRate
-	freader  *flowrate.Reader
-	fwriter  *flowrate.Writer
+	limiter *RateLimiter
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	if c.throttle == NoThrottle {
-		return c.Conn.Read(p)
-	} else {
-		return c.freader.Read(p)
+	bucket := c.limiter.getReadBucket()
+	if bucket != nil {
+		s := bucket.TakeAvailable(int64(len(p)))
+		if s == 0 {
+			bucket.Wait(1)
+			s = 1
+		}
+		p = p[:s]
 	}
+
+	return c.Conn.Read(p)
 }
 
 func (c *bitrateConn) Write(p []byte) (n int, err error) {
-	if c.throttle == NoThrottle {
+	bucket := c.limiter.getWriteBucket()
+	if bucket == nil {
 		return c.Conn.Write(p)
-	} else {
-		return c.fwriter.Write(p)
 	}
+
+	var i int
+	for len(p) > 0 && err == nil {
+		s := bucket.TakeAvailable(int64(len(p)))
+		if s == 0 {
+			bucket.Wait(1)
+			s = 1
+		}
+		i, err = c.Conn.Write(p[:s])
+		p = p[i:]
+		n += i
+	}
+	return
 }
 
 func (c *bitrateConn) OnState(s http.ConnState) {
@@ -74,11 +125,7 @@ func (c *bitrateConn) OnState(s http.ConnState) {
 func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	// pro-user message always overrides the active flag
 	if msgType == "throttle" {
-		rate := data.(ThrottleRate)
-		c.throttle = rate
-		c.freader.SetLimit(int64(c.throttle))
-		c.fwriter.SetLimit(int64(c.throttle))
-		log.Debugf("Throttling connection to %v per second", humanize.Bytes(uint64(rate)))
+		c.limiter = data.(*RateLimiter)
 	}
 
 	if c.WrapConnEmbeddable != nil {
