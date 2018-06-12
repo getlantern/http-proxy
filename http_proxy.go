@@ -133,7 +133,7 @@ func (p *Proxy) ListenAndServe() error {
 		return err
 	}
 
-	bwReporting := p.configureBandwidthReporting()
+	bwReporting, bordaReporter := p.configureBandwidthReporting()
 	srv := server.New(&server.Opts{
 		IdleTimeout: p.IdleTimeout,
 		Dial:        dial,
@@ -169,7 +169,7 @@ func (p *Proxy) ListenAndServe() error {
 		}
 		// We initialize lampshade here because it uses the same keypair as HTTPS
 		if p.LampshadeAddr != "" {
-			p.serveLampshade(srv)
+			p.serveLampshade(srv, bordaReporter)
 		}
 	}
 
@@ -356,12 +356,12 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}, nil
 }
 
-func (p *Proxy) configureBandwidthReporting() *reportingConfig {
+func (p *Proxy) configureBandwidthReporting() (*reportingConfig, listeners.MeasuredReportFN) {
 	var bordaReporter listeners.MeasuredReportFN
 	if p.BordaReportInterval > 0 {
 		bordaReporter = borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
 	}
-	return newReportingConfig(p.rc, p.EnableReports, bordaReporter)
+	return newReportingConfig(p.rc, p.EnableReports, bordaReporter), bordaReporter
 }
 
 func (p *Proxy) loadThrottleConfig() {
@@ -451,10 +451,16 @@ func (p *Proxy) serveOBFS4(srv *server.Server) {
 	}()
 }
 
-func (p *Proxy) serveLampshade(srv *server.Server) {
+func (p *Proxy) serveLampshade(srv *server.Server, bordaReporter listeners.MeasuredReportFN) {
 	l, err := p.listenTCP(p.LampshadeAddr, false)
 	if err != nil {
 		log.Fatalf("Unable to listen for lampshade with tcp: %v", err)
+	}
+	if bordaReporter != nil {
+		log.Debug("Wrapping lampshade's TCP listener with measured reporting")
+		l = listeners.NewMeasuredListener(l,
+			measuredReportingInterval,
+			borda.ConnectionTypedBordaReporter("physical", bordaReporter))
 	}
 	wrapped, wrapErr := lampshade.Wrap(l, p.CertFile, p.KeyFile)
 	if wrapErr != nil {

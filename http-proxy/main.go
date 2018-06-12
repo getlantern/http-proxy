@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"net/http"
@@ -8,6 +9,8 @@ import (
 	"runtime"
 	"runtime/debug"
 	"time"
+
+	"cloud.google.com/go/errorreporting"
 
 	"github.com/vharitonsky/iniflags"
 
@@ -17,6 +20,7 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
+	"github.com/getlantern/http-proxy-lantern/stackdrivererror"
 	"github.com/getlantern/http-proxy-lantern/throttle"
 )
 
@@ -76,10 +80,14 @@ var (
 	blacklistExpiration            = flag.Duration("blacklist-expiration", 6*time.Hour, "How long to wait before removing an ip from the blacklist")
 	proxyName                      = flag.String("proxyname", hostname, "The name of this proxy (defaults to hostname)")
 	bbrUpstreamProbeURL            = flag.String("bbrprobeurl", "", "optional URL to probe for upstream BBR bandwidth estimates")
+	stackdriverProjectID           = flag.String("stackdriver-project-id", "", "Optional project ID for stackdriver error reporting as in http-proxy-lantern")
+	stackdriverCreds               = flag.String("stackdriver-creds", "", "Optional full json file path containing stackdriver credentials")
 )
 
+var errorClient *errorreporting.Client
+
 func main() {
-	var err error
+	ctx := context.Background()
 
 	iniflags.SetAllowUnknownFlags(true)
 	iniflags.Parse()
@@ -98,8 +106,7 @@ func main() {
 
 	// Logging
 	// TODO: use real parameters
-	err = logging.Init("instanceid", "version", "releasedate")
-	if err != nil {
+	if err := logging.Init("instanceid", "version", "releasedate"); err != nil {
 		log.Fatal(err)
 	}
 
@@ -114,6 +121,11 @@ func main() {
 
 	if *versionCheck != "" && *versionCheckRedirectURL == "" {
 		log.Fatal("version check redirect URL should not empty")
+	}
+
+	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
+		close := stackdrivererror.Enable(ctx, *stackdriverProjectID, *stackdriverCreds)
+		defer close()
 	}
 
 	go periodicallyForceGC()
@@ -167,7 +179,7 @@ func main() {
 		BBRUpstreamProbeURL:            *bbrUpstreamProbeURL,
 	}
 
-	err = p.ListenAndServe()
+	err := p.ListenAndServe()
 	if err != nil {
 		log.Fatal(err)
 	}

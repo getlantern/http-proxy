@@ -2,6 +2,17 @@
 
 
 [[projects]]
+  name = "cloud.google.com/go"
+  packages = [
+    "compute/metadata",
+    "errorreporting",
+    "errorreporting/apiv1beta1",
+    "internal/version"
+  ]
+  revision = "0fd7230b2a7505833d5f69b75cbd6c9582401479"
+  version = "v0.23.0"
+
+[[projects]]
   name = "git.torproject.org/pluggable-transports/goptlib.git"
   packages = ["."]
   revision = "fcc1d072d63b3e843495d4af4c0f522ddbb9fefc"
@@ -105,7 +116,7 @@
   branch = "master"
   name = "github.com/getlantern/borda"
   packages = ["client"]
-  revision = "506db6a5d7e6d3bb60e13b4b8b1e9e11b9c17f42"
+  revision = "65cc1df08e271c261303eb3b6b434543d2eac089"
 
 [[projects]]
   branch = "master"
@@ -254,7 +265,7 @@
   branch = "master"
   name = "github.com/getlantern/measured"
   packages = ["."]
-  revision = "0582bf799783fba9a890459155817f1cbcf00f17"
+  revision = "58aa379db63a19b9f8e9d3e940676619082bdd0a"
 
 [[projects]]
   branch = "master"
@@ -401,7 +412,7 @@
     "rpc",
     "sql"
   ]
-  revision = "57ba9d868caa3733b2e5e5033996cf0bbdcbc6b0"
+  revision = "ca576033eabcf437af6a7ff93417d89cf3d61a90"
 
 [[projects]]
   name = "github.com/glendc/gopher-json"
@@ -419,9 +430,11 @@
   name = "github.com/golang/protobuf"
   packages = [
     "proto",
+    "protoc-gen-go/descriptor",
     "ptypes",
     "ptypes/any",
     "ptypes/duration",
+    "ptypes/struct",
     "ptypes/timestamp"
   ]
   revision = "b4deda0973fb4c70b50d226b1af49f3da59f5265"
@@ -483,6 +496,12 @@
   name = "github.com/gonum/stat"
   packages = ["."]
   revision = "ec9c8a1062f4be6c6ad671f0f5dba12d4a76826d"
+
+[[projects]]
+  name = "github.com/googleapis/gax-go"
+  packages = ["."]
+  revision = "317e0006254c44a0ac427cc52a0e083ff0b9622f"
+  version = "v2.0.0"
 
 [[projects]]
   branch = "master"
@@ -605,8 +624,8 @@
 [[projects]]
   name = "github.com/stretchr/testify"
   packages = ["assert"]
-  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
-  version = "v1.2.1"
+  revision = "f35b8ab0b5a2cef36673838d662e249dd9c94686"
+  version = "v1.2.2"
 
 [[projects]]
   name = "github.com/syndtr/goleveldb"
@@ -682,7 +701,28 @@
     "parse",
     "pm"
   ]
-  revision = "b0fa786cf4ea360285924c4a7fd42325be57aec8"
+  revision = "ca850f594eaafa5468da2bd53b865e4ee55be18b"
+
+[[projects]]
+  name = "go.opencensus.io"
+  packages = [
+    ".",
+    "exporter/stackdriver/propagation",
+    "internal",
+    "internal/tagencoding",
+    "plugin/ocgrpc",
+    "plugin/ochttp",
+    "plugin/ochttp/propagation/b3",
+    "stats",
+    "stats/internal",
+    "stats/view",
+    "tag",
+    "trace",
+    "trace/internal",
+    "trace/propagation"
+  ]
+  revision = "6edeb78af2d9e4f169abb223feaef35da2e45d06"
+  version = "v0.13.0"
 
 [[projects]]
   branch = "master"
@@ -703,7 +743,7 @@
     "twofish",
     "xtea"
   ]
-  revision = "b47b1587369238182299fe4dad77d05b8b461e06"
+  revision = "8ac0e0d97ce45cd83d1d7243c060cb8461dda5e9"
 
 [[projects]]
   branch = "master"
@@ -711,6 +751,7 @@
   packages = [
     "bpf",
     "context",
+    "context/ctxhttp",
     "http/httpguts",
     "http2",
     "http2/hpack",
@@ -721,7 +762,25 @@
     "ipv4",
     "trace"
   ]
-  revision = "1e491301e022f8f977054da4c2d852decd59571f"
+  revision = "db08ff08e8622530d9ed3a0e8ac279f6d4c02196"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/oauth2"
+  packages = [
+    ".",
+    "google",
+    "internal",
+    "jws",
+    "jwt"
+  ]
+  revision = "1e0a3fa8ba9a5c9eb35c271780101fdaf1b205d7"
+
+[[projects]]
+  branch = "master"
+  name = "golang.org/x/sync"
+  packages = ["semaphore"]
+  revision = "1d60e4601c6fd243af51cc01ddf169918a5407ca"
 
 [[projects]]
   branch = "master"
@@ -731,7 +790,7 @@
     "unix",
     "windows"
   ]
-  revision = "9527bec2660bd847c050fda93a0f0c6dee0800bb"
+  revision = "bff228c7b664c5fce602223a05fb708fd8654986"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -755,6 +814,21 @@
   version = "v0.3.0"
 
 [[projects]]
+  branch = "master"
+  name = "google.golang.org/api"
+  packages = [
+    "googleapi/transport",
+    "internal",
+    "iterator",
+    "option",
+    "support/bundler",
+    "transport",
+    "transport/grpc",
+    "transport/http"
+  ]
+  revision = "ef86ce4234efee96020bde00391d6a9cfae66561"
+
+[[projects]]
   name = "google.golang.org/appengine"
   packages = [
     ".",
@@ -765,7 +839,11 @@
     "internal/datastore",
     "internal/log",
     "internal/modules",
-    "internal/remote_api"
+    "internal/remote_api",
+    "internal/socket",
+    "internal/urlfetch",
+    "socket",
+    "urlfetch"
   ]
   revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
   version = "v1.0.0"
@@ -773,8 +851,14 @@
 [[projects]]
   branch = "master"
   name = "google.golang.org/genproto"
-  packages = ["googleapis/rpc/status"]
-  revision = "81158efcc9f219c511e4d3c0d61a0e6e49c01a24"
+  packages = [
+    "googleapis/api/annotations",
+    "googleapis/api/label",
+    "googleapis/api/monitoredres",
+    "googleapis/devtools/clouderrorreporting/v1beta1",
+    "googleapis/rpc/status"
+  ]
+  revision = "32ee49c4dd805befd833990acba36cb75042378c"
 
 [[projects]]
   name = "google.golang.org/grpc"
@@ -787,6 +871,7 @@
     "codes",
     "connectivity",
     "credentials",
+    "credentials/oauth",
     "encoding",
     "encoding/proto",
     "grpclb/grpc_lb_v1/messages",
@@ -823,6 +908,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "a2f4e3e5120fd318d07c8462dfd44ecc210a491ebc44f71484fb1c110d0147ad"
+  inputs-digest = "664c92a39fd5c8ef0307c2e46375eb967a7ff5a8e6d8e0903a356e84e2a1f7bd"
   solver-name = "gps-cdcl"
   solver-version = 1
