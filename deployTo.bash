@@ -7,6 +7,9 @@ function die() {
 
 ip=$1
 
+echo "Building http-proxy-lantern"
+make dist || "Could not make dist for http proxy"
+
 echo "Disabling auto-update on $ip"
 ssh lantern@$ip -t "sudo crontab -l | perl -p -e 's/^(.*update_proxy.bash.*)/#\1/g' | sudo crontab -" || die "Could not disable auto-updates"
 
