@@ -82,6 +82,7 @@ var (
 	bbrUpstreamProbeURL            = flag.String("bbrprobeurl", "", "optional URL to probe for upstream BBR bandwidth estimates")
 	stackdriverProjectID           = flag.String("stackdriver-project-id", "", "Optional project ID for stackdriver error reporting as in http-proxy-lantern")
 	stackdriverCreds               = flag.String("stackdriver-creds", "", "Optional full json file path containing stackdriver credentials")
+	stackdriverSamplePercentage    = flag.Float64("stackdriver-sample-percentage", 0.0001, "The percentage of devices to report to Stackdriver (0.01 = 1%)")
 )
 
 var errorClient *errorreporting.Client
@@ -124,7 +125,7 @@ func main() {
 	}
 
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
-		close := stackdrivererror.Enable(ctx, *stackdriverProjectID, *stackdriverCreds)
+		close := stackdrivererror.Enable(ctx, *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage)
 		defer close()
 	}
 
