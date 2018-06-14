@@ -102,12 +102,6 @@
 
 [[projects]]
   branch = "master"
-  name = "github.com/getlantern/appdir"
-  packages = ["."]
-  revision = "7c0f9d241ea78ff68bf3aecfe2ea2009ff8500cf"
-
-[[projects]]
-  branch = "master"
   name = "github.com/getlantern/bbrconn"
   packages = ["."]
   revision = "9a5594c63329cf77582eccae41a8a75240a078fe"
@@ -222,7 +216,6 @@
   packages = [
     "buffers",
     "listeners",
-    "logging",
     "proxyfilters",
     "server"
   ]
@@ -326,12 +319,6 @@
   name = "github.com/getlantern/reconn"
   packages = ["."]
   revision = "7053d017511c663a3fc3b3a367b57689b1b2fd9f"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/getlantern/rotator"
-  packages = ["."]
-  revision = "013d4f8e36a2f6369b2435d89866056b5b74c69e"
 
 [[projects]]
   branch = "master"
@@ -529,12 +516,6 @@
   name = "github.com/mikioh/tcpopt"
   packages = ["."]
   revision = "18f4a8218095cbd44df0d49c3dd91e7f2a3b12e0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/mitchellh/go-homedir"
-  packages = ["."]
-  revision = "3864e76763d94a6df2f9960b16a20a33da9f9a66"
 
 [[projects]]
   name = "github.com/oschwald/geoip2-golang"
@@ -908,6 +889,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "664c92a39fd5c8ef0307c2e46375eb967a7ff5a8e6d8e0903a356e84e2a1f7bd"
+  inputs-digest = "bf8289cc3bfac5bfd195086933dd4a86fa656cf8e0843cecbe475d8e83ae5d06"
   solver-name = "gps-cdcl"
   solver-version = 1
