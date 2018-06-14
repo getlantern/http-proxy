@@ -115,7 +115,7 @@ func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, b
 				op.Set("est_mbps_min", borda.Min(estMbps))
 				op.Set("est_mbps_max", borda.Max(estMbps))
 			}
-			log.Debugf("reporting tcp info")
+			log.Debugf("Reporting tcp info for %v", remoteAddr)
 			op.End()
 		}()
 	}
