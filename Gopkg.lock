@@ -219,7 +219,7 @@
     "proxyfilters",
     "server"
   ]
-  revision = "662c84f4d29d565458575bd6fe995f06845e90ba"
+  revision = "895ce943c623508b0eb92ff695c9aa8fd0ee010a"
 
 [[projects]]
   branch = "master"
@@ -252,7 +252,7 @@
   branch = "master"
   name = "github.com/getlantern/lampshade"
   packages = ["."]
-  revision = "9db638956a9c91ab0df99c4ac338276b872fc7b1"
+  revision = "42e0538bceccd7e69686e0968b2b9ac40a989480"
 
 [[projects]]
   branch = "master"
