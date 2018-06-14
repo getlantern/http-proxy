@@ -16,8 +16,6 @@ import (
 
 	"github.com/getlantern/golog"
 
-	"github.com/getlantern/http-proxy/logging"
-
 	"github.com/getlantern/http-proxy-lantern"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/stackdrivererror"
@@ -102,12 +100,6 @@ func main() {
 
 	if *lampshadeAddr != "" && !*https {
 		log.Fatal("Use of lampshade requires https flag to be true")
-	}
-
-	// Logging
-	// TODO: use real parameters
-	if err := logging.Init("instanceid", "version", "releasedate"); err != nil {
-		log.Fatal(err)
 	}
 
 	if *pprofAddr != "" {
