@@ -272,10 +272,10 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		filterChain = filterChain.Append(proxy.OnFirstOnly(tokenfilter.New(p.Token)))
 	}
 
+	fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
 	if p.rc == nil {
 		log.Debug("Not enabling bandwidth limiting")
 	} else {
-		fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
 		filterChain = filterChain.Append(
 			proxy.OnFirstOnly(devicefilter.NewPre(
 				redis.NewDeviceFetcher(p.rc), p.throttleConfig, fd, !p.Pro)),
@@ -343,7 +343,13 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 
 	filterChain = filterChain.Append(
 		proxyfilters.DiscardInitialPersistentRequest,
-		proxyfilters.AddForwardedFor,
+		filters.FilterFunc(func(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+			if fd.Whitelisted(req) {
+				// Only add X-Forwarded-For for our fasttrack domains
+				return proxyfilters.AddForwardedFor(ctx, req, next)
+			}
+			return next(ctx, req)
+		}),
 		proxyfilters.RestrictConnectPorts(p.allowedTunnelPorts()),
 		proxyfilters.RecordOp,
 	)
