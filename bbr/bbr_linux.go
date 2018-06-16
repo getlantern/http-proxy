@@ -14,7 +14,7 @@ import (
 	"github.com/getlantern/netx"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy/filters"
-	"github.com/getlantern/tcpinfo"
+	"github.com/mikioh/tcpinfo"
 )
 
 type middleware struct {
@@ -93,7 +93,7 @@ func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, b
 		log.Debugf("Unable to get BBR info (this happens when connections are closed unexpectedly): %v", err)
 		return
 	}
-	s.update(float64(bytesSent), float64(bbrInfo.EstBandwidth)*8/1000/1000)
+	s.update(float64(bytesSent), float64(bbrInfo.MaxBW)*8/1000/1000)
 	if reportToBorda {
 		go func() {
 			// We do this inside a goroutine because we explicitly don't want to inherit

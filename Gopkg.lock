@@ -104,7 +104,7 @@
   branch = "master"
   name = "github.com/getlantern/bbrconn"
   packages = ["."]
-  revision = "9a5594c63329cf77582eccae41a8a75240a078fe"
+  revision = "ded96b7e9ba78e39922a736e42a7916642e78ed6"
 
 [[projects]]
   branch = "master"
@@ -513,6 +513,12 @@
 
 [[projects]]
   branch = "master"
+  name = "github.com/mikioh/tcpinfo"
+  packages = ["."]
+  revision = "fd8b9a80d71e11a9ffcf963e3548d336c8b39e1d"
+
+[[projects]]
+  branch = "master"
   name = "github.com/mikioh/tcpopt"
   packages = ["."]
   revision = "18f4a8218095cbd44df0d49c3dd91e7f2a3b12e0"
@@ -889,6 +895,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bf8289cc3bfac5bfd195086933dd4a86fa656cf8e0843cecbe475d8e83ae5d06"
+  inputs-digest = "65b45a63163183e4132258918acce75ded92168d5bfafcb66d39d1721d508aad"
   solver-name = "gps-cdcl"
   solver-version = 1

@@ -117,10 +117,6 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/getlantern/tcpinfo"
-
-[[constraint]]
-  branch = "master"
   name = "github.com/getlantern/testredis"
 
 [[constraint]]
