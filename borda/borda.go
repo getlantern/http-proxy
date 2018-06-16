@@ -95,13 +95,12 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 		}
 	})
 
-	return func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
+	return func(_ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 		if !final {
 			// We report only the final values
 			return
 		}
 
-		ctx["op"] = "xfer"
 		vals := map[string]borda.Val{
 			"server_bytes_sent":          borda.Float(stats.SentTotal),
 			"server_bps_sent_min":        borda.Min(stats.SentMin),
@@ -114,11 +113,18 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 			"server_connection":          borda.Float(1),
 			"server_connection_duration": borda.Float(float64(stats.Duration) / nanosPerSecond),
 		}
-		log.Debugf("xfer: %v %v", ctx, vals)
+		log.Debugf("xfer: %v %v", _ctx, vals)
 
-		if !inSample(ctx) {
+		if !inSample(_ctx) {
 			return
 		}
+
+		// Copy the context before modifying it
+		ctx := make(map[string]interface{}, len(_ctx))
+		for key, value := range _ctx {
+			ctx[key] = value
+		}
+		ctx["op"] = "xfer"
 
 		reportErr := reportToBorda(vals, ctx)
 		if reportErr != nil {
