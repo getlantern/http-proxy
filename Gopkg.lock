@@ -104,7 +104,7 @@
   branch = "master"
   name = "github.com/getlantern/bbrconn"
   packages = ["."]
-  revision = "ded96b7e9ba78e39922a736e42a7916642e78ed6"
+  revision = "f064c40d59e330bf1e2402e6e3a838f91858fa6a"
 
 [[projects]]
   branch = "master"
@@ -337,12 +337,6 @@
   packages = ["."]
   revision = "02f928aad224fbccd50d66edd776fc9d1e9f2f2b"
   version = "1.5.1"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/getlantern/tcpinfo"
-  packages = ["."]
-  revision = "c475b171ec955019a7906187bf6f4011d7d791fe"
 
 [[projects]]
   branch = "master"
