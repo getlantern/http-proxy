@@ -4,6 +4,8 @@ BUILD_DIR    ?= bin
 GIT_REVISION := $(shell git rev-parse --short HEAD)
 CHANGE_BIN   := $(call get-command,github_changelog_generator)
 
+GO_VERSION := 1.9.7
+
 .PHONY: dist build require-dep
 
 # This tags the current version and creates a CHANGELOG for the current directory.
@@ -17,11 +19,17 @@ define tag-changelog
 	git push origin HEAD
 endef
 
-require-version:
-	@if [[ -z "$$VERSION" ]]; then echo "VERSION environment value is required."; exit 1; fi
+guard-%:
+	 @ if [ -z '${${*}}' ]; then echo 'Environment variable $* not set' && exit 1; fi
 
-require-gh-token:
-	@if [[ -z "$$CHANGELOG_GITHUB_TOKEN" ]]; then echo "CHANGELOG_GITHUB_TOKEN environment value is required."; exit 1; fi
+require-version: guard-VERSION
+
+require-gh-token: guard-CHANGELOG_GITHUB_TOKEN
+
+require-go-version:
+	@ if go version | grep -q -v $(GO_VERSION); then \
+		echo "go $(GO_VERSION) is required." && exit 1; \
+	fi
 
 require-dep:
 	@if [ "$(DEP_BIN)" = "" ]; then \
@@ -34,11 +42,11 @@ require-upx:
 	fi
 
 require-change:
-	@if [ "$(CHANGE_BIN)" = "" ]; then \
+	@ if [ "$(CHANGE_BIN)" = "" ]; then \
 		echo 'Missing "github_changelog_generator" command. See https://github.com/github-changelog-generator/github-changelog-generator or just [sudo] gem install github_changelog_generator' && exit 1; \
 	fi
 
-build: require-dep
+build: require-dep require-go-version
 	$(DEP_BIN) ensure && \
 	mkdir -p $(BUILD_DIR) && \
 	go build -o $(BUILD_DIR)/http-proxy \
