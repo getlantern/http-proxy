@@ -1,6 +1,9 @@
+before:
+  hooks:
+  - dep ensure
 builds:
 - main: http-proxy/main.go
-  binary: http-proxy 
+  binary: http-proxy
   goos:
     - linux
   goarch:
