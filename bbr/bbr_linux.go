@@ -14,7 +14,6 @@ import (
 	"github.com/getlantern/netx"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy/filters"
-	"github.com/mikioh/tcpinfo"
 )
 
 type middleware struct {
@@ -88,7 +87,7 @@ func (bm *middleware) statsFor(conn net.Conn) *stats {
 	return s
 }
 
-func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, bytesSent int, info *tcpinfo.Info, bbrInfo *tcpinfo.BBRInfo, err error) {
+func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, bytesSent int, info *bbrconn.TCPInfo, bbrInfo *bbrconn.BBRInfo, err error) {
 	if err != nil {
 		log.Debugf("Unable to get BBR info (this happens when connections are closed unexpectedly): %v", err)
 		return
@@ -106,8 +105,8 @@ func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, b
 			op.Set("tcp_bytes_sent", borda.Sum(bytesSent))
 			op.Set("tcp_sender_mss", borda.Avg(float64(info.SenderMSS)))
 			op.Set("tcp_rtt", borda.Avg(float64(info.RTT/nanosPerMilli)))
-			op.Set("tcp_segments_sent", borda.Sum(float64(info.Sys.SegsOut)))
-			op.Set("tcp_segments_sent_retransmitted", borda.Sum(float64(info.Sys.TotalRetransSegs)))
+			op.Set("tcp_segments_sent", borda.Sum(float64(info.SysSegsOut)))
+			op.Set("tcp_segments_sent_retransmitted", borda.Sum(float64(info.SysTotalRetransSegs)))
 			estMbps := s.estABE(bm.getUpstreamABE())
 			if estMbps > 0 {
 				// Report ABE if available
@@ -144,7 +143,7 @@ func (l *bbrlistener) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return bbrconn.Wrap(conn, func(bytesSent int, info *tcpinfo.Info, bbrInfo *tcpinfo.BBRInfo, err error) {
+	return bbrconn.Wrap(conn, func(bytesSent int, info *bbrconn.TCPInfo, bbrInfo *bbrconn.BBRInfo, err error) {
 		l.bm.track(true, l.bm.statsFor(conn), conn.RemoteAddr(), bytesSent, info, bbrInfo, err)
 	})
 }

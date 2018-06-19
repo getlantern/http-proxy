@@ -13,10 +13,10 @@
   version = "v0.23.0"
 
 [[projects]]
+  branch = "master"
   name = "git.torproject.org/pluggable-transports/goptlib.git"
   packages = ["."]
-  revision = "fcc1d072d63b3e843495d4af4c0f522ddbb9fefc"
-  version = "0.7"
+  revision = "7d56ec4f381e8b1aedfda360594e35a5731b5337"
 
 [[projects]]
   branch = "master"
@@ -55,10 +55,10 @@
   revision = "06cfa1db77dae2425e143980408e642f7a9d5b09"
 
 [[projects]]
+  branch = "master"
   name = "github.com/blang/semver"
   packages = ["."]
-  revision = "2ee87856327ba09384cabd113bc6b5d174e9ec0f"
-  version = "v3.5.1"
+  revision = "c5e971dbed7850a93c23aa6ff69db5771d8e23b3"
 
 [[projects]]
   branch = "master"
@@ -104,7 +104,7 @@
   branch = "master"
   name = "github.com/getlantern/bbrconn"
   packages = ["."]
-  revision = "f064c40d59e330bf1e2402e6e3a838f91858fa6a"
+  revision = "86cf8c16f3d092de7a0c72c6eae830ccb2a2147b"
 
 [[projects]]
   branch = "master"
@@ -890,6 +890,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "65b45a63163183e4132258918acce75ded92168d5bfafcb66d39d1721d508aad"
+  inputs-digest = "eb157524438a628564a369cd65b92de761113e5bdae4971a67385b08a5ab88ba"
   solver-name = "gps-cdcl"
   solver-version = 1
