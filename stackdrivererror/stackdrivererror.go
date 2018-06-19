@@ -17,11 +17,6 @@ type Close func()
 
 // Enable enables reporting errors to stackdriver.
 func Enable(ctx context.Context, projectID, stackdriverCreds string, samplePercentage float64) Close {
-	r := rand.Float64()
-	if r > samplePercentage {
-		log.Printf("Not in sample. %v less than %v", r, samplePercentage)
-		return func() {}
-	}
 	log.Printf("Enabling stackdriver error reporting for project %v", projectID)
 	errorClient, err := errorreporting.NewClient(ctx, projectID, errorreporting.Config{
 		ServiceName: "lantern-http-proxy-service",
@@ -36,6 +31,11 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string, samplePerce
 
 	var reporter = func(err error, linePrefix string, severity golog.Severity, ctx map[string]interface{}) {
 		if severity == golog.ERROR || severity == golog.FATAL {
+			r := rand.Float64()
+			if r > samplePercentage {
+				log.Printf("Not in sample. %v less than %v", r, samplePercentage)
+				return
+			}
 			log.Println("Reporting error to stackdriver")
 			errorClient.Report(errorreporting.Entry{
 				Error: err,
