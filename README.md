@@ -106,3 +106,22 @@ Once you've build a binary for distribution, you can deploy it to all live proxi
 ```
 make deploy
 ```
+
+## Temporarily Deploying a Preview Binary to a Single Server
+Sometimes it's useful to deploy a preview binary to a single server. This can
+be done using either `deployTo.bash` or `onlyDeployTo.bash`. They do the same
+thing but `deployTo.bash` first runs `make dist` whereas `onlyDeployTo.bash`
+copies the existing binary at dist/http-proxy.
+
+### Deploy Preview
+```
+./onlyDeployTo.bash <ip address>
+```
+
+### Revert to Production Binary
+Once you're done checking out the preview, revert back to the production binary
+with:
+
+```
+./revertToProductionBinary.bash <ip addres>
+```
