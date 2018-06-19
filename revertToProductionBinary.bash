@@ -20,7 +20,7 @@ echo "Stopping http-proxy-lantern to allow reverting binary"
 ssh lantern@$ip -t "sudo service http-proxy stop"
 
 echo "Reverting binary"
-ssh lantern@$ip -t "cp /home/lantern/update/http-proxy /home/lantern/http-proxy" || die "Could not revert binary"
+ssh lantern@$ip -t "sudo cp /home/lantern/update/http-proxy /home/lantern/http-proxy" || die "Could not revert binary"
 
 # This is necessary for http-proxy to run on restricted ports.
 echo "Calling setcap on http-proxy"

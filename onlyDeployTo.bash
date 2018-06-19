@@ -23,7 +23,7 @@ echo "Stopping http-proxy-lantern to allow replacing binary"
 ssh lantern@$ip -t "sudo service http-proxy stop"
 
 echo "Replacing binary"
-ssh lantern@$ip -t "cp /home/lantern/http-proxy.tmp /home/lantern/http-proxy" || die "Could not replace binary"
+ssh lantern@$ip -t "sudo cp /home/lantern/http-proxy.tmp /home/lantern/http-proxy" || die "Could not replace binary"
 
 # This is necessary for http-proxy to run on restricted ports.
 echo "Calling setcap on http-proxy"
