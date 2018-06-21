@@ -13,10 +13,10 @@
   version = "v0.23.0"
 
 [[projects]]
+  branch = "master"
   name = "git.torproject.org/pluggable-transports/goptlib.git"
   packages = ["."]
-  revision = "fcc1d072d63b3e843495d4af4c0f522ddbb9fefc"
-  version = "0.7"
+  revision = "7d56ec4f381e8b1aedfda360594e35a5731b5337"
 
 [[projects]]
   branch = "master"
@@ -52,13 +52,13 @@
   branch = "master"
   name = "github.com/aristanetworks/goarista"
   packages = ["monotime"]
-  revision = "59944ff78bc1de686b0aba1444dfd380f48f03d4"
+  revision = "06cfa1db77dae2425e143980408e642f7a9d5b09"
 
 [[projects]]
+  branch = "master"
   name = "github.com/blang/semver"
   packages = ["."]
-  revision = "2ee87856327ba09384cabd113bc6b5d174e9ec0f"
-  version = "v3.5.1"
+  revision = "c5e971dbed7850a93c23aa6ff69db5771d8e23b3"
 
 [[projects]]
   branch = "master"
@@ -104,7 +104,7 @@
   branch = "master"
   name = "github.com/getlantern/bbrconn"
   packages = ["."]
-  revision = "9a5594c63329cf77582eccae41a8a75240a078fe"
+  revision = "86cf8c16f3d092de7a0c72c6eae830ccb2a2147b"
 
 [[projects]]
   branch = "master"
@@ -225,7 +225,7 @@
   branch = "master"
   name = "github.com/getlantern/idletiming"
   packages = ["."]
-  revision = "7a71d2e71cf253f64b9610ce7aa9ddfc58aa9b2a"
+  revision = "b57e3cdec825ee34a0ed309f2b013df19ab39de2"
 
 [[projects]]
   name = "github.com/getlantern/kcp-go"
@@ -270,7 +270,7 @@
   branch = "master"
   name = "github.com/getlantern/mockconn"
   packages = ["."]
-  revision = "422a5afd4432dd82b1389333d5352da003d898a6"
+  revision = "2779090e8910aa9f2aa0e4a264f9da58b8ae2175"
 
 [[projects]]
   branch = "master"
@@ -312,7 +312,7 @@
     ".",
     "filters"
   ]
-  revision = "5e4f286be962fb8f225d9bc8d9efc3331390aa16"
+  revision = "a6cee14509ab85eb6ea797d0b8f12ba9df5bf879"
 
 [[projects]]
   branch = "master"
@@ -337,12 +337,6 @@
   packages = ["."]
   revision = "02f928aad224fbccd50d66edd776fc9d1e9f2f2b"
   version = "1.5.1"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/getlantern/tcpinfo"
-  packages = ["."]
-  revision = "c475b171ec955019a7906187bf6f4011d7d791fe"
 
 [[projects]]
   branch = "master"
@@ -399,7 +393,7 @@
     "rpc",
     "sql"
   ]
-  revision = "ca576033eabcf437af6a7ff93417d89cf3d61a90"
+  revision = "44cc8585533a2bb441dc5862ffae6ccb9f25f487"
 
 [[projects]]
   name = "github.com/glendc/gopher-json"
@@ -510,6 +504,12 @@
   name = "github.com/mikioh/tcp"
   packages = ["."]
   revision = "a2964c74d73b11ff68e6c9bfabb496cfe29a9a60"
+
+[[projects]]
+  branch = "master"
+  name = "github.com/mikioh/tcpinfo"
+  packages = ["."]
+  revision = "fd8b9a80d71e11a9ffcf963e3548d336c8b39e1d"
 
 [[projects]]
   branch = "master"
@@ -715,6 +715,7 @@
     "curve25519",
     "hkdf",
     "internal/chacha20",
+    "internal/subtle",
     "nacl/secretbox",
     "pbkdf2",
     "poly1305",
@@ -724,7 +725,7 @@
     "twofish",
     "xtea"
   ]
-  revision = "8ac0e0d97ce45cd83d1d7243c060cb8461dda5e9"
+  revision = "027cca12c2d63e3d62b670d901e8a2c95854feec"
 
 [[projects]]
   branch = "master"
@@ -755,7 +756,7 @@
     "jws",
     "jwt"
   ]
-  revision = "1e0a3fa8ba9a5c9eb35c271780101fdaf1b205d7"
+  revision = "113ce6928c4638e14fd5eba69b9e6ec899d5dd83"
 
 [[projects]]
   branch = "master"
@@ -771,7 +772,7 @@
     "unix",
     "windows"
   ]
-  revision = "bff228c7b664c5fce602223a05fb708fd8654986"
+  revision = "f24d3d461d02f3f840cb4ff4ae1c6b3dd9f93db9"
 
 [[projects]]
   name = "golang.org/x/text"
@@ -807,7 +808,7 @@
     "transport/grpc",
     "transport/http"
   ]
-  revision = "ef86ce4234efee96020bde00391d6a9cfae66561"
+  revision = "2eea9ba0a3d94f6ab46508083e299a00bbbc65f6"
 
 [[projects]]
   name = "google.golang.org/appengine"
@@ -826,8 +827,8 @@
     "socket",
     "urlfetch"
   ]
-  revision = "150dc57a1b433e64154302bdc40b6bb8aefa313a"
-  version = "v1.0.0"
+  revision = "b1f26356af11148e710935ed1ac8a7f5702c7612"
+  version = "v1.1.0"
 
 [[projects]]
   branch = "master"
@@ -889,6 +890,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "bf8289cc3bfac5bfd195086933dd4a86fa656cf8e0843cecbe475d8e83ae5d06"
+  inputs-digest = "eb157524438a628564a369cd65b92de761113e5bdae4971a67385b08a5ab88ba"
   solver-name = "gps-cdcl"
   solver-version = 1

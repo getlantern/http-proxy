@@ -26,16 +26,16 @@
 
 
 [[constraint]]
+  branch = "master"
   name = "git.torproject.org/pluggable-transports/goptlib.git"
-  version = "0.7.0"
 
 [[constraint]]
   branch = "master"
   name = "git.torproject.org/pluggable-transports/obfs4.git"
 
 [[constraint]]
+  branch = "master"
   name = "github.com/blang/semver"
-  version = "3.5.1"
 
 [[constraint]]
   branch = "master"
@@ -117,10 +117,6 @@
 
 [[constraint]]
   branch = "master"
-  name = "github.com/getlantern/tcpinfo"
-
-[[constraint]]
-  branch = "master"
   name = "github.com/getlantern/testredis"
 
 [[constraint]]
@@ -132,8 +128,8 @@
   name = "github.com/getlantern/tlsredis"
 
 [[constraint]]
+  branch = "master"
   name = "github.com/getlantern/waitforserver"
-  version = "1.0.0"
 
 [[constraint]]
   branch = "master"
@@ -156,16 +152,16 @@
   name = "github.com/hashicorp/golang-lru"
 
 [[constraint]]
+  branch = "master"
   name = "github.com/juju/ratelimit"
-  version = "1.0.1"
 
 [[constraint]]
   branch = "master"
   name = "github.com/rcrowley/go-metrics"
 
 [[constraint]]
+  branch = "master"
   name = "github.com/stretchr/testify"
-  version = "1.2.1"
 
 [[constraint]]
   branch = "master"

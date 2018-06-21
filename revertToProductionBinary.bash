@@ -13,17 +13,14 @@ function die() {
   exit 1
 }
 
-echo "Disabling auto-update on $ip"
-ssh lantern@$ip -t "sudo crontab -l | perl -p -e 's/^(.*update_proxy.bash.*)/#\1/g' | sudo crontab -" || die "Could not disable auto-updates"
+echo "Enabling auto-update on $ip"
+ssh lantern@$ip -t "sudo crontab -l | perl -p -e 's/^#(.*update_proxy.bash.*)/\1/g' | sudo crontab -" || die "Could not reenable auto-updates"
 
-echo "Uploading http-proxy-lantern"
-scp dist/http-proxy lantern@$ip:http-proxy.tmp || die "Could not copy binary"
-
-echo "Stopping http-proxy-lantern to allow replacing binary"
+echo "Stopping http-proxy-lantern to allow reverting binary"
 ssh lantern@$ip -t "sudo service http-proxy stop"
 
-echo "Replacing binary"
-ssh lantern@$ip -t "sudo cp /home/lantern/http-proxy.tmp /home/lantern/http-proxy" || die "Could not replace binary"
+echo "Reverting binary"
+ssh lantern@$ip -t "sudo cp /home/lantern/update/http-proxy /home/lantern/http-proxy" || die "Could not revert binary"
 
 # This is necessary for http-proxy to run on restricted ports.
 echo "Calling setcap on http-proxy"
