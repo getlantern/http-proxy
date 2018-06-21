@@ -6,7 +6,6 @@ import (
 	"crypto/tls"
 	"net"
 	"strconv"
-	"strings"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/tlsdefaults"
@@ -46,17 +45,41 @@ func (l *tlslistener) Close() error {
 	return l.wrapped.Close()
 }
 
+// These are the standard suites Lantern clients typically report, and
+// typically in the same order.
+var standardClientSuites = []uint16{49199, 49200, 49195, 49196, 52392, 52393, 49171, 49161, 49172, 49162, 156, 157, 47, 53, 49170, 10}
+
 func (l *tlslistener) debugClientHello(info *tls.ClientHelloInfo) (*tls.Config, error) {
-	if strings.Contains(info.Conn.RemoteAddr().String(), "76.175.14.166") {
-		l.log.Debugf("Cipher suites from client %v: %v", info.Conn.RemoteAddr(), l.suiteStrings(info))
+	if !testEq(standardClientSuites, info.CipherSuites) {
+		l.log.Debugf("Unexpected suites from client %v: %v, %v", info.Conn.RemoteAddr(), info.CipherSuites, l.suiteStrings(info))
 	}
 
 	return nil, nil
 }
 
+func testEq(a, b []uint16) bool {
+	if a == nil && b == nil {
+		return true
+	}
+
+	if a == nil || b == nil {
+		return false
+	}
+
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if a[i] != b[i] {
+			return false
+		}
+	}
+
+	return true
+}
+
 func (l *tlslistener) suiteStrings(info *tls.ClientHelloInfo) []string {
 	ints := info.CipherSuites
-	l.log.Debugf("Client cipher suite ints: %v", ints)
 	strs := make([]string, len(ints))
 	for index, i := range ints {
 		str, ok := suites[i]
@@ -93,22 +116,6 @@ var suites = map[uint16]string{
 	tls.TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305:    "TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305",
 	tls.TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305:  "TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305",
 }
-
-/*
-func mutualCipherSuite(have []uint16, want uint16) *cipherSuite {
-	for _, id := range have {
-		if id == want {
-			for _, suite := range cipherSuites {
-				if suite.id == want {
-					return suite
-				}
-			}
-			return nil
-		}
-	}
-	return nil
-}
-*/
 
 type tlsconn struct {
 	net.Conn

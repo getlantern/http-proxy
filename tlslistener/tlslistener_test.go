@@ -17,7 +17,7 @@ func TestWrap(t *testing.T) {
 
 	_, client := net.Pipe()
 	info := &tls.ClientHelloInfo{
-		CipherSuites: []uint16{tls.TLS_RSA_WITH_RC4_128_SHA},
+		CipherSuites: []uint16{tls.TLS_RSA_WITH_RC4_128_SHA, 0x1005},
 		Conn:         client,
 	}
 
