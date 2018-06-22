@@ -3,53 +3,68 @@ package listeners
 import (
 	"net"
 	"net/http"
-	"sync"
-
-	"github.com/juju/ratelimit"
+	"time"
 
 	"github.com/getlantern/http-proxy/listeners"
+	"github.com/juju/ratelimit"
+)
+
+const (
+	// prefer to read or write at least this number of bytes
+	// at once if possible.
+	preferredMinIO = 512
 )
 
 type RateLimiter struct {
 	r    *ratelimit.Bucket
 	w    *ratelimit.Bucket
 	rate int64
-	mx   sync.RWMutex
 }
 
 func NewRateLimiter(rate int64) *RateLimiter {
-	l := &RateLimiter{}
-	l.SetRate(rate)
+	l := &RateLimiter{
+		rate: rate,
+	}
+	if rate > 0 {
+		l.r = ratelimit.NewBucketWithRate(float64(rate), rate)
+		l.w = ratelimit.NewBucketWithRate(float64(rate), rate)
+	}
 	return l
 }
 
-func (l *RateLimiter) SetRate(rate int64) {
-	l.mx.Lock()
-	if l.rate != rate {
-		l.rate = rate
-		if rate > 0 {
-			l.r = ratelimit.NewBucketWithRate(float64(rate), rate)
-			l.w = ratelimit.NewBucketWithRate(float64(rate), rate)
-		} else {
-			l.r = nil
-			l.w = nil
-		}
+// Acquire up to max read tokens. Will return as soon as
+// between min and max reads are acquired. min is the
+// lesser of preferredMinIO and max
+func (l *RateLimiter) takeRead(max int64) int64 {
+	return l.take(l.r, max)
+}
+
+// Acquire up to max write tokens. Will return as soon as
+// between min and max writes are acquired. min is the
+// lesser of preferredMinIO and max
+func (l *RateLimiter) takeWrite(max int64) int64 {
+	return l.take(l.w, max)
+}
+
+func (l *RateLimiter) take(b *ratelimit.Bucket, max int64) int64 {
+	if b == nil {
+		return max
 	}
-	l.mx.Unlock()
-}
 
-func (l *RateLimiter) getReadBucket() (b *ratelimit.Bucket) {
-	l.mx.RLock()
-	b = l.r
-	l.mx.RUnlock()
-	return
-}
+	min := int64(preferredMinIO)
+	if max < min {
+		min = max
+	}
 
-func (l *RateLimiter) getWriteBucket() (b *ratelimit.Bucket) {
-	l.mx.RLock()
-	b = l.w
-	l.mx.RUnlock()
-	return
+	d := b.Take(min)
+	taken := min
+	if d > 0 {
+		time.Sleep(d)
+	} else if taken < max {
+		taken += b.TakeAvailable(max - taken)
+	}
+
+	return taken
 }
 
 type bitrateListener struct {
@@ -82,32 +97,18 @@ type bitrateConn struct {
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	bucket := c.limiter.getReadBucket()
-	if bucket != nil {
-		s := bucket.TakeAvailable(int64(len(p)))
-		if s == 0 {
-			bucket.Wait(1)
-			s = 1
-		}
+	lp := int64(len(p))
+	s := c.limiter.takeRead(lp)
+	if s != lp {
 		p = p[:s]
 	}
-
 	return c.Conn.Read(p)
 }
 
 func (c *bitrateConn) Write(p []byte) (n int, err error) {
-	bucket := c.limiter.getWriteBucket()
-	if bucket == nil {
-		return c.Conn.Write(p)
-	}
-
 	var i int
-	for len(p) > 0 && err == nil {
-		s := bucket.TakeAvailable(int64(len(p)))
-		if s == 0 {
-			bucket.Wait(1)
-			s = 1
-		}
+	for lp := int64(len(p)); lp > 0 && err == nil; lp = int64(len(p)) {
+		s := c.limiter.takeWrite(lp)
 		i, err = c.Conn.Write(p[:s])
 		p = p[i:]
 		n += i

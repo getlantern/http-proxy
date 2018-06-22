@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/dustin/go-humanize"
-	"github.com/hashicorp/golang-lru"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/filters"
@@ -36,7 +35,6 @@ type deviceFilterPre struct {
 	deviceFetcher    *redis.DeviceFetcher
 	throttleConfig   throttle.Config
 	fasttrackDomains *common.FasttrackDomains
-	limiters         *lru.Cache
 	sendXBQHeader    bool
 }
 
@@ -66,16 +64,10 @@ func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, fasttrackDo
 		log.Debug("Throttling enabled")
 	}
 
-	limiters, err := lru.New(10000)
-	if err != nil {
-		panic(err)
-	}
-
 	return &deviceFilterPre{
 		deviceFetcher:    df,
 		throttleConfig:   throttleConfig,
 		fasttrackDomains: fasttrackDomains,
-		limiters:         limiters,
 		sendXBQHeader:    sendXBQHeader,
 	}
 }
@@ -121,18 +113,8 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	}
 	threshold, rate := f.throttleConfig.ThresholdAndRateFor(lanternDeviceID, u.CountryCode)
 	if u.Bytes > threshold {
-		// Try best to use one limiter for all connections from the device.
-		// Access to the limiters LRU is not sequentialize, so two or more
-		// goroutines may each create a new limiter and pass to the connection.
-		// In the worst case, it falls back to throttling per connection, which
-		// is still acceptable.
-		limiter, exists := f.limiters.Get(lanternDeviceID)
-		if !exists {
-			limiter = lanternlisteners.NewRateLimiter(rate)
-			f.limiters.Add(lanternDeviceID, limiter)
-		} else {
-			limiter.(*lanternlisteners.RateLimiter).SetRate(rate)
-		}
+		// per connection limiter
+		limiter := lanternlisteners.NewRateLimiter(rate)
 		log.Debugf("Throttling device %s to %v per second", lanternDeviceID,
 			humanize.Bytes(uint64(rate)))
 		wc.ControlMessage("throttle", limiter)
