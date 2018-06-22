@@ -6,7 +6,17 @@ import (
 	"testing"
 
 	"github.com/getlantern/golog"
+	"github.com/stretchr/testify/assert"
 )
+
+func TestTestEq(t *testing.T) {
+	assert.True(t, testEq(nil, nil))
+	assert.False(t, testEq(nil, []uint16{1}))
+	assert.False(t, testEq([]uint16{1}, nil))
+	assert.False(t, testEq([]uint16{1}, []uint16{1, 1}))
+	assert.False(t, testEq([]uint16{1}, []uint16{2}))
+	assert.True(t, testEq([]uint16{2}, []uint16{2}))
+}
 
 func TestWrap(t *testing.T) {
 

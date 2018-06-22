@@ -58,14 +58,6 @@ func (l *tlslistener) debugClientHello(info *tls.ClientHelloInfo) (*tls.Config, 
 }
 
 func testEq(a, b []uint16) bool {
-	if a == nil && b == nil {
-		return true
-	}
-
-	if a == nil || b == nil {
-		return false
-	}
-
 	if len(a) != len(b) {
 		return false
 	}
