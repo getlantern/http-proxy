@@ -115,7 +115,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	if u.Bytes > threshold {
 		// per connection limiter
 		limiter := lanternlisteners.NewRateLimiter(rate)
-		log.Debugf("Throttling device %s to %v per second", lanternDeviceID,
+		log.Debugf("Throttling connection from device %s to %v per second", lanternDeviceID,
 			humanize.Bytes(uint64(rate)))
 		wc.ControlMessage("throttle", limiter)
 	}
