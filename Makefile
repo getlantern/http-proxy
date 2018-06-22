@@ -2,7 +2,7 @@ DEP_BIN      ?= $(shell which dep)
 UPX_BIN      ?= $(shell which upx)
 BUILD_DIR    ?= bin
 GIT_REVISION := $(shell git rev-parse --short HEAD)
-CHANGE_BIN   := $(call get-command,github_changelog_generator)
+CHANGE_BIN   := $(shell  which github_changelog_generator)
 
 GO_VERSION := 1.9.7
 
