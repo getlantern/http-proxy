@@ -13,7 +13,7 @@ define tag-changelog
 	echo "Tagging..." && \
 	git tag -a "$$VERSION" -f --annotate -m"Tagged $$VERSION" && \
 	git push --tags -f && \
-	$(CHANGE) getlantern/$(1) && \
+	$(CHANGE_BIN) getlantern/$(1) && \
 	git add CHANGELOG.md && \
 	git commit -m "Updated changelog for $$VERSION" && \
 	git push origin HEAD
