@@ -61,6 +61,8 @@ func (l *tlslistener) debugClientHello(info *tls.ClientHelloInfo) (*tls.Config, 
 	return nil, nil
 }
 
+// logUnusualHellos logs if a client hello contains unusual cipher suites.
+// If it's unusual, this returns true.
 func (l *tlslistener) logUnusualHellos(info *tls.ClientHelloInfo) bool {
 	for _, suite := range standardSuites {
 		if testEq(suite, info.CipherSuites) {
