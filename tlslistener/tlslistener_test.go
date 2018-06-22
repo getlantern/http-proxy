@@ -19,7 +19,6 @@ func TestTestEq(t *testing.T) {
 }
 
 func TestWrap(t *testing.T) {
-
 	tlsl := &tlslistener{
 		cfg: &tls.Config{},
 		log: golog.LoggerFor("tlslistener-test"),
@@ -32,4 +31,20 @@ func TestWrap(t *testing.T) {
 	}
 
 	tlsl.debugClientHello(info)
+
+	info = &tls.ClientHelloInfo{
+		CipherSuites: []uint16{tls.TLS_RSA_WITH_RC4_128_SHA, 0x1005},
+		Conn:         client,
+	}
+
+	unusual := tlsl.logUnusualHellos(info)
+	assert.True(t, unusual)
+
+	info = &tls.ClientHelloInfo{
+		CipherSuites: []uint16{49199, 49200, 49195, 49196, 52392, 52393, 49171, 49161, 49172, 49162, 156, 157, 47, 53, 49170, 10},
+		Conn:         client,
+	}
+
+	unusual = tlsl.logUnusualHellos(info)
+	assert.False(t, unusual)
 }
