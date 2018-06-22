@@ -183,7 +183,7 @@ func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string
 
 		time.Sleep(time.Second)
 		// Now test throttling concurrent connections from a single device
-		readers := 16
+		readers := 4
 		readSize := 3 * throttleRate
 
 		errors := make(chan error, readers)
