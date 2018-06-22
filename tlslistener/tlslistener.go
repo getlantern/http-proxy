@@ -46,14 +46,16 @@ func (l *tlslistener) Close() error {
 }
 
 // These are the standard suites Lantern clients typically report, and
-// typically in the same order.
-var standardClientSuites = []uint16{49199, 49200, 49195, 49196, 52392, 52393, 49171, 49161, 49172, 49162, 156, 157, 47, 53, 49170, 10}
+// typically in the same order. While we have yet to confirm it, it appears
+// likely the second is mobile and the first is desktop.
+var standardClientSuites1 = []uint16{49199, 49200, 49195, 49196, 52392, 52393, 49171, 49161, 49172, 49162, 156, 157, 47, 53, 49170, 10}
+var standardClientSuites2 = []uint16{52392, 52393, 49199, 49200, 49195, 49196, 49171, 49161, 49172, 49162, 156, 157, 47, 53, 49170, 10}
 
 func (l *tlslistener) debugClientHello(info *tls.ClientHelloInfo) (*tls.Config, error) {
-	if !testEq(standardClientSuites, info.CipherSuites) {
-		l.log.Debugf("Unexpected suites from client %v: %v, %v", info.Conn.RemoteAddr(), info.CipherSuites, l.suiteStrings(info))
+	if testEq(standardClientSuites1, info.CipherSuites) || testEq(standardClientSuites2, info.CipherSuites) {
+		return nil, nil
 	}
-
+	l.log.Debugf("Unexpected suites from client %v: %v, %v", info.Conn.RemoteAddr(), info.CipherSuites, l.suiteStrings(info))
 	return nil, nil
 }
 
