@@ -57,6 +57,11 @@ func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string
 		n, _ := strconv.Atoi(req.Header.Get(sizeHeader))
 		io.CopyN(rw, rand.New(rand.NewSource(time.Now().UnixNano())), int64(n))
 	}))
+	originAddr := originSite.Listener.Addr().String()
+	log.Debugf("Waiting for origin server at %s...", originAddr)
+	if !assert.NoError(t, WaitForServer("tcp", originAddr, 10*time.Second)) {
+		return
+	}
 
 	rc := r.Client()
 	defer rc.Close()
