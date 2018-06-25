@@ -25,15 +25,13 @@ func NewRateLimiter(rate int64) *RateLimiter {
 		l.w = ratelimit.NewBucketWithRate(float64(rate), rate)
 
 		// prefer to read or write at least this number of bytes
-		// at once when possible.
-		min := int64(512)
-
-		// for low rates, make the preferred io lower
-		if rate < 8*min {
-			min = rate / 8
-			if min < 1 {
-				min = 1
-			}
+		// at once when possible. Use a progressively lower min
+		// for lower rates.
+		min := rate / 8
+		if min < 1 {
+			min = 1
+		} else if min > 512 {
+			min = 512
 		}
 		l.preferredMinIO = min
 	}
