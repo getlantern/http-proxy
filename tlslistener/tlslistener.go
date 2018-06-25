@@ -55,6 +55,9 @@ var standardSuites = [][]uint16{
 }
 
 func (l *tlslistener) debugClientHello(info *tls.ClientHelloInfo) (*tls.Config, error) {
+	if len(info.CipherSuites) == 0 {
+		return nil, l.log.Errorf("Client Hello has no cipher suites %v", info.Conn.RemoteAddr())
+	}
 	l.logUnusualHellos(info)
 
 	// Returning nil just tells the caller to use the standard config.

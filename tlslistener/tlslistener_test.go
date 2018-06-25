@@ -47,4 +47,13 @@ func TestWrap(t *testing.T) {
 
 	unusual = tlsl.logUnusualHellos(info)
 	assert.False(t, unusual)
+
+	info = &tls.ClientHelloInfo{
+		CipherSuites: make([]uint16, 0),
+		Conn:         client,
+	}
+
+	config, err := tlsl.debugClientHello(info)
+	assert.Nil(t, config)
+	assert.Error(t, err)
 }
