@@ -95,10 +95,10 @@ When building for distribution make sure you're creating a linux/amd64 binary
 and that the resulting binary is compressed with
 [upx](http://upx.sourceforge.net/).
 
-You can use the following command to do all this automatically:
+You can use the following command to do all this automatically. Note that `make dist` requires $VERSION. It will tag the repo with that version and will also generate a new changelog:
 
 ```
-make dist
+VERSION=v0.1.3 make dist
 ```
 
 Once you've build a binary for distribution, you can deploy it to all live proxies with:
