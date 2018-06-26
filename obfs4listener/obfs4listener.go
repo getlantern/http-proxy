@@ -215,6 +215,8 @@ func (l *obfs4listener) wrap(conn net.Conn) {
 func (l *obfs4listener) monitor() {
 	for {
 		time.Sleep(5 * time.Second)
+		log.Debugf("Number of clients: %d", len(l.clients))
+		log.Debugf("Connections waiting to start handshaking: %d", len(l.pending))
 		log.Debugf("Currently handshaking connections: %d", atomic.LoadInt64(&l.handshaking))
 	}
 }
