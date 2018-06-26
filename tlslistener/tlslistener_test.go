@@ -53,7 +53,6 @@ func TestWrap(t *testing.T) {
 		Conn:         client,
 	}
 
-	config, err := tlsl.debugClientHello(info)
-	assert.Nil(t, config)
-	assert.Error(t, err)
+	unusual = tlsl.logUnusualHellos(info)
+	assert.True(t, unusual)
 }

@@ -66,6 +66,7 @@ func (l *tlslistener) debugClientHello(info *tls.ClientHelloInfo) (*tls.Config, 
 func (l *tlslistener) logUnusualHellos(info *tls.ClientHelloInfo) bool {
 	if len(info.CipherSuites) == 0 {
 		l.log.Errorf("Client Hello has no cipher suites %v", info.Conn.RemoteAddr())
+		return true
 	}
 	for _, suite := range standardSuites {
 		if testEq(suite, info.CipherSuites) {
