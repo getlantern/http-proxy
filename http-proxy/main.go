@@ -10,8 +10,6 @@ import (
 	"runtime/debug"
 	"time"
 
-	"cloud.google.com/go/errorreporting"
-
 	"github.com/vharitonsky/iniflags"
 
 	"github.com/getlantern/golog"
@@ -83,8 +81,6 @@ var (
 	stackdriverSamplePercentage    = flag.Float64("stackdriver-sample-percentage", 0.0001, "The percentage of devices to report to Stackdriver (0.01 = 1%)")
 )
 
-var errorClient *errorreporting.Client
-
 func main() {
 	ctx := context.Background()
 
@@ -116,8 +112,9 @@ func main() {
 		log.Fatal("version check redirect URL should not empty")
 	}
 
+	stackdriverSample := 0.005
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
-		close := stackdrivererror.Enable(ctx, *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *externalIP)
+		close := stackdrivererror.Enable(ctx, *stackdriverProjectID, *stackdriverCreds, stackdriverSample, *externalIP)
 		defer close()
 	}
 
