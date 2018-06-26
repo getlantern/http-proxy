@@ -2,6 +2,7 @@ package stackdrivererror
 
 import (
 	"context"
+	"errors"
 	"log"
 	"math/rand"
 
@@ -16,7 +17,8 @@ import (
 type Close func()
 
 // Enable enables reporting errors to stackdriver.
-func Enable(ctx context.Context, projectID, stackdriverCreds string, samplePercentage float64) Close {
+func Enable(ctx context.Context, projectID, stackdriverCreds string,
+	samplePercentage float64, externalIP string) Close {
 	log.Printf("Enabling stackdriver error reporting for project %v", projectID)
 	errorClient, err := errorreporting.NewClient(ctx, projectID, errorreporting.Config{
 		ServiceName: "lantern-http-proxy-service",
@@ -37,8 +39,10 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string, samplePerce
 				return
 			}
 			log.Println("Reporting error to stackdriver")
+
+			errWithIP := errors.New(err.Error() + " to: " + externalIP)
 			errorClient.Report(errorreporting.Entry{
-				Error: err,
+				Error: errWithIP,
 			})
 		}
 	}
