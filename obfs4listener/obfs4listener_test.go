@@ -24,7 +24,7 @@ func TestRoundTrip(t *testing.T) {
 		return
 	}
 
-	l, err := Wrap(wrapped, tmpDir)
+	l, err := Wrap(wrapped, tmpDir, 1, 100, DefaultHandshakeTimeout)
 	if !assert.NoError(t, err, "Unable to wrap listener") {
 		return
 	}

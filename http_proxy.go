@@ -61,54 +61,57 @@ var (
 
 // Proxy is an HTTP proxy.
 type Proxy struct {
-	TestingLocal                   bool
-	Addr                           string
-	BordaReportInterval            time.Duration
-	BordaSamplePercentage          float64
-	BordaBufferSize                int
-	ExternalIP                     string
-	CertFile                       string
-	CfgSvrAuthToken                string
-	CfgSvrDomains                  string
-	CfgSvrCacheClear               time.Duration
-	ENHTTPAddr                     string
-	ENHTTPServerURL                string
-	ENHTTPReapIdleTime             time.Duration
-	EnableReports                  bool
-	HTTPS                          bool
-	IdleTimeout                    time.Duration
-	KeyFile                        string
-	Pro                            bool
-	ProxiedSitesSamplePercentage   float64
-	ProxiedSitesTrackingID         string
-	ReportingRedisAddr             string
-	ReportingRedisCA               string
-	ReportingRedisClientPK         string
-	ReportingRedisClientCert       string
-	ThrottleRefreshInterval        time.Duration
-	ThrottleThreshold              int64
-	ThrottleRate                   int64
-	Token                          string
-	TunnelPorts                    string
-	Obfs4Addr                      string
-	Obfs4Dir                       string
-	KCPConf                        string
-	Benchmark                      bool
-	FasttrackDomains               string
-	DiffServTOS                    int
-	LampshadeAddr                  string
-	VersionCheck                   bool
-	VersionCheckMinVersion         string
-	VersionCheckRedirectURL        string
-	VersionCheckRedirectPercentage float64
-	GoogleSearchRegex              string
-	GoogleCaptchaRegex             string
-	BlacklistMaxIdleTime           time.Duration
-	BlacklistMaxConnectInterval    time.Duration
-	BlacklistAllowedFailures       int
-	BlacklistExpiration            time.Duration
-	ProxyName                      string
-	BBRUpstreamProbeURL            string
+	TestingLocal                       bool
+	Addr                               string
+	BordaReportInterval                time.Duration
+	BordaSamplePercentage              float64
+	BordaBufferSize                    int
+	ExternalIP                         string
+	CertFile                           string
+	CfgSvrAuthToken                    string
+	CfgSvrDomains                      string
+	CfgSvrCacheClear                   time.Duration
+	ENHTTPAddr                         string
+	ENHTTPServerURL                    string
+	ENHTTPReapIdleTime                 time.Duration
+	EnableReports                      bool
+	HTTPS                              bool
+	IdleTimeout                        time.Duration
+	KeyFile                            string
+	Pro                                bool
+	ProxiedSitesSamplePercentage       float64
+	ProxiedSitesTrackingID             string
+	ReportingRedisAddr                 string
+	ReportingRedisCA                   string
+	ReportingRedisClientPK             string
+	ReportingRedisClientCert           string
+	ThrottleRefreshInterval            time.Duration
+	ThrottleThreshold                  int64
+	ThrottleRate                       int64
+	Token                              string
+	TunnelPorts                        string
+	Obfs4Addr                          string
+	Obfs4Dir                           string
+	Obfs4HandshakeConcurrency          int
+	Obfs4MaxPendingHandshakesPerClient int
+	Obfs4HandshakeTimeout              time.Duration
+	KCPConf                            string
+	Benchmark                          bool
+	FasttrackDomains                   string
+	DiffServTOS                        int
+	LampshadeAddr                      string
+	VersionCheck                       bool
+	VersionCheckMinVersion             string
+	VersionCheckRedirectURL            string
+	VersionCheckRedirectPercentage     float64
+	GoogleSearchRegex                  string
+	GoogleCaptchaRegex                 string
+	BlacklistMaxIdleTime               time.Duration
+	BlacklistMaxConnectInterval        time.Duration
+	BlacklistAllowedFailures           int
+	BlacklistExpiration                time.Duration
+	ProxyName                          string
+	BBRUpstreamProbeURL                string
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -441,7 +444,7 @@ func (p *Proxy) serveOBFS4(srv *server.Server) {
 	if listenErr != nil {
 		log.Fatalf("Unable to listen for OBFS4 with tcp: %v", listenErr)
 	}
-	wrapped, wrapErr := obfs4listener.Wrap(l, p.Obfs4Dir)
+	wrapped, wrapErr := obfs4listener.Wrap(l, p.Obfs4Dir, p.Obfs4HandshakeConcurrency, p.Obfs4MaxPendingHandshakesPerClient, p.Obfs4HandshakeTimeout)
 	if wrapErr != nil {
 		log.Fatalf("Unable to listen with obfs4 at %v: %v", l.Addr(), wrapErr)
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"os"
+	"sync"
 	"sync/atomic"
 	"time"
 
@@ -15,16 +16,17 @@ import (
 	"git.torproject.org/pluggable-transports/obfs4.git/transports/obfs4"
 )
 
-var (
-	log = golog.LoggerFor("obfs4listener")
-
-	handshakeTimeout = 10 * time.Second
-
-	maxPendingHandshakesPerClient = 128
-	maxHandshakesPerClient        = 4
+const (
+	DefaultHandshakeConcurrency          = 1024
+	DefaultMaxPendingHandshakesPerClient = 512
+	DefaultHandshakeTimeout              = 10 * time.Second
 )
 
-func Wrap(wrapped net.Listener, stateDir string) (net.Listener, error) {
+var (
+	log = golog.LoggerFor("obfs4listener")
+)
+
+func Wrap(wrapped net.Listener, stateDir string, handshakeConcurrency int, maxPendingHandshakesPerClient int, handshakeTimeout time.Duration) (net.Listener, error) {
 	err := os.MkdirAll(stateDir, 0700)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to make statedir at %v: %v", stateDir, err)
@@ -36,16 +38,44 @@ func Wrap(wrapped net.Listener, stateDir string) (net.Listener, error) {
 		return nil, fmt.Errorf("Unable to create obfs4 server factory: %v", err)
 	}
 
+	if handshakeConcurrency <= 0 {
+		handshakeConcurrency = DefaultHandshakeConcurrency
+	}
+	if maxPendingHandshakesPerClient <= 0 {
+		maxPendingHandshakesPerClient = DefaultMaxPendingHandshakesPerClient
+	}
+	if handshakeTimeout <= 0 {
+		handshakeTimeout = DefaultHandshakeTimeout
+	}
+
+	log.Debugf("Handshake Concurrency: %d", handshakeConcurrency)
+	log.Debugf("Max Pending Handshakes Per Client: %d", maxPendingHandshakesPerClient)
+	log.Debugf("Handshake Timeout: %v", handshakeTimeout)
+
+	var clientsFinished sync.WaitGroup
+
 	ol := &obfs4listener{
-		wrapped:  wrapped,
-		sf:       sf,
-		newConns: make(map[string]chan net.Conn),
-		ready:    make(chan *result),
+		handshakeTimeout:              handshakeTimeout,
+		maxPendingHandshakesPerClient: maxPendingHandshakesPerClient,
+		wrapped:         wrapped,
+		sf:              sf,
+		clientsFinished: &clientsFinished,
+		clients:         make(map[string]*client),
+		pending:         make(chan net.Conn, handshakeConcurrency),
+		ready:           make(chan *result),
 	}
 
 	go ol.accept()
+	for i := 0; i < handshakeConcurrency; i++ {
+		go ol.wrapPending()
+	}
 	go ol.monitor()
 	return ol, nil
+}
+
+type client struct {
+	newConns chan net.Conn
+	wg       *sync.WaitGroup
 }
 
 type result struct {
@@ -54,11 +84,17 @@ type result struct {
 }
 
 type obfs4listener struct {
-	wrapped     net.Listener
-	sf          base.ServerFactory
-	newConns    map[string]chan net.Conn
-	ready       chan *result
-	handshaking int64
+	handshakeTimeout              time.Duration
+	maxPendingHandshakesPerClient int
+	wrapped                       net.Listener
+	sf                            base.ServerFactory
+	clientsFinished               *sync.WaitGroup
+	clients                       map[string]*client
+	pending                       chan net.Conn
+	ready                         chan *result
+	handshaking                   int64
+	closeMx                       sync.Mutex
+	closed                        bool
 }
 
 func (l *obfs4listener) Accept() (net.Conn, error) {
@@ -74,6 +110,14 @@ func (l *obfs4listener) Addr() net.Addr {
 }
 
 func (l *obfs4listener) Close() error {
+	l.closeMx.Lock()
+	defer l.closeMx.Unlock()
+
+	if l.closed {
+		return nil
+	}
+	l.closed = true
+
 	err := l.wrapped.Close()
 	go func() {
 		// Drain ready
@@ -88,9 +132,11 @@ func (l *obfs4listener) Close() error {
 
 func (l *obfs4listener) accept() {
 	defer func() {
-		for _, newConns := range l.newConns {
-			close(newConns)
+		for _, client := range l.clients {
+			close(client.newConns)
 		}
+		l.clientsFinished.Wait()
+		close(l.pending)
 		close(l.ready)
 	}()
 
@@ -110,16 +156,18 @@ func (l *obfs4listener) accept() {
 			conn.Close()
 			continue
 		}
-		newConns := l.newConns[remoteHost]
-		if newConns == nil {
-			newConns = make(chan net.Conn, maxPendingHandshakesPerClient)
-			l.newConns[remoteHost] = newConns
-			for i := 0; i < maxHandshakesPerClient; i++ {
-				go l.wrap(newConns)
+		cl := l.clients[remoteHost]
+		if cl == nil {
+			cl = &client{
+				newConns: make(chan net.Conn, l.maxPendingHandshakesPerClient),
+				wg:       l.clientsFinished,
 			}
+			l.clientsFinished.Add(1)
+			l.clients[remoteHost] = cl
+			go cl.wrapIncoming(l.pending)
 		}
 		select {
-		case newConns <- conn:
+		case cl.newConns <- conn:
 			// will handshake
 		default:
 			log.Errorf("Too many pending handshakes for client at %v, ignoring new connections", remoteAddr)
@@ -128,17 +176,23 @@ func (l *obfs4listener) accept() {
 	}
 }
 
-func (l *obfs4listener) wrap(newConns chan net.Conn) {
-	for conn := range newConns {
-		l.doWrap(conn)
+func (c *client) wrapIncoming(pending chan net.Conn) {
+	for conn := range c.newConns {
+		pending <- conn
 	}
 }
 
-func (l *obfs4listener) doWrap(conn net.Conn) {
+func (l *obfs4listener) wrapPending() {
+	for conn := range l.pending {
+		l.wrap(conn)
+	}
+}
+
+func (l *obfs4listener) wrap(conn net.Conn) {
 	atomic.AddInt64(&l.handshaking, 1)
 	defer atomic.AddInt64(&l.handshaking, -1)
 	start := time.Now()
-	_wrapped, timedOut, err := withtimeout.Do(handshakeTimeout, func() (interface{}, error) {
+	_wrapped, timedOut, err := withtimeout.Do(l.handshakeTimeout, func() (interface{}, error) {
 		o, err := l.sf.WrapConn(conn)
 		if err != nil {
 			return nil, err
@@ -161,6 +215,8 @@ func (l *obfs4listener) doWrap(conn net.Conn) {
 func (l *obfs4listener) monitor() {
 	for {
 		time.Sleep(5 * time.Second)
+		log.Debugf("Number of clients: %d", len(l.clients))
+		log.Debugf("Connections waiting to start handshaking: %d", len(l.pending))
 		log.Debugf("Currently handshaking connections: %d", atomic.LoadInt64(&l.handshaking))
 	}
 }
