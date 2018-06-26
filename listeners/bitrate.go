@@ -3,53 +3,86 @@ package listeners
 import (
 	"net"
 	"net/http"
-	"sync"
-
-	"github.com/juju/ratelimit"
+	"time"
 
 	"github.com/getlantern/http-proxy/listeners"
+	"github.com/juju/ratelimit"
 )
 
 type RateLimiter struct {
-	r    *ratelimit.Bucket
-	w    *ratelimit.Bucket
-	rate int64
-	mx   sync.RWMutex
+	r              *ratelimit.Bucket
+	w              *ratelimit.Bucket
+	rate           int64
+	preferredMinIO int64
 }
 
 func NewRateLimiter(rate int64) *RateLimiter {
-	l := &RateLimiter{}
-	l.SetRate(rate)
+	l := &RateLimiter{
+		rate: rate,
+	}
+	if rate > 0 {
+		l.r = ratelimit.NewBucketWithRate(float64(rate), rate)
+		l.w = ratelimit.NewBucketWithRate(float64(rate), rate)
+
+		// prefer to read or write at least this number of bytes
+		// at once when possible. Use a progressively lower min
+		// for lower rates.
+		min := rate / 8
+		if min < 1 {
+			min = 1
+		} else if min > 512 {
+			min = 512
+		}
+		l.preferredMinIO = min
+	}
 	return l
 }
 
-func (l *RateLimiter) SetRate(rate int64) {
-	l.mx.Lock()
-	if l.rate != rate {
-		l.rate = rate
-		if rate > 0 {
-			l.r = ratelimit.NewBucketWithRate(float64(rate), rate)
-			l.w = ratelimit.NewBucketWithRate(float64(rate), rate)
-		} else {
-			l.r = nil
-			l.w = nil
-		}
+// Acquire up to max read tokens. Will return as soon as
+// between min and max reads are acquired. Returns number
+// of tokens acquired and boolean indicating whether they
+// were immediately available or a delay was necessary.
+func (l *RateLimiter) waitRead(min, max int64) (int64, bool) {
+	t, d := l.wait(l.r, min, max)
+	if d > 0 {
+		time.Sleep(d)
+		return t, true
 	}
-	l.mx.Unlock()
+	return t, false
 }
 
-func (l *RateLimiter) getReadBucket() (b *ratelimit.Bucket) {
-	l.mx.RLock()
-	b = l.r
-	l.mx.RUnlock()
-	return
+// Acquire up to max write tokens. Will return as soon as
+// between min and max writes are acquired. Returns number
+// of tokens acquired and boolean indicating whether they
+// were immediately available or a delay was necessary.
+func (l *RateLimiter) waitWrite(min, max int64) (int64, bool) {
+	t, d := l.wait(l.w, min, max)
+	if d > 0 {
+		time.Sleep(d)
+		return t, true
+	}
+	return t, false
+
 }
 
-func (l *RateLimiter) getWriteBucket() (b *ratelimit.Bucket) {
-	l.mx.RLock()
-	b = l.w
-	l.mx.RUnlock()
-	return
+func (l *RateLimiter) wait(b *ratelimit.Bucket, min, max int64) (int64, time.Duration) {
+	if b == nil {
+		return max, 0
+	}
+
+	var taken int64
+	var d time.Duration
+
+	if min > 0 {
+		d = b.Take(min)
+		taken = min
+	}
+
+	if d == 0 && taken < max {
+		taken += b.TakeAvailable(max - taken)
+	}
+
+	return taken, d
 }
 
 type bitrateListener struct {
@@ -82,32 +115,46 @@ type bitrateConn struct {
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	bucket := c.limiter.getReadBucket()
-	if bucket != nil {
-		s := bucket.TakeAvailable(int64(len(p)))
-		if s == 0 {
-			bucket.Wait(1)
-			s = 1
-		}
-		p = p[:s]
+	if c.limiter.rate == 0 {
+		return c.Conn.Read(p)
 	}
 
-	return c.Conn.Read(p)
+	var delayed bool
+	var nn int
+	// read in chunks until delayed or read ends
+	for lp := int64(len(p)); lp > 0 && err == nil; lp = int64(len(p)) {
+		bs := c.limiter.preferredMinIO
+		if lp < bs {
+			bs = lp
+		}
+		nn, err = c.Conn.Read(p[:bs])
+
+		if nn > 0 {
+			_, delayed = c.limiter.waitRead(int64(nn), int64(nn))
+			n += nn
+			p = p[nn:]
+		}
+
+		// short read or had to wait for tokens.
+		if int64(nn) < bs || delayed {
+			break
+		}
+	}
+	return
 }
 
 func (c *bitrateConn) Write(p []byte) (n int, err error) {
-	bucket := c.limiter.getWriteBucket()
-	if bucket == nil {
+	if c.limiter.rate == 0 {
 		return c.Conn.Write(p)
 	}
 
 	var i int
-	for len(p) > 0 && err == nil {
-		s := bucket.TakeAvailable(int64(len(p)))
-		if s == 0 {
-			bucket.Wait(1)
-			s = 1
+	for lp := int64(len(p)); lp > 0 && err == nil; lp = int64(len(p)) {
+		min := c.limiter.preferredMinIO
+		if lp < min {
+			min = lp
 		}
+		s, _ := c.limiter.waitWrite(min, lp)
 		i, err = c.Conn.Write(p[:s])
 		p = p[i:]
 		n += i
