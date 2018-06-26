@@ -13,7 +13,7 @@ define tag-changelog
 	echo "Tagging..." && \
 	git tag -a "$$VERSION" -f --annotate -m"Tagged $$VERSION" && \
 	git push --tags -f && \
-	$(CHANGE_BIN) getlantern/$(1) && \
+	$(CHANGE_BIN) --token "5bfda07d0382fff2285de3579caa92b1764d0db9" getlantern/$(1) && \
 	git add CHANGELOG.md && \
 	git commit -m "Updated changelog for $$VERSION" && \
 	git push origin HEAD
@@ -23,8 +23,6 @@ guard-%:
 	 @ if [ -z '${${*}}' ]; then echo 'Environment variable $* not set' && exit 1; fi
 
 require-version: guard-VERSION
-
-require-gh-token: guard-CHANGELOG_GITHUB_TOKEN
 
 require-go-version:
 	@ if go version | grep -q -v $(GO_VERSION); then \
@@ -54,7 +52,7 @@ build: require-dep require-go-version
 	github.com/getlantern/http-proxy-lantern/http-proxy && \
 	file $(BUILD_DIR)/http-proxy
 
-dist: require-dep require-upx require-version require-gh-token require-change
+dist: require-dep require-upx require-version require-change
 	GOOS=linux GOARCH=amd64 BUILD_DIR=dist $(MAKE) build -o http-proxy && \
 	upx dist/http-proxy && \
 	$(call tag-changelog,http-proxy-lantern)
