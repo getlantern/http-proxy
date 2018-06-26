@@ -26,6 +26,8 @@ var (
 
 	hostname, _ = os.Hostname()
 
+	fasttrack = "adyen.com,stripe.com,paymentwall.com,alipay.com,app-measurement.com,fastworldpay.com,firebaseremoteconfig.googleapis.com,firebaseio.com,getlantern.org,lantern.io,innovatelabs.io,getiantem.org,lantern-pro-server.herokuapp.com,lantern-pro-server-staging.herokuapp.com,optimizely.com"
+
 	addr                           = flag.String("addr", ":8080", "Address to listen")
 	certfile                       = flag.String("cert", "", "Certificate file name")
 	cfgSvrAuthToken                = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
@@ -61,7 +63,7 @@ var (
 	enhttpServerURL                = flag.String("enhttp-server-url", "", "specify a full URL for domain-fronting to this server with enhttp, required for sticky routing with CloudFront")
 	enhttpReapIdleTime             = flag.Duration("enhttp-reapidletime", time.Duration(*idleClose)*time.Second, "configure how long enhttp connections are allowed to remain idle before being forcibly closed")
 	bench                          = flag.Bool("bench", false, "Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.")
-	fasttrackDomains               = flag.String("fasttrackdomains", "", "Whitelisted domains, such as the config server, pro server, etc, that should not count towards the bandwidth cap or be throttled, separated by comma")
+	fasttrackDomains               = flag.String("fasttrackdomains", fasttrack, "Whitelisted domains, such as the config server, pro server, etc, that should not count towards the bandwidth cap or be throttled, separated by comma")
 	tos                            = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")
 	lampshadeAddr                  = flag.String("lampshade-addr", "", "Address at which to listen for lampshade connections. Requires https to be true.")
 	version                        = flag.Bool("version", false, "shows the version of the binary")
@@ -76,9 +78,9 @@ var (
 	blacklistExpiration            = flag.Duration("blacklist-expiration", 6*time.Hour, "How long to wait before removing an ip from the blacklist")
 	proxyName                      = flag.String("proxyname", hostname, "The name of this proxy (defaults to hostname)")
 	bbrUpstreamProbeURL            = flag.String("bbrprobeurl", "", "optional URL to probe for upstream BBR bandwidth estimates")
-	stackdriverProjectID           = flag.String("stackdriver-project-id", "", "Optional project ID for stackdriver error reporting as in http-proxy-lantern")
-	stackdriverCreds               = flag.String("stackdriver-creds", "", "Optional full json file path containing stackdriver credentials")
-	stackdriverSamplePercentage    = flag.Float64("stackdriver-sample-percentage", 0.0001, "The percentage of devices to report to Stackdriver (0.01 = 1%)")
+	stackdriverProjectID           = flag.String("stackdriver-project-id", "lantern-http-proxy", "Optional project ID for stackdriver error reporting as in http-proxy-lantern")
+	stackdriverCreds               = flag.String("stackdriver-creds", "/home/lantern/lantern-stackdriver.json", "Optional full json file path containing stackdriver credentials")
+	stackdriverSamplePercentage    = flag.Float64("stackdriver-sample-percentage", 0.005, "The percentage of devices to report to Stackdriver (0.01 = 1%)")
 )
 
 func main() {
@@ -112,9 +114,8 @@ func main() {
 		log.Fatal("version check redirect URL should not empty")
 	}
 
-	stackdriverSample := 0.005
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
-		close := stackdrivererror.Enable(ctx, *stackdriverProjectID, *stackdriverCreds, stackdriverSample, *externalIP)
+		close := stackdrivererror.Enable(ctx, *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *externalIP)
 		defer close()
 	}
 
