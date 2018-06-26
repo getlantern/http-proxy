@@ -1,5 +1,14 @@
 # Change Log
 
+## [0.1.7](https://github.com/getlantern/http-proxy-lantern/tree/0.1.7) (2018-06-26)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.6...0.1.7)
+
+**Merged pull requests:**
+
+- Adding adyenpayments.com to fasttrack domains [\#245](https://github.com/getlantern/http-proxy-lantern/pull/245) ([myleshorton](https://github.com/myleshorton))
+- Add Alipay,PaymentWall,Stripe,Adyen to fasttrack domains/better defaults [\#244](https://github.com/getlantern/http-proxy-lantern/pull/244) ([myleshorton](https://github.com/myleshorton))
+- Made OBFS4 handshake concurrency configurable [\#243](https://github.com/getlantern/http-proxy-lantern/pull/243) ([oxtoacart](https://github.com/oxtoacart))
+
 ## [0.1.6](https://github.com/getlantern/http-proxy-lantern/tree/0.1.6) (2018-06-26)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.5...0.1.6)
 
@@ -193,7 +202,7 @@
 - Expiring bandwidth counters at end of month [\#74](https://github.com/getlantern/http-proxy-lantern/pull/74) ([oxtoacart](https://github.com/oxtoacart))
 
 ## [v0.0.20](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.20) (2016-05-20)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.18...v0.0.20)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.19...v0.0.20)
 
 **Closed issues:**
 
@@ -207,11 +216,11 @@
 - Updated test to work with patched Go 1.6.2 [\#66](https://github.com/getlantern/http-proxy-lantern/pull/66) ([oxtoacart](https://github.com/oxtoacart))
 - Smooth reporting [\#63](https://github.com/getlantern/http-proxy-lantern/pull/63) ([uaalto](https://github.com/uaalto))
 
-## [v0.0.18](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.18) (2016-05-03)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.19...v0.0.18)
-
 ## [v0.0.19](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.19) (2016-05-03)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.17...v0.0.19)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.18...v0.0.19)
+
+## [v0.0.18](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.18) (2016-05-03)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.17...v0.0.18)
 
 **Closed issues:**
 
@@ -238,18 +247,18 @@
 - Added IP-based blacklisting of clients that consistently fail to prov… [\#58](https://github.com/getlantern/http-proxy-lantern/pull/58) ([oxtoacart](https://github.com/oxtoacart))
 
 ## [reporting-test-auth](https://github.com/getlantern/http-proxy-lantern/tree/reporting-test-auth) (2016-04-25)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/reporting-test...reporting-test-auth)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.16...reporting-test-auth)
 
 **Merged pull requests:**
 
 - Added password authentication to Redis client config and flags [\#59](https://github.com/getlantern/http-proxy-lantern/pull/59) ([uaalto](https://github.com/uaalto))
 - Correct data transfer measurement [\#56](https://github.com/getlantern/http-proxy-lantern/pull/56) ([uaalto](https://github.com/uaalto))
 
-## [reporting-test](https://github.com/getlantern/http-proxy-lantern/tree/reporting-test) (2016-04-18)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.16...reporting-test)
-
 ## [v0.0.16](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.16) (2016-04-18)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/obfs4test...v0.0.16)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/reporting-test...v0.0.16)
+
+## [reporting-test](https://github.com/getlantern/http-proxy-lantern/tree/reporting-test) (2016-04-18)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/obfs4test...reporting-test)
 
 **Fixed bugs:**
 
@@ -268,16 +277,16 @@
 - Add obfs4 support to proxy [\#46](https://github.com/getlantern/http-proxy-lantern/pull/46) ([oxtoacart](https://github.com/oxtoacart))
 
 ## [obfs4test](https://github.com/getlantern/http-proxy-lantern/tree/obfs4test) (2016-03-28)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.14...obfs4test)
-
-## [v0.0.14](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.14) (2016-03-10)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.13...v0.0.14)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.13...obfs4test)
 
 ## [v0.0.13](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.13) (2016-03-10)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.15...v0.0.13)
 
 ## [v0.0.15](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.15) (2016-03-10)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.12...v0.0.15)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.14...v0.0.15)
+
+## [v0.0.14](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.14) (2016-03-10)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.12...v0.0.14)
 
 **Closed issues:**
 
