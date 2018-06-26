@@ -98,7 +98,7 @@ and that the resulting binary is compressed with
 You can use the following command to do all this automatically. Note that `make dist` requires $VERSION. It will tag the repo with that version and will also generate a new changelog:
 
 ```
-VERSION=v0.1.3 make dist
+VERSION=0.1.3 make dist
 ```
 
 Once you've build a binary for distribution, you can deploy it to all live proxies with:
