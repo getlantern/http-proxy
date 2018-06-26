@@ -27,7 +27,7 @@ var (
 
 	hostname, _ = os.Hostname()
 
-	fasttrack = "adyen.com,stripe.com,paymentwall.com,alipay.com,app-measurement.com,fastworldpay.com,firebaseremoteconfig.googleapis.com,firebaseio.com,getlantern.org,lantern.io,innovatelabs.io,getiantem.org,lantern-pro-server.herokuapp.com,lantern-pro-server-staging.herokuapp.com,optimizely.com"
+	fasttrack = "adyenpayments.com,adyen.com,stripe.com,paymentwall.com,alipay.com,app-measurement.com,fastworldpay.com,firebaseremoteconfig.googleapis.com,firebaseio.com,getlantern.org,lantern.io,innovatelabs.io,getiantem.org,lantern-pro-server.herokuapp.com,lantern-pro-server-staging.herokuapp.com,optimizely.com"
 
 	addr                               = flag.String("addr", ":8080", "Address to listen")
 	certfile                           = flag.String("cert", "", "Certificate file name")
