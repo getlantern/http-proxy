@@ -1,6 +1,7 @@
 package throttle
 
 import (
+	"math"
 	"testing"
 	"time"
 
@@ -42,10 +43,7 @@ func TestThrottleConfig(t *testing.T) {
 		return
 	}
 
-	cfg, err := NewRedisConfig(rc, refreshInterval)
-	if !assert.NoError(t, err) {
-		return
-	}
+	cfg := NewRedisConfig(rc, refreshInterval)
 
 	doTest(t, cfg, desktopDeviceID, "cn", 50, 5)
 	doTest(t, cfg, desktopDeviceID, "us", 60, 6)
@@ -84,6 +82,19 @@ func TestThrottleConfig(t *testing.T) {
 	doTest(t, cfg, mobileDeviceID, "bt", 400, 40)
 	doTest(t, cfg, mobileDeviceID, "br", 400, 40)
 	doTest(t, cfg, mobileDeviceID, "", 400, 40)
+
+	if !assert.NoError(t, rc.HDel("_throttle:desktop", "us", "__").Err()) {
+		return
+	}
+	time.Sleep(refreshInterval * 2)
+
+	doTest(t, cfg, desktopDeviceID, "cn", 500, 50)
+	doTest(t, cfg, desktopDeviceID, "us", math.MaxInt64, math.MaxInt64)
+	doTest(t, cfg, desktopDeviceID, "", math.MaxInt64, math.MaxInt64)
+
+	doTest(t, cfg, mobileDeviceID, "cn", 300, 30)
+	doTest(t, cfg, mobileDeviceID, "us", 400, 40)
+	doTest(t, cfg, mobileDeviceID, "", 400, 40)
 }
 
 func TestForcedConfig(t *testing.T) {
@@ -94,4 +105,33 @@ func TestForcedConfig(t *testing.T) {
 	doTest(t, cfg, desktopDeviceID, "cn", 1024, 512)
 	doTest(t, cfg, mobileDeviceID, "bl", 1024, 512)
 	doTest(t, cfg, desktopDeviceID, "bl", 1024, 512)
+}
+
+func TestFailToConnectRedis(t *testing.T) {
+	r, err := testredis.OpenUnstarted()
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	rc := r.Client()
+	defer rc.Close()
+
+	cfg := NewRedisConfig(rc, refreshInterval)
+
+	// When fail to connect Redis
+	doTest(t, cfg, desktopDeviceID, "cn", math.MaxInt64, math.MaxInt64)
+	doTest(t, cfg, desktopDeviceID, "us", math.MaxInt64, math.MaxInt64)
+	doTest(t, cfg, desktopDeviceID, "", math.MaxInt64, math.MaxInt64)
+
+	r.Start()
+	defer r.Close()
+
+	if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{
+		DefaultCountryCode: "60|6",
+	}).Err()) {
+		return
+	}
+
+	time.Sleep(refreshInterval * 2)
+	doTest(t, cfg, desktopDeviceID, "any", 60, 6)
 }
