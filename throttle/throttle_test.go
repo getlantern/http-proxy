@@ -118,7 +118,6 @@ func TestFailToConnectRedis(t *testing.T) {
 
 	cfg := NewRedisConfig(rc, refreshInterval)
 
-	// When fail to connect Redis
 	doTest(t, cfg, desktopDeviceID, "cn", math.MaxInt64, math.MaxInt64)
 	doTest(t, cfg, desktopDeviceID, "us", math.MaxInt64, math.MaxInt64)
 	doTest(t, cfg, desktopDeviceID, "", math.MaxInt64, math.MaxInt64)
@@ -133,5 +132,6 @@ func TestFailToConnectRedis(t *testing.T) {
 	}
 
 	time.Sleep(refreshInterval * 2)
+	// Should load the config when Redis is back up online
 	doTest(t, cfg, desktopDeviceID, "any", 60, 6)
 }

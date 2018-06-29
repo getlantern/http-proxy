@@ -380,7 +380,6 @@ func (p *Proxy) loadThrottleConfig() {
 			p.ThrottleRate)
 		p.throttleConfig = throttle.NewForcedConfig(p.ThrottleThreshold, p.ThrottleRate)
 	} else if !p.Pro && p.ThrottleRefreshInterval > 0 && p.rc != nil {
-		var err error
 		p.throttleConfig = throttle.NewRedisConfig(p.rc, p.ThrottleRefreshInterval)
 	} else {
 		log.Debug("Not loading throttle config")
