@@ -342,7 +342,7 @@
   branch = "master"
   name = "github.com/getlantern/testredis"
   packages = ["."]
-  revision = "7e6b46b7ef1b3a29f9a2c3f060dfddb9cd17ef1b"
+  revision = "eb77fb8dd4f4ceb48ab697ac4347e7d87dc41a2e"
 
 [[projects]]
   branch = "master"
