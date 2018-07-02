@@ -43,9 +43,10 @@ type Config interface {
 	// ThresholdAndRateFor returns the threshold (bytes) and throttled rate (bytes
 	// per second) for the given deviceID in the given countryCode. If no country
 	// found, returns the values for the blank "__" countryCode which is used as a
-	// default.
-	// If the throttle threshold / rate is unable to determine, ok will be false.
-	ThresholdAndRateFor(deviceID string, countryCode string) (threshold int64, rate int64, ok bool)
+	// default. If unable to get the throttle threshold / rate, it returns
+	// 0/0/false.
+	ThresholdAndRateFor(deviceID string, countryCode string) (threshold int64,
+		rate int64, ok bool)
 }
 
 type thresholdAndRate [2]int64

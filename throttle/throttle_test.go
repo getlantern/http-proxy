@@ -15,11 +15,11 @@ const (
 	mobileDeviceID  = "123456789"
 )
 
-func doTest(t *testing.T, cfg Config, deviceID string, countryCode string, expectedThreshold int64, expectedRate int64, got bool) {
+func doTest(t *testing.T, cfg Config, deviceID string, countryCode string, expectedThreshold int64, expectedRate int64, validConfig bool) {
 	threshold, rate, ok := cfg.ThresholdAndRateFor(deviceID, countryCode)
 	assert.EqualValues(t, expectedThreshold, threshold)
 	assert.EqualValues(t, expectedRate, rate)
-	assert.Equal(t, ok, got)
+	assert.Equal(t, ok, validConfig)
 }
 
 func TestThrottleConfig(t *testing.T) {
