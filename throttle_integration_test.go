@@ -26,31 +26,40 @@ import (
 )
 
 func TestThrottling(t *testing.T) {
-	params := [][]string{
-		[]string{"Free config from Redis", "false", "false", "127.0.0.1:18711"},
-		[]string{"Free force throttling", "false", "true", "127.0.0.1:18712"},
-		[]string{"Pro config from Redis", "true", "false", "127.0.0.1:18713"},
-		[]string{"Pro force throttling", "true", "true", "127.0.0.1:18714"},
-	}
-
 	origMeasuredReportingInterval := measuredReportingInterval
 	measuredReportingInterval = 10 * time.Millisecond
 	defer func() {
 		measuredReportingInterval = origMeasuredReportingInterval
 	}()
 
-	r, err := testredis.Open()
+	r, err := testredis.OpenUnstarted()
 	if !assert.NoError(t, err) {
 		return
 	}
+	t.Run("Free config when Redis is down", func(t *testing.T) {
+		doTestThrottling(t, false, false, "127.0.0.1:18709", false, r)
+	})
+	t.Run("Pro config when Redis is down", func(t *testing.T) {
+		doTestThrottling(t, true, false, "127.0.0.1:18710", false, r)
+	})
+
+	r.Start()
 	defer r.Close()
 
+	params := [][]string{
+		[]string{"Free config from Redis", "false", "false", "127.0.0.1:18711", "true"},
+		[]string{"Free force throttling", "false", "true", "127.0.0.1:18712", "true"},
+		[]string{"Pro config from Redis", "true", "false", "127.0.0.1:18713", "true"},
+		[]string{"Pro force throttling", "true", "true", "127.0.0.1:18714", "true"},
+	}
 	for _, test := range params {
-		t.Run(test[0], func(t *testing.T) { doTestThrottling(t, test[1] == "true", test[2] == "true", test[3], r) })
+		t.Run(test[0], func(t *testing.T) {
+			doTestThrottling(t, test[1] == "true", test[2] == "true", test[3], test[4] == "true", r)
+		})
 	}
 }
 
-func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string, r testredis.Redis) {
+func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string, redisIsUp bool, r testredis.Redis) {
 	deviceId := fmt.Sprintf("dev-%d", rand.Int())
 	sizeHeader := "X-Test-Size"
 	originSite := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
@@ -68,11 +77,13 @@ func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string
 
 	throttleRate := 1024
 
-	if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{throttle.DefaultCountryCode: "10485760|1024"}).Err()) {
-		return
-	}
-	if !assert.NoError(t, rc.HMSet("_throttle:mobile", map[string]string{throttle.DefaultCountryCode: "10485760|1024"}).Err()) {
-		return
+	if redisIsUp {
+		if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{throttle.DefaultCountryCode: "10485760|1024"}).Err()) {
+			return
+		}
+		if !assert.NoError(t, rc.HMSet("_throttle:mobile", map[string]string{throttle.DefaultCountryCode: "10485760|1024"}).Err()) {
+			return
+		}
 	}
 
 	durationForBytes := func(bytes, readers int) time.Duration {
@@ -168,6 +179,11 @@ func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string
 		return
 	}
 	xbq := resp.Header.Get(common.XBQHeader)
+	if !redisIsUp {
+		assert.Empty(t, xbq)
+		return
+	}
+
 	if pro {
 		assert.Empty(t, xbq)
 	} else {
