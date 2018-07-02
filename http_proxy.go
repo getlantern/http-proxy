@@ -391,9 +391,6 @@ func (p *Proxy) applyThrottling(srv *server.Server, rc *reportingConfig) {
 	if p.throttleConfig == nil {
 		log.Debug("Throttling is disabled")
 	}
-	if !rc.enabled {
-		log.Debug("Not throttling because reporting is not enabled")
-	}
 
 	// Add net.Listener wrappers for inbound connections
 	srv.AddListenerWrappers(
