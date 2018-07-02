@@ -111,8 +111,8 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 		f.deviceFetcher.RequestNewDeviceUsage(lanternDeviceID)
 		return next(ctx, req)
 	}
-	threshold, rate := f.throttleConfig.ThresholdAndRateFor(lanternDeviceID, u.CountryCode)
-	if u.Bytes > threshold {
+	threshold, rate, ok := f.throttleConfig.ThresholdAndRateFor(lanternDeviceID, u.CountryCode)
+	if ok && u.Bytes > threshold {
 		// per connection limiter
 		limiter := lanternlisteners.NewRateLimiter(rate)
 		log.Debugf("Throttling connection from device %s to %v per second", lanternDeviceID,
@@ -124,7 +124,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	if resp == nil || err != nil {
 		return resp, nextCtx, err
 	}
-	if !f.sendXBQHeader {
+	if !ok || !f.sendXBQHeader {
 		return resp, nextCtx, err
 	}
 	if resp.Header == nil {

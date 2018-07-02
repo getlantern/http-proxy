@@ -12,7 +12,6 @@ package throttle
 
 import (
 	"fmt"
-	"math"
 	"strconv"
 	"strings"
 	"sync"
@@ -45,7 +44,8 @@ type Config interface {
 	// per second) for the given deviceID in the given countryCode. If no country
 	// found, returns the values for the blank "__" countryCode which is used as a
 	// default.
-	ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64)
+	// If the throttle threshold / rate is unable to determine, ok will be false.
+	ThresholdAndRateFor(deviceID string, countryCode string) (threshold int64, rate int64, ok bool)
 }
 
 type thresholdAndRate [2]int64
@@ -67,9 +67,9 @@ func NewForcedConfig(forceThreshold int64, forceRate int64) Config {
 
 type forcedConfig thresholdAndRate
 
-func (cfg forcedConfig) ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64) {
+func (cfg forcedConfig) ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64, bool) {
 	tar := thresholdAndRate(cfg)
-	return tar.threshold(), tar.rate()
+	return tar.threshold(), tar.rate(), true
 }
 
 func parseThresholdAndRate(limit string) (*thresholdAndRate, error) {
@@ -129,8 +129,7 @@ func loadLimits(rc *redis.Client, suffix string) (map[string]*thresholdAndRate, 
 	defaultTR, hasDefault := limits[DefaultCountryCode]
 	if !hasDefault {
 		log.Debugf(`No default "__" country configured in %v`, key)
-		defaultTR = &thresholdAndRate{math.MaxInt64, math.MaxInt64}
-		limits[DefaultCountryCode] = defaultTR
+		return limits, nil
 	}
 	threshold, rate := defaultTR.threshold(), defaultTR.rate()
 	log.Debugf("Throttling %v by default to %v per second after %v", suffix, humanize.Bytes(uint64(rate)), humanize.Bytes(uint64(threshold)))
@@ -169,7 +168,7 @@ func (cfg *redisConfig) refreshLimits() {
 	log.Debug("Refreshed")
 }
 
-func (cfg *redisConfig) ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64) {
+func (cfg *redisConfig) ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64, bool) {
 	isDesktop := len(deviceID) == 8
 	var limits map[string]*thresholdAndRate
 	cfg.mx.RLock()
@@ -184,7 +183,7 @@ func (cfg *redisConfig) ThresholdAndRateFor(deviceID string, countryCode string)
 		tr, found = limits[DefaultCountryCode]
 	}
 	if !found {
-		return math.MaxInt64, math.MaxInt64
+		return 0, 0, false
 	}
-	return tr.threshold(), tr.rate()
+	return tr.threshold(), tr.rate(), true
 }
