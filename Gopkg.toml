@@ -62,7 +62,7 @@
   name = "github.com/getlantern/errors"
 
 [[constraint]]
-  branch = "master"
+  branch = "issue_1891"
   name = "github.com/getlantern/geolookup"
 
 [[constraint]]

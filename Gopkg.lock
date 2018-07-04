@@ -170,10 +170,10 @@
   revision = "c5f0cd24e7991579ba6f5f1bd20a1ad2c9f06cd4"
 
 [[projects]]
-  branch = "master"
+  branch = "issue_1891"
   name = "github.com/getlantern/geolookup"
   packages = ["."]
-  revision = "823d7ff3e6eb74dd6aae38a4b52207b19abfbf66"
+  revision = "009cfe13a7b13f4a50265f2a0e3a05d7cd7412b6"
 
 [[projects]]
   branch = "master"
@@ -890,6 +890,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "c31700e7ca59719d26aa372b45c6b5b0f9b30b5dfac10447dd514688e502ccd6"
+  inputs-digest = "2efbde7b11512717bf00fd80e963dc07b39d43348dbce48b4ec49fa08d8eff5c"
   solver-name = "gps-cdcl"
   solver-version = 1
