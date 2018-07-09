@@ -252,7 +252,7 @@
   branch = "master"
   name = "github.com/getlantern/lampshade"
   packages = ["."]
-  revision = "56314a2bf5459ed3742ee32ba25f08b61dac4d75"
+  revision = "7be30c3ba5e9e71b06aa0b34c06a23ea75984827"
 
 [[projects]]
   branch = "master"
