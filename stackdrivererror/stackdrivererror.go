@@ -3,7 +3,6 @@ package stackdrivererror
 import (
 	"context"
 	"errors"
-	"log"
 	"math/rand"
 
 	"google.golang.org/api/option"
@@ -19,15 +18,16 @@ type Close func()
 // Enable enables reporting errors to stackdriver.
 func Enable(ctx context.Context, projectID, stackdriverCreds string,
 	samplePercentage float64, externalIP string) Close {
-	log.Printf("Enabling stackdriver error reporting for project %v", projectID)
+	log := golog.LoggerFor("proxy-stackdriver")
+	log.Debugf("Enabling stackdriver error reporting for project %v", projectID)
 	errorClient, err := errorreporting.NewClient(ctx, projectID, errorreporting.Config{
 		ServiceName: "lantern-http-proxy-service",
 		OnError: func(err error) {
-			log.Printf("Could not log error: %v", err)
+			log.Debugf("Could not log error: %v", err)
 		},
 	}, option.WithCredentialsFile(stackdriverCreds))
 	if err != nil {
-		log.Printf("Error setting up stackdriver error reporting? %v", err)
+		log.Debugf("Error setting up stackdriver error reporting? %v", err)
 		return func() {}
 	}
 
@@ -35,10 +35,10 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string,
 		if severity == golog.ERROR || severity == golog.FATAL {
 			r := rand.Float64()
 			if r > samplePercentage {
-				log.Printf("Not in sample. %v less than %v", r, samplePercentage)
+				log.Debugf("Not in sample. %v less than %v", r, samplePercentage)
 				return
 			}
-			log.Println("Reporting error to stackdriver")
+			log.Debugf("Reporting error to stackdriver")
 
 			errWithIP := errors.New(err.Error() + " to: " + externalIP)
 			errorClient.Report(errorreporting.Entry{
