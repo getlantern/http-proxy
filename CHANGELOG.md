@@ -1,5 +1,16 @@
 # Change Log
 
+## [Unreleased](https://github.com/getlantern/http-proxy-lantern/tree/HEAD)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.9...HEAD)
+
+**Merged pull requests:**
+
+- Better logging of upstream timeouts and stackdriver reports [\#249](https://github.com/getlantern/http-proxy-lantern/pull/249) ([myleshorton](https://github.com/myleshorton))
+
+## [0.1.9](https://github.com/getlantern/http-proxy-lantern/tree/0.1.9) (2018-07-12)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.8...0.1.9)
+
 ## [0.1.8](https://github.com/getlantern/http-proxy-lantern/tree/0.1.8) (2018-07-09)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.7...0.1.8)
 
