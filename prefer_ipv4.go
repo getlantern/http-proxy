@@ -1,7 +1,7 @@
 package proxy
 
 import (
-	"errors"
+	"fmt"
 	"net"
 	"strconv"
 	"time"
@@ -36,7 +36,7 @@ func preferIPV4Dialer(timeout time.Duration) func(network, hostport string) (net
 		t := time.NewTimer(timeout)
 		select {
 		case <-t.C:
-			return nil, errors.New("Dial timeout")
+			return nil, fmt.Errorf("Dial timeout after %v", timeout)
 		case res := <-chResult:
 			return res.conn, res.err
 		}
@@ -55,7 +55,7 @@ func tcpAddrPrefer4(hostport string) (*net.TCPAddr, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &net.TCPAddr{ip, p, ""}, nil
+		return &net.TCPAddr{IP: ip, Port: p, Zone: ""}, nil
 	}
 	return net.ResolveTCPAddr("tcp4", hostport)
 }
