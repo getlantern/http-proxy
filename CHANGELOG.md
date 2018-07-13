@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.1.11](https://github.com/getlantern/http-proxy-lantern/tree/0.1.11) (2018-07-13)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.10...0.1.11)
+
+**Merged pull requests:**
+
+- Log when we close HTTP connections due to errors [\#254](https://github.com/getlantern/http-proxy-lantern/pull/254) ([myleshorton](https://github.com/myleshorton))
+
 ## [0.1.10](https://github.com/getlantern/http-proxy-lantern/tree/0.1.10) (2018-07-13)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.9...0.1.10)
 
