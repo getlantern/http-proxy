@@ -84,7 +84,7 @@ var (
 	bbrUpstreamProbeURL                = flag.String("bbrprobeurl", "", "optional URL to probe for upstream BBR bandwidth estimates")
 	stackdriverProjectID               = flag.String("stackdriver-project-id", "lantern-http-proxy", "Optional project ID for stackdriver error reporting as in http-proxy-lantern")
 	stackdriverCreds                   = flag.String("stackdriver-creds", "/home/lantern/lantern-stackdriver.json", "Optional full json file path containing stackdriver credentials")
-	stackdriverSamplePercentage        = flag.Float64("stackdriver-sample-percentage", 0.005, "The percentage of devices to report to Stackdriver (0.01 = 1%)")
+	stackdriverSamplePercentage        = flag.Float64("stackdriver-sample-percentage", 0.003, "The percentage of devices to report to Stackdriver (0.01 = 1%)")
 )
 
 func main() {
