@@ -1,5 +1,19 @@
 # Change Log
 
+## [0.1.10](https://github.com/getlantern/http-proxy-lantern/tree/0.1.10) (2018-07-13)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.9...0.1.10)
+
+**Merged pull requests:**
+
+- Added VERSION check [\#253](https://github.com/getlantern/http-proxy-lantern/pull/253) ([myleshorton](https://github.com/myleshorton))
+- Add IP check to deploy script [\#252](https://github.com/getlantern/http-proxy-lantern/pull/252) ([myleshorton](https://github.com/myleshorton))
+- Better error logging for upstream timeouts and lower stackdriver sample [\#251](https://github.com/getlantern/http-proxy-lantern/pull/251) ([myleshorton](https://github.com/myleshorton))
+- Update to latest proxy repo with server timing and better TLS SD logs [\#250](https://github.com/getlantern/http-proxy-lantern/pull/250) ([myleshorton](https://github.com/myleshorton))
+- Better logging of upstream timeouts and stackdriver reports [\#249](https://github.com/getlantern/http-proxy-lantern/pull/249) ([myleshorton](https://github.com/myleshorton))
+
+## [0.1.9](https://github.com/getlantern/http-proxy-lantern/tree/0.1.9) (2018-07-12)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.8...0.1.9)
+
 ## [0.1.8](https://github.com/getlantern/http-proxy-lantern/tree/0.1.8) (2018-07-09)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.7...0.1.8)
 
@@ -288,13 +302,13 @@
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.15...obfs4test)
 
 ## [v0.0.15](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.15) (2016-03-10)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.14...v0.0.15)
-
-## [v0.0.14](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.14) (2016-03-10)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.13...v0.0.14)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.13...v0.0.15)
 
 ## [v0.0.13](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.13) (2016-03-10)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.12...v0.0.13)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.14...v0.0.13)
+
+## [v0.0.14](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.14) (2016-03-10)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.12...v0.0.14)
 
 **Closed issues:**
 
@@ -346,7 +360,7 @@
 - Added ping capability to proxy [\#30](https://github.com/getlantern/http-proxy-lantern/pull/30) ([oxtoacart](https://github.com/oxtoacart))
 
 ## [v0.0.8](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.8) (2016-02-04)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.0.7...v0.0.8)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.7...v0.0.8)
 
 **Merged pull requests:**
 
@@ -354,11 +368,11 @@
 - Supporting multiple auth token headers [\#28](https://github.com/getlantern/http-proxy-lantern/pull/28) ([oxtoacart](https://github.com/oxtoacart))
 - Adding user agent to Google Analytics [\#27](https://github.com/getlantern/http-proxy-lantern/pull/27) ([oxtoacart](https://github.com/oxtoacart))
 
-## [0.0.7](https://github.com/getlantern/http-proxy-lantern/tree/0.0.7) (2016-01-29)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.7...0.0.7)
-
 ## [v0.0.7](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.7) (2016-01-29)
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.6...v0.0.7)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.0.7...v0.0.7)
+
+## [0.0.7](https://github.com/getlantern/http-proxy-lantern/tree/0.0.7) (2016-01-29)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.6...0.0.7)
 
 **Closed issues:**
 
