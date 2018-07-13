@@ -5,6 +5,8 @@ function die() {
   exit 1
 }
 
+"${VERSION:?VERSION required}"
+
 ip=$1
 
 echo "Building http-proxy-lantern"
