@@ -1,5 +1,8 @@
 # Change Log
 
+## [0.1.12](https://github.com/getlantern/http-proxy-lantern/tree/0.1.12) (2018-07-14)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.11...0.1.12)
+
 ## [0.1.11](https://github.com/getlantern/http-proxy-lantern/tree/0.1.11) (2018-07-13)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.10...0.1.11)
 
