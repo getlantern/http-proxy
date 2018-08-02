@@ -43,8 +43,10 @@ type Config interface {
 	// ThresholdAndRateFor returns the threshold (bytes) and throttled rate (bytes
 	// per second) for the given deviceID in the given countryCode. If no country
 	// found, returns the values for the blank "__" countryCode which is used as a
-	// default.
-	ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64)
+	// default. If unable to get the throttle threshold / rate, it returns
+	// 0/0/false.
+	ThresholdAndRateFor(deviceID string, countryCode string) (threshold int64,
+		rate int64, ok bool)
 }
 
 type thresholdAndRate [2]int64
@@ -59,16 +61,16 @@ func (tar thresholdAndRate) rate() int64 {
 	return tar[1]
 }
 
-// NewRedisConfig returns a new Config that uses the forced threshold and rate.
+// NewForcedConfig returns a new Config that uses the forced threshold and rate.
 func NewForcedConfig(forceThreshold int64, forceRate int64) Config {
 	return forcedConfig{forceThreshold, forceRate}
 }
 
 type forcedConfig thresholdAndRate
 
-func (cfg forcedConfig) ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64) {
+func (cfg forcedConfig) ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64, bool) {
 	tar := thresholdAndRate(cfg)
-	return tar.threshold(), tar.rate()
+	return tar.threshold(), tar.rate(), true
 }
 
 func parseThresholdAndRate(limit string) (*thresholdAndRate, error) {
@@ -98,23 +100,14 @@ type redisConfig struct {
 // NewRedisConfig returns a new Config that uses the given redis client to load
 // its configuration information and reload that information every
 // refreshInterval.
-func NewRedisConfig(rc *redis.Client, refreshInterval time.Duration) (Config, error) {
-	desktop, err := loadLimits(rc, DesktopSuffix)
-	if err != nil {
-		return nil, err
-	}
-	mobile, err := loadLimits(rc, MobileSuffix)
-	if err != nil {
-		return nil, err
-	}
+func NewRedisConfig(rc *redis.Client, refreshInterval time.Duration) Config {
 	cfg := &redisConfig{
 		rc:              rc,
 		refreshInterval: refreshInterval,
-		desktop:         desktop,
-		mobile:          mobile,
 	}
+	cfg.refreshLimits()
 	go cfg.keepCurrent()
-	return cfg, nil
+	return cfg
 }
 
 func loadLimits(rc *redis.Client, suffix string) (map[string]*thresholdAndRate, error) {
@@ -133,11 +126,12 @@ func loadLimits(rc *redis.Client, suffix string) (map[string]*thresholdAndRate, 
 		limits[country] = tar
 	}
 
+	log.Debugf("%+v", limits)
 	defaultTR, hasDefault := limits[DefaultCountryCode]
 	if !hasDefault {
-		return nil, fmt.Errorf(`No default "__" country configured in %v!`, key)
+		log.Debugf(`No default "__" country configured in %v`, key)
+		return limits, nil
 	}
-
 	threshold, rate := defaultTR.threshold(), defaultTR.rate()
 	log.Debugf("Throttling %v by default to %v per second after %v", suffix, humanize.Bytes(uint64(rate)), humanize.Bytes(uint64(threshold)))
 
@@ -153,25 +147,29 @@ func (cfg *redisConfig) keepCurrent() {
 	log.Debugf("Refreshing every %v", cfg.refreshInterval)
 	for {
 		time.Sleep(cfg.refreshInterval)
-		desktop, err := loadLimits(cfg.rc, DesktopSuffix)
-		if err != nil {
-			log.Error(err)
-			continue
-		}
-		mobile, err := loadLimits(cfg.rc, MobileSuffix)
-		if err != nil {
-			log.Error(err)
-			continue
-		}
-		cfg.mx.Lock()
-		cfg.desktop = desktop
-		cfg.mobile = mobile
-		cfg.mx.Unlock()
-		log.Debug("Refreshed")
+		cfg.refreshLimits()
 	}
 }
 
-func (cfg *redisConfig) ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64) {
+func (cfg *redisConfig) refreshLimits() {
+	desktop, err := loadLimits(cfg.rc, DesktopSuffix)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	mobile, err := loadLimits(cfg.rc, MobileSuffix)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	cfg.mx.Lock()
+	cfg.desktop = desktop
+	cfg.mobile = mobile
+	cfg.mx.Unlock()
+	log.Debug("Refreshed")
+}
+
+func (cfg *redisConfig) ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64, bool) {
 	isDesktop := len(deviceID) == 8
 	var limits map[string]*thresholdAndRate
 	cfg.mx.RLock()
@@ -183,7 +181,10 @@ func (cfg *redisConfig) ThresholdAndRateFor(deviceID string, countryCode string)
 	cfg.mx.RUnlock()
 	tr, found := limits[countryCode]
 	if !found {
-		tr = limits[DefaultCountryCode]
+		tr, found = limits[DefaultCountryCode]
 	}
-	return tr.threshold(), tr.rate()
+	if !found {
+		return 0, 0, false
+	}
+	return tr.threshold(), tr.rate(), true
 }

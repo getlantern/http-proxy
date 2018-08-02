@@ -26,11 +26,7 @@ func newReportingConfig(rc *rclient.Client, enabled bool, bordaReporter listener
 	if !enabled || rc == nil {
 		return noReport
 	}
-	reporter, err := redis.NewMeasuredReporter(rc, measuredReportingInterval)
-	if err != nil {
-		log.Errorf("Unable to configure measured reporter, not reporting: %v", err)
-		return noReport
-	}
+	reporter := redis.NewMeasuredReporter(rc, measuredReportingInterval)
 	if bordaReporter != nil {
 		reporter = combineReporter(reporter, bordaReporter)
 	}
