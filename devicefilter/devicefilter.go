@@ -112,7 +112,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 		return next(ctx, req)
 	}
 	threshold, rate, ok := f.throttleConfig.ThresholdAndRateFor(lanternDeviceID, u.CountryCode)
-  // To turn the data cap off in redis we simply set the threshold to 0 or below. This
+  	// To turn the data cap off in redis we simply set the threshold to 0 or below. This
 	// will also turn off the cap in the UI on desktop and in newer versions on mobile.
 	capOn := threshold > 0
 	if capOn && ok && u.Bytes > threshold {
