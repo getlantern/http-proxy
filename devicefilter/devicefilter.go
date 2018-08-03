@@ -111,11 +111,14 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 		f.deviceFetcher.RequestNewDeviceUsage(lanternDeviceID)
 		return next(ctx, req)
 	}
-	threshold, rate, ok := f.throttleConfig.ThresholdAndRateFor(lanternDeviceID, u.CountryCode)
-  	// To turn the data cap off in redis we simply set the threshold to 0 or below. This
-	// will also turn off the cap in the UI on desktop and in newer versions on mobile.
-	capOn := threshold > 0
-	if capOn && ok && u.Bytes > threshold {
+	threshold, rate, capOn := f.throttleConfig.ThresholdAndRateFor(lanternDeviceID, u.CountryCode)
+	// To turn the data cap off in Redis we simply set the threshold to 0 or
+	// below. This will also turn off the cap in the UI on desktop and in newer
+	// versions on mobile.
+	if capOn {
+		capOn = threshold > 0
+	}
+	if capOn && u.Bytes > threshold {
 		// per connection limiter
 		limiter := lanternlisteners.NewRateLimiter(rate)
 		log.Debugf("Throttling connection from device %s to %v per second", lanternDeviceID,
@@ -127,7 +130,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	if resp == nil || err != nil {
 		return resp, nextCtx, err
 	}
-	if !ok || !f.sendXBQHeader || !capOn {
+	if !capOn || !f.sendXBQHeader {
 		return resp, nextCtx, err
 	}
 	if resp.Header == nil {
