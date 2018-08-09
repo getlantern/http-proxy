@@ -20,6 +20,8 @@ import (
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/quicwrapper"
+	"github.com/getlantern/tlsdefaults"
 	"github.com/getlantern/tlsredis"
 	rclient "gopkg.in/redis.v5"
 
@@ -42,6 +44,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/ping"
+	"github.com/getlantern/http-proxy-lantern/quic"
 	"github.com/getlantern/http-proxy-lantern/redis"
 	"github.com/getlantern/http-proxy-lantern/throttle"
 	"github.com/getlantern/http-proxy-lantern/tlslistener"
@@ -112,6 +115,7 @@ type Proxy struct {
 	BlacklistExpiration                time.Duration
 	ProxyName                          string
 	BBRUpstreamProbeURL                string
+	QUICAddr                           string
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -136,6 +140,10 @@ func (p *Proxy) ListenAndServe() error {
 		return err
 	}
 
+	if p.QUICAddr != "" {
+		filterChain = filterChain.Prepend(quic.NewMiddleware())
+	}
+
 	bwReporting, bordaReporter := p.configureBandwidthReporting()
 	srv := server.New(&server.Opts{
 		IdleTimeout: p.IdleTimeout,
@@ -156,6 +164,8 @@ func (p *Proxy) ListenAndServe() error {
 		if err != nil {
 			return errors.New("Unable to listen kcp: %v", err)
 		}
+	} else if p.QUICAddr != "" {
+		l, err = p.listenQUIC()
 	} else {
 		l, err = p.listenTCP(p.Addr, true)
 		if err != nil {
@@ -233,6 +243,9 @@ func (p *Proxy) proxyProtocol() string {
 	}
 	if p.KCPConf != "" {
 		return "kcp"
+	}
+	if p.QUICAddr != "" {
+		return "quic"
 	}
 	return "https"
 }
@@ -524,6 +537,19 @@ func (p *Proxy) listenKCP() (net.Listener, error) {
 		}
 		return listeners.WrapIdleConn(conn, p.IdleTimeout)
 	})
+}
+
+func (p *Proxy) listenQUIC() (net.Listener, error) {
+	tlsConf, err := tlsdefaults.BuildListenerConfig(p.QUICAddr, p.KeyFile, p.CertFile)
+	if err != nil {
+		return nil, err
+	}
+
+	config := &quicwrapper.Config{
+		MaxIncomingStreams: 1000,
+	}
+
+	return quicwrapper.ListenAddr(p.QUICAddr, tlsConf, config)
 }
 
 func portsFromCSV(csv string) ([]int, error) {
