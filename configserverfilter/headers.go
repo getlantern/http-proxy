@@ -69,7 +69,7 @@ func (f *ConfigServerFilter) rewrite(host string, req *http.Request) {
 		log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
 		return
 	}
-	req.Header.Set(common.TrueClientIP, ip)
+	req.Header.Set(common.CfgSvrClientIPHeader, ip)
 	log.Debugf("Rewrote request from %s to %s as \"GET %s\", host %s", ip, prevHost, req.URL.String(), req.Host)
 }
 

@@ -34,7 +34,7 @@ func TestModifyRequest(t *testing.T) {
 	assert.Equal(t, "", dummy.req.URL.Scheme, "should clear scheme")
 	assert.Equal(t, "site1.com:443", dummy.req.Host, "should use port 443")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
-	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.TrueClientIP), "should attach client ip")
+	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should attach client ip")
 
 	req, _ = http.NewRequest("GET", "http://site2.org/abc.gz", nil)
 	req.RemoteAddr = dummyAddr
@@ -42,7 +42,7 @@ func TestModifyRequest(t *testing.T) {
 	assert.Equal(t, "", dummy.req.URL.Scheme, "should clear scheme")
 	assert.Equal(t, "site2.org:443", dummy.req.Host, "should use port 443")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
-	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.TrueClientIP), "should attach client ip")
+	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should attach client ip")
 
 	req, _ = http.NewRequest("GET", "http://site2.org:443/abc.gz", nil)
 	req.RemoteAddr = "bad-addr"
@@ -50,7 +50,7 @@ func TestModifyRequest(t *testing.T) {
 	assert.Equal(t, "", dummy.req.URL.Scheme, "should clear scheme")
 	assert.Equal(t, "site2.org:443", dummy.req.Host, "should use port 443")
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
-	assert.Equal(t, "", dummy.req.Header.Get(common.TrueClientIP), "should not attach client ip if remote address is invalid")
+	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should not attach client ip if remote address is invalid")
 
 	req, _ = http.NewRequest("GET", "http://not-config-server.org/abc.gz", nil)
 	req.RemoteAddr = dummyAddr
@@ -58,7 +58,7 @@ func TestModifyRequest(t *testing.T) {
 	assert.Equal(t, "http", dummy.req.URL.Scheme, "should not rewrite to https for other sites")
 	assert.Equal(t, "not-config-server.org", dummy.req.Host, "should not use port 443 for other sites")
 	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should not attach token for other sites")
-	assert.Equal(t, "", dummy.req.Header.Get(common.TrueClientIP), "should not attach client ip for other sites")
+	assert.Equal(t, "", dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should not attach client ip for other sites")
 }
 
 func TestInitializeNoDomains(t *testing.T) {
