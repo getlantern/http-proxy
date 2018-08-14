@@ -61,5 +61,9 @@ deploy: dist/http-proxy
 	s3cmd put dist/http-proxy s3://http-proxy/http-proxy && \
 	s3cmd setacl --acl-grant read:f87080f71ec0be3b9a933cbb244a6c24d4aca584ac32b3220f56d59071043747 s3://http-proxy/http-proxy
 
+deploy-staging: dist/http-proxy
+	s3cmd put dist/http-proxy s3://http-proxy/http-proxy-staging && \
+	s3cmd setacl --acl-grant read:f87080f71ec0be3b9a933cbb244a6c24d4aca584ac32b3220f56d59071043747 s3://http-proxy/http-proxy-staging
+
 clean:
 	rm -rf dist bin
