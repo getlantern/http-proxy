@@ -55,7 +55,7 @@ Run the server with:
 
 ```
 cd http-proxy
-go install && http-proxy -https -token <your-token> -enablereports -throttlebps 50000 -throttlethreshold 500000000
+go install && http-proxy -https -token <your-token> -enablereports -stackdriver-project-id http-proxy-lantern -stackdriver-creds /Users/afisk/lantern_aws/salt/http_proxy/lantern-stackdriver.json
 ```
 
 Run a Lantern client accordingly, as in:
@@ -95,8 +95,33 @@ When building for distribution make sure you're creating a linux/amd64 binary
 and that the resulting binary is compressed with
 [upx](http://upx.sourceforge.net/).
 
-You can use the following command to do all this automatically:
+You can use the following command to do all this automatically. Note that `make dist` requires $VERSION. It will tag the repo with that version and will also generate a new changelog:
 
 ```
-make dist
+VERSION=0.1.3 make dist
+```
+
+Once you've build a binary for distribution, you can deploy it to all live proxies with:
+
+```
+make deploy
+```
+
+## Temporarily Deploying a Preview Binary to a Single Server
+Sometimes it's useful to deploy a preview binary to a single server. This can
+be done using either `deployTo.bash` or `onlyDeployTo.bash`. They do the same
+thing but `deployTo.bash` first runs `make dist` whereas `onlyDeployTo.bash`
+copies the existing binary at dist/http-proxy.
+
+### Deploy Preview
+```
+./onlyDeployTo.bash <ip address>
+```
+
+### Revert to Production Binary
+Once you're done checking out the preview, revert back to the production binary
+with:
+
+```
+./revertToProductionBinary.bash <ip addres>
 ```

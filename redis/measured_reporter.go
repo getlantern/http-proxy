@@ -7,7 +7,6 @@ import (
 
 	"gopkg.in/redis.v5"
 
-	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/geo"
 	"github.com/getlantern/http-proxy-lantern/usage"
@@ -49,15 +48,10 @@ type statsAndContext struct {
 	stats *measured.Stats
 }
 
-func NewMeasuredReporter(rc *redis.Client, reportInterval time.Duration) (listeners.MeasuredReportFN, error) {
-	scriptSHA, err := rc.ScriptLoad(script).Result()
-	if err != nil {
-		return nil, errors.New("Unable to load script: %v", err)
-	}
-
+func NewMeasuredReporter(rc *redis.Client, reportInterval time.Duration) listeners.MeasuredReportFN {
 	// Provide some buffering so that we don't lose data while submitting to Redis
 	statsCh := make(chan *statsAndContext, 10000)
-	go reportPeriodically(rc, scriptSHA, reportInterval, statsCh)
+	go reportPeriodically(rc, reportInterval, statsCh)
 	return func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 		select {
 		case statsCh <- &statsAndContext{ctx, deltaStats}:
@@ -65,7 +59,7 @@ func NewMeasuredReporter(rc *redis.Client, reportInterval time.Duration) (listen
 		default:
 			// data lost, probably because Redis submission is taking longer than expected
 		}
-	}, nil
+	}
 }
 
 type statsAndIP struct {
@@ -73,13 +67,13 @@ type statsAndIP struct {
 	ip string
 }
 
-func reportPeriodically(rc *redis.Client, scriptSHA string, reportInterval time.Duration, statsCh chan (*statsAndContext)) {
+func reportPeriodically(rc *redis.Client, reportInterval time.Duration, statsCh chan (*statsAndContext)) {
 	// randomize the interval to evenly distribute traffic to reporting Redis.
 	randomized := time.Duration(reportInterval.Nanoseconds()/2 + rand.Int63n(reportInterval.Nanoseconds()))
 	log.Debugf("Will report data usage to Redis every %v", randomized)
 	ticker := time.NewTicker(randomized)
 	statsByDeviceID := make(map[string]*statsAndIP)
-
+	var scriptSHA string
 	for {
 		select {
 		case sac := <-statsCh:
@@ -110,6 +104,15 @@ func reportPeriodically(rc *redis.Client, scriptSHA string, reportInterval time.
 			if log.IsTraceEnabled() {
 				log.Tracef("Submitting %d stats", len(statsByDeviceID))
 			}
+			if scriptSHA == "" {
+				var err error
+				scriptSHA, err = rc.ScriptLoad(script).Result()
+				if err != nil {
+					log.Errorf("Unable to load script, skip submitting stats: %v", err)
+					continue
+				}
+			}
+
 			err := submit(rc, scriptSHA, statsByDeviceID)
 			if err != nil {
 				log.Errorf("Unable to submit stats: %v", err)
@@ -133,7 +136,6 @@ func submit(rc *redis.Client, scriptSHA string, statsByDeviceID map[string]*stat
 	for deviceID, stats := range statsByDeviceID {
 		clientKey := "_client:" + deviceID
 		countryCode := geoLookup.CountryCode(stats.ip)
-		log.Debugf("CountryCode for %v: %v", stats.ip, countryCode)
 		_result, err := rc.EvalSha(scriptSHA, []string{clientKey},
 			strconv.Itoa(stats.RecvTotal),
 			strconv.Itoa(stats.SentTotal),

@@ -3,17 +3,87 @@ package listeners
 import (
 	"net"
 	"net/http"
+	"time"
 
-	"github.com/dustin/go-humanize"
 	"github.com/getlantern/http-proxy/listeners"
-	"github.com/mxk/go-flowrate/flowrate"
+	"github.com/juju/ratelimit"
 )
 
-type ThrottleRate int64
+type RateLimiter struct {
+	r              *ratelimit.Bucket
+	w              *ratelimit.Bucket
+	rate           int64
+	preferredMinIO int64
+}
 
-var (
-	NoThrottle = ThrottleRate(0)
-)
+func NewRateLimiter(rate int64) *RateLimiter {
+	l := &RateLimiter{
+		rate: rate,
+	}
+	if rate > 0 {
+		l.r = ratelimit.NewBucketWithRate(float64(rate), rate)
+		l.w = ratelimit.NewBucketWithRate(float64(rate), rate)
+
+		// prefer to read or write at least this number of bytes
+		// at once when possible. Use a progressively lower min
+		// for lower rates.
+		min := rate / 8
+		if min < 1 {
+			min = 1
+		} else if min > 512 {
+			min = 512
+		}
+		l.preferredMinIO = min
+	}
+	return l
+}
+
+// Acquire up to max read tokens. Will return as soon as
+// between min and max reads are acquired. Returns number
+// of tokens acquired and boolean indicating whether they
+// were immediately available or a delay was necessary.
+func (l *RateLimiter) waitRead(min, max int64) (int64, bool) {
+	t, d := l.wait(l.r, min, max)
+	if d > 0 {
+		time.Sleep(d)
+		return t, true
+	}
+	return t, false
+}
+
+// Acquire up to max write tokens. Will return as soon as
+// between min and max writes are acquired. Returns number
+// of tokens acquired and boolean indicating whether they
+// were immediately available or a delay was necessary.
+func (l *RateLimiter) waitWrite(min, max int64) (int64, bool) {
+	t, d := l.wait(l.w, min, max)
+	if d > 0 {
+		time.Sleep(d)
+		return t, true
+	}
+	return t, false
+
+}
+
+func (l *RateLimiter) wait(b *ratelimit.Bucket, min, max int64) (int64, time.Duration) {
+	if b == nil {
+		return max, 0
+	}
+
+	var taken int64
+	var d time.Duration
+
+	if min > 0 {
+		d = b.Take(min)
+		taken = min
+	}
+
+	if d == 0 && taken < max {
+		taken += b.TakeAvailable(max - taken)
+	}
+
+	return taken, d
+}
 
 type bitrateListener struct {
 	net.Listener
@@ -33,9 +103,7 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 	return &bitrateConn{
 		WrapConnEmbeddable: wc,
 		Conn:               c,
-		throttle:           NoThrottle,
-		freader:            flowrate.NewReader(c, int64(0)),
-		fwriter:            flowrate.NewWriter(c, int64(0)),
+		limiter:            NewRateLimiter(0),
 	}, err
 }
 
@@ -43,25 +111,55 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 type bitrateConn struct {
 	listeners.WrapConnEmbeddable
 	net.Conn
-	throttle ThrottleRate
-	freader  *flowrate.Reader
-	fwriter  *flowrate.Writer
+	limiter *RateLimiter
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	if c.throttle == NoThrottle {
+	if c.limiter.rate == 0 {
 		return c.Conn.Read(p)
-	} else {
-		return c.freader.Read(p)
 	}
+
+	var delayed bool
+	var nn int
+	// read in chunks until delayed or read ends
+	for lp := int64(len(p)); lp > 0 && err == nil; lp = int64(len(p)) {
+		bs := c.limiter.preferredMinIO
+		if lp < bs {
+			bs = lp
+		}
+		nn, err = c.Conn.Read(p[:bs])
+
+		if nn > 0 {
+			_, delayed = c.limiter.waitRead(int64(nn), int64(nn))
+			n += nn
+			p = p[nn:]
+		}
+
+		// short read or had to wait for tokens.
+		if int64(nn) < bs || delayed {
+			break
+		}
+	}
+	return
 }
 
 func (c *bitrateConn) Write(p []byte) (n int, err error) {
-	if c.throttle == NoThrottle {
+	if c.limiter.rate == 0 {
 		return c.Conn.Write(p)
-	} else {
-		return c.fwriter.Write(p)
 	}
+
+	var i int
+	for lp := int64(len(p)); lp > 0 && err == nil; lp = int64(len(p)) {
+		min := c.limiter.preferredMinIO
+		if lp < min {
+			min = lp
+		}
+		s, _ := c.limiter.waitWrite(min, lp)
+		i, err = c.Conn.Write(p[:s])
+		p = p[i:]
+		n += i
+	}
+	return
 }
 
 func (c *bitrateConn) OnState(s http.ConnState) {
@@ -74,11 +172,7 @@ func (c *bitrateConn) OnState(s http.ConnState) {
 func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	// pro-user message always overrides the active flag
 	if msgType == "throttle" {
-		rate := data.(ThrottleRate)
-		c.throttle = rate
-		c.freader.SetLimit(int64(c.throttle))
-		c.fwriter.SetLimit(int64(c.throttle))
-		log.Debugf("Throttling connection to %v per second", humanize.Bytes(uint64(rate)))
+		c.limiter = data.(*RateLimiter)
 	}
 
 	if c.WrapConnEmbeddable != nil {

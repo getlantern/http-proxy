@@ -56,7 +56,7 @@ func handle(resp http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	estABE := float64(binfo.EstBandwidth) * 8 / 1000 / 1000
+	estABE := float64(binfo.MaxBW) * 8 / 1000 / 1000
 	log.Debugf("Reporting ABE %v", estABE)
 	trailers := http.Header{}
 	trailers.Set(common.BBRAvailableBandwidthEstimateHeader, fmt.Sprint(estABE))

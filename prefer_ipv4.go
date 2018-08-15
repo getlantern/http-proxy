@@ -1,11 +1,15 @@
 package proxy
 
 import (
-	"errors"
+	"fmt"
 	"net"
 	"strconv"
 	"time"
+
+	"github.com/getlantern/golog"
 )
+
+var ipv4log = golog.LoggerFor("lantern-proxy-ipv4")
 
 // preferIPV4Dialer returns a function with same signature as net.Dial, but
 // always dials the host to its IPv4 address, unless it's already in IP address
@@ -36,7 +40,9 @@ func preferIPV4Dialer(timeout time.Duration) func(network, hostport string) (net
 		t := time.NewTimer(timeout)
 		select {
 		case <-t.C:
-			return nil, errors.New("Dial timeout")
+			err := fmt.Errorf("Dial timeout after %v to %v", timeout, hostport)
+			ipv4log.Errorf(err.Error())
+			return nil, err
 		case res := <-chResult:
 			return res.conn, res.err
 		}
@@ -55,7 +61,7 @@ func tcpAddrPrefer4(hostport string) (*net.TCPAddr, error) {
 		if err != nil {
 			return nil, err
 		}
-		return &net.TCPAddr{ip, p, ""}, nil
+		return &net.TCPAddr{IP: ip, Port: p, Zone: ""}, nil
 	}
 	return net.ResolveTCPAddr("tcp4", hostport)
 }

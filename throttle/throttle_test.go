@@ -15,10 +15,11 @@ const (
 	mobileDeviceID  = "123456789"
 )
 
-func doTest(t *testing.T, cfg Config, deviceID string, countryCode string, expectedThreshold int64, expectedRate int64) {
-	threshold, rate := cfg.ThresholdAndRateFor(deviceID, countryCode)
+func doTest(t *testing.T, cfg Config, deviceID string, countryCode string, expectedThreshold int64, expectedRate int64, validConfig bool) {
+	threshold, rate, ok := cfg.ThresholdAndRateFor(deviceID, countryCode)
 	assert.EqualValues(t, expectedThreshold, threshold)
 	assert.EqualValues(t, expectedRate, rate)
+	assert.Equal(t, ok, validConfig)
 }
 
 func TestThrottleConfig(t *testing.T) {
@@ -42,18 +43,15 @@ func TestThrottleConfig(t *testing.T) {
 		return
 	}
 
-	cfg, err := NewRedisConfig(rc, refreshInterval)
-	if !assert.NoError(t, err) {
-		return
-	}
+	cfg := NewRedisConfig(rc, refreshInterval)
 
-	doTest(t, cfg, desktopDeviceID, "cn", 50, 5)
-	doTest(t, cfg, desktopDeviceID, "us", 60, 6)
-	doTest(t, cfg, desktopDeviceID, "", 60, 6)
+	doTest(t, cfg, desktopDeviceID, "cn", 50, 5, true)
+	doTest(t, cfg, desktopDeviceID, "us", 60, 6, true)
+	doTest(t, cfg, desktopDeviceID, "", 60, 6, true)
 
-	doTest(t, cfg, mobileDeviceID, "cn", 30, 3)
-	doTest(t, cfg, mobileDeviceID, "us", 40, 4)
-	doTest(t, cfg, mobileDeviceID, "", 40, 4)
+	doTest(t, cfg, mobileDeviceID, "cn", 30, 3, true)
+	doTest(t, cfg, mobileDeviceID, "us", 40, 4, true)
+	doTest(t, cfg, mobileDeviceID, "", 40, 4, true)
 
 	// update settings
 	if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{
@@ -71,27 +69,69 @@ func TestThrottleConfig(t *testing.T) {
 	}
 	time.Sleep(refreshInterval * 2)
 
-	doTest(t, cfg, desktopDeviceID, "cn", 500, 50)
-	doTest(t, cfg, desktopDeviceID, "us", 600, 60)
-	doTest(t, cfg, desktopDeviceID, "bl", 600, 60)
-	doTest(t, cfg, desktopDeviceID, "bt", 600, 60)
-	doTest(t, cfg, desktopDeviceID, "br", 600, 60)
-	doTest(t, cfg, desktopDeviceID, "", 600, 60)
+	doTest(t, cfg, desktopDeviceID, "cn", 500, 50, true)
+	doTest(t, cfg, desktopDeviceID, "us", 600, 60, true)
+	doTest(t, cfg, desktopDeviceID, "bl", 600, 60, true)
+	doTest(t, cfg, desktopDeviceID, "bt", 600, 60, true)
+	doTest(t, cfg, desktopDeviceID, "br", 600, 60, true)
+	doTest(t, cfg, desktopDeviceID, "", 600, 60, true)
 
-	doTest(t, cfg, mobileDeviceID, "cn", 300, 30)
-	doTest(t, cfg, mobileDeviceID, "us", 400, 40)
-	doTest(t, cfg, mobileDeviceID, "bl", 400, 40)
-	doTest(t, cfg, mobileDeviceID, "bt", 400, 40)
-	doTest(t, cfg, mobileDeviceID, "br", 400, 40)
-	doTest(t, cfg, mobileDeviceID, "", 400, 40)
+	doTest(t, cfg, mobileDeviceID, "cn", 300, 30, true)
+	doTest(t, cfg, mobileDeviceID, "us", 400, 40, true)
+	doTest(t, cfg, mobileDeviceID, "bl", 400, 40, true)
+	doTest(t, cfg, mobileDeviceID, "bt", 400, 40, true)
+	doTest(t, cfg, mobileDeviceID, "br", 400, 40, true)
+	doTest(t, cfg, mobileDeviceID, "", 400, 40, true)
+
+	if !assert.NoError(t, rc.HDel("_throttle:desktop", "us", "__").Err()) {
+		return
+	}
+	time.Sleep(refreshInterval * 2)
+
+	doTest(t, cfg, desktopDeviceID, "cn", 500, 50, true)
+	doTest(t, cfg, desktopDeviceID, "us", 0, 0, false)
+	doTest(t, cfg, desktopDeviceID, "", 0, 0, false)
+
+	doTest(t, cfg, mobileDeviceID, "cn", 300, 30, true)
+	doTest(t, cfg, mobileDeviceID, "us", 400, 40, true)
+	doTest(t, cfg, mobileDeviceID, "", 400, 40, true)
 }
 
 func TestForcedConfig(t *testing.T) {
 	cfg := NewForcedConfig(1024, 512)
-	doTest(t, cfg, mobileDeviceID, "", 1024, 512)
-	doTest(t, cfg, desktopDeviceID, "", 1024, 512)
-	doTest(t, cfg, mobileDeviceID, "cn", 1024, 512)
-	doTest(t, cfg, desktopDeviceID, "cn", 1024, 512)
-	doTest(t, cfg, mobileDeviceID, "bl", 1024, 512)
-	doTest(t, cfg, desktopDeviceID, "bl", 1024, 512)
+	doTest(t, cfg, mobileDeviceID, "", 1024, 512, true)
+	doTest(t, cfg, desktopDeviceID, "", 1024, 512, true)
+	doTest(t, cfg, mobileDeviceID, "cn", 1024, 512, true)
+	doTest(t, cfg, desktopDeviceID, "cn", 1024, 512, true)
+	doTest(t, cfg, mobileDeviceID, "bl", 1024, 512, true)
+	doTest(t, cfg, desktopDeviceID, "bl", 1024, 512, true)
+}
+
+func TestFailToConnectRedis(t *testing.T) {
+	r, err := testredis.OpenUnstarted()
+	if !assert.NoError(t, err) {
+		return
+	}
+
+	rc := r.Client()
+	defer rc.Close()
+
+	cfg := NewRedisConfig(rc, refreshInterval)
+
+	doTest(t, cfg, desktopDeviceID, "cn", 0, 0, false)
+	doTest(t, cfg, desktopDeviceID, "us", 0, 0, false)
+	doTest(t, cfg, desktopDeviceID, "", 0, 0, false)
+
+	r.Start()
+	defer r.Close()
+
+	if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{
+		DefaultCountryCode: "60|6",
+	}).Err()) {
+		return
+	}
+
+	time.Sleep(refreshInterval * 2)
+	// Should load the config when Redis is back up online
+	doTest(t, cfg, desktopDeviceID, "any", 60, 6, true)
 }

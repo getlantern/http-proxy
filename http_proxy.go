@@ -61,54 +61,57 @@ var (
 
 // Proxy is an HTTP proxy.
 type Proxy struct {
-	TestingLocal                   bool
-	Addr                           string
-	BordaReportInterval            time.Duration
-	BordaSamplePercentage          float64
-	BordaBufferSize                int
-	ExternalIP                     string
-	CertFile                       string
-	CfgSvrAuthToken                string
-	CfgSvrDomains                  string
-	CfgSvrCacheClear               time.Duration
-	ENHTTPAddr                     string
-	ENHTTPServerURL                string
-	ENHTTPReapIdleTime             time.Duration
-	EnableReports                  bool
-	HTTPS                          bool
-	IdleTimeout                    time.Duration
-	KeyFile                        string
-	Pro                            bool
-	ProxiedSitesSamplePercentage   float64
-	ProxiedSitesTrackingID         string
-	ReportingRedisAddr             string
-	ReportingRedisCA               string
-	ReportingRedisClientPK         string
-	ReportingRedisClientCert       string
-	ThrottleRefreshInterval        time.Duration
-	ThrottleThreshold              int64
-	ThrottleRate                   int64
-	Token                          string
-	TunnelPorts                    string
-	Obfs4Addr                      string
-	Obfs4Dir                       string
-	KCPConf                        string
-	Benchmark                      bool
-	FasttrackDomains               string
-	DiffServTOS                    int
-	LampshadeAddr                  string
-	VersionCheck                   bool
-	VersionCheckMinVersion         string
-	VersionCheckRedirectURL        string
-	VersionCheckRedirectPercentage float64
-	GoogleSearchRegex              string
-	GoogleCaptchaRegex             string
-	BlacklistMaxIdleTime           time.Duration
-	BlacklistMaxConnectInterval    time.Duration
-	BlacklistAllowedFailures       int
-	BlacklistExpiration            time.Duration
-	ProxyName                      string
-	BBRUpstreamProbeURL            string
+	TestingLocal                       bool
+	Addr                               string
+	BordaReportInterval                time.Duration
+	BordaSamplePercentage              float64
+	BordaBufferSize                    int
+	ExternalIP                         string
+	CertFile                           string
+	CfgSvrAuthToken                    string
+	CfgSvrDomains                      string
+	CfgSvrCacheClear                   time.Duration
+	ENHTTPAddr                         string
+	ENHTTPServerURL                    string
+	ENHTTPReapIdleTime                 time.Duration
+	EnableReports                      bool
+	HTTPS                              bool
+	IdleTimeout                        time.Duration
+	KeyFile                            string
+	Pro                                bool
+	ProxiedSitesSamplePercentage       float64
+	ProxiedSitesTrackingID             string
+	ReportingRedisAddr                 string
+	ReportingRedisCA                   string
+	ReportingRedisClientPK             string
+	ReportingRedisClientCert           string
+	ThrottleRefreshInterval            time.Duration
+	ThrottleThreshold                  int64
+	ThrottleRate                       int64
+	Token                              string
+	TunnelPorts                        string
+	Obfs4Addr                          string
+	Obfs4Dir                           string
+	Obfs4HandshakeConcurrency          int
+	Obfs4MaxPendingHandshakesPerClient int
+	Obfs4HandshakeTimeout              time.Duration
+	KCPConf                            string
+	Benchmark                          bool
+	FasttrackDomains                   string
+	DiffServTOS                        int
+	LampshadeAddr                      string
+	VersionCheck                       bool
+	VersionCheckMinVersion             string
+	VersionCheckRedirectURL            string
+	VersionCheckRedirectPercentage     float64
+	GoogleSearchRegex                  string
+	GoogleCaptchaRegex                 string
+	BlacklistMaxIdleTime               time.Duration
+	BlacklistMaxConnectInterval        time.Duration
+	BlacklistAllowedFailures           int
+	BlacklistExpiration                time.Duration
+	ProxyName                          string
+	BBRUpstreamProbeURL                string
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -133,7 +136,7 @@ func (p *Proxy) ListenAndServe() error {
 		return err
 	}
 
-	bwReporting := p.configureBandwidthReporting()
+	bwReporting, bordaReporter := p.configureBandwidthReporting()
 	srv := server.New(&server.Opts{
 		IdleTimeout: p.IdleTimeout,
 		Dial:        dial,
@@ -169,7 +172,7 @@ func (p *Proxy) ListenAndServe() error {
 		}
 		// We initialize lampshade here because it uses the same keypair as HTTPS
 		if p.LampshadeAddr != "" {
-			p.serveLampshade(srv)
+			p.serveLampshade(srv, bordaReporter)
 		}
 	}
 
@@ -272,12 +275,13 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		filterChain = filterChain.Append(proxy.OnFirstOnly(tokenfilter.New(p.Token)))
 	}
 
+	fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
 	if p.rc == nil {
 		log.Debug("Not enabling bandwidth limiting")
 	} else {
-		fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
 		filterChain = filterChain.Append(
-			proxy.OnFirstOnly(devicefilter.NewPre(redis.NewDeviceFetcher(p.rc), p.throttleConfig, fd)),
+			proxy.OnFirstOnly(devicefilter.NewPre(
+				redis.NewDeviceFetcher(p.rc), p.throttleConfig, fd, !p.Pro)),
 		)
 	}
 
@@ -342,7 +346,13 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 
 	filterChain = filterChain.Append(
 		proxyfilters.DiscardInitialPersistentRequest,
-		proxyfilters.AddForwardedFor,
+		filters.FilterFunc(func(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+			if fd.Whitelisted(req) {
+				// Only add X-Forwarded-For for our fasttrack domains
+				return proxyfilters.AddForwardedFor(ctx, req, next)
+			}
+			return next(ctx, req)
+		}),
 		proxyfilters.RestrictConnectPorts(p.allowedTunnelPorts()),
 		proxyfilters.RecordOp,
 	)
@@ -355,12 +365,12 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}, nil
 }
 
-func (p *Proxy) configureBandwidthReporting() *reportingConfig {
+func (p *Proxy) configureBandwidthReporting() (*reportingConfig, listeners.MeasuredReportFN) {
 	var bordaReporter listeners.MeasuredReportFN
 	if p.BordaReportInterval > 0 {
 		bordaReporter = borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
 	}
-	return newReportingConfig(p.rc, p.EnableReports, bordaReporter)
+	return newReportingConfig(p.rc, p.EnableReports, bordaReporter), bordaReporter
 }
 
 func (p *Proxy) loadThrottleConfig() {
@@ -370,11 +380,7 @@ func (p *Proxy) loadThrottleConfig() {
 			p.ThrottleRate)
 		p.throttleConfig = throttle.NewForcedConfig(p.ThrottleThreshold, p.ThrottleRate)
 	} else if !p.Pro && p.ThrottleRefreshInterval > 0 && p.rc != nil {
-		var err error
-		p.throttleConfig, err = throttle.NewRedisConfig(p.rc, p.ThrottleRefreshInterval)
-		if err != nil {
-			log.Errorf("Unable to read throttling config from redis, will not throttle: %v", err)
-		}
+		p.throttleConfig = throttle.NewRedisConfig(p.rc, p.ThrottleRefreshInterval)
 	} else {
 		log.Debug("Not loading throttle config")
 		return
@@ -384,9 +390,6 @@ func (p *Proxy) loadThrottleConfig() {
 func (p *Proxy) applyThrottling(srv *server.Server, rc *reportingConfig) {
 	if p.throttleConfig == nil {
 		log.Debug("Throttling is disabled")
-	}
-	if !rc.enabled {
-		log.Debug("Not throttling because reporting is not enabled")
 	}
 
 	// Add net.Listener wrappers for inbound connections
@@ -434,7 +437,7 @@ func (p *Proxy) serveOBFS4(srv *server.Server) {
 	if listenErr != nil {
 		log.Fatalf("Unable to listen for OBFS4 with tcp: %v", listenErr)
 	}
-	wrapped, wrapErr := obfs4listener.Wrap(l, p.Obfs4Dir)
+	wrapped, wrapErr := obfs4listener.Wrap(l, p.Obfs4Dir, p.Obfs4HandshakeConcurrency, p.Obfs4MaxPendingHandshakesPerClient, p.Obfs4HandshakeTimeout)
 	if wrapErr != nil {
 		log.Fatalf("Unable to listen with obfs4 at %v: %v", l.Addr(), wrapErr)
 	}
@@ -450,10 +453,16 @@ func (p *Proxy) serveOBFS4(srv *server.Server) {
 	}()
 }
 
-func (p *Proxy) serveLampshade(srv *server.Server) {
+func (p *Proxy) serveLampshade(srv *server.Server, bordaReporter listeners.MeasuredReportFN) {
 	l, err := p.listenTCP(p.LampshadeAddr, false)
 	if err != nil {
 		log.Fatalf("Unable to listen for lampshade with tcp: %v", err)
+	}
+	if bordaReporter != nil {
+		log.Debug("Wrapping lampshade's TCP listener with measured reporting")
+		l = listeners.NewMeasuredListener(l,
+			measuredReportingInterval,
+			borda.ConnectionTypedBordaReporter("physical", bordaReporter))
 	}
 	wrapped, wrapErr := lampshade.Wrap(l, p.CertFile, p.KeyFile)
 	if wrapErr != nil {
