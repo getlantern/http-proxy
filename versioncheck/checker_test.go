@@ -92,18 +92,19 @@ func TestRedirectConnect(t *testing.T) {
 		return
 	}
 	defer l.Close()
+	proxyAddr := l.Addr().String()
 
 	p, _ := proxy.New(&proxy.Opts{
 		Filter: New("3.1.1", rewriteURL, []string{originPort}, 1),
 		OnError: func(ctx filters.Context, req *http.Request, read bool, err error) *http.Response {
-			t.Logf("error handling request %+v:\n%v", req, err)
+			log.Debugf("error handling request %+v:\n%v", req, err)
 			return nil
 		},
 	})
 	go p.Serve(l)
 
 	proxiedReq, _ := http.NewRequest("GET", originServer.URL, nil)
-	r, err := requestViaProxy(t, proxiedReq, l, "")
+	r, err := requestViaProxy(t, proxiedReq, proxyAddr, "")
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -113,7 +114,7 @@ func TestRedirectConnect(t *testing.T) {
 	b, _ := ioutil.ReadAll(r.Body)
 	assert.Equal(t, "", string(b))
 
-	r, err = requestViaProxy(t, proxiedReq, l, "3.1.0")
+	r, err = requestViaProxy(t, proxiedReq, proxyAddr, "3.1.0")
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -123,7 +124,7 @@ func TestRedirectConnect(t *testing.T) {
 	b, _ = ioutil.ReadAll(r.Body)
 	assert.Equal(t, "", string(b))
 
-	r, err = requestViaProxy(t, proxiedReq, l, "3.1.1")
+	r, err = requestViaProxy(t, proxiedReq, proxyAddr, "3.1.1")
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -134,8 +135,8 @@ func TestRedirectConnect(t *testing.T) {
 	assert.Equal(t, "good", string(b))
 }
 
-func requestViaProxy(t *testing.T, proxiedReq *http.Request, l net.Listener, version string) (*http.Response, error) {
-	proxyConn, _ := net.Dial("tcp", l.Addr().String())
+func requestViaProxy(t *testing.T, proxiedReq *http.Request, proxyAddr string, version string) (*http.Response, error) {
+	proxyConn, _ := net.Dial("tcp", proxyAddr)
 	defer proxyConn.Close()
 	req, err := http.NewRequest("CONNECT", "http://"+proxiedReq.Host, nil)
 	if err != nil {
@@ -164,6 +165,6 @@ func requestViaProxy(t *testing.T, proxiedReq *http.Request, l net.Listener, ver
 	if err == io.EOF {
 		err = nil
 	}
-	t.Logf("Full response:\n%s", buffer.String())
+	log.Debugf("Full response:\n%s", buffer.String())
 	return resp, err
 }
