@@ -20,7 +20,10 @@
 package versioncheck
 
 import (
+	"bufio"
 	"crypto/tls"
+	"io"
+	"io/ioutil"
 	"math/rand"
 	"net"
 	"net/http"
@@ -183,8 +186,15 @@ func (c *VersionChecker) redirectOnConnect(ctx filters.Context, req *http.Reques
 
 	// Make sure the application sent something and started waiting for the
 	// response.
-	var buf [1]byte
-	_, _ = conn.Read(buf[:])
+	bufReader := bufio.NewReader(conn)
+	req, err := http.ReadRequest(bufReader)
+	if err != nil {
+		log.Errorf("Fail to read second request in version check: %v", err)
+	}
+	if req.Body != nil {
+		_, _ = io.Copy(ioutil.Discard, req.Body)
+		req.Body.Close()
+	}
 
 	// Send the actual response to application.
 	return &http.Response{
