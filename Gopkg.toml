@@ -112,7 +112,7 @@
   name = "github.com/getlantern/ops"
 
 [[constraint]]
-  revision = "1135f8f7941822fbf2a794fe4c0310ee5e183696"
+  revision = "456e64cc9880bdc38a8272200925723250358108"
   name = "github.com/getlantern/proxy"
 
 [[constraint]]
