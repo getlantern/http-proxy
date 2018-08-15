@@ -101,7 +101,7 @@ type Proxy struct {
 	DiffServTOS                        int
 	LampshadeAddr                      string
 	VersionCheck                       bool
-	VersionCheckMinVersion             string
+	VersionCheckRange                  string
 	VersionCheckRedirectURL            string
 	VersionCheckRedirectPercentage     float64
 	GoogleSearchRegex                  string
@@ -321,15 +321,19 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	if p.VersionCheck {
 		log.Debugf("versioncheck: Will rewrite %.4f%% of browser requests from clients below %s to %s",
 			p.VersionCheckRedirectPercentage*100,
-			p.VersionCheckMinVersion,
+			p.VersionCheckRange,
 			p.VersionCheckRedirectURL,
 		)
-		vc := versioncheck.New(p.VersionCheckMinVersion,
+		vc, err := versioncheck.New(p.VersionCheckRange,
 			p.VersionCheckRedirectURL,
 			[]string{"80"}, // checks CONNECT tunnel to 80 port only.
 			p.VersionCheckRedirectPercentage)
-		requestRewriters = append(requestRewriters, vc.RewriteIfNecessary)
-		dialerForPforward = vc.Dialer(dialerForPforward)
+		if err != nil {
+			log.Errorf("Fail to init version check, skipping: %v", err)
+		} else {
+			requestRewriters = append(requestRewriters, vc.RewriteIfNecessary)
+			dialerForPforward = vc.Dialer(dialerForPforward)
+		}
 		filterChain = filterChain.Append(vc.Filter())
 	}
 

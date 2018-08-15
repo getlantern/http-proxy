@@ -21,10 +21,19 @@ const (
 	ip = "8.8.8.8"
 )
 
+func TestParseVersionRange(t *testing.T) {
+	_, e := New("> 3.1.x", "", nil, 1)
+	assert.NoError(t, e)
+	_, e = New("< 3.x", "", nil, 1)
+	assert.NoError(t, e)
+	_, e = New("= 3.1.1", "", nil, 1)
+	assert.NoError(t, e)
+}
+
 func TestRewrite(t *testing.T) {
 	rewriteURL := "https://versioncheck.com/badversion"
 	rewriteAddr := "versioncheck.com:443"
-	f := New("3.1.1", rewriteURL, nil, 1)
+	f, _ := New("< 3.1.x", rewriteURL, nil, 1)
 	req, _ := http.NewRequest("POST", "http://anysite.com", nil)
 	assert.False(t, f.shouldRewrite(req), "should not rewrite POST requests")
 	req, _ = http.NewRequest("CONNECT", "http://anysite.com", nil)
@@ -37,13 +46,13 @@ func TestRewrite(t *testing.T) {
 	assert.True(t, f.shouldRewrite(req), "should rewrite if no version header present")
 	req.Header.Set("X-Lantern-Version", "development")
 	assert.True(t, f.shouldRewrite(req), "should rewrite if the version is not semantic")
-	req.Header.Set("X-Lantern-Version", "3.1.1")
+	req.Header.Set("X-Lantern-Version", "3.1.0")
 	assert.False(t, f.shouldRewrite(req), "should not rewrite if version equals to the min version")
-	req.Header.Set("X-Lantern-Version", "3.1.2")
+	req.Header.Set("X-Lantern-Version", "3.1.1")
 	assert.False(t, f.shouldRewrite(req), "should not rewrite if version is above the min version")
 	req.Header.Set("X-Lantern-Version", "3.11.0")
 	assert.False(t, f.shouldRewrite(req), "should not rewrite if version is above the min version")
-	req.Header.Set("X-Lantern-Version", "3.1.0")
+	req.Header.Set("X-Lantern-Version", "3.0.1")
 	assert.True(t, f.shouldRewrite(req), "should rewrite if version is below the min version")
 
 	f.RewriteIfNecessary(req)
@@ -58,7 +67,7 @@ func TestPercentage(t *testing.T) {
 }
 
 func testPercentage(t *testing.T, percentage float64, exact bool) {
-	f := New("3.1.1", "http://versioncheck.com/badversion", nil, percentage)
+	f, _ := New("3.1.1", "http://versioncheck.com/badversion", nil, percentage)
 	req, _ := http.NewRequest("GET", "http://anysite.com", nil)
 	req.Header.Set("Accept", "text/html")
 	req.Header.Set("User-Agent", "Mozilla/5.0 xxx")
@@ -91,9 +100,8 @@ func TestRedirectConnect(t *testing.T) {
 	}
 	defer l.Close()
 
-	p, _ := proxy.New(&proxy.Opts{
-		Filter: New("3.1.1", rewriteURL, []string{originPort}, 1),
-	})
+	f, _ := New("< 3.1.1", rewriteURL, []string{originPort}, 1)
+	p, _ := proxy.New(&proxy.Opts{Filter: f})
 	go p.Serve(l)
 
 	proxiedReq, _ := http.NewRequest("GET", originServer.URL, nil)

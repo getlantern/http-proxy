@@ -49,8 +49,7 @@ const (
 )
 
 type VersionChecker struct {
-	minVersionString string
-	minVersion       semver.Version
+	versionRange     semver.Range
 	rewriteURL       *url.URL
 	rewriteURLString string
 	rewriteAddr      string
@@ -59,12 +58,12 @@ type VersionChecker struct {
 }
 
 // New constructs a VersionChecker to check the request and rewrite/redirect if
-// required.  It panics if the minVersion string is not semantic versioned, or
-// the rewrite URL is malformed. tunnelPortsToCheck defaults to 80 only.
-func New(minVersion string, rewriteURL string, tunnelPortsToCheck []string, percentage float64) *VersionChecker {
+// required.  It errors if the versionRange string is not valid, or the rewrite
+// URL is malformed. tunnelPortsToCheck defaults to 80 only.
+func New(versionRange string, rewriteURL string, tunnelPortsToCheck []string, percentage float64) (*VersionChecker, error) {
 	u, err := url.Parse(rewriteURL)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	rewriteAddr := u.Host
 
@@ -75,7 +74,11 @@ func New(minVersion string, rewriteURL string, tunnelPortsToCheck []string, perc
 	if len(tunnelPortsToCheck) == 0 {
 		tunnelPortsToCheck = []string{"80"}
 	}
-	return &VersionChecker{minVersion, semver.MustParse(minVersion), u, rewriteURL, rewriteAddr, tunnelPortsToCheck, int(percentage * oneMillion)}
+	ver, err := semver.ParseRange(versionRange)
+	if err != nil {
+		return nil, err
+	}
+	return &VersionChecker{ver, u, rewriteURL, rewriteAddr, tunnelPortsToCheck, int(percentage * oneMillion)}, nil
 }
 
 // Dial is a function that dials a network connection.
@@ -215,7 +218,7 @@ func (c *VersionChecker) matchVersion(req *http.Request) bool {
 	}
 	version := req.Header.Get(common.VersionHeader)
 	v, e := semver.Make(version)
-	if e == nil && v.GTE(c.minVersion) {
+	if e == nil && !c.versionRange(v) {
 		return false
 	}
 	if random.Intn(oneMillion) >= c.ppm {

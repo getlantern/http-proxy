@@ -71,7 +71,7 @@ var (
 	tos                                = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")
 	lampshadeAddr                      = flag.String("lampshade-addr", "", "Address at which to listen for lampshade connections. Requires https to be true.")
 	version                            = flag.Bool("version", false, "shows the version of the binary")
-	versionCheck                       = flag.String("versioncheck", "", "Check if Lantern client is below certain semantic version. No check by default")
+	versionCheck                       = flag.String("versioncheck", "", "Check if Lantern client matches the semantic version range, like \"< 3.1.1\" or \"<= 3.x\". No check by default")
 	versionCheckRedirectURL            = flag.String("versioncheck-redirect-url", "", "The URL to redirect if client is below certain version. Always used along with versioncheck")
 	versionCheckRedirectPercentage     = flag.Float64("versioncheck-redirect-percentage", 1, "The percentage of requests to be redirected in version check. Defaults to 1 (100%)")
 	googleSearchRegex                  = flag.String("google-search-regex", googlefilter.DefaultSearchRegex, "Regex for detecting access to Google Search")
@@ -164,7 +164,7 @@ func main() {
 		DiffServTOS:                        *tos,
 		LampshadeAddr:                      *lampshadeAddr,
 		VersionCheck:                       *versionCheck != "",
-		VersionCheckMinVersion:             *versionCheck,
+		VersionCheckRange:                  *versionCheck,
 		VersionCheckRedirectURL:            *versionCheckRedirectURL,
 		VersionCheckRedirectPercentage:     *versionCheckRedirectPercentage,
 		GoogleSearchRegex:                  *googleSearchRegex,
