@@ -109,37 +109,41 @@ func (c *VersionChecker) Filter() filters.Filter {
 
 // Apply satisfies the filters.Filter interface.
 func (c *VersionChecker) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
-	if c.shouldRedirectOnConnect(req) {
-		return c.redirectOnConnect(ctx, req)
+	defer req.Header.Del(common.VersionHeader)
+	switch req.Method {
+	case http.MethodConnect:
+		if c.shouldRedirectOnConnect(req) {
+			return c.redirectOnConnect(ctx, req)
+		}
+	case http.MethodGet:
+		// the first request from browser should always be GET
+		if c.shouldRedirect(req) {
+			return c.redirect(ctx, req)
+		}
 	}
-	c.RewriteIfNecessary(req)
 	return next(ctx, req)
 }
 
-// RewriteIfNecessary rewrites the request path to point at the version check
-// page if the conditions for doing so are met.
-func (c *VersionChecker) RewriteIfNecessary(req *http.Request) {
-	defer req.Header.Del(common.VersionHeader)
-	if !c.shouldRewrite(req) {
-		return
-	}
-	log.Debugf("Rewriting %s://%s%s to %s%s",
+func (c *VersionChecker) redirect(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
+	log.Debugf("Redirecting %s %s%s to %s",
 		req.Method,
 		req.Host,
 		req.URL.Path,
-		c.rewriteAddr,
-		c.rewriteURL.Path,
+		c.rewriteURL.String(),
 	)
-	req.URL = c.rewriteURL
-	req.Host = c.rewriteAddr
+	return &http.Response{
+		StatusCode: http.StatusFound,
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header: http.Header{
+			"Location": []string{c.rewriteURLString},
+		},
+		Close: true,
+	}, ctx, nil
 }
 
-func (c *VersionChecker) shouldRewrite(req *http.Request) bool {
-	// the first request from browser should always be GET
-	if req.Method != http.MethodGet {
-		return false
-	}
-	// typical browsers always have this as the first value
+func (c *VersionChecker) shouldRedirect(req *http.Request) bool {
+	// Typical browsers always have this as the first value
 	if !strings.HasPrefix(req.Header.Get("Accept"), "text/html") {
 		return false
 	}
@@ -170,13 +174,6 @@ func (c *VersionChecker) shouldRedirectOnConnect(req *http.Request) bool {
 
 func (c *VersionChecker) redirectOnConnect(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
 	conn := ctx.DownstreamConn()
-
-	log.Debugf("Redirecting %s://%s%s to %s",
-		req.Method,
-		req.Host,
-		req.URL.Path,
-		c.rewriteURLString,
-	)
 	// Acknowledge the CONNECT request
 	resp := &http.Response{
 		StatusCode: http.StatusOK,
@@ -199,16 +196,9 @@ func (c *VersionChecker) redirectOnConnect(ctx filters.Context, req *http.Reques
 		req.Body.Close()
 	}
 
-	// Send the actual response to application.
-	return &http.Response{
-		StatusCode: http.StatusFound,
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		Header: http.Header{
-			"Location": []string{c.rewriteURLString},
-		},
-		Close: true,
-	}, ctx, nil
+	// Send the actual response to the application regardless of what the
+	// request is, as the request is consumed already.
+	return c.redirect(ctx, req)
 }
 
 func (c *VersionChecker) matchVersion(req *http.Request) bool {

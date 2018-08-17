@@ -316,10 +316,11 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		requestRewriters = append(requestRewriters, csf.RewriteIfNecessary)
 	}
 
-	// check if the client is running below a certain version, and if true,
-	// rewrite certain percentage of the requests to an URL to notify user.
+	// Check if Lantern client version is in the supplied range. If yes,
+	// redirect certain percentage of the requests to an URL to notify the user
+	// to upgrade.
 	if p.VersionCheck {
-		log.Debugf("versioncheck: Will rewrite %.4f%% of browser requests from clients below %s to %s",
+		log.Debugf("versioncheck: Will redirect %.4f%% of requests from Lantern clients below %s to %s",
 			p.VersionCheckRedirectPercentage*100,
 			p.VersionCheckRange,
 			p.VersionCheckRedirectURL,
@@ -329,12 +330,11 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 			[]string{"80"}, // checks CONNECT tunnel to 80 port only.
 			p.VersionCheckRedirectPercentage)
 		if err != nil {
-			log.Errorf("Fail to init version check, skipping: %v", err)
+			log.Errorf("Fail to init versioncheck, skipping: %v", err)
 		} else {
-			requestRewriters = append(requestRewriters, vc.RewriteIfNecessary)
 			dialerForPforward = vc.Dialer(dialerForPforward)
+			filterChain = filterChain.Append(vc.Filter())
 		}
-		filterChain = filterChain.Append(vc.Filter())
 	}
 
 	if len(requestRewriters) > 0 {
