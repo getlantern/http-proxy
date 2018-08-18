@@ -189,9 +189,8 @@ func (c *VersionChecker) redirectOnConnect(ctx filters.Context, req *http.Reques
 	bufReader := bufio.NewReader(conn)
 	req, err := http.ReadRequest(bufReader)
 	if err != nil {
-		log.Errorf("Fail to read tunneled request before redirecting: %v", err)
-	}
-	if req.Body != nil {
+		log.Debugf("Fail to read tunneled request before redirecting: %v", err)
+	} else if req.Body != nil {
 		_, _ = io.Copy(ioutil.Discard, req.Body)
 		req.Body.Close()
 	}
