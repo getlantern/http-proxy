@@ -49,8 +49,7 @@ const (
 )
 
 type VersionChecker struct {
-	minVersionString string
-	minVersion       semver.Version
+	versionRange     semver.Range
 	rewriteURL       *url.URL
 	rewriteURLString string
 	rewriteAddr      string
@@ -59,12 +58,12 @@ type VersionChecker struct {
 }
 
 // New constructs a VersionChecker to check the request and rewrite/redirect if
-// required.  It panics if the minVersion string is not semantic versioned, or
-// the rewrite URL is malformed. tunnelPortsToCheck defaults to 80 only.
-func New(minVersion string, rewriteURL string, tunnelPortsToCheck []string, percentage float64) *VersionChecker {
+// required.  It errors if the versionRange string is not valid, or the rewrite
+// URL is malformed. tunnelPortsToCheck defaults to 80 only.
+func New(versionRange string, rewriteURL string, tunnelPortsToCheck []string, percentage float64) (*VersionChecker, error) {
 	u, err := url.Parse(rewriteURL)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	rewriteAddr := u.Host
 
@@ -75,7 +74,11 @@ func New(minVersion string, rewriteURL string, tunnelPortsToCheck []string, perc
 	if len(tunnelPortsToCheck) == 0 {
 		tunnelPortsToCheck = []string{"80"}
 	}
-	return &VersionChecker{minVersion, semver.MustParse(minVersion), u, rewriteURL, rewriteAddr, tunnelPortsToCheck, int(percentage * oneMillion)}
+	ver, err := semver.ParseRange(versionRange)
+	if err != nil {
+		return nil, err
+	}
+	return &VersionChecker{ver, u, rewriteURL, rewriteAddr, tunnelPortsToCheck, int(percentage * oneMillion)}, nil
 }
 
 // Dial is a function that dials a network connection.
@@ -106,37 +109,41 @@ func (c *VersionChecker) Filter() filters.Filter {
 
 // Apply satisfies the filters.Filter interface.
 func (c *VersionChecker) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
-	if c.shouldRedirectOnConnect(req) {
-		return c.redirectOnConnect(ctx, req)
+	defer req.Header.Del(common.VersionHeader)
+	switch req.Method {
+	case http.MethodConnect:
+		if c.shouldRedirectOnConnect(req) {
+			return c.redirectOnConnect(ctx, req)
+		}
+	case http.MethodGet:
+		// the first request from browser should always be GET
+		if c.shouldRedirect(req) {
+			return c.redirect(ctx, req)
+		}
 	}
-	c.RewriteIfNecessary(req)
 	return next(ctx, req)
 }
 
-// RewriteIfNecessary rewrites the request path to point at the version check
-// page if the conditions for doing so are met.
-func (c *VersionChecker) RewriteIfNecessary(req *http.Request) {
-	defer req.Header.Del(common.VersionHeader)
-	if !c.shouldRewrite(req) {
-		return
-	}
-	log.Debugf("Rewriting %s://%s%s to %s%s",
+func (c *VersionChecker) redirect(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
+	log.Debugf("Redirecting %s %s%s to %s",
 		req.Method,
 		req.Host,
 		req.URL.Path,
-		c.rewriteAddr,
-		c.rewriteURL.Path,
+		c.rewriteURL.String(),
 	)
-	req.URL = c.rewriteURL
-	req.Host = c.rewriteAddr
+	return &http.Response{
+		StatusCode: http.StatusFound,
+		ProtoMajor: 1,
+		ProtoMinor: 1,
+		Header: http.Header{
+			"Location": []string{c.rewriteURLString},
+		},
+		Close: true,
+	}, ctx, nil
 }
 
-func (c *VersionChecker) shouldRewrite(req *http.Request) bool {
-	// the first request from browser should always be GET
-	if req.Method != http.MethodGet {
-		return false
-	}
-	// typical browsers always have this as the first value
+func (c *VersionChecker) shouldRedirect(req *http.Request) bool {
+	// Typical browsers always have this as the first value
 	if !strings.HasPrefix(req.Header.Get("Accept"), "text/html") {
 		return false
 	}
@@ -167,13 +174,6 @@ func (c *VersionChecker) shouldRedirectOnConnect(req *http.Request) bool {
 
 func (c *VersionChecker) redirectOnConnect(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
 	conn := ctx.DownstreamConn()
-
-	log.Debugf("Redirecting %s://%s%s to %s",
-		req.Method,
-		req.Host,
-		req.URL.Path,
-		c.rewriteURLString,
-	)
 	// Acknowledge the CONNECT request
 	resp := &http.Response{
 		StatusCode: http.StatusOK,
@@ -189,23 +189,15 @@ func (c *VersionChecker) redirectOnConnect(ctx filters.Context, req *http.Reques
 	bufReader := bufio.NewReader(conn)
 	req, err := http.ReadRequest(bufReader)
 	if err != nil {
-		log.Errorf("Fail to read tunneled request before redirecting: %v", err)
-	}
-	if req.Body != nil {
+		log.Debugf("Fail to read tunneled request before redirecting: %v", err)
+	} else if req.Body != nil {
 		_, _ = io.Copy(ioutil.Discard, req.Body)
 		req.Body.Close()
 	}
 
-	// Send the actual response to application.
-	return &http.Response{
-		StatusCode: http.StatusFound,
-		ProtoMajor: 1,
-		ProtoMinor: 1,
-		Header: http.Header{
-			"Location": []string{c.rewriteURLString},
-		},
-		Close: true,
-	}, ctx, nil
+	// Send the actual response to the application regardless of what the
+	// request is, as the request is consumed already.
+	return c.redirect(ctx, req)
 }
 
 func (c *VersionChecker) matchVersion(req *http.Request) bool {
@@ -215,7 +207,7 @@ func (c *VersionChecker) matchVersion(req *http.Request) bool {
 	}
 	version := req.Header.Get(common.VersionHeader)
 	v, e := semver.Make(version)
-	if e == nil && v.GTE(c.minVersion) {
+	if e == nil && !c.versionRange(v) {
 		return false
 	}
 	if random.Intn(oneMillion) >= c.ppm {

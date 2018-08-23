@@ -2,6 +2,7 @@ package versioncheck
 
 import (
 	"bufio"
+	"bytes"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,37 +19,42 @@ import (
 )
 
 const (
-	ip = "8.8.8.8"
+	ip           = "8.8.8.8"
+	redirectURL  = "https://versioncheck.com/badversion"
+	redirectAddr = "versioncheck.com:443"
 )
 
-func TestRewrite(t *testing.T) {
-	rewriteURL := "https://versioncheck.com/badversion"
-	rewriteAddr := "versioncheck.com:443"
-	f := New("3.1.1", rewriteURL, nil, 1)
-	req, _ := http.NewRequest("POST", "http://anysite.com", nil)
-	assert.False(t, f.shouldRewrite(req), "should not rewrite POST requests")
-	req, _ = http.NewRequest("CONNECT", "http://anysite.com", nil)
-	assert.False(t, f.shouldRewrite(req), "should only rewrite CONNECT requests")
-	req, _ = http.NewRequest("GET", "http://anysite.com", nil)
-	assert.False(t, f.shouldRewrite(req), "should only rewrite HTML requests")
-	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-	assert.False(t, f.shouldRewrite(req), "should only rewrite requests from browser")
-	req.Header.Set("User-Agent", "Mozilla/5.0 xxx")
-	assert.True(t, f.shouldRewrite(req), "should rewrite if no version header present")
-	req.Header.Set("X-Lantern-Version", "development")
-	assert.True(t, f.shouldRewrite(req), "should rewrite if the version is not semantic")
-	req.Header.Set("X-Lantern-Version", "3.1.1")
-	assert.False(t, f.shouldRewrite(req), "should not rewrite if version equals to the min version")
-	req.Header.Set("X-Lantern-Version", "3.1.2")
-	assert.False(t, f.shouldRewrite(req), "should not rewrite if version is above the min version")
-	req.Header.Set("X-Lantern-Version", "3.11.0")
-	assert.False(t, f.shouldRewrite(req), "should not rewrite if version is above the min version")
-	req.Header.Set("X-Lantern-Version", "3.1.0")
-	assert.True(t, f.shouldRewrite(req), "should rewrite if version is below the min version")
+func TestParseVersionRange(t *testing.T) {
+	_, e := New("> 3.1.x", "", nil, 1)
+	assert.NoError(t, e)
+	_, e = New("< 3.x", "", nil, 1)
+	assert.NoError(t, e)
+	_, e = New("= 3.1.1", "", nil, 1)
+	assert.NoError(t, e)
+}
 
-	f.RewriteIfNecessary(req)
-	assert.Equal(t, rewriteURL, req.URL.String())
-	assert.Equal(t, rewriteAddr, req.Host)
+func TestRedirectRules(t *testing.T) {
+	f, _ := New("< 3.1.x", redirectURL, nil, 1)
+	req, _ := http.NewRequest("POST", "http://anysite.com", nil)
+	assert.False(t, f.shouldRedirect(req), "should not redirect POST requests")
+	req, _ = http.NewRequest("CONNECT", "http://anysite.com", nil)
+	assert.False(t, f.shouldRedirect(req), "should not redirect CONNECT requests")
+	req, _ = http.NewRequest("GET", "http://anysite.com", nil)
+	assert.False(t, f.shouldRedirect(req), "should not redirect non-HTML requests")
+	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
+	assert.False(t, f.shouldRedirect(req), "should only redirect requests from browser")
+	req.Header.Set("User-Agent", "Mozilla/5.0 xxx")
+	assert.True(t, f.shouldRedirect(req), "should redirect if no version header present")
+	req.Header.Set("X-Lantern-Version", "development")
+	assert.True(t, f.shouldRedirect(req), "should redirect if the version is not semantic")
+	req.Header.Set("X-Lantern-Version", "3.1.0")
+	assert.False(t, f.shouldRedirect(req), "should not redirect if version equals to the min version")
+	req.Header.Set("X-Lantern-Version", "3.1.1")
+	assert.False(t, f.shouldRedirect(req), "should not redirect if version is above the min version")
+	req.Header.Set("X-Lantern-Version", "3.11.0")
+	assert.False(t, f.shouldRedirect(req), "should not redirect if version is above the min version")
+	req.Header.Set("X-Lantern-Version", "3.0.1")
+	assert.True(t, f.shouldRedirect(req), "should redirect if version is below the min version")
 }
 
 func TestPercentage(t *testing.T) {
@@ -58,14 +64,14 @@ func TestPercentage(t *testing.T) {
 }
 
 func testPercentage(t *testing.T, percentage float64, exact bool) {
-	f := New("3.1.1", "http://versioncheck.com/badversion", nil, percentage)
+	f, _ := New("3.1.1", redirectURL, nil, percentage)
 	req, _ := http.NewRequest("GET", "http://anysite.com", nil)
 	req.Header.Set("Accept", "text/html")
 	req.Header.Set("User-Agent", "Mozilla/5.0 xxx")
 	hit := 0
 	expected := int(percentage * oneMillion)
 	for i := 0; i < oneMillion; i++ {
-		if f.shouldRewrite(req) {
+		if f.shouldRedirect(req) {
 			hit++
 		}
 	}
@@ -76,48 +82,49 @@ func testPercentage(t *testing.T, percentage float64, exact bool) {
 	}
 }
 
-func TestRedirectConnect(t *testing.T) {
-	originServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
-		rw.Write([]byte("good"))
-	}))
-	defer originServer.Close()
-
-	originURL, _ := url.Parse(originServer.URL)
-	_, originPort, _ := net.SplitHostPort(originURL.Host)
-	rewriteURL := "https://versioncheck.com/badversion"
-	l, err := net.Listen("tcp", "localhost:0")
+func TestRedirectGet(t *testing.T) {
+	originURL, proxyAddr, close := setupServers(t)
+	defer close()
+	req, _ := http.NewRequest("GET", originURL, nil)
+	req.Header.Set("Accept", "text/html whatever")
+	req.Header.Set("User-Agent", "Mozilla/5.0 xxx")
+	req.Header.Set("X-Lantern-Version", "3.1.0")
+	r, err := requestViaProxy(t, req, proxyAddr, "", false)
 	if !assert.NoError(t, err) {
 		return
 	}
-	defer l.Close()
+	assert.Equal(t, http.StatusFound, r.StatusCode,
+		"should redirect with matched conditions")
+	assert.Equal(t, r.Header.Get("Location"), redirectURL)
+	b, _ := ioutil.ReadAll(r.Body)
+	assert.Equal(t, "", string(b))
+}
 
-	p, _ := proxy.New(&proxy.Opts{
-		Filter: New("3.1.1", rewriteURL, []string{originPort}, 1),
-	})
-	go p.Serve(l)
-
-	proxiedReq, _ := http.NewRequest("GET", originServer.URL, nil)
-	r, err := requestViaProxy(t, proxiedReq, l, "")
+func TestRedirectConnect(t *testing.T) {
+	originURL, proxyAddr, close := setupServers(t)
+	defer close()
+	proxiedReq, _ := http.NewRequest("GET", originURL, nil)
+	r, err := requestViaProxy(t, proxiedReq, proxyAddr, "", true)
 	if !assert.NoError(t, err) {
 		return
 	}
 	assert.Equal(t, http.StatusFound, r.StatusCode,
 		"should redirect when no version header is present")
-	assert.Equal(t, r.Header.Get("Location"), rewriteURL)
+	assert.Equal(t, r.Header.Get("Location"), redirectURL)
 	b, _ := ioutil.ReadAll(r.Body)
 	assert.Equal(t, "", string(b))
 
-	r, err = requestViaProxy(t, proxiedReq, l, "3.1.0")
+	r, err = requestViaProxy(t, proxiedReq, proxyAddr, "3.1.0", true)
 	if !assert.NoError(t, err) {
 		return
 	}
 	assert.Equal(t, http.StatusFound, r.StatusCode,
 		"should redirect when version is lower than expected")
-	assert.Equal(t, r.Header.Get("Location"), rewriteURL)
+	assert.Equal(t, r.Header.Get("Location"), redirectURL)
 	b, _ = ioutil.ReadAll(r.Body)
 	assert.Equal(t, "", string(b))
 
-	r, err = requestViaProxy(t, proxiedReq, l, "3.1.1")
+	r, err = requestViaProxy(t, proxiedReq, proxyAddr, "3.1.1", true)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -128,31 +135,58 @@ func TestRedirectConnect(t *testing.T) {
 	assert.Equal(t, "good", string(b))
 }
 
-func requestViaProxy(t *testing.T, proxiedReq *http.Request, l net.Listener, version string) (*http.Response, error) {
-	proxyConn, _ := net.Dial("tcp", l.Addr().String())
+func setupServers(t *testing.T) (string, string, func()) {
+	originServer := httptest.NewServer(http.HandlerFunc(func(rw http.ResponseWriter, req *http.Request) {
+		rw.Write([]byte("good"))
+	}))
+
+	originURL, _ := url.Parse(originServer.URL)
+	_, originPort, _ := net.SplitHostPort(originURL.Host)
+	l, err := net.Listen("tcp", "localhost:0")
+	if !assert.NoError(t, err) {
+		return "", "", originServer.Close
+	}
+
+	f, _ := New("< 3.1.1", redirectURL, []string{originPort}, 1)
+	p, _ := proxy.New(&proxy.Opts{Filter: f})
+	go p.Serve(l)
+	return originServer.URL, l.Addr().String(), func() {
+		originServer.Close()
+		l.Close()
+	}
+}
+
+func requestViaProxy(t *testing.T, proxiedReq *http.Request, proxyAddr, version string, withCONNECT bool) (*http.Response, error) {
+	proxyConn, err := net.Dial("tcp", proxyAddr)
+	if !assert.NoError(t, err) {
+		return nil, err
+	}
 	defer proxyConn.Close()
-	req, err := http.NewRequest("CONNECT", "http://"+proxiedReq.Host, nil)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to construct CONNECT request: %v", err)
+	var buf bytes.Buffer
+	bufReader := bufio.NewReader(io.TeeReader(proxyConn, &buf))
+	if withCONNECT {
+		req, err := http.NewRequest("CONNECT", "http://"+proxiedReq.Host, nil)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to construct CONNECT request: %v", err)
+		}
+		if version != "" {
+			req.Header.Add(common.VersionHeader, version)
+		}
+		err = req.Write(proxyConn)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to issue CONNECT request: %v", err)
+		}
+		resp, err := http.ReadResponse(bufReader, req)
+		if err != nil {
+			return nil, fmt.Errorf("Unable to read CONNECT response: %v", err)
+		}
+		assert.Equal(t, http.StatusOK, resp.StatusCode, "proxy should respond 200 OK")
 	}
-	if version != "" {
-		req.Header.Add(common.VersionHeader, version)
-	}
-	err = req.Write(proxyConn)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to issue CONNECT request: %v", err)
-	}
-	bufReader := bufio.NewReader(proxyConn)
-	resp, err := http.ReadResponse(bufReader, req)
-	if err != nil {
-		return nil, fmt.Errorf("Unable to read CONNECT response: %v", err)
-	}
-	assert.Equal(t, http.StatusOK, resp.StatusCode, "proxy should respond 200 OK")
 	err = proxiedReq.Write(proxyConn)
 	if err != nil {
 		return nil, fmt.Errorf("Unable to issue proxied request: %v", err)
 	}
-	resp, err = http.ReadResponse(bufReader, proxiedReq)
+	resp, err := http.ReadResponse(bufReader, proxiedReq)
 	// Ignore EOF, as that's an OK error
 	if err == io.EOF {
 		err = nil
