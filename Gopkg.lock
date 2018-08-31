@@ -455,11 +455,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e70dc3bc5b07e82f1d0d0cc128a52edd68413fe9c4ceb090103ecb30edf6cf27"
+  digest = "1:110c324b62fd72bc3e69d00cefcf46ccc026f22a47aace566cc9d971728d60d0"
   name = "github.com/getlantern/quicwrapper"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a04c0364f608462d2f6ac8dfde24daabf55fdb8a"
+  revision = "63b89803f583e28dca898216ffe506ec564364c9"
 
 [[projects]]
   branch = "master"
