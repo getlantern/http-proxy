@@ -178,3 +178,11 @@
 [prune]
   go-tests = true
   unused-packages = true
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/getlantern/quicwrapper"
+
+[[override]]
+  name = "github.com/getlantern/quic-go"
+  branch = "master"

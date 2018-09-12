@@ -85,6 +85,7 @@ var (
 	stackdriverProjectID               = flag.String("stackdriver-project-id", "lantern-http-proxy", "Optional project ID for stackdriver error reporting as in http-proxy-lantern")
 	stackdriverCreds                   = flag.String("stackdriver-creds", "/home/lantern/lantern-stackdriver.json", "Optional full json file path containing stackdriver credentials")
 	stackdriverSamplePercentage        = flag.Float64("stackdriver-sample-percentage", 0.003, "The percentage of devices to report to Stackdriver (0.01 = 1%)")
+	quicAddr                           = flag.String("quic-addr", "", "Address at which to listen for QUIC connections.")
 )
 
 func main() {
@@ -175,6 +176,7 @@ func main() {
 		BlacklistExpiration:                *blacklistExpiration,
 		ProxyName:                          *proxyName,
 		BBRUpstreamProbeURL:                *bbrUpstreamProbeURL,
+		QUICAddr:                           *quicAddr,
 	}
 
 	err := p.ListenAndServe()
