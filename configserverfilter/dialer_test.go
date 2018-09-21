@@ -23,9 +23,7 @@ func TestDialerConfigServer(t *testing.T) {
 }
 
 func TestDialer(t *testing.T) {
-	var address string
 	dummyDial := func(net, addr string) (net.Conn, error) {
-		address = addr
 		return mockconn.SucceedingDialer([]byte{}).Dial(net, addr)
 	}
 	d := Dialer(dummyDial, &Options{"", []string{"site1", "site2"}})
