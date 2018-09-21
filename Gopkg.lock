@@ -493,11 +493,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0e72e19062c1eb7971f722379985bcad865581630b1c4359a80ed972fc3c8cb3"
+  digest = "1:fe05617b5bf18dd0e0a95f2b2eddbbd0cb84ae6873f0cb076120b30356152033"
   name = "github.com/getlantern/testredis"
   packages = ["."]
   pruneopts = "UT"
-  revision = "eb77fb8dd4f4ceb48ab697ac4347e7d87dc41a2e"
+  revision = "7a5ea00c99148079fcfbf68a36179f455e502bd9"
 
 [[projects]]
   branch = "master"

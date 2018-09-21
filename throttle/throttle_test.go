@@ -112,6 +112,7 @@ func TestFailToConnectRedis(t *testing.T) {
 	if !assert.NoError(t, err) {
 		return
 	}
+	defer r.Close()
 
 	rc := r.Client()
 	defer rc.Close()
@@ -123,7 +124,6 @@ func TestFailToConnectRedis(t *testing.T) {
 	doTest(t, cfg, desktopDeviceID, "", 0, 0, false)
 
 	r.Start()
-	defer r.Close()
 
 	if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{
 		DefaultCountryCode: "60|6",
