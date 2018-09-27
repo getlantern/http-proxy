@@ -36,6 +36,8 @@ func TestThrottling(t *testing.T) {
 	if !assert.NoError(t, err) {
 		return
 	}
+	defer r.Close()
+
 	throttleThreshold := 10485760
 	throttleRate := 1024
 	t.Run("Free config when Redis is down", func(t *testing.T) {
@@ -46,7 +48,6 @@ func TestThrottling(t *testing.T) {
 	})
 
 	r.Start()
-	defer r.Close()
 
 	t.Run("Disabling throttle via Redis", func(t *testing.T) {
 		doTestThrottling(t, true, false, "127.0.0.1:18709", true, 0, throttleRate, r)
@@ -106,12 +107,12 @@ func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string
 	}
 
 	proxy := &Proxy{
-		Addr:               serverAddr,
-		ReportingRedisAddr: "redis://" + r.Addr(),
-		Token:              validToken,
-		EnableReports:      true,
-		IdleTimeout:        1 * time.Minute,
-		Pro:                pro,
+		Addr:                    serverAddr,
+		ReportingRedisAddr:      "redis://" + r.Addr(),
+		Token:                   validToken,
+		EnableReports:           true,
+		IdleTimeout:             1 * time.Minute,
+		Pro:                     pro,
 		ThrottleRefreshInterval: throttle.DefaultRefreshInterval,
 		TestingLocal:            true,
 		GoogleSearchRegex:       "bequiet",
