@@ -29,7 +29,8 @@ var (
 
 	fasttrack = "adyenpayments.com,adyen.com,stripe.com,paymentwall.com,alipay.com,app-measurement.com,fastworldpay.com,firebaseremoteconfig.googleapis.com,firebaseio.com,getlantern.org,lantern.io,innovatelabs.io,getiantem.org,lantern-pro-server.herokuapp.com,lantern-pro-server-staging.herokuapp.com,optimizely.com"
 
-	addr                               = flag.String("addr", ":8080", "Address to listen")
+	addr                               = flag.String("addr", ":8080", "Address to listen with HTTP(S)")
+	multiplexAddr                      = flag.String("multiplexaddr", "", "Multiplexed address at which to listen with HTTP(S)")
 	certfile                           = flag.String("cert", "", "Certificate file name")
 	cfgSvrAuthToken                    = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
 	cfgSvrDomains                      = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
@@ -58,6 +59,7 @@ var (
 	token                              = flag.String("token", "", "Lantern token")
 	tunnelPorts                        = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
 	obfs4Addr                          = flag.String("obfs4-addr", "", "Provide an address here in order to listen with obfs4")
+	obfs4MuliplexAddr                  = flag.String("obfs4-multiplexaddr", "", "Provide an address here in order to listen with multiplexed obfs4")
 	obfs4Dir                           = flag.String("obfs4-dir", ".", "Directory where obfs4 can store its files")
 	obfs4HandshakeConcurrency          = flag.Int("obfs4-handshake-concurrency", obfs4listener.DefaultHandshakeConcurrency, "How many concurrent OBFS4 handshakes to process")
 	obfs4MaxPendingHandshakesPerClient = flag.Int("obfs4-max-pending-handshakes-per-client", obfs4listener.DefaultMaxPendingHandshakesPerClient, "How many pending OBFS4 handshakes to allow per client")
@@ -127,31 +129,33 @@ func main() {
 	go periodicallyForceGC()
 
 	p := &proxy.Proxy{
-		Addr:                    *addr,
-		CertFile:                *certfile,
-		CfgSvrAuthToken:         *cfgSvrAuthToken,
-		CfgSvrDomains:           *cfgSvrDomains,
-		EnableReports:           *enableReports,
-		ThrottleRefreshInterval: *throttleRefreshInterval,
-		ThrottleThreshold:       *throttleThreshold,
-		ThrottleRate:            *throttleRate,
-		BordaReportInterval:     *bordaReportInterval,
-		BordaSamplePercentage:   *bordaSamplePercentage,
-		BordaBufferSize:         *bordaBufferSize,
-		ExternalIP:              *externalIP,
-		HTTPS:                   *https,
-		IdleTimeout:             time.Duration(*idleClose) * time.Second,
-		KeyFile:                 *keyfile,
-		Pro:                     *pro,
-		ProxiedSitesSamplePercentage: *proxiedSitesSamplePercentage,
-		ProxiedSitesTrackingID:       *proxiedSitesTrackingId,
-		ReportingRedisAddr:           *reportingRedisAddr,
-		ReportingRedisCA:             *reportingRedisCA,
-		ReportingRedisClientPK:       *reportingRedisClientPK,
-		ReportingRedisClientCert:     *reportingRedisClientCert,
+		HTTPAddr:                           *addr,
+		HTTPMultiplexAddr:                  *multiplexAddr,
+		CertFile:                           *certfile,
+		CfgSvrAuthToken:                    *cfgSvrAuthToken,
+		CfgSvrDomains:                      *cfgSvrDomains,
+		EnableReports:                      *enableReports,
+		ThrottleRefreshInterval:            *throttleRefreshInterval,
+		ThrottleThreshold:                  *throttleThreshold,
+		ThrottleRate:                       *throttleRate,
+		BordaReportInterval:                *bordaReportInterval,
+		BordaSamplePercentage:              *bordaSamplePercentage,
+		BordaBufferSize:                    *bordaBufferSize,
+		ExternalIP:                         *externalIP,
+		HTTPS:                              *https,
+		IdleTimeout:                        time.Duration(*idleClose) * time.Second,
+		KeyFile:                            *keyfile,
+		Pro:                                *pro,
+		ProxiedSitesSamplePercentage:       *proxiedSitesSamplePercentage,
+		ProxiedSitesTrackingID:             *proxiedSitesTrackingId,
+		ReportingRedisAddr:                 *reportingRedisAddr,
+		ReportingRedisCA:                   *reportingRedisCA,
+		ReportingRedisClientPK:             *reportingRedisClientPK,
+		ReportingRedisClientCert:           *reportingRedisClientCert,
 		Token:                              *token,
 		TunnelPorts:                        *tunnelPorts,
 		Obfs4Addr:                          *obfs4Addr,
+		Obfs4MultiplexAddr:                 *obfs4MuliplexAddr,
 		Obfs4Dir:                           *obfs4Dir,
 		Obfs4HandshakeConcurrency:          *obfs4HandshakeConcurrency,
 		Obfs4MaxPendingHandshakesPerClient: *obfs4MaxPendingHandshakesPerClient,

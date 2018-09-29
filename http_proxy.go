@@ -7,12 +7,12 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"reflect"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/getlantern/cmux"
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
@@ -65,7 +65,8 @@ var (
 // Proxy is an HTTP proxy.
 type Proxy struct {
 	TestingLocal                       bool
-	Addr                               string
+	HTTPAddr                           string
+	HTTPMultiplexAddr                  string
 	BordaReportInterval                time.Duration
 	BordaSamplePercentage              float64
 	BordaBufferSize                    int
@@ -94,6 +95,7 @@ type Proxy struct {
 	Token                              string
 	TunnelPorts                        string
 	Obfs4Addr                          string
+	Obfs4MultiplexAddr                 string
 	Obfs4Dir                           string
 	Obfs4HandshakeConcurrency          int
 	Obfs4MaxPendingHandshakesPerClient int
@@ -121,6 +123,8 @@ type Proxy struct {
 	rc             *rclient.Client
 	throttleConfig throttle.Config
 }
+
+type listenerBuilderFN func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error)
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
@@ -154,40 +158,6 @@ func (p *Proxy) ListenAndServe() error {
 	// srv.Allow = blacklist.OnConnect
 	p.applyThrottling(srv, bwReporting)
 	srv.AddListenerWrappers(bwReporting.wrapper)
-	if p.Obfs4Addr != "" {
-		p.serveOBFS4(srv)
-	}
-
-	var l net.Listener
-	if p.KCPConf != "" {
-		l, err = p.listenKCP()
-		if err != nil {
-			return errors.New("Unable to listen kcp: %v", err)
-		}
-	} else if p.QUICAddr != "" {
-		l, err = p.listenQUIC()
-	} else {
-		l, err = p.listenTCP(p.Addr, true)
-		if err != nil {
-			return errors.New("Unable to listen tcp at %s: %v", p.Addr, err)
-		}
-	}
-
-	protocol := "HTTP"
-	if p.HTTPS {
-		protocol = "HTTPS"
-		l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile)
-		if err != nil {
-			return err
-		}
-		// We initialize lampshade here because it uses the same keypair as HTTPS
-		if p.LampshadeAddr != "" {
-			p.serveLampshade(srv, bordaReporter)
-		}
-	}
-
-	log.Debugf("Listening for %v at %v", protocol, l.Addr())
-	log.Debugf("Type of listener: %v", reflect.TypeOf(l))
 
 	if p.ENHTTPAddr != "" {
 		el, err := net.Listen("tcp", p.ENHTTPAddr)
@@ -203,12 +173,92 @@ func (p *Proxy) ListenAndServe() error {
 		return server.Serve(el)
 	}
 
-	err = srv.Serve(l, mimic.SetServerAddr)
-	if err != nil {
-		return errors.New("Error serving HTTP(S): %v", err)
+	allListeners := make([]net.Listener, 0)
+	addListenerIfNecessary := func(addr string, fn listenerBuilderFN) error {
+		if addr == "" {
+			return nil
+		}
+		l, err := fn(addr, bordaReporter)
+		if err != nil {
+			return err
+		}
+		allListeners = append(allListeners, l)
+		return nil
 	}
 
-	return nil
+	if p.KCPConf != "" {
+		if err := addListenerIfNecessary(p.KCPConf, p.wrapTLSIfNecessary(p.listenKCP)); err != nil {
+			return err
+		}
+	} else if p.QUICAddr != "" {
+		if err := addListenerIfNecessary(p.QUICAddr, p.wrapTLSIfNecessary(p.listenQUIC)); err != nil {
+			return err
+		}
+	} else if p.Obfs4Addr != "" {
+		if err := addListenerIfNecessary(p.Obfs4Addr, p.listenOBFS4); err != nil {
+			return err
+		}
+		if err := addListenerIfNecessary(p.Obfs4MultiplexAddr, p.wrapMultiplexing(p.listenOBFS4)); err != nil {
+			return err
+		}
+	} else if p.LampshadeAddr != "" {
+		if err := addListenerIfNecessary(p.LampshadeAddr, p.listenLampshade); err != nil {
+			return err
+		}
+	} else {
+		if err := addListenerIfNecessary(p.HTTPAddr, p.wrapTLSIfNecessary(p.listenHTTP)); err != nil {
+			return err
+		}
+		if err := addListenerIfNecessary(p.HTTPMultiplexAddr, p.wrapMultiplexing(p.wrapTLSIfNecessary(p.listenHTTP))); err != nil {
+			return err
+		}
+	}
+
+	errCh := make(chan error, len(allListeners))
+	for _, _l := range allListeners {
+		l := _l
+		go func() {
+			log.Debugf("Serving at: %v", l.Addr())
+			errCh <- srv.Serve(l, mimic.SetServerAddr)
+		}()
+	}
+
+	return <-errCh
+}
+
+func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
+	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+		l, err := fn(addr, bordaReporter)
+		if err != nil {
+			return nil, err
+		}
+
+		if p.HTTPS {
+			l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile)
+			if err != nil {
+				return nil, err
+			}
+		}
+
+		log.Debugf("Using TLS on %v", l.Addr())
+		return l, nil
+	}
+}
+
+func (p *Proxy) wrapMultiplexing(fn listenerBuilderFN) listenerBuilderFN {
+	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+		l, err := fn(addr, bordaReporter)
+		if err != nil {
+			return nil, err
+		}
+
+		l = cmux.Listen(&cmux.ListenOpts{
+			Listener: l,
+		})
+
+		log.Debugf("Multiplexing on %v", l.Addr())
+		return l, nil
+	}
 }
 
 func (p *Proxy) setupOpsContext() {
@@ -449,31 +499,35 @@ func (p *Proxy) initRedisClient() {
 	}
 }
 
-func (p *Proxy) serveOBFS4(srv *server.Server) {
-	l, listenErr := p.listenTCP(p.Obfs4Addr, true)
-	if listenErr != nil {
-		log.Fatalf("Unable to listen for OBFS4 with tcp: %v", listenErr)
-	}
-	wrapped, wrapErr := obfs4listener.Wrap(l, p.Obfs4Dir, p.Obfs4HandshakeConcurrency, p.Obfs4MaxPendingHandshakesPerClient, p.Obfs4HandshakeTimeout)
-	if wrapErr != nil {
-		log.Fatalf("Unable to listen with obfs4 at %v: %v", l.Addr(), wrapErr)
-	}
-	log.Debugf("Listening for OBFS4 at %v", wrapped.Addr())
+type listenerFN listenerBuilderFN
 
-	go func() {
-		serveErr := srv.Serve(wrapped, func(addr string) {
-			log.Debugf("obfs4 serving at %v", addr)
-		})
-		if serveErr != nil {
-			log.Fatalf("Error serving obfs4 at %v: %v", wrapped.Addr(), serveErr)
-		}
-	}()
+func (p *Proxy) listenHTTP(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	l, err := p.listenTCP(addr, true)
+	if err != nil {
+		return nil, errors.New("Unable to listen for HTTP: %v", err)
+	}
+	log.Debugf("Listening for HTTP(S) at %v", l.Addr())
+	return l, nil
 }
 
-func (p *Proxy) serveLampshade(srv *server.Server, bordaReporter listeners.MeasuredReportFN) {
-	l, err := p.listenTCP(p.LampshadeAddr, false)
+func (p *Proxy) listenOBFS4(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	l, err := p.listenTCP(addr, true)
 	if err != nil {
-		log.Fatalf("Unable to listen for lampshade with tcp: %v", err)
+		return nil, errors.New("Unable to listen for OBFS4: %v", err)
+	}
+	wrapped, err := obfs4listener.Wrap(l, p.Obfs4Dir, p.Obfs4HandshakeConcurrency, p.Obfs4MaxPendingHandshakesPerClient, p.Obfs4HandshakeTimeout)
+	if err != nil {
+		l.Close()
+		return nil, errors.New("Unable to wrap listener with OBFS4: %v", err)
+	}
+	log.Debugf("Listening for OBFS4 at %v", wrapped.Addr())
+	return wrapped, nil
+}
+
+func (p *Proxy) listenLampshade(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	l, err := p.listenTCP(addr, false)
+	if err != nil {
+		return nil, errors.New("Unable to listen for lampshade with tcp: %v", err)
 	}
 	if bordaReporter != nil {
 		log.Debug("Wrapping lampshade's TCP listener with measured reporting")
@@ -490,14 +544,8 @@ func (p *Proxy) serveLampshade(srv *server.Server, bordaReporter listeners.Measu
 	// We wrap the lampshade listener itself so that we record BBR metrics on
 	// close of virtual streams rather than the physical connection.
 	wrapped = p.bm.Wrap(wrapped)
-	go func() {
-		serveErr := srv.Serve(wrapped, func(addr string) {
-			log.Debugf("lampshade serving at %v", addr)
-		})
-		if serveErr != nil {
-			log.Fatalf("Error serving lampshade at %v: %v", wrapped.Addr(), serveErr)
-		}
-	}()
+
+	return wrapped, nil
 }
 
 func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
@@ -522,9 +570,9 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 	return l, nil
 }
 
-func (p *Proxy) listenKCP() (net.Listener, error) {
+func (p *Proxy) listenKCP(kcpConf string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
 	cfg := &kcpwrapper.ListenerConfig{}
-	file, err := os.Open(p.KCPConf) // For read access.
+	file, err := os.Open(kcpConf) // For read access.
 	if err != nil {
 		return nil, errors.New("Unable to open KCPConf at %v: %v", p.KCPConf, err)
 	}
@@ -535,6 +583,7 @@ func (p *Proxy) listenKCP() (net.Listener, error) {
 		return nil, errors.New("Unable to decode KCPConf at %v: %v", p.KCPConf, err)
 	}
 
+	log.Debugf("Listening KCP at %v", cfg.Listen)
 	return kcpwrapper.Listen(cfg, func(conn net.Conn) net.Conn {
 		if p.IdleTimeout <= 0 {
 			return conn
@@ -543,8 +592,8 @@ func (p *Proxy) listenKCP() (net.Listener, error) {
 	})
 }
 
-func (p *Proxy) listenQUIC() (net.Listener, error) {
-	tlsConf, err := tlsdefaults.BuildListenerConfig(p.QUICAddr, p.KeyFile, p.CertFile)
+func (p *Proxy) listenQUIC(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	tlsConf, err := tlsdefaults.BuildListenerConfig(addr, p.KeyFile, p.CertFile)
 	if err != nil {
 		return nil, err
 	}
@@ -553,7 +602,13 @@ func (p *Proxy) listenQUIC() (net.Listener, error) {
 		MaxIncomingStreams: 1000,
 	}
 
-	return quicwrapper.ListenAddr(p.QUICAddr, tlsConf, config)
+	l, err := quicwrapper.ListenAddr(p.QUICAddr, tlsConf, config)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("Listening for quic at %v", l.Addr())
+	return l, err
 }
 
 func portsFromCSV(csv string) ([]int, error) {
@@ -567,4 +622,18 @@ func portsFromCSV(csv string) ([]int, error) {
 		ports[i] = p
 	}
 	return ports, nil
+}
+
+type startFN func(fn func() error) error
+
+func blocking(fn func() error) error {
+	return fn()
+}
+
+func nonblocking(fn func() error) error {
+	go func() {
+		err := fn()
+		log.Fatal(err)
+	}()
+	return nil
 }

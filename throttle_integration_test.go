@@ -107,7 +107,7 @@ func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string
 	}
 
 	proxy := &Proxy{
-		Addr:                    serverAddr,
+		HTTPAddr:                serverAddr,
 		ReportingRedisAddr:      "redis://" + r.Addr(),
 		Token:                   validToken,
 		EnableReports:           true,
