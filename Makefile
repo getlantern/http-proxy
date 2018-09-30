@@ -4,7 +4,7 @@ BUILD_DIR    ?= bin
 GIT_REVISION := $(shell git rev-parse --short HEAD)
 CHANGE_BIN   := $(shell which github_changelog_generator)
 
-GO_VERSION := 1.10.3
+GO_VERSION := 1.10.4
 
 .PHONY: dist build require-dep
 
