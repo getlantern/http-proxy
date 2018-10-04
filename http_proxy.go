@@ -376,9 +376,9 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 
 	return filterChain, func(ctx context.Context, isCONNECT bool, network, addr string) (net.Conn, error) {
 		if isCONNECT {
-			return dialer(network, addr)
+			return dialer(ctx, network, addr)
 		}
-		return dialerForPforward(network, addr)
+		return dialerForPforward(ctx, network, addr)
 	}, nil
 }
 

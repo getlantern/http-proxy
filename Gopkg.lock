@@ -433,14 +433,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6e24b24e2fee0450f45ef71ce2b71a076817d73ae0eab142c8f36e6aa6122256"
+  digest = "1:818687baa72bd547d8bfec92107016046ca4d9a52bbefded8afa522f5bce803f"
   name = "github.com/getlantern/proxy"
   packages = [
     ".",
     "filters",
   ]
   pruneopts = "UT"
-  revision = "113b1f61d3d51077a0a084a7f7c4879d3dea52e3"
+  revision = "a1730c79960f1f5e745b76c560e950ef89c3adf2"
 
 [[projects]]
   branch = "master"
