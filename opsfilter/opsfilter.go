@@ -7,6 +7,7 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
+	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/bbr"
@@ -42,7 +43,8 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 		Set("device_id", deviceID).
 		Set("origin", req.Host).
 		Set("origin_host", originHost).
-		Set("origin_port", originPort)
+		Set("origin_port", originPort).
+		Set("proxy_dial_timeout", req.Header.Get(proxy.DialTimeoutHeader))
 	log.Debug("Starting op")
 	defer op.End()
 

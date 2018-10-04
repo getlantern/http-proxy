@@ -1,15 +1,16 @@
 package configserverfilter
 
 import (
+	"context"
 	"crypto/tls"
 	"net"
 )
 
-type Dial func(network, address string) (net.Conn, error)
+type Dial func(ctx context.Context, network, address string) (net.Conn, error)
 
 func Dialer(d Dial, opts *Options) Dial {
-	return func(network, address string) (net.Conn, error) {
-		conn, err := d(network, address)
+	return func(ctx context.Context, network, address string) (net.Conn, error) {
+		conn, err := d(ctx, network, address)
 		if err != nil {
 			return conn, err
 		}

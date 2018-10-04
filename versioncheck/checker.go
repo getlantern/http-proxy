@@ -21,6 +21,7 @@ package versioncheck
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
 	"io"
 	"io/ioutil"
@@ -82,7 +83,7 @@ func New(versionRange string, rewriteURL string, tunnelPortsToCheck []string, pe
 }
 
 // Dial is a function that dials a network connection.
-type Dial func(network, address string) (net.Conn, error)
+type Dial func(ctx context.Context, network, address string) (net.Conn, error)
 
 // Dialer wraps Dial to dial TLS when the requested host matchs the host in
 // rewriteURL. If the rewriteURL is not https, it returns Dial as is.
@@ -90,8 +91,8 @@ func (c *VersionChecker) Dialer(d Dial) Dial {
 	if c.rewriteURL.Scheme != "https" {
 		return d
 	}
-	return func(network, address string) (net.Conn, error) {
-		conn, err := d(network, address)
+	return func(ctx context.Context, network, address string) (net.Conn, error) {
+		conn, err := d(ctx, network, address)
 		if err != nil {
 			return conn, err
 		}

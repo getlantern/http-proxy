@@ -432,15 +432,15 @@
   revision = "0b5766010efe7a5fd5c9c5675ed83ed167908418"
 
 [[projects]]
-  branch = "master"
-  digest = "1:6e24b24e2fee0450f45ef71ce2b71a076817d73ae0eab142c8f36e6aa6122256"
+  branch = "ox/server_connect_timeout"
+  digest = "1:8f30d7e610721ea199ceeafaa4628cfdac826c43133dac0d1716538f2a3162a4"
   name = "github.com/getlantern/proxy"
   packages = [
     ".",
     "filters",
   ]
   pruneopts = "UT"
-  revision = "113b1f61d3d51077a0a084a7f7c4879d3dea52e3"
+  revision = "6dbef1f831a362ecc029d0d45404b434847910ef"
 
 [[projects]]
   branch = "master"
