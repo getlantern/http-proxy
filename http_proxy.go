@@ -74,6 +74,7 @@ type Proxy struct {
 	CfgSvrAuthToken                    string
 	CfgSvrDomains                      string
 	CfgSvrCacheClear                   time.Duration
+	ConnectOKWaitsForUpstream          bool
 	ENHTTPAddr                         string
 	ENHTTPServerURL                    string
 	ENHTTPReapIdleTime                 time.Duration
@@ -149,6 +150,7 @@ func (p *Proxy) ListenAndServe() error {
 		IdleTimeout: p.IdleTimeout,
 		Dial:        dial,
 		Filter:      filterChain.Prepend(opsfilter.New(p.bm)),
+		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 	})
 	// Temporarily disable blacklisting
 	// srv.Allow = blacklist.OnConnect
