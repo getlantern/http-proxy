@@ -34,6 +34,7 @@ var (
 	certfile                           = flag.String("cert", "", "Certificate file name")
 	cfgSvrAuthToken                    = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
 	cfgSvrDomains                      = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
+	connectOKWaitsForUpstream          = flag.Bool("connect-ok-waits-for-upstream", false, "Set to true to wait for upstream connection before responding OK to CONNECT requests")
 	enableReports                      = flag.Bool("enablereports", false, "Enable stats reporting")
 	throttleRefreshInterval            = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
 	throttleThreshold                  = flag.Int64("throttlethreshold", 0, "Set to a positive value to force a specific throttle threshold in bytes (rather than using one from Redis)")
@@ -129,29 +130,30 @@ func main() {
 	go periodicallyForceGC()
 
 	p := &proxy.Proxy{
-		HTTPAddr:                           *addr,
-		HTTPMultiplexAddr:                  *multiplexAddr,
-		CertFile:                           *certfile,
-		CfgSvrAuthToken:                    *cfgSvrAuthToken,
-		CfgSvrDomains:                      *cfgSvrDomains,
-		EnableReports:                      *enableReports,
-		ThrottleRefreshInterval:            *throttleRefreshInterval,
-		ThrottleThreshold:                  *throttleThreshold,
-		ThrottleRate:                       *throttleRate,
-		BordaReportInterval:                *bordaReportInterval,
-		BordaSamplePercentage:              *bordaSamplePercentage,
-		BordaBufferSize:                    *bordaBufferSize,
-		ExternalIP:                         *externalIP,
-		HTTPS:                              *https,
-		IdleTimeout:                        time.Duration(*idleClose) * time.Second,
-		KeyFile:                            *keyfile,
-		Pro:                                *pro,
-		ProxiedSitesSamplePercentage:       *proxiedSitesSamplePercentage,
-		ProxiedSitesTrackingID:             *proxiedSitesTrackingId,
-		ReportingRedisAddr:                 *reportingRedisAddr,
-		ReportingRedisCA:                   *reportingRedisCA,
-		ReportingRedisClientPK:             *reportingRedisClientPK,
-		ReportingRedisClientCert:           *reportingRedisClientCert,
+		HTTPAddr:                  *addr,
+		HTTPMultiplexAddr:         *multiplexAddr,
+		CertFile:                  *certfile,
+		CfgSvrAuthToken:           *cfgSvrAuthToken,
+		CfgSvrDomains:             *cfgSvrDomains,
+		ConnectOKWaitsForUpstream: *connectOKWaitsForUpstream,
+		EnableReports:             *enableReports,
+		ThrottleRefreshInterval:   *throttleRefreshInterval,
+		ThrottleThreshold:         *throttleThreshold,
+		ThrottleRate:              *throttleRate,
+		BordaReportInterval:       *bordaReportInterval,
+		BordaSamplePercentage:     *bordaSamplePercentage,
+		BordaBufferSize:           *bordaBufferSize,
+		ExternalIP:                *externalIP,
+		HTTPS:                     *https,
+		IdleTimeout:               time.Duration(*idleClose) * time.Second,
+		KeyFile:                   *keyfile,
+		Pro:                       *pro,
+		ProxiedSitesSamplePercentage: *proxiedSitesSamplePercentage,
+		ProxiedSitesTrackingID:       *proxiedSitesTrackingId,
+		ReportingRedisAddr:           *reportingRedisAddr,
+		ReportingRedisCA:             *reportingRedisCA,
+		ReportingRedisClientPK:       *reportingRedisClientPK,
+		ReportingRedisClientCert:     *reportingRedisClientCert,
 		Token:                              *token,
 		TunnelPorts:                        *tunnelPorts,
 		Obfs4Addr:                          *obfs4Addr,
