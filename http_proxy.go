@@ -188,32 +188,26 @@ func (p *Proxy) ListenAndServe() error {
 		return nil
 	}
 
-	if p.KCPConf != "" {
-		if err := addListenerIfNecessary(p.KCPConf, p.wrapTLSIfNecessary(p.listenKCP)); err != nil {
-			return err
-		}
-	} else if p.QUICAddr != "" {
-		if err := addListenerIfNecessary(p.QUICAddr, p.wrapTLSIfNecessary(p.listenQUIC)); err != nil {
-			return err
-		}
-	} else if p.Obfs4Addr != "" {
-		if err := addListenerIfNecessary(p.Obfs4Addr, p.listenOBFS4); err != nil {
-			return err
-		}
-		if err := addListenerIfNecessary(p.Obfs4MultiplexAddr, p.wrapMultiplexing(p.listenOBFS4)); err != nil {
-			return err
-		}
-	} else if p.LampshadeAddr != "" {
-		if err := addListenerIfNecessary(p.LampshadeAddr, p.listenLampshade); err != nil {
-			return err
-		}
-	} else {
-		if err := addListenerIfNecessary(p.HTTPAddr, p.wrapTLSIfNecessary(p.listenHTTP)); err != nil {
-			return err
-		}
-		if err := addListenerIfNecessary(p.HTTPMultiplexAddr, p.wrapMultiplexing(p.wrapTLSIfNecessary(p.listenHTTP))); err != nil {
-			return err
-		}
+	if err := addListenerIfNecessary(p.KCPConf, p.wrapTLSIfNecessary(p.listenKCP)); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary(p.QUICAddr, p.listenQUIC); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary(p.Obfs4Addr, p.listenOBFS4); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary(p.Obfs4MultiplexAddr, p.wrapMultiplexing(p.listenOBFS4)); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary(p.LampshadeAddr, p.listenLampshade); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary(p.HTTPAddr, p.wrapTLSIfNecessary(p.listenHTTP)); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary(p.HTTPMultiplexAddr, p.wrapMultiplexing(p.wrapTLSIfNecessary(p.listenHTTP))); err != nil {
+		return err
 	}
 
 	errCh := make(chan error, len(allListeners))
@@ -624,18 +618,4 @@ func portsFromCSV(csv string) ([]int, error) {
 		ports[i] = p
 	}
 	return ports, nil
-}
-
-type startFN func(fn func() error) error
-
-func blocking(fn func() error) error {
-	return fn()
-}
-
-func nonblocking(fn func() error) error {
-	go func() {
-		err := fn()
-		log.Fatal(err)
-	}()
-	return nil
 }

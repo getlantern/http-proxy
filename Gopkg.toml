@@ -50,7 +50,7 @@
   name = "github.com/getlantern/borda"
 
 [[constraint]]
-  branch = "ox/shorterlocking"
+  branch = "master"
   name = "github.com/getlantern/cmux"
 
 [[constraint]]

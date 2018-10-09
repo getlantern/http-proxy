@@ -197,12 +197,12 @@
   revision = "c7bf952233bcc421fcbd185f601e117d45df89c7"
 
 [[projects]]
-  branch = "ox/shorterlocking"
+  branch = "master"
   digest = "1:dc73ecd1a79968da3c6ba4ff60044fbf99373b0ab79585f925f39c3a2dc63ef1"
   name = "github.com/getlantern/cmux"
   packages = ["."]
   pruneopts = "UT"
-  revision = "855463fe7c5fd758aebce145ba3cac0b6daed0d7"
+  revision = "acf511a0dc7c6fe2d7684328fb564605d6f16cba"
 
 [[projects]]
   branch = "master"

@@ -60,7 +60,7 @@ var (
 	token                              = flag.String("token", "", "Lantern token")
 	tunnelPorts                        = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
 	obfs4Addr                          = flag.String("obfs4-addr", "", "Provide an address here in order to listen with obfs4")
-	obfs4MuliplexAddr                  = flag.String("obfs4-multiplexaddr", "", "Provide an address here in order to listen with multiplexed obfs4")
+	obfs4MultiplexAddr                 = flag.String("obfs4-multiplexaddr", "", "Provide an address here in order to listen with multiplexed obfs4")
 	obfs4Dir                           = flag.String("obfs4-dir", ".", "Directory where obfs4 can store its files")
 	obfs4HandshakeConcurrency          = flag.Int("obfs4-handshake-concurrency", obfs4listener.DefaultHandshakeConcurrency, "How many concurrent OBFS4 handshakes to process")
 	obfs4MaxPendingHandshakesPerClient = flag.Int("obfs4-max-pending-handshakes-per-client", obfs4listener.DefaultMaxPendingHandshakesPerClient, "How many pending OBFS4 handshakes to allow per client")
@@ -157,7 +157,7 @@ func main() {
 		Token:                              *token,
 		TunnelPorts:                        *tunnelPorts,
 		Obfs4Addr:                          *obfs4Addr,
-		Obfs4MultiplexAddr:                 *obfs4MuliplexAddr,
+		Obfs4MultiplexAddr:                 *obfs4MultiplexAddr,
 		Obfs4Dir:                           *obfs4Dir,
 		Obfs4HandshakeConcurrency:          *obfs4HandshakeConcurrency,
 		Obfs4MaxPendingHandshakesPerClient: *obfs4MaxPendingHandshakesPerClient,
