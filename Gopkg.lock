@@ -197,12 +197,12 @@
   revision = "c7bf952233bcc421fcbd185f601e117d45df89c7"
 
 [[projects]]
-  branch = "master"
-  digest = "1:44ad36ecdc2ad331915f47646f3f793332f1b53d4ad35c7f2eed151e99ef59cd"
+  branch = "ox/shorterlocking"
+  digest = "1:dc73ecd1a79968da3c6ba4ff60044fbf99373b0ab79585f925f39c3a2dc63ef1"
   name = "github.com/getlantern/cmux"
   packages = ["."]
   pruneopts = "UT"
-  revision = "ee58cae565e4f208c7eb59cb2e70acf2230a1d12"
+  revision = "855463fe7c5fd758aebce145ba3cac0b6daed0d7"
 
 [[projects]]
   branch = "master"
@@ -925,12 +925,12 @@
   revision = "a33cd0b5f3de9ef5e89c90ab2f1ebe3f71ad1ece"
 
 [[projects]]
-  digest = "1:727749ee690197b064e9995ad9c4789c32f94de2b5a1557117dc43eaa001acf8"
+  digest = "1:07aaea55c778d9f0461a429eb19a134f17e9ac3232a5a28b16dfe57c637889bc"
   name = "github.com/xtaci/smux"
   packages = ["."]
   pruneopts = "UT"
-  revision = "e28719eede1ac5714cf0b06ba2f403125864ebe0"
-  version = "v1.0.7"
+  revision = "545ecee9d2a96ef4cf3c420c6b4095ac313fe870"
+  version = "v1.09"
 
 [[projects]]
   branch = "master"
@@ -1194,6 +1194,7 @@
     "github.com/dustin/go-humanize",
     "github.com/getlantern/bbrconn",
     "github.com/getlantern/borda/client",
+    "github.com/getlantern/cmux",
     "github.com/getlantern/ema",
     "github.com/getlantern/enhttp",
     "github.com/getlantern/errors",
