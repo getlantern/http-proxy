@@ -46,6 +46,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/quic"
 	"github.com/getlantern/http-proxy-lantern/redis"
+	"github.com/getlantern/http-proxy-lantern/sureroute"
 	"github.com/getlantern/http-proxy-lantern/throttle"
 	"github.com/getlantern/http-proxy-lantern/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
@@ -276,6 +277,9 @@ func (p *Proxy) createBlacklist() *blacklist.Blacklist {
 // itself.
 func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy.DialFunc, error) {
 	filterChain := filters.Join(p.bm)
+
+	// cannot send token...
+	filterChain = filterChain.Append(sureroute.New())
 
 	if p.Benchmark {
 		filterChain = filterChain.Append(proxyfilters.RateLimit(5000, map[string]time.Duration{
