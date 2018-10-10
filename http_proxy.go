@@ -234,9 +234,10 @@ func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
 			if err != nil {
 				return nil, err
 			}
+
+			log.Debugf("Using TLS on %v", l.Addr())
 		}
 
-		log.Debugf("Using TLS on %v", l.Addr())
 		return l, nil
 	}
 }
