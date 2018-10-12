@@ -51,6 +51,10 @@
 
 [[constraint]]
   branch = "master"
+  name = "github.com/getlantern/cmux"
+
+[[constraint]]
+  branch = "master"
   name = "github.com/getlantern/ema"
 
 [[constraint]]
