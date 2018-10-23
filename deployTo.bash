@@ -9,7 +9,9 @@ function die() {
 
 ip=$1
 
+rm dist/*
+
 echo "Building http-proxy-lantern for $ip"
-make dist || die "Could not make dist for http proxy"
+make distnochange || die "Could not make dist for http proxy"
 
 ./onlyDeployTo.bash $ip
