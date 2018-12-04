@@ -369,7 +369,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	if p.CfgSvrAuthToken != "" || p.CfgSvrDomains != "" {
 		cfg := &configserverfilter.Options{
 			AuthToken: p.CfgSvrAuthToken,
-			Domains:   append(strings.Split(p.CfgSvrDomains, ","), strings.Split(p.CfgSvrDomains, ",")...),
+			Domains:   append(strings.Split(p.CfgSvrDomains, ","), strings.Split(p.ProSvrDomains, ",")...),
 		}
 		dialerForPforward = configserverfilter.Dialer(dialerForPforward, cfg)
 		csf := configserverfilter.New(cfg)
