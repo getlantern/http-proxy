@@ -28,7 +28,7 @@ var (
 	hostname, _ = os.Hostname()
 
 	fasttrack        = "adyenpayments.com,adyen.com,stripe.com,paymentwall.com,alipay.com,app-measurement.com,fastworldpay.com,firebaseremoteconfig.googleapis.com,firebaseio.com,getlantern.org,lantern.io,innovatelabs.io,getiantem.org,lantern-pro-server.herokuapp.com,lantern-pro-server-staging.herokuapp.com,optimizely.com"
-	proServerDomains = "api.getiantem.org"
+	proServerDomains = "api.getiantem.org,api-staging.getiantem.org"
 
 	addr                               = flag.String("addr", ":8080", "Address to listen with HTTP(S)")
 	multiplexAddr                      = flag.String("multiplexaddr", "", "Multiplexed address at which to listen with HTTP(S)")
