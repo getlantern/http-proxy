@@ -28,14 +28,14 @@ var (
 	hostname, _ = os.Hostname()
 
 	fasttrack        = "adyenpayments.com,adyen.com,stripe.com,paymentwall.com,alipay.com,app-measurement.com,fastworldpay.com,firebaseremoteconfig.googleapis.com,firebaseio.com,getlantern.org,lantern.io,innovatelabs.io,getiantem.org,lantern-pro-server.herokuapp.com,lantern-pro-server-staging.herokuapp.com,optimizely.com"
-	proServerDomains = "lantern-pro-server.herokuapp.com,lantern-pro-server-staging.herokuapp.com"
+	proServerDomains = "api.getiantem.org"
 
 	addr                               = flag.String("addr", ":8080", "Address to listen with HTTP(S)")
 	multiplexAddr                      = flag.String("multiplexaddr", "", "Multiplexed address at which to listen with HTTP(S)")
 	certfile                           = flag.String("cert", "", "Certificate file name")
 	cfgSvrAuthToken                    = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
 	cfgSvrDomains                      = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
-	proSvrDomains                      = flag.String("cfgsvrdomains", proServerDomains, "Pro server domains to create secure connections to, separated by comma")
+	proSvrDomains                      = flag.String("prosvrdomains", proServerDomains, "Pro server domains to create secure connections to, separated by comma")
 	connectOKWaitsForUpstream          = flag.Bool("connect-ok-waits-for-upstream", false, "Set to true to wait for upstream connection before responding OK to CONNECT requests")
 	enableReports                      = flag.Bool("enablereports", false, "Enable stats reporting")
 	throttleRefreshInterval            = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
