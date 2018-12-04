@@ -190,3 +190,11 @@
 [[override]]
   name = "github.com/getlantern/quic-go"
   branch = "master"
+
+[[constraint]]
+  name = "github.com/google/gopacket"
+  version = "1.1.15"
+
+[[constraint]]
+  branch = "master"
+  name = "github.com/getlantern/ringbuffer"
