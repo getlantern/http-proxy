@@ -89,6 +89,9 @@ var (
 	stackdriverCreds                   = flag.String("stackdriver-creds", "/home/lantern/lantern-stackdriver.json", "Optional full json file path containing stackdriver credentials")
 	stackdriverSamplePercentage        = flag.Float64("stackdriver-sample-percentage", 0.003, "The percentage of devices to report to Stackdriver (0.01 = 1%)")
 	quicAddr                           = flag.String("quic-addr", "", "Address at which to listen for QUIC connections.")
+	pcapDir                            = flag.String("pcap-dir", "/tmp", "Directory in which to save pcaps")
+	pcapIPs                            = flag.Int("pcap-ips", 0, "The number of IP addresses for which to capture packets")
+	pcapsPerIP                         = flag.Int("pcaps-per-ip", 0, "The number of packets to capture for each IP address")
 )
 
 func main() {
@@ -183,6 +186,9 @@ func main() {
 		ProxyName:                          *proxyName,
 		BBRUpstreamProbeURL:                *bbrUpstreamProbeURL,
 		QUICAddr:                           *quicAddr,
+		PCAPDir:                            *pcapDir,
+		PCAPIPs:                            *pcapIPs,
+		PCAPSPerIP:                         *pcapsPerIP,
 	}
 
 	err := p.ListenAndServe()

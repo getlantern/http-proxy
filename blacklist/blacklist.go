@@ -9,6 +9,7 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
+	"github.com/getlantern/pcapper"
 )
 
 var (
@@ -91,7 +92,7 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 			_ = log.Errorf("Unable to record connection from %v", ip)
 		}
 	}
-	return !blacklisted
+	return true
 }
 
 func (bl *Blacklist) track() {
@@ -145,6 +146,7 @@ func (bl *Blacklist) checkForIdlers() {
 		if now.Sub(t) > bl.maxIdleTime {
 			log.Debugf("%v connected but failed to successfully send an HTTP request within %v", ip, bl.maxIdleTime)
 			delete(bl.firstConnectionTime, ip)
+			pcapper.Dump("blacklist_check", ip)
 
 			count := bl.failureCounts[ip] + 1
 			bl.failureCounts[ip] = count

@@ -120,6 +120,9 @@ type Proxy struct {
 	ProxyName                          string
 	BBRUpstreamProbeURL                string
 	QUICAddr                           string
+	PCAPDir                            string
+	PCAPIPs                            int
+	PCAPSPerIP                         int
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -130,13 +133,10 @@ type listenerBuilderFN func(addr string, bordaReporter listeners.MeasuredReportF
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
-	pcapper.StartCapturing("eth0", "/tmp", 100, 2000)
-	go func() {
-		for {
-			time.Sleep(10 * time.Second)
-			pcapper.Dump("23.240.220.107")
-		}
-	}()
+	if p.PCAPDir != "" && p.PCAPIPs > 0 && p.PCAPSPerIP > 0 {
+		log.Debugf("Enabling packet capture, capturing the %d packets for each of the %d most recent IPs into %v", p.PCAPSPerIP, p.PCAPIPs, p.PCAPDir)
+		pcapper.StartCapturing("eth0", "/tmp", p.PCAPIPs, p.PCAPSPerIP)
+	}
 
 	p.setupOpsContext()
 	p.setBenchmarkMode()
@@ -166,7 +166,7 @@ func (p *Proxy) ListenAndServe() error {
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 	})
 	// Temporarily disable blacklisting
-	// srv.Allow = blacklist.OnConnect
+	srv.Allow = blacklist.OnConnect
 	p.applyThrottling(srv, bwReporting)
 	srv.AddListenerWrappers(bwReporting.wrapper)
 
