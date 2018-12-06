@@ -425,11 +425,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:0d5e57e07864bb71e56bb2f061e34cd5eec52cd04ff1d42903bb3a35c14b1c67"
+  digest = "1:971cca4376729809455437f4d540af7d495caeb6ca9228b66245d286eb7e3f97"
   name = "github.com/getlantern/pcapper"
   packages = ["."]
   pruneopts = "UT"
-  revision = "cf145db1736501b12ff8ee47e3b5414cccc69f5a"
+  revision = "4f0e260a171e4164ecf158171d60d7eee06e6afb"
 
 [[projects]]
   branch = "master"

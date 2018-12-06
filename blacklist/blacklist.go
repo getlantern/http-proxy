@@ -14,6 +14,8 @@ import (
 
 var (
 	log = golog.LoggerFor("blacklist")
+
+	blacklistingEnabled = false // we've temporarily turned off blacklisting for safety
 )
 
 // Options is a set of options to initialize a blacklist.
@@ -92,7 +94,7 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 			_ = log.Errorf("Unable to record connection from %v", ip)
 		}
 	}
-	return true
+	return !blacklistingEnabled || !blacklisted
 }
 
 func (bl *Blacklist) track() {

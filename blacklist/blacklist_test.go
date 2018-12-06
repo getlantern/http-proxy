@@ -11,6 +11,10 @@ const (
 	ip = "8.8.8.8"
 )
 
+func init() {
+	blacklistingEnabled = true
+}
+
 func TestBlacklistSucceed(t *testing.T) {
 	bl := New(Options{50 * time.Millisecond, 1 * time.Millisecond, 2, 5 * time.Second})
 	for i := 0; i < 10000; i++ {
