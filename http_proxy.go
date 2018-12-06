@@ -18,6 +18,7 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/kcpwrapper"
 	"github.com/getlantern/ops"
+	"github.com/getlantern/pcapper"
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
 	"github.com/getlantern/quicwrapper"
@@ -43,7 +44,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/opsfilter"
-	"github.com/getlantern/http-proxy-lantern/pcap"
 	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/quic"
 	"github.com/getlantern/http-proxy-lantern/redis"
@@ -130,11 +130,11 @@ type listenerBuilderFN func(addr string, bordaReporter listeners.MeasuredReportF
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
-	dumpPackets := pcap.Capture("eth0")
+	pcapper.StartCapturing("eth0", "/tmp", 100, 2000)
 	go func() {
 		for {
 			time.Sleep(10 * time.Second)
-			dumpPackets("23.240.220.107")
+			pcapper.Dump("23.240.220.107")
 		}
 	}()
 

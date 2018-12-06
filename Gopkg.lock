@@ -425,6 +425,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:dcb0ec4aa127ad5f327e5cecd5973624f25a113f5ae9b4e566bc24740b2e2089"
+  name = "github.com/getlantern/pcapper"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "fefb48aa97f862a604bb1009b1ff42d47b511efc"
+
+[[projects]]
+  branch = "master"
   digest = "1:029a4d043394ab5e6465949a2b467bfc1f4930506b73ae7cbffb20b3377408df"
   name = "github.com/getlantern/preconn"
   packages = ["."]
@@ -479,11 +487,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:272ccbb8929f46aa8c3c1c333dc689e8544691d39b2d8be6ba07bfddb28aaa67"
-  name = "github.com/getlantern/ringbuffer"
+  digest = "1:571da384cb220f5e8e6dde4cad924646c7e1a0723014b41af28e440cc6660e7e"
+  name = "github.com/getlantern/ring"
   packages = ["."]
   pruneopts = "UT"
-  revision = "c231f7d9fd602f378ce35501dc586f20cdf2ac22"
+  revision = "dd46ce8faa010713858a89ca2915583ca744ad2e"
 
 [[projects]]
   branch = "master"
@@ -684,12 +692,13 @@
   revision = "ec9c8a1062f4be6c6ad671f0f5dba12d4a76826d"
 
 [[projects]]
-  digest = "1:54b9433e1760180a8048ee72b333adee90c25d80373c1c6e724d467e5fd70a05"
+  digest = "1:eebcd2c096c6e4dada58e468e794146753d035fed7150cc0e2ff79ef28650709"
   name = "github.com/google/gopacket"
   packages = [
     ".",
     "layers",
     "pcap",
+    "pcapgo",
   ]
   pruneopts = "UT"
   revision = "a6b099ece4680a8bdea84fa78166d0712108a95c"
@@ -737,6 +746,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "d2f86524cced5186554df90d92529757d22c1cb6"
+
+[[projects]]
+  branch = "master"
+  digest = "1:450f3a64f7a76d3f229ff33a30f0a889629dde46b0f82ece7c53404528316665"
+  name = "github.com/mdlayher/raw"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "fa5ef3332ca961deab5782da07b1616fea8a9dd8"
 
 [[projects]]
   branch = "master"
@@ -1232,10 +1249,10 @@
     "github.com/getlantern/mtime",
     "github.com/getlantern/netx",
     "github.com/getlantern/ops",
+    "github.com/getlantern/pcapper",
     "github.com/getlantern/proxy",
     "github.com/getlantern/proxy/filters",
     "github.com/getlantern/quicwrapper",
-    "github.com/getlantern/ringbuffer",
     "github.com/getlantern/testredis",
     "github.com/getlantern/tlsdefaults",
     "github.com/getlantern/tlsredis",
@@ -1244,9 +1261,6 @@
     "github.com/getlantern/zenodb/rpc",
     "github.com/golang/groupcache/lru",
     "github.com/gonum/stat",
-    "github.com/google/gopacket",
-    "github.com/google/gopacket/layers",
-    "github.com/google/gopacket/pcap",
     "github.com/hashicorp/golang-lru",
     "github.com/juju/ratelimit",
     "github.com/rcrowley/go-metrics",
