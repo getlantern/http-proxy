@@ -133,9 +133,18 @@ type listenerBuilderFN func(addr string, bordaReporter listeners.MeasuredReportF
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
+	var onServerError func(conn net.Conn, err error)
 	if p.PCAPDir != "" && p.PCAPIPs > 0 && p.PCAPSPerIP > 0 {
 		log.Debugf("Enabling packet capture, capturing the %d packets for each of the %d most recent IPs into %v", p.PCAPSPerIP, p.PCAPIPs, p.PCAPDir)
 		pcapper.StartCapturing("eth0", "/tmp", p.PCAPIPs, p.PCAPSPerIP)
+		onServerError = func(conn net.Conn, err error) {
+			errorText := err.Error()
+			if strings.Contains(errorText, "unexpected EOF") || strings.Contains(errorText, "broken pipe") {
+				ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+				log.Errorf("Unexpected error handling traffic from %v, will dump packets: %v", err, ip)
+				pcapper.Dump("unexpected_error", ip)
+			}
+		}
 	}
 
 	p.setupOpsContext()
@@ -164,6 +173,7 @@ func (p *Proxy) ListenAndServe() error {
 		Dial:        dial,
 		Filter:      filterChain.Prepend(opsfilter.New(p.bm)),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
+		OnError:                  onServerError,
 	})
 	// Temporarily disable blacklisting
 	srv.Allow = blacklist.OnConnect
