@@ -92,6 +92,8 @@ var (
 	pcapDir                            = flag.String("pcap-dir", "/tmp", "Directory in which to save pcaps")
 	pcapIPs                            = flag.Int("pcap-ips", 0, "The number of IP addresses for which to capture packets")
 	pcapsPerIP                         = flag.Int("pcaps-per-ip", 0, "The number of packets to capture for each IP address")
+	pcapSnapLen                        = flag.Int("pcap-snap-len", 1600, "The maximum size packet to capture")
+	pcapTimeout                        = flag.Duration("pcap-timeout", 30*time.Millisecond, "Timeout for capturing packets")
 )
 
 func main() {
@@ -189,6 +191,8 @@ func main() {
 		PCAPDir:                            *pcapDir,
 		PCAPIPs:                            *pcapIPs,
 		PCAPSPerIP:                         *pcapsPerIP,
+		PCAPSnapLen:                        *pcapSnapLen,
+		PCAPTimeout:                        *pcapTimeout,
 	}
 
 	err := p.ListenAndServe()

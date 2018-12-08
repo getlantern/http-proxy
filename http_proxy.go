@@ -125,6 +125,8 @@ type Proxy struct {
 	PCAPDir                            string
 	PCAPIPs                            int
 	PCAPSPerIP                         int
+	PCAPSnapLen                        int
+	PCAPTimeout                        time.Duration
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -139,7 +141,7 @@ func (p *Proxy) ListenAndServe() error {
 	var onListenerError func(conn net.Conn, err error)
 	if p.PCAPDir != "" && p.PCAPIPs > 0 && p.PCAPSPerIP > 0 {
 		log.Debugf("Enabling packet capture, capturing the %d packets for each of the %d most recent IPs into %v", p.PCAPSPerIP, p.PCAPIPs, p.PCAPDir)
-		pcapper.StartCapturing("eth0", "/tmp", p.PCAPIPs, p.PCAPSPerIP)
+		pcapper.StartCapturing("eth0", "/tmp", p.PCAPIPs, p.PCAPSPerIP, p.PCAPSnapLen, p.PCAPTimeout)
 		onServerError = func(conn net.Conn, err error) {
 			errorText := err.Error()
 			if strings.Contains(errorText, "unexpected EOF") || strings.Contains(errorText, "broken pipe") {
@@ -244,7 +246,7 @@ func (p *Proxy) ListenAndServe() error {
 	if err := addListenerIfNecessary(p.Obfs4Addr, p.listenOBFS4); err != nil {
 		return err
 	}
-	if err := addListenerIfNecessary(p.Obfs4MultiplexAddr, p.wrapMultiplexing(p.listenOBFS4, onListenerError)); err != nil {
+	if err := addListenerIfNecessary(p.Obfs4MultiplexAddr, p.wrapMultiplexing(p.listenOBFS4)); err != nil {
 		return err
 	}
 	if err := addListenerIfNecessary(p.LampshadeAddr, p.listenLampshade(onListenerError)); err != nil {
@@ -253,7 +255,7 @@ func (p *Proxy) ListenAndServe() error {
 	if err := addListenerIfNecessary(p.HTTPAddr, p.wrapTLSIfNecessary(p.listenHTTP)); err != nil {
 		return err
 	}
-	if err := addListenerIfNecessary(p.HTTPMultiplexAddr, p.wrapMultiplexing(p.wrapTLSIfNecessary(p.listenHTTP), onListenerError)); err != nil {
+	if err := addListenerIfNecessary(p.HTTPMultiplexAddr, p.wrapMultiplexing(p.wrapTLSIfNecessary(p.listenHTTP))); err != nil {
 		return err
 	}
 
@@ -289,7 +291,7 @@ func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
 	}
 }
 
-func (p *Proxy) wrapMultiplexing(fn listenerBuilderFN, onListenerError func(net.Conn, error)) listenerBuilderFN {
+func (p *Proxy) wrapMultiplexing(fn listenerBuilderFN) listenerBuilderFN {
 	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
 		l, err := fn(addr, bordaReporter)
 		if err != nil {
@@ -298,7 +300,6 @@ func (p *Proxy) wrapMultiplexing(fn listenerBuilderFN, onListenerError func(net.
 
 		l = cmux.Listen(&cmux.ListenOpts{
 			Listener: l,
-			OnError:  onListenerError,
 		})
 
 		log.Debugf("Multiplexing on %v", l.Addr())
