@@ -4,6 +4,7 @@
 package blacklist
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
@@ -146,9 +147,10 @@ func (bl *Blacklist) checkForIdlers() {
 	var blacklistAdditions []string
 	for ip, t := range bl.firstConnectionTime {
 		if now.Sub(t) > bl.maxIdleTime {
-			log.Debugf("%v connected but failed to successfully send an HTTP request within %v", ip, bl.maxIdleTime)
+			msg := fmt.Sprintf("%v connected but failed to successfully send an HTTP request within %v", ip, bl.maxIdleTime)
+			log.Debug(msg)
 			delete(bl.firstConnectionTime, ip)
-			pcapper.Dump("blacklist_check", ip)
+			pcapper.Dump(ip, fmt.Sprintf("Blacklist Check: %v", msg))
 
 			count := bl.failureCounts[ip] + 1
 			bl.failureCounts[ip] = count

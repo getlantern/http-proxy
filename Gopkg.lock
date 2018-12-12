@@ -310,7 +310,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:3973d7a010d8017d8e4a21bd48e68c9a69216f58eb867677e4ae16f9e44fee90"
+  digest = "1:b4d2c9777f3dd6ed41e5cb7e6e41641dc4f2355442c3279873c4bd96575cc1a3"
   name = "github.com/getlantern/http-proxy"
   packages = [
     "buffers",
@@ -319,15 +319,15 @@
     "server",
   ]
   pruneopts = "UT"
-  revision = "8ee8750797d1832969c73c9564896fe5155a339f"
+  revision = "5b96142859a8e8122b4c04651c67cf4c0010006e"
 
 [[projects]]
   branch = "master"
-  digest = "1:a94a9658bf10d3e53b805b0f6ba40d65da3c2625975731646771e1623848c68e"
+  digest = "1:349cd7781b821a13bf9a005fa2f5b6c78c4248e477bc3b869e01bb601c1e6cdd"
   name = "github.com/getlantern/idletiming"
   packages = ["."]
   pruneopts = "UT"
-  revision = "1ee14e2c3fde60192f6d6a1d5748ffafe487bb75"
+  revision = "d6af7c708ed589011044d1ca79945bbbaa42056e"
 
 [[projects]]
   digest = "1:24ccff6de46c9c7f87292e7cdd967e2d5d5bafcc47b62fd565b43a226d72743b"
@@ -358,11 +358,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:5a70c511cdcbc254e2bb8854f284b6a7982e394097f47cafb85b64fc75fe37d9"
+  digest = "1:8c374ab64a4eb2d9365e598721f4ab3ded158f2522e329b85e1d2be4793fa0a8"
   name = "github.com/getlantern/lampshade"
   packages = ["."]
   pruneopts = "UT"
-  revision = "7be30c3ba5e9e71b06aa0b34c06a23ea75984827"
+  revision = "39d42a2779867f62c6f5189f3e36a38329f53de0"
 
 [[projects]]
   branch = "master"
@@ -425,11 +425,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:af3d46291e361db44352f415bc3a3811e2bb941df032172576b7e17c5a8f1eb8"
+  digest = "1:8d98644e63841c1e937e2e990da50bcfbda8053453de0f7989b49d0a34a2eab8"
   name = "github.com/getlantern/pcapper"
   packages = ["."]
   pruneopts = "UT"
-  revision = "7d2c1075a994e989b9a884853252bdb3a28d8284"
+  revision = "68706c2a458a3da9a6d36b6516211b76c4004234"
 
 [[projects]]
   branch = "master"
@@ -692,7 +692,8 @@
   revision = "ec9c8a1062f4be6c6ad671f0f5dba12d4a76826d"
 
 [[projects]]
-  digest = "1:eebcd2c096c6e4dada58e468e794146753d035fed7150cc0e2ff79ef28650709"
+  branch = "master"
+  digest = "1:2d510cf5486a6ab90196bd3cc07bf124e180bf978dc03ffe6b58af21e5607d7b"
   name = "github.com/google/gopacket"
   packages = [
     ".",
@@ -701,8 +702,7 @@
     "pcapgo",
   ]
   pruneopts = "UT"
-  revision = "a6b099ece4680a8bdea84fa78166d0712108a95c"
-  version = "v1.1.15"
+  revision = "3c037fb4650eaecb208dfa07c0bf4c7e3bb3b7be"
 
 [[projects]]
   digest = "1:e145e9710a10bc114a6d3e2738aadf8de146adaa031854ffdf7bbfe15da85e63"

@@ -141,19 +141,14 @@ func (p *Proxy) ListenAndServe() error {
 	var onListenerError func(conn net.Conn, err error)
 	if p.PCAPDir != "" && p.PCAPIPs > 0 && p.PCAPSPerIP > 0 {
 		log.Debugf("Enabling packet capture, capturing the %d packets for each of the %d most recent IPs into %v", p.PCAPSPerIP, p.PCAPIPs, p.PCAPDir)
-		pcapper.StartCapturing("eth0", "/tmp", p.PCAPIPs, p.PCAPSPerIP, p.PCAPSnapLen, p.PCAPTimeout)
+		pcapper.StartCapturing("http-proxy", "eth0", "/tmp", p.PCAPIPs, p.PCAPSPerIP, p.PCAPSnapLen, p.PCAPTimeout)
 		onServerError = func(conn net.Conn, err error) {
-			errorText := err.Error()
-			if strings.Contains(errorText, "unexpected EOF") || strings.Contains(errorText, "broken pipe") {
-				ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-				log.Errorf("Unexpected error handling traffic from %v, will dump packets: %v", err, ip)
-				pcapper.Dump("serve_error", ip)
-			}
+			ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+			pcapper.Dump(ip, log.Errorf("Unexpected error handling traffic from %v: %v", ip, err).Error())
 		}
 		onListenerError = func(conn net.Conn, err error) {
 			ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-			log.Errorf("Unexpected error handling new connection from %v, will dump packets: %v", ip, err)
-			pcapper.Dump("listen_error", ip)
+			pcapper.Dump(ip, log.Errorf("Unexpected error handling new connection from %v: %v", ip, err).Error())
 		}
 
 		// Handle signals
@@ -168,7 +163,7 @@ func (p *Proxy) ListenAndServe() error {
 			for {
 				s := <-c
 				if s == syscall.SIGUSR1 {
-					pcapper.DumpAll("full")
+					pcapper.DumpAll("Full Dump")
 				} else {
 					log.Debug("Stopping server")
 					os.Exit(0)
@@ -205,7 +200,8 @@ func (p *Proxy) ListenAndServe() error {
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  onServerError,
 	})
-	// Temporarily disable blacklisting
+	// Although we include blacklist functionality, it's currently only used to
+	// track potential blacklisting ad doesn't actually blacklist anyone.
 	srv.Allow = blacklist.OnConnect
 	p.applyThrottling(srv, bwReporting)
 	srv.AddListenerWrappers(bwReporting.wrapper)
@@ -249,6 +245,8 @@ func (p *Proxy) ListenAndServe() error {
 	if err := addListenerIfNecessary(p.Obfs4MultiplexAddr, p.wrapMultiplexing(p.listenOBFS4)); err != nil {
 		return err
 	}
+	// We pass onListenerError to lampshade so that we can dump pcaps in response
+	// to errors in its internal connection handling.
 	if err := addListenerIfNecessary(p.LampshadeAddr, p.listenLampshade(onListenerError)); err != nil {
 		return err
 	}
