@@ -192,9 +192,5 @@
   branch = "master"
 
 [[override]]
-  name = "github.com/getlantern/gopacket"
-  branch = "master"
-
-[[override]]
   branch = "master"
   name = "github.com/google/gopacket"
