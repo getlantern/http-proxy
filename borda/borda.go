@@ -8,6 +8,7 @@ import (
 
 	borda "github.com/getlantern/borda/client"
 	"github.com/getlantern/golog"
+	"github.com/getlantern/hidden"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/measured"
 	"github.com/getlantern/ops"
@@ -93,6 +94,18 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 		if reportErr != nil {
 			log.Errorf("Error reporting error to borda: %v", reportErr)
 		}
+	})
+
+	golog.RegisterReporter(func(err error, linePrefix string, severity golog.Severity, ctx map[string]interface{}) {
+		if !inSample(ctx) {
+			return
+		}
+
+		values := map[string]borda.Val{
+			"error_count": borda.Float(1),
+		}
+		ctx["error"] = hidden.Clean(err.Error())
+		reportToBorda(values, ctx)
 	})
 
 	return func(_ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
