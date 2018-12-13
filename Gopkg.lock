@@ -323,11 +323,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a94a9658bf10d3e53b805b0f6ba40d65da3c2625975731646771e1623848c68e"
+  digest = "1:349cd7781b821a13bf9a005fa2f5b6c78c4248e477bc3b869e01bb601c1e6cdd"
   name = "github.com/getlantern/idletiming"
   packages = ["."]
   pruneopts = "UT"
-  revision = "1ee14e2c3fde60192f6d6a1d5748ffafe487bb75"
+  revision = "d6af7c708ed589011044d1ca79945bbbaa42056e"
 
 [[projects]]
   digest = "1:24ccff6de46c9c7f87292e7cdd967e2d5d5bafcc47b62fd565b43a226d72743b"
