@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.2.3](https://github.com/getlantern/http-proxy-lantern/tree/0.2.3) (2018-12-13)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.2...0.2.3)
+
+**Merged pull requests:**
+
+- Reporting all errors \(subject to sampling\) to borda [\#275](https://github.com/getlantern/http-proxy-lantern/pull/275) ([oxtoacart](https://github.com/oxtoacart))
+
 ## [0.2.2](https://github.com/getlantern/http-proxy-lantern/tree/0.2.2) (2018-12-13)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.1...0.2.2)
 
