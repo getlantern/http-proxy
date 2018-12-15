@@ -358,11 +358,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e25081b3f7b6437f0cf0e7683f1acf4a43dc608303c5de14c66e4ce53282a163"
+  digest = "1:6f79178b6fa7bad1c5f4787362bbc258cbc7cfd110b1389ef012110888d7e437"
   name = "github.com/getlantern/lampshade"
   packages = ["."]
   pruneopts = "UT"
-  revision = "52e49a475948c3e0c3221db7775f1c325210dab0"
+  revision = "0c3a8c74849c4b6f7df8ddc9f490229b7b17eb9c"
 
 [[projects]]
   branch = "master"
@@ -1200,6 +1200,7 @@
     "github.com/getlantern/errors",
     "github.com/getlantern/geolookup",
     "github.com/getlantern/golog",
+    "github.com/getlantern/hidden",
     "github.com/getlantern/http-proxy/buffers",
     "github.com/getlantern/http-proxy/listeners",
     "github.com/getlantern/http-proxy/proxyfilters",
