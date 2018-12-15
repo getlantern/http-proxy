@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.2.4](https://github.com/getlantern/http-proxy-lantern/tree/0.2.4) (2018-12-15)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.3...0.2.4)
+
+**Merged pull requests:**
+
+- Updated to latest lampshade for tracking stats on streams [\#276](https://github.com/getlantern/http-proxy-lantern/pull/276) ([oxtoacart](https://github.com/oxtoacart))
+
 ## [0.2.3](https://github.com/getlantern/http-proxy-lantern/tree/0.2.3) (2018-12-13)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.2...0.2.3)
 
