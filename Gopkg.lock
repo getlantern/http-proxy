@@ -1237,6 +1237,7 @@
     "github.com/getlantern/errors",
     "github.com/getlantern/geolookup",
     "github.com/getlantern/golog",
+    "github.com/getlantern/hidden",
     "github.com/getlantern/http-proxy/buffers",
     "github.com/getlantern/http-proxy/listeners",
     "github.com/getlantern/http-proxy/proxyfilters",
