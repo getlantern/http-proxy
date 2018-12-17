@@ -7,9 +7,11 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
+	"os/signal"
 	"regexp"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/getlantern/cmux"
@@ -18,6 +20,7 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/kcpwrapper"
 	"github.com/getlantern/ops"
+	"github.com/getlantern/pcapper"
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
 	"github.com/getlantern/quicwrapper"
@@ -120,6 +123,11 @@ type Proxy struct {
 	ProxyName                          string
 	BBRUpstreamProbeURL                string
 	QUICAddr                           string
+	PCAPDir                            string
+	PCAPIPs                            int
+	PCAPSPerIP                         int
+	PCAPSnapLen                        int
+	PCAPTimeout                        time.Duration
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -130,6 +138,41 @@ type listenerBuilderFN func(addr string, bordaReporter listeners.MeasuredReportF
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
+	var onServerError func(conn net.Conn, err error)
+	var onListenerError func(conn net.Conn, err error)
+	if p.PCAPDir != "" && p.PCAPIPs > 0 && p.PCAPSPerIP > 0 {
+		log.Debugf("Enabling packet capture, capturing the %d packets for each of the %d most recent IPs into %v", p.PCAPSPerIP, p.PCAPIPs, p.PCAPDir)
+		pcapper.StartCapturing("http-proxy", "eth0", "/tmp", p.PCAPIPs, p.PCAPSPerIP, p.PCAPSnapLen, p.PCAPTimeout)
+		onServerError = func(conn net.Conn, err error) {
+			ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+			pcapper.Dump(ip, log.Errorf("Unexpected error handling traffic from %v: %v", ip, err).Error())
+		}
+		onListenerError = func(conn net.Conn, err error) {
+			ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+			pcapper.Dump(ip, log.Errorf("Unexpected error handling new connection from %v: %v", ip, err).Error())
+		}
+
+		// Handle signals
+		c := make(chan os.Signal, 1)
+		signal.Notify(c,
+			syscall.SIGHUP,
+			syscall.SIGINT,
+			syscall.SIGTERM,
+			syscall.SIGQUIT,
+			syscall.SIGUSR1)
+		go func() {
+			for {
+				s := <-c
+				if s == syscall.SIGUSR1 {
+					pcapper.DumpAll("Full Dump")
+				} else {
+					log.Debug("Stopping server")
+					os.Exit(0)
+				}
+			}
+		}()
+	}
+
 	p.setupOpsContext()
 	p.setBenchmarkMode()
 	p.bm = bbr.New()
@@ -156,9 +199,11 @@ func (p *Proxy) ListenAndServe() error {
 		Dial:        dial,
 		Filter:      filterChain.Prepend(opsfilter.New(p.bm)),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
+		OnError:                  onServerError,
 	})
-	// Temporarily disable blacklisting
-	// srv.Allow = blacklist.OnConnect
+	// Although we include blacklist functionality, it's currently only used to
+	// track potential blacklisting ad doesn't actually blacklist anyone.
+	srv.Allow = blacklist.OnConnect
 	p.applyThrottling(srv, bwReporting)
 	srv.AddListenerWrappers(bwReporting.wrapper)
 
@@ -201,7 +246,9 @@ func (p *Proxy) ListenAndServe() error {
 	if err := addListenerIfNecessary(p.Obfs4MultiplexAddr, p.wrapMultiplexing(p.listenOBFS4)); err != nil {
 		return err
 	}
-	if err := addListenerIfNecessary(p.LampshadeAddr, p.listenLampshade); err != nil {
+	// We pass onListenerError to lampshade so that we can dump pcaps in response
+	// to errors in its internal connection handling.
+	if err := addListenerIfNecessary(p.LampshadeAddr, p.listenLampshade(onListenerError)); err != nil {
 		return err
 	}
 	if err := addListenerIfNecessary(p.HTTPAddr, p.wrapTLSIfNecessary(p.listenHTTP)); err != nil {
@@ -522,28 +569,30 @@ func (p *Proxy) listenOBFS4(addr string, bordaReporter listeners.MeasuredReportF
 	return wrapped, nil
 }
 
-func (p *Proxy) listenLampshade(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
-	l, err := p.listenTCP(addr, false)
-	if err != nil {
-		return nil, errors.New("Unable to listen for lampshade with tcp: %v", err)
-	}
-	if bordaReporter != nil {
-		log.Debug("Wrapping lampshade's TCP listener with measured reporting")
-		l = listeners.NewMeasuredListener(l,
-			measuredReportingInterval,
-			borda.ConnectionTypedBordaReporter("physical", bordaReporter))
-	}
-	wrapped, wrapErr := lampshade.Wrap(l, p.CertFile, p.KeyFile)
-	if wrapErr != nil {
-		log.Fatalf("Unable to initialize lampshade with tcp: %v", wrapErr)
-	}
-	log.Debugf("Listening for lampshade at %v", wrapped.Addr())
+func (p *Proxy) listenLampshade(onListenerError func(net.Conn, error)) listenerBuilderFN {
+	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+		l, err := p.listenTCP(addr, false)
+		if err != nil {
+			return nil, errors.New("Unable to listen for lampshade with tcp: %v", err)
+		}
+		if bordaReporter != nil {
+			log.Debug("Wrapping lampshade's TCP listener with measured reporting")
+			l = listeners.NewMeasuredListener(l,
+				measuredReportingInterval,
+				borda.ConnectionTypedBordaReporter("physical", bordaReporter))
+		}
+		wrapped, wrapErr := lampshade.Wrap(l, p.CertFile, p.KeyFile, onListenerError)
+		if wrapErr != nil {
+			log.Fatalf("Unable to initialize lampshade with tcp: %v", wrapErr)
+		}
+		log.Debugf("Listening for lampshade at %v", wrapped.Addr())
 
-	// We wrap the lampshade listener itself so that we record BBR metrics on
-	// close of virtual streams rather than the physical connection.
-	wrapped = p.bm.Wrap(wrapped)
+		// We wrap the lampshade listener itself so that we record BBR metrics on
+		// close of virtual streams rather than the physical connection.
+		wrapped = p.bm.Wrap(wrapped)
 
-	return wrapped, nil
+		return wrapped, nil
+	}
 }
 
 func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {

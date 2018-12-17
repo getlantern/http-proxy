@@ -4,15 +4,19 @@
 package blacklist
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
+	"github.com/getlantern/pcapper"
 )
 
 var (
 	log = golog.LoggerFor("blacklist")
+
+	blacklistingEnabled = false // we've temporarily turned off blacklisting for safety
 )
 
 // Options is a set of options to initialize a blacklist.
@@ -91,7 +95,7 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 			_ = log.Errorf("Unable to record connection from %v", ip)
 		}
 	}
-	return !blacklisted
+	return !blacklistingEnabled || !blacklisted
 }
 
 func (bl *Blacklist) track() {
@@ -143,8 +147,10 @@ func (bl *Blacklist) checkForIdlers() {
 	var blacklistAdditions []string
 	for ip, t := range bl.firstConnectionTime {
 		if now.Sub(t) > bl.maxIdleTime {
-			log.Debugf("%v connected but failed to successfully send an HTTP request within %v", ip, bl.maxIdleTime)
+			msg := fmt.Sprintf("%v connected but failed to successfully send an HTTP request within %v", ip, bl.maxIdleTime)
+			log.Debug(msg)
 			delete(bl.firstConnectionTime, ip)
+			pcapper.Dump(ip, fmt.Sprintf("Blacklist Check: %v", msg))
 
 			count := bl.failureCounts[ip] + 1
 			bl.failureCounts[ip] = count

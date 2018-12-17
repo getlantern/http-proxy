@@ -14,6 +14,13 @@ import (
 	"sync"
 	"text/template"
 	"time"
+
+	"github.com/getlantern/golog"
+	"github.com/getlantern/pcapper"
+)
+
+var (
+	log = golog.LoggerFor("apache")
 )
 
 type apacheMimic struct {
@@ -47,6 +54,9 @@ func SetServerAddr(addr string) {
 // (the one installed by 'apt-get install apache2') running on Ubuntu 14.04.
 // Set 'Host' and 'Port' before calling it.
 func Apache(conn net.Conn, req *http.Request) {
+	ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+	log.Debugf("Mimicking apache to client at %v", ip)
+	pcapper.Dump(ip, "Mimicking apache")
 	path := req.URL.Path
 	// remove extra leading slash
 	if len(path) > 0 && path[0] == '/' {

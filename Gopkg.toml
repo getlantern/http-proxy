@@ -190,3 +190,7 @@
 [[override]]
   name = "github.com/getlantern/quic-go"
   branch = "master"
+
+[[override]]
+  branch = "master"
+  name = "github.com/google/gopacket"
