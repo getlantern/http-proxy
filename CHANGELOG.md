@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.2.5](https://github.com/getlantern/http-proxy-lantern/tree/0.2.5) (2018-12-17)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.4...0.2.5)
+
+**Merged pull requests:**
+
+- Tracking apache mimicry and connects without request in borda [\#277](https://github.com/getlantern/http-proxy-lantern/pull/277) ([oxtoacart](https://github.com/oxtoacart))
+- http-proxy captures packets and dumps them under unusual circumstances [\#273](https://github.com/getlantern/http-proxy-lantern/pull/273) ([oxtoacart](https://github.com/oxtoacart))
+
 ## [0.2.4](https://github.com/getlantern/http-proxy-lantern/tree/0.2.4) (2018-12-15)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.3...0.2.4)
 
