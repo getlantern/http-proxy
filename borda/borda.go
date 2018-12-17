@@ -22,7 +22,7 @@ const (
 var (
 	log = golog.LoggerFor("lantern-proxy-borda")
 
-	fullyReportedOps = []string{"tcpinfo", "google_search", "google_captcha", "blacklist"}
+	fullyReportedOps = []string{"tcpinfo", "google_search", "google_captcha", "blacklist", "connect_without_request", "mimic_apache"}
 )
 
 // Enable enables borda reporting
