@@ -188,9 +188,18 @@
   name = "github.com/getlantern/quicwrapper"
 
 [[override]]
-  name = "github.com/getlantern/quic-go"
+  name = "github.com/getlantern/quicwrapper"
   branch = "master"
+
+[[override]]
+  name = "github.com/lucas-clemente/quic-go"
+  branch = "master"
+  source = "https://github.com/getlantern/quic-go"
 
 [[override]]
   branch = "master"
   name = "github.com/google/gopacket"
+
+[[override]]
+  name = "github.com/marten-seemann/qtls"
+  branch = "qtls"
