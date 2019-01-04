@@ -49,14 +49,10 @@ func (f *ConfigServerFilter) RewriteIfNecessary(req *http.Request) {
 }
 
 func (f *ConfigServerFilter) matchingDomains(req *http.Request) string {
-	// It's unlikely that config-server will add non-GET public endpoint.
-	// Bypass all other methods, especially CONNECT (https).
-	if req.Method == "GET" {
-		if matched := in(req.Host, f.opts.Domains); matched != "" {
-			return matched
-		}
+	if req.Method == "CONNECT" {
+		return ""
 	}
-	return ""
+	return in(req.Host, f.opts.Domains)
 }
 
 func (f *ConfigServerFilter) rewrite(host string, req *http.Request) {
