@@ -36,13 +36,23 @@ func TestModifyRequest(t *testing.T) {
 	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
 	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should attach client ip")
 
-	req, _ = http.NewRequest("GET", "http://site2.org/abc.gz", nil)
+	for _, method := range []string{"GET", "HEAD", "PUT", "POST", "DELETE", "OPTIONS"} {
+		req, _ = http.NewRequest(method, "http://site2.org/abc.gz", nil)
+		req.RemoteAddr = dummyAddr
+		chain.Apply(ctx, req, next)
+		assert.Equal(t, "", dummy.req.URL.Scheme, "should clear scheme")
+		assert.Equal(t, "site2.org:443", dummy.req.Host, "should use port 443")
+		assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
+		assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should attach client ip")
+	}
+
+	req, _ = http.NewRequest("CONNECT", "http://site2.org/", nil)
 	req.RemoteAddr = dummyAddr
 	chain.Apply(ctx, req, next)
-	assert.Equal(t, "", dummy.req.URL.Scheme, "should clear scheme")
-	assert.Equal(t, "site2.org:443", dummy.req.Host, "should use port 443")
-	assert.Equal(t, fakeToken, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should attach token")
-	assert.Equal(t, dummyClientIP, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should attach client ip")
+	assert.Equal(t, "http", dummy.req.URL.Scheme, "should not clear scheme")
+	assert.Equal(t, "site2.org", dummy.req.Host, "should remain http")
+	assert.Empty(t, dummy.req.Header.Get(common.CfgSvrAuthTokenHeader), "should not attach token")
+	assert.Empty(t, dummy.req.Header.Get(common.CfgSvrClientIPHeader), "should not attach client ip")
 
 	req, _ = http.NewRequest("GET", "http://site2.org:443/abc.gz", nil)
 	req.RemoteAddr = "bad-addr"
