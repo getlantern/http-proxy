@@ -1,5 +1,15 @@
 # Change Log
 
+## [0.2.6](https://github.com/getlantern/http-proxy-lantern/tree/0.2.6) (2019-01-08)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.5...0.2.6)
+
+**Merged pull requests:**
+
+- Rewrite all methods but CONNECT to HTTPS for designated domains [\#281](https://github.com/getlantern/http-proxy-lantern/pull/281) ([joesis](https://github.com/joesis))
+- update quic packages [\#280](https://github.com/getlantern/http-proxy-lantern/pull/280) ([forkner](https://github.com/forkner))
+- bumped required version [\#279](https://github.com/getlantern/http-proxy-lantern/pull/279) ([myleshorton](https://github.com/myleshorton))
+- not default to 8080 when addr is not supplied [\#278](https://github.com/getlantern/http-proxy-lantern/pull/278) ([joesis](https://github.com/joesis))
+
 ## [0.2.5](https://github.com/getlantern/http-proxy-lantern/tree/0.2.5) (2018-12-17)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.4...0.2.5)
 
