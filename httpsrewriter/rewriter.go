@@ -56,7 +56,7 @@ func (f *Rewriter) rewrite(host string, req *http.Request) {
 	req.Host = host + ":443"
 }
 
-// in returns the host portion if it's is in the domains list, or returns ""
+// in returns the host portion if it's in the domains list, or returns ""
 func in(hostport string, domains []string) string {
 	host, _, err := net.SplitHostPort(hostport)
 	if err != nil {

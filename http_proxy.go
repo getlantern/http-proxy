@@ -684,7 +684,7 @@ func portsFromCSV(csv string) ([]int, error) {
 	return ports, nil
 }
 
-// in returns the host portion if it's is in the domains list, or returns ""
+// in returns the host portion if it's in the domains list, or returns ""
 func in(hostport string, domains []string) string {
 	host, _, err := net.SplitHostPort(hostport)
 	if err != nil {
