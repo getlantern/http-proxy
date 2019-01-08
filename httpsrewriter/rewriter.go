@@ -28,7 +28,7 @@ func (f *Rewriter) Dialer(d Dial) Dial {
 		if err != nil {
 			return conn, err
 		}
-		if matched := in(address, f.Domains); matched != "" {
+		if matched := InDomainsList(address, f.Domains); matched != "" {
 			conn = tls.Client(conn, &tls.Config{ServerName: matched})
 			log.Debugf("Added TLS to connection to %s", address)
 		}
@@ -45,7 +45,7 @@ func (f *Rewriter) RewriteIfNecessary(req *http.Request) {
 	if req.Method == "CONNECT" {
 		return
 	}
-	if matched := in(req.Host, f.Domains); matched != "" {
+	if matched := InDomainsList(req.Host, f.Domains); matched != "" {
 		f.rewrite(matched, req)
 	}
 }
@@ -56,8 +56,8 @@ func (f *Rewriter) rewrite(host string, req *http.Request) {
 	req.Host = host + ":443"
 }
 
-// in returns the host portion if it's in the domains list, or returns ""
-func in(hostport string, domains []string) string {
+// InDomainsList returns the host portion if it's in the domains list, or returns ""
+func InDomainsList(hostport string, domains []string) string {
 	host, _, err := net.SplitHostPort(hostport)
 	if err != nil {
 		host = hostport

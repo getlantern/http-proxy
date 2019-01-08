@@ -421,7 +421,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}
 	if p.CfgSvrAuthToken != "" && p.CfgSvrDomains != nil {
 		rewrite := requestModifier(func(req *http.Request) {
-			if in(req.Host, p.CfgSvrDomains) == "" {
+			if httpsrewriter.InDomainsList(req.Host, p.CfgSvrDomains) == "" {
 				return
 			}
 			req.Header.Set(common.CfgSvrAuthTokenHeader, p.CfgSvrAuthToken)
@@ -682,20 +682,6 @@ func portsFromCSV(csv string) ([]int, error) {
 		ports[i] = p
 	}
 	return ports, nil
-}
-
-// in returns the host portion if it's in the domains list, or returns ""
-func in(hostport string, domains []string) string {
-	host, _, err := net.SplitHostPort(hostport)
-	if err != nil {
-		host = hostport
-	}
-	for _, d := range domains {
-		if host == d {
-			return d
-		}
-	}
-	return ""
 }
 
 type requestModifier func(req *http.Request)
