@@ -37,10 +37,10 @@ import (
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/borda"
 	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy-lantern/configserverfilter"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/diffserv"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
+	"github.com/getlantern/http-proxy-lantern/httpsrewriter"
 	"github.com/getlantern/http-proxy-lantern/lampshade"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
@@ -76,9 +76,9 @@ type Proxy struct {
 	ExternalIP                         string
 	CertFile                           string
 	CfgSvrAuthToken                    string
-	CfgSvrDomains                      string
+	CfgSvrDomains                      []string
 	CfgSvrCacheClear                   time.Duration
-	ProSvrDomains                      string
+	ProSvrDomains                      []string
 	ConnectOKWaitsForUpstream          bool
 	ENHTTPAddr                         string
 	ENHTTPServerURL                    string
@@ -195,9 +195,9 @@ func (p *Proxy) ListenAndServe() error {
 
 	bwReporting, bordaReporter := p.configureBandwidthReporting()
 	srv := server.New(&server.Opts{
-		IdleTimeout: p.IdleTimeout,
-		Dial:        dial,
-		Filter:      filterChain.Prepend(opsfilter.New(p.bm)),
+		IdleTimeout:              p.IdleTimeout,
+		Dial:                     dial,
+		Filter:                   filterChain.Prepend(opsfilter.New(p.bm)),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  onServerError,
 	})
@@ -413,15 +413,28 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	dialerForPforward := dialer
 
 	var requestRewriters []func(*http.Request)
-	if p.CfgSvrAuthToken != "" || p.CfgSvrDomains != "" {
-		cfg := &configserverfilter.Options{
-			AuthToken: p.CfgSvrAuthToken,
-			Domains:   append(strings.Split(p.CfgSvrDomains, ","), strings.Split(p.ProSvrDomains, ",")...),
-		}
-		dialerForPforward = configserverfilter.Dialer(dialerForPforward, cfg)
-		csf := configserverfilter.New(cfg)
-		filterChain = filterChain.Append(csf)
-		requestRewriters = append(requestRewriters, csf.RewriteIfNecessary)
+	if p.CfgSvrDomains != nil || p.ProSvrDomains != nil {
+		rewriter := &httpsrewriter.Rewriter{append(p.CfgSvrDomains, p.ProSvrDomains...)}
+		dialerForPforward = rewriter.Dialer(dialerForPforward)
+		filterChain = filterChain.Append(rewriter)
+		requestRewriters = append(requestRewriters, rewriter.RewriteIfNecessary)
+	}
+	if p.CfgSvrAuthToken != "" && p.CfgSvrDomains != nil {
+		rewrite := requestModifier(func(req *http.Request) {
+			if httpsrewriter.InDomainsList(req.Host, p.CfgSvrDomains) == "" {
+				return
+			}
+			req.Header.Set(common.CfgSvrAuthTokenHeader, p.CfgSvrAuthToken)
+			ip, _, err := net.SplitHostPort(req.RemoteAddr)
+			if err != nil {
+				log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
+				return
+			}
+			req.Header.Set(common.CfgSvrClientIPHeader, ip)
+			log.Debugf("Adding header to config-server request from %s to %s", ip, req.Host)
+		})
+		filterChain = filterChain.Append(rewrite)
+		requestRewriters = append(requestRewriters, rewrite)
 	}
 
 	// Check if Lantern client version is in the supplied range. If yes,
@@ -669,4 +682,11 @@ func portsFromCSV(csv string) ([]int, error) {
 		ports[i] = p
 	}
 	return ports, nil
+}
+
+type requestModifier func(req *http.Request)
+
+func (f requestModifier) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+	f(req)
+	return next(ctx, req)
 }
