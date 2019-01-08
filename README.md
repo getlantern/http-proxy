@@ -18,6 +18,10 @@ These are Lantern-specific middleware components for the HTTP Proxy in Go:
 
 * Custom responses for mimicking Apache in certain cases
 
+### Building
+
+Currently, http-proxy-lantern will only build on Linux hosts. You need to have
+the package `libpcap-dev` installed.
 
 ### Usage
 
