@@ -57,17 +57,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:e05c7b72aeba7570b1d2f9c6dc9f0373d224b16b70fa886c504de867bffe1c2e"
-  name = "github.com/aead/chacha20"
-  packages = [
-    ".",
-    "chacha",
-  ]
-  pruneopts = "UT"
-  revision = "8b13a72661dae6e9e5dea04f344f0dc95ea29547"
-
-[[projects]]
-  branch = "master"
   digest = "1:5699a1540433914320cef63d1afc814e0632c8e7ec5954c37b0fc07a614bf149"
   name = "github.com/agl/ed25519"
   packages = [
@@ -87,17 +76,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1f96c755246f1b688f1b2f0d2ba6cff5a94ceb35a7c5d06f7489e5e348ce356d"
-  name = "github.com/bifurcation/mint"
-  packages = [
-    ".",
-    "syntax",
-  ]
-  pruneopts = "UT"
-  revision = "93c51c6ce11597a26e246fc33a301d62d3439cd2"
-
-[[projects]]
-  branch = "master"
   digest = "1:e990382d48644e08318d3526b374c654a102f37fbcf2b497018a3ad8faf3fbaa"
   name = "github.com/blang/semver"
   packages = ["."]
@@ -111,6 +89,21 @@
   pruneopts = "UT"
   revision = "d2cf3cdd35ce0d789056c4bc02a4d6349c947caf"
   version = "v1.0.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:c61f241352b7fba13cd70aeb1311a5519305897d91df5fdccd39ae6099be84a0"
+  name = "github.com/cloudflare/sidh"
+  packages = [
+    "internal/arith",
+    "internal/isogeny",
+    "internal/utils",
+    "p503",
+    "p751",
+    "sidh",
+  ]
+  pruneopts = "UT"
+  revision = "fc8e6378752b38efe6d5814630911b5fc654c223"
 
 [[projects]]
   branch = "master"
@@ -452,25 +445,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:2307bd62adaa4e7e68ad432b3fb5f458546f32506fefe619bd467183a1c6da8a"
-  name = "github.com/getlantern/quic-go"
-  packages = [
-    ".",
-    "internal/ackhandler",
-    "internal/congestion",
-    "internal/crypto",
-    "internal/flowcontrol",
-    "internal/handshake",
-    "internal/protocol",
-    "internal/utils",
-    "internal/wire",
-    "qerr",
-  ]
-  pruneopts = "UT"
-  revision = "ff3dd4ac7113ca9ffde47484ad431440c2cb939d"
-
-[[projects]]
-  branch = "master"
   digest = "1:fa8d63ae8a4d875c53be3578319bde0a29d49042609ce6387413b422ec797386"
   name = "github.com/getlantern/quicwrapper"
   packages = ["."]
@@ -733,21 +707,12 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:6fe6fc7707d8c37fb305362a324462d898bc1c01eaa2bfe15383ec21f6540c71"
-  name = "github.com/lucas-clemente/aes12"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "cd47fb39b79f867c6e4e5cd39cf7abd799f71670"
-
-[[projects]]
-  branch = "master"
-  digest = "1:cf1b1b7fd1673fe07f900f87d0e9ef327f368d4c4d84a50945f80cc5679b116d"
+  digest = "1:5aebe1b0003ac7874ef27a50bb1d94c5e8f090a0459393711b2fc926d60e41e9"
   name = "github.com/lucas-clemente/quic-go"
   packages = [
     ".",
     "internal/ackhandler",
     "internal/congestion",
-    "internal/crypto",
     "internal/flowcontrol",
     "internal/handshake",
     "internal/protocol",
@@ -756,24 +721,16 @@
     "internal/wire",
   ]
   pruneopts = "UT"
-  revision = "1facb9de6ec27e25373be2598c6485290bdcc8da"
+  revision = "ca35f392a8ec033ad8bdbbc45cca49b7e0e3adaa"
   source = "https://github.com/getlantern/quic-go"
 
 [[projects]]
-  branch = "master"
-  digest = "1:08b3484b0665f09be0f1f699a38e877708453795df07a3d6e4cd41fa7a2cabf0"
-  name = "github.com/lucas-clemente/quic-go-certificates"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "d2f86524cced5186554df90d92529757d22c1cb6"
-
-[[projects]]
   branch = "qtls"
-  digest = "1:d9fa8e4b5feb3ef4198bf0d1047cddea06c69937e0b4e9e50ee7b2545c58a517"
+  digest = "1:6eb76d7a2daca2297f53d2ef02fdeaef9bfbac0e75ffb77a72131f1708db4f31"
   name = "github.com/marten-seemann/qtls"
   packages = ["."]
   pruneopts = "UT"
-  revision = "c50a91d48284ab31c39389e64f7c57e475bb0633"
+  revision = "646330209b76bfdcdc054a863468f473e9d0a7af"
 
 [[projects]]
   branch = "master"
@@ -1252,266 +1209,52 @@
   analyzer-version = 1
   input-imports = [
     "cloud.google.com/go/errorreporting",
-    "contrib.go.opencensus.io/exporter/stackdriver/propagation",
     "git.torproject.org/pluggable-transports/goptlib.git",
-    "git.torproject.org/pluggable-transports/obfs4.git/common/csrand",
-    "git.torproject.org/pluggable-transports/obfs4.git/common/drbg",
-    "git.torproject.org/pluggable-transports/obfs4.git/common/ntor",
-    "git.torproject.org/pluggable-transports/obfs4.git/common/probdist",
-    "git.torproject.org/pluggable-transports/obfs4.git/common/replayfilter",
     "git.torproject.org/pluggable-transports/obfs4.git/transports/base",
     "git.torproject.org/pluggable-transports/obfs4.git/transports/obfs4",
-    "git.torproject.org/pluggable-transports/obfs4.git/transports/obfs4/framing",
-    "github.com/Yawning/chacha20",
-    "github.com/aead/chacha20",
-    "github.com/agl/ed25519/edwards25519",
-    "github.com/agl/ed25519/extra25519",
-    "github.com/aristanetworks/goarista/monotime",
-    "github.com/bifurcation/mint",
-    "github.com/bifurcation/mint/syntax",
     "github.com/blang/semver",
-    "github.com/cheekybits/genny/generic",
-    "github.com/codahale/hdrhistogram",
-    "github.com/cupcake/rdb",
-    "github.com/cupcake/rdb/crc64",
-    "github.com/cupcake/rdb/nopdecoder",
-    "github.com/davecgh/go-spew/spew",
-    "github.com/dchest/siphash",
     "github.com/dustin/go-humanize",
-    "github.com/edsrzf/mmap-go",
     "github.com/getlantern/bbrconn",
     "github.com/getlantern/borda/client",
-    "github.com/getlantern/byteexec",
-    "github.com/getlantern/bytemap",
     "github.com/getlantern/cmux",
-    "github.com/getlantern/context",
-    "github.com/getlantern/elevate",
-    "github.com/getlantern/elevate/bin",
     "github.com/getlantern/ema",
     "github.com/getlantern/enhttp",
     "github.com/getlantern/errors",
-    "github.com/getlantern/filepersist",
     "github.com/getlantern/geolookup",
-    "github.com/getlantern/go-cache/cache",
-    "github.com/getlantern/goexpr",
-    "github.com/getlantern/goexpr/geo",
-    "github.com/getlantern/goexpr/isp",
-    "github.com/getlantern/goexpr/redis",
     "github.com/getlantern/golog",
-    "github.com/getlantern/hex",
     "github.com/getlantern/hidden",
     "github.com/getlantern/http-proxy/buffers",
     "github.com/getlantern/http-proxy/listeners",
     "github.com/getlantern/http-proxy/proxyfilters",
     "github.com/getlantern/http-proxy/server",
-    "github.com/getlantern/idletiming",
-    "github.com/getlantern/kcp-go",
     "github.com/getlantern/kcpwrapper",
     "github.com/getlantern/keyman",
-    "github.com/getlantern/keyman/certimporter",
     "github.com/getlantern/lampshade",
     "github.com/getlantern/measured",
-    "github.com/getlantern/mitm",
     "github.com/getlantern/mockconn",
-    "github.com/getlantern/msgpack",
     "github.com/getlantern/mtime",
     "github.com/getlantern/netx",
     "github.com/getlantern/ops",
     "github.com/getlantern/pcapper",
-    "github.com/getlantern/preconn",
     "github.com/getlantern/proxy",
     "github.com/getlantern/proxy/filters",
-    "github.com/getlantern/quic-go",
-    "github.com/getlantern/quic-go/internal/ackhandler",
-    "github.com/getlantern/quic-go/internal/congestion",
-    "github.com/getlantern/quic-go/internal/crypto",
-    "github.com/getlantern/quic-go/internal/flowcontrol",
-    "github.com/getlantern/quic-go/internal/handshake",
-    "github.com/getlantern/quic-go/internal/protocol",
-    "github.com/getlantern/quic-go/internal/utils",
-    "github.com/getlantern/quic-go/internal/wire",
-    "github.com/getlantern/quic-go/qerr",
     "github.com/getlantern/quicwrapper",
-    "github.com/getlantern/reconn",
-    "github.com/getlantern/sqlparser",
-    "github.com/getlantern/sqlparser/dependency/bson",
-    "github.com/getlantern/sqlparser/dependency/bytes2",
-    "github.com/getlantern/sqlparser/dependency/hack",
-    "github.com/getlantern/sqlparser/dependency/sqltypes",
     "github.com/getlantern/testredis",
     "github.com/getlantern/tlsdefaults",
     "github.com/getlantern/tlsredis",
-    "github.com/getlantern/uuid",
     "github.com/getlantern/waitforserver",
-    "github.com/getlantern/wal",
     "github.com/getlantern/withtimeout",
-    "github.com/getlantern/zenodb/bytetree",
-    "github.com/getlantern/zenodb/common",
-    "github.com/getlantern/zenodb/core",
-    "github.com/getlantern/zenodb/encoding",
-    "github.com/getlantern/zenodb/expr",
-    "github.com/getlantern/zenodb/planner",
     "github.com/getlantern/zenodb/rpc",
-    "github.com/getlantern/zenodb/sql",
-    "github.com/glendc/gopher-json",
-    "github.com/go-stack/stack",
     "github.com/golang/groupcache/lru",
-    "github.com/golang/protobuf/proto",
-    "github.com/golang/protobuf/protoc-gen-go/descriptor",
-    "github.com/golang/protobuf/ptypes",
-    "github.com/golang/protobuf/ptypes/any",
-    "github.com/golang/protobuf/ptypes/duration",
-    "github.com/golang/protobuf/ptypes/struct",
-    "github.com/golang/protobuf/ptypes/timestamp",
-    "github.com/golang/snappy",
-    "github.com/gonum/blas",
-    "github.com/gonum/blas/blas64",
-    "github.com/gonum/blas/native",
-    "github.com/gonum/blas/native/internal/math32",
-    "github.com/gonum/floats",
-    "github.com/gonum/internal/asm/f32",
-    "github.com/gonum/internal/asm/f64",
-    "github.com/gonum/lapack",
-    "github.com/gonum/lapack/lapack64",
-    "github.com/gonum/lapack/native",
-    "github.com/gonum/matrix",
-    "github.com/gonum/matrix/mat64",
     "github.com/gonum/stat",
     "github.com/hashicorp/golang-lru",
-    "github.com/hashicorp/golang-lru/simplelru",
     "github.com/juju/ratelimit",
-    "github.com/lucas-clemente/aes12",
-    "github.com/lucas-clemente/quic-go-certificates",
-    "github.com/mikioh/tcp",
-    "github.com/mikioh/tcpinfo",
-    "github.com/mikioh/tcpopt",
-    "github.com/oschwald/geoip2-golang",
-    "github.com/oschwald/maxminddb-golang",
-    "github.com/oxtoacart/bpool",
-    "github.com/pelletier/go-toml",
-    "github.com/pkg/errors",
-    "github.com/pmezard/go-difflib/difflib",
     "github.com/rcrowley/go-metrics",
-    "github.com/siddontang/go/bson",
-    "github.com/siddontang/go/filelock",
-    "github.com/siddontang/go/hack",
-    "github.com/siddontang/go/ioutil2",
-    "github.com/siddontang/go/log",
-    "github.com/siddontang/go/num",
-    "github.com/siddontang/go/snappy",
-    "github.com/siddontang/go/sync2",
-    "github.com/siddontang/goredis",
-    "github.com/siddontang/ledisdb/config",
-    "github.com/siddontang/ledisdb/ledis",
-    "github.com/siddontang/ledisdb/rpl",
-    "github.com/siddontang/ledisdb/server",
-    "github.com/siddontang/ledisdb/store",
-    "github.com/siddontang/ledisdb/store/driver",
-    "github.com/siddontang/ledisdb/store/goleveldb",
-    "github.com/siddontang/ledisdb/store/leveldb",
-    "github.com/siddontang/ledisdb/store/rocksdb",
-    "github.com/siddontang/rdb",
     "github.com/stretchr/testify/assert",
-    "github.com/syndtr/goleveldb/leveldb",
-    "github.com/syndtr/goleveldb/leveldb/cache",
-    "github.com/syndtr/goleveldb/leveldb/comparer",
-    "github.com/syndtr/goleveldb/leveldb/errors",
-    "github.com/syndtr/goleveldb/leveldb/filter",
-    "github.com/syndtr/goleveldb/leveldb/iterator",
-    "github.com/syndtr/goleveldb/leveldb/journal",
-    "github.com/syndtr/goleveldb/leveldb/memdb",
-    "github.com/syndtr/goleveldb/leveldb/opt",
-    "github.com/syndtr/goleveldb/leveldb/storage",
-    "github.com/syndtr/goleveldb/leveldb/table",
-    "github.com/syndtr/goleveldb/leveldb/util",
-    "github.com/templexxx/cpufeat",
-    "github.com/templexxx/reedsolomon",
-    "github.com/templexxx/xor",
-    "github.com/tjfoc/gmsm/sm4",
-    "github.com/ugorji/go/codec",
     "github.com/vharitonsky/iniflags",
-    "github.com/xtaci/smux",
-    "github.com/xwb1989/sqlparser/dependency/hack",
-    "github.com/yuin/gopher-lua",
-    "github.com/yuin/gopher-lua/ast",
-    "github.com/yuin/gopher-lua/parse",
-    "github.com/yuin/gopher-lua/pm",
-    "go.opencensus.io/plugin/ocgrpc",
-    "go.opencensus.io/plugin/ochttp",
-    "golang.org/x/crypto/blowfish",
-    "golang.org/x/crypto/cast5",
-    "golang.org/x/crypto/chacha20poly1305",
-    "golang.org/x/crypto/curve25519",
-    "golang.org/x/crypto/hkdf",
-    "golang.org/x/crypto/internal/subtle",
-    "golang.org/x/crypto/nacl/secretbox",
-    "golang.org/x/crypto/pbkdf2",
-    "golang.org/x/crypto/salsa20",
-    "golang.org/x/crypto/tea",
-    "golang.org/x/crypto/twofish",
-    "golang.org/x/crypto/xtea",
-    "golang.org/x/net/context",
-    "golang.org/x/net/context/ctxhttp",
-    "golang.org/x/net/http2",
-    "golang.org/x/net/http2/hpack",
-    "golang.org/x/net/idna",
     "golang.org/x/net/ipv4",
-    "golang.org/x/oauth2",
-    "golang.org/x/oauth2/google",
-    "golang.org/x/oauth2/internal",
-    "golang.org/x/oauth2/jws",
-    "golang.org/x/oauth2/jwt",
-    "golang.org/x/sync/semaphore",
-    "golang.org/x/sys/unix",
-    "golang.org/x/sys/windows",
-    "golang.org/x/text/collate",
-    "golang.org/x/text/internal/gen",
-    "golang.org/x/text/internal/ucd",
-    "golang.org/x/text/language",
-    "golang.org/x/text/transform",
-    "golang.org/x/text/unicode/bidi",
-    "golang.org/x/text/unicode/rangetable",
-    "google.golang.org/api/googleapi/transport",
-    "google.golang.org/api/internal",
     "google.golang.org/api/option",
-    "google.golang.org/api/transport/grpc",
-    "google.golang.org/api/transport/http",
-    "google.golang.org/appengine",
-    "google.golang.org/appengine/internal",
-    "google.golang.org/appengine/internal/base",
-    "google.golang.org/appengine/internal/datastore",
-    "google.golang.org/appengine/internal/log",
-    "google.golang.org/appengine/internal/remote_api",
-    "google.golang.org/appengine/internal/socket",
-    "google.golang.org/appengine/socket",
-    "google.golang.org/appengine/urlfetch",
-    "google.golang.org/genproto/googleapis/api/annotations",
-    "google.golang.org/genproto/googleapis/api/label",
-    "google.golang.org/genproto/googleapis/api/monitoredres",
-    "google.golang.org/genproto/googleapis/rpc/status",
-    "google.golang.org/grpc",
-    "google.golang.org/grpc/balancer",
-    "google.golang.org/grpc/balancer/base",
-    "google.golang.org/grpc/codes",
-    "google.golang.org/grpc/connectivity",
-    "google.golang.org/grpc/credentials",
-    "google.golang.org/grpc/credentials/oauth",
-    "google.golang.org/grpc/encoding",
-    "google.golang.org/grpc/grpclog",
-    "google.golang.org/grpc/internal/backoff",
-    "google.golang.org/grpc/internal/channelz",
-    "google.golang.org/grpc/internal/grpcrand",
-    "google.golang.org/grpc/keepalive",
-    "google.golang.org/grpc/metadata",
-    "google.golang.org/grpc/naming",
-    "google.golang.org/grpc/peer",
-    "google.golang.org/grpc/resolver",
-    "google.golang.org/grpc/stats",
-    "google.golang.org/grpc/status",
-    "google.golang.org/grpc/tap",
     "gopkg.in/redis.v5",
-    "gopkg.in/redis.v5/internal",
-    "gopkg.in/redis.v5/internal/proto",
   ]
   solver-name = "gps-cdcl"
   solver-version = 1
