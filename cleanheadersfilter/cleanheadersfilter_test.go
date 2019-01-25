@@ -29,6 +29,15 @@ func TestNotWhitelisted(t *testing.T) {
 	assert.Equal(t, "O", req.Header.Get("Other"))
 }
 
+func TestNoProxyConnection(t *testing.T) {
+	filter := New().(*filter)
+	req := buildRequest("https://alipay.com/stuff")
+	req.Header.Del("Proxy-Connection")
+	filter.stripHeadersIfNecessary(req)
+	_, found := req.Header["Connection"]
+	assert.False(t, found)
+}
+
 func buildRequest(url string) *http.Request {
 	req, _ := http.NewRequest(http.MethodGet, url, nil)
 	req.Header.Set("X-Lantern-A", "A")
