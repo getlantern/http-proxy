@@ -36,9 +36,11 @@ import (
 	"github.com/getlantern/http-proxy-lantern/bbr"
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/borda"
+	"github.com/getlantern/http-proxy-lantern/cleanheadersfilter"
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/diffserv"
+	"github.com/getlantern/http-proxy-lantern/domains"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/httpsrewriter"
 	"github.com/getlantern/http-proxy-lantern/lampshade"
@@ -76,9 +78,7 @@ type Proxy struct {
 	ExternalIP                         string
 	CertFile                           string
 	CfgSvrAuthToken                    string
-	CfgSvrDomains                      []string
 	CfgSvrCacheClear                   time.Duration
-	ProSvrDomains                      []string
 	ConnectOKWaitsForUpstream          bool
 	ENHTTPAddr                         string
 	ENHTTPServerURL                    string
@@ -107,7 +107,6 @@ type Proxy struct {
 	Obfs4HandshakeTimeout              time.Duration
 	KCPConf                            string
 	Benchmark                          bool
-	FasttrackDomains                   string
 	DiffServTOS                        int
 	LampshadeAddr                      string
 	VersionCheck                       bool
@@ -195,9 +194,9 @@ func (p *Proxy) ListenAndServe() error {
 
 	bwReporting, bordaReporter := p.configureBandwidthReporting()
 	srv := server.New(&server.Opts{
-		IdleTimeout:              p.IdleTimeout,
-		Dial:                     dial,
-		Filter:                   filterChain.Prepend(opsfilter.New(p.bm)),
+		IdleTimeout: p.IdleTimeout,
+		Dial:        dial,
+		Filter:      filterChain.Prepend(opsfilter.New(p.bm)),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  onServerError,
 	})
@@ -383,13 +382,12 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		filterChain = filterChain.Append(proxy.OnFirstOnly(tokenfilter.New(p.Token)))
 	}
 
-	fd := common.NewRawFasttrackDomains(p.FasttrackDomains)
 	if p.rc == nil {
 		log.Debug("Not enabling bandwidth limiting")
 	} else {
 		filterChain = filterChain.Append(
 			proxy.OnFirstOnly(devicefilter.NewPre(
-				redis.NewDeviceFetcher(p.rc), p.throttleConfig, fd, !p.Pro)),
+				redis.NewDeviceFetcher(p.rc), p.throttleConfig, !p.Pro)),
 		)
 	}
 
@@ -413,15 +411,13 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	dialerForPforward := dialer
 
 	var requestRewriters []func(*http.Request)
-	if p.CfgSvrDomains != nil || p.ProSvrDomains != nil {
-		rewriter := &httpsrewriter.Rewriter{append(p.CfgSvrDomains, p.ProSvrDomains...)}
-		dialerForPforward = rewriter.Dialer(dialerForPforward)
-		filterChain = filterChain.Append(rewriter)
-		requestRewriters = append(requestRewriters, rewriter.RewriteIfNecessary)
-	}
-	if p.CfgSvrAuthToken != "" && p.CfgSvrDomains != nil {
+	rewriter := &httpsrewriter.Rewriter{}
+	dialerForPforward = rewriter.Dialer(dialerForPforward)
+	filterChain = filterChain.Append(rewriter)
+	requestRewriters = append(requestRewriters, rewriter.RewriteIfNecessary)
+	if p.CfgSvrAuthToken != "" {
 		rewrite := requestModifier(func(req *http.Request) {
-			if httpsrewriter.InDomainsList(req.Host, p.CfgSvrDomains) == "" {
+			if !domains.ConfigForRequest(req).AddConfigServerHeaders {
 				return
 			}
 			req.Header.Set(common.CfgSvrAuthTokenHeader, p.CfgSvrAuthToken)
@@ -472,14 +468,15 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	filterChain = filterChain.Append(
 		proxyfilters.DiscardInitialPersistentRequest,
 		filters.FilterFunc(func(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
-			if fd.Whitelisted(req) {
-				// Only add X-Forwarded-For for our fasttrack domains
+			if domains.ConfigForRequest(req).AddForwardedFor {
+				// Only add X-Forwarded-For for certain domains
 				return proxyfilters.AddForwardedFor(ctx, req, next)
 			}
 			return next(ctx, req)
 		}),
 		proxyfilters.RestrictConnectPorts(p.allowedTunnelPorts()),
 		proxyfilters.RecordOp,
+		cleanheadersfilter.New(),
 	)
 
 	return filterChain, func(ctx context.Context, isCONNECT bool, network, addr string) (net.Conn, error) {

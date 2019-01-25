@@ -11,6 +11,7 @@ import (
 	"net/http"
 
 	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/domains"
 	"github.com/getlantern/proxy/filters"
 )
 
@@ -18,9 +19,7 @@ var log = golog.LoggerFor("httpsRewritter")
 
 type Dial func(ctx context.Context, network, address string) (net.Conn, error)
 
-type Rewriter struct {
-	Domains []string
-}
+type Rewriter struct{}
 
 func (f *Rewriter) Dialer(d Dial) Dial {
 	return func(ctx context.Context, network, address string) (net.Conn, error) {
@@ -28,8 +27,8 @@ func (f *Rewriter) Dialer(d Dial) Dial {
 		if err != nil {
 			return conn, err
 		}
-		if matched := InDomainsList(address, f.Domains); matched != "" {
-			conn = tls.Client(conn, &tls.Config{ServerName: matched})
+		if cfg := domains.ConfigForHost(address); cfg.RewriteToHTTPS {
+			conn = tls.Client(conn, &tls.Config{ServerName: cfg.Domain})
 			log.Debugf("Added TLS to connection to %s", address)
 		}
 		return conn, err
@@ -45,8 +44,8 @@ func (f *Rewriter) RewriteIfNecessary(req *http.Request) {
 	if req.Method == "CONNECT" {
 		return
 	}
-	if matched := InDomainsList(req.Host, f.Domains); matched != "" {
-		f.rewrite(matched, req)
+	if cfg := domains.ConfigForRequest(req); cfg.RewriteToHTTPS {
+		f.rewrite(cfg.Domain, req)
 	}
 }
 
@@ -54,18 +53,4 @@ func (f *Rewriter) rewrite(host string, req *http.Request) {
 	// for some reason we forgot, the scheme has to be cleared, rather than set to "https"
 	req.URL.Scheme = ""
 	req.Host = host + ":443"
-}
-
-// InDomainsList returns the host portion if it's in the domains list, or returns ""
-func InDomainsList(hostport string, domains []string) string {
-	host, _, err := net.SplitHostPort(hostport)
-	if err != nil {
-		host = hostport
-	}
-	for _, d := range domains {
-		if host == d {
-			return d
-		}
-	}
-	return ""
 }

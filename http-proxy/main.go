@@ -8,7 +8,6 @@ import (
 	"os"
 	"runtime"
 	"runtime/debug"
-	"strings"
 	"time"
 
 	"github.com/vharitonsky/iniflags"
@@ -28,15 +27,10 @@ var (
 
 	hostname, _ = os.Hostname()
 
-	fasttrack        = "adyenpayments.com,adyen.com,stripe.com,paymentwall.com,alipay.com,app-measurement.com,fastworldpay.com,firebaseremoteconfig.googleapis.com,firebaseio.com,getlantern.org,lantern.io,innovatelabs.io,getiantem.org,lantern-pro-server.herokuapp.com,lantern-pro-server-staging.herokuapp.com,optimizely.com"
-	proServerDomains = "api.getiantem.org,api-staging.getiantem.org"
-
 	addr                               = flag.String("addr", "", "Address to listen with HTTP(S)")
 	multiplexAddr                      = flag.String("multiplexaddr", "", "Multiplexed address at which to listen with HTTP(S)")
 	certfile                           = flag.String("cert", "", "Certificate file name")
 	cfgSvrAuthToken                    = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
-	cfgSvrDomains                      = flag.String("cfgsvrdomains", "", "Config-server domains on which to attach auth token, separated by comma")
-	proSvrDomains                      = flag.String("prosvrdomains", proServerDomains, "Pro server domains to create secure connections to, separated by comma")
 	connectOKWaitsForUpstream          = flag.Bool("connect-ok-waits-for-upstream", false, "Set to true to wait for upstream connection before responding OK to CONNECT requests")
 	enableReports                      = flag.Bool("enablereports", false, "Enable stats reporting")
 	throttleRefreshInterval            = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
@@ -73,7 +67,6 @@ var (
 	enhttpServerURL                    = flag.String("enhttp-server-url", "", "specify a full URL for domain-fronting to this server with enhttp, required for sticky routing with CloudFront")
 	enhttpReapIdleTime                 = flag.Duration("enhttp-reapidletime", time.Duration(*idleClose)*time.Second, "configure how long enhttp connections are allowed to remain idle before being forcibly closed")
 	bench                              = flag.Bool("bench", false, "Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.")
-	fasttrackDomains                   = flag.String("fasttrackdomains", fasttrack, "Whitelisted domains, such as the config server, pro server, etc, that should not count towards the bandwidth cap or be throttled, separated by comma")
 	tos                                = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")
 	lampshadeAddr                      = flag.String("lampshade-addr", "", "Address at which to listen for lampshade connections. Requires https to be true.")
 	version                            = flag.Bool("version", false, "shows the version of the binary")
@@ -142,8 +135,6 @@ func main() {
 		HTTPMultiplexAddr:         *multiplexAddr,
 		CertFile:                  *certfile,
 		CfgSvrAuthToken:           *cfgSvrAuthToken,
-		CfgSvrDomains:             strings.Split(*cfgSvrDomains, ","),
-		ProSvrDomains:             strings.Split(*proSvrDomains, ","),
 		ConnectOKWaitsForUpstream: *connectOKWaitsForUpstream,
 		EnableReports:             *enableReports,
 		ThrottleRefreshInterval:   *throttleRefreshInterval,
@@ -176,7 +167,6 @@ func main() {
 		ENHTTPServerURL:                    *enhttpServerURL,
 		ENHTTPReapIdleTime:                 *enhttpReapIdleTime,
 		Benchmark:                          *bench,
-		FasttrackDomains:                   *fasttrackDomains,
 		DiffServTOS:                        *tos,
 		LampshadeAddr:                      *lampshadeAddr,
 		VersionCheck:                       *versionCheck != "",
