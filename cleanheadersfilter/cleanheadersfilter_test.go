@@ -13,6 +13,7 @@ func TestWhitelisted(t *testing.T) {
 	filter.stripHeadersIfNecessary(req)
 	assert.Equal(t, "A", req.Header.Get("X-Lantern-A"))
 	assert.Equal(t, "B", req.Header.Get("X-Lantern-B"))
+	assert.Equal(t, "close", req.Header.Get("Connection"))
 	assert.Empty(t, req.Header.Get("Proxy-Connection"))
 	assert.Equal(t, "O", req.Header.Get("Other"))
 }
@@ -23,6 +24,7 @@ func TestNotWhitelisted(t *testing.T) {
 	filter.stripHeadersIfNecessary(req)
 	assert.Empty(t, req.Header.Get("X-Lantern-A"))
 	assert.Empty(t, req.Header.Get("X-Lantern-B"))
+	assert.Equal(t, "close", req.Header.Get("Connection"))
 	assert.Empty(t, req.Header.Get("Proxy-Connection"))
 	assert.Equal(t, "O", req.Header.Get("Other"))
 }
