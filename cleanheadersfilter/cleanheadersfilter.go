@@ -22,10 +22,11 @@ func (f *filter) Apply(ctx filters.Context, req *http.Request, next filters.Next
 }
 
 func (f *filter) stripHeadersIfNecessary(req *http.Request) {
+	req.Header.Del("Proxy-Connection")
 	if !domains.ConfigForRequest(req).PassInternalHeaders {
 		for header := range req.Header {
-			if header == "Proxy-Connection" || strings.HasPrefix(header, "X-Lantern") {
-				delete(req.Header, header)
+			if strings.HasPrefix(header, "X-Lantern") {
+				req.Header.Del(header)
 			}
 		}
 	}

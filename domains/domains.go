@@ -31,13 +31,13 @@ type Config struct {
 	PassInternalHeaders bool
 }
 
-func (cfg *Config) WithRewriteToHTTPS() *Config {
+func (cfg *Config) withRewriteToHTTPS() *Config {
 	var cfg2 = *cfg
 	cfg2.RewriteToHTTPS = true
 	return &cfg2
 }
 
-func (cfg *Config) WithAddConfigServerHeaders() *Config {
+func (cfg *Config) withAddConfigServerHeaders() *Config {
 	var cfg2 = *cfg
 	cfg2.AddConfigServerHeaders = true
 	return &cfg2
@@ -56,10 +56,10 @@ var (
 )
 
 var configs = map[string]*Config{
-	"config.getiantem.org":                     internal.WithRewriteToHTTPS().WithAddConfigServerHeaders(),
-	"config-staging.getiantem.org":             internal.WithRewriteToHTTPS().WithAddConfigServerHeaders(),
-	"api.getiantem.org":                        internal.WithRewriteToHTTPS(),
-	"api-staging.getiantem.org":                internal.WithRewriteToHTTPS(),
+	"config.getiantem.org":                     internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
+	"config-staging.getiantem.org":             internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
+	"api.getiantem.org":                        internal.withRewriteToHTTPS(),
+	"api-staging.getiantem.org":                internal.withRewriteToHTTPS(),
 	"getlantern.org":                           internal,
 	"lantern.io":                               internal,
 	"innovatelabs.io":                          internal,
