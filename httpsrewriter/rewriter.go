@@ -28,7 +28,7 @@ func (f *Rewriter) Dialer(d Dial) Dial {
 			return conn, err
 		}
 		if cfg := domains.ConfigForHost(address); cfg.RewriteToHTTPS {
-			conn = tls.Client(conn, &tls.Config{ServerName: cfg.Domain})
+			conn = tls.Client(conn, &tls.Config{ServerName: cfg.Host})
 			log.Debugf("Added TLS to connection to %s", address)
 		}
 		return conn, err
@@ -45,7 +45,7 @@ func (f *Rewriter) RewriteIfNecessary(req *http.Request) {
 		return
 	}
 	if cfg := domains.ConfigForRequest(req); cfg.RewriteToHTTPS {
-		f.rewrite(cfg.Domain, req)
+		f.rewrite(cfg.Host, req)
 	}
 }
 
