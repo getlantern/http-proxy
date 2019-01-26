@@ -29,16 +29,6 @@ type Config struct {
 	PassInternalHeaders bool
 }
 
-// ConfigWithHost is a Config with associated hostname/domain
-type ConfigWithHost struct {
-	Host string
-	Config
-}
-
-func (cfg *ConfigWithHost) String() string {
-	return cfg.Host
-}
-
 func (cfg *Config) withRewriteToHTTPS() *Config {
 	var cfg2 = *cfg
 	cfg2.RewriteToHTTPS = true
@@ -49,6 +39,12 @@ func (cfg *Config) withAddConfigServerHeaders() *Config {
 	var cfg2 = *cfg
 	cfg2.AddConfigServerHeaders = true
 	return &cfg2
+}
+
+// ConfigWithHost is a Config with associated hostname/domain
+type ConfigWithHost struct {
+	Host string
+	Config
 }
 
 var (
