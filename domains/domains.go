@@ -110,12 +110,12 @@ func ConfigForHost(host string) *ConfigWithHost {
 }
 
 func configure(m map[string]*Config) []*ConfigWithHost {
-	configs := make([]*ConfigWithHost, 0, len(m))
+	cfgs := make([]*ConfigWithHost, 0, len(m))
 	for domain, config := range m {
-		configs = append(configs, &ConfigWithHost{Host: domain, Config: *config})
+		cfgs = append(cfgs, &ConfigWithHost{Host: domain, Config: *config})
 	}
-	sort.Sort(byDepth(configs))
-	return configs
+	sort.Sort(byDepth(cfgs))
+	return cfgs
 }
 
 type byDepth []*ConfigWithHost
