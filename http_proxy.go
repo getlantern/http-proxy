@@ -476,7 +476,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		}),
 		proxyfilters.RestrictConnectPorts(p.allowedTunnelPorts()),
 		proxyfilters.RecordOp,
-		cleanheadersfilter.New(),
+		cleanheadersfilter.New(), // IMPORTANT, this should be the last filter in the chain to avoid stripping any headers that other filters might need
 	)
 
 	return filterChain, func(ctx context.Context, isCONNECT bool, network, addr string) (net.Conn, error) {
