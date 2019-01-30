@@ -92,6 +92,7 @@ type obfs4listener struct {
 	clients                       map[string]*client
 	pending                       chan net.Conn
 	ready                         chan *result
+	numClients                    int64
 	handshaking                   int64
 	closeMx                       sync.Mutex
 	closed                        bool
@@ -164,6 +165,7 @@ func (l *obfs4listener) accept() {
 			}
 			l.clientsFinished.Add(1)
 			l.clients[remoteHost] = cl
+			atomic.AddInt64(&l.numClients, 1)
 			go cl.wrapIncoming(l.pending)
 		}
 		select {
@@ -215,7 +217,7 @@ func (l *obfs4listener) wrap(conn net.Conn) {
 func (l *obfs4listener) monitor() {
 	for {
 		time.Sleep(5 * time.Second)
-		log.Debugf("Number of clients: %d", len(l.clients))
+		log.Debugf("Number of clients: %d", atomic.LoadInt64(&l.numClients))
 		log.Debugf("Connections waiting to start handshaking: %d", len(l.pending))
 		log.Debugf("Currently handshaking connections: %d", atomic.LoadInt64(&l.handshaking))
 	}
