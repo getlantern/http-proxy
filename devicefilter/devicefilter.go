@@ -16,6 +16,7 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/getlantern/http-proxy-lantern/domains"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/redis"
 	"github.com/getlantern/http-proxy-lantern/throttle"
@@ -32,10 +33,9 @@ var (
 
 // deviceFilterPre does the device-based filtering
 type deviceFilterPre struct {
-	deviceFetcher    *redis.DeviceFetcher
-	throttleConfig   throttle.Config
-	fasttrackDomains *common.FasttrackDomains
-	sendXBQHeader    bool
+	deviceFetcher  *redis.DeviceFetcher
+	throttleConfig throttle.Config
+	sendXBQHeader  bool
 }
 
 // deviceFilterPost cleans up
@@ -47,7 +47,6 @@ type deviceFilterPost struct {
 // * df is used to fetch device data usage across all proxies from a central Redis.
 // * throttleConfig is to determine the threshold and throttle rate. They can
 // be fixed values or fetched from Redis periodically.
-// * If fasttrackDomains is given, it skips throttling for the fasttrackDomains, if any.
 // * If sendXBQHeader is true, it attaches a common.XBQHeader to inform the
 // clients the usage information before this request is made. The header is
 // expected to follow this format:
@@ -59,16 +58,15 @@ type deviceFilterPost struct {
 // <asof> is the 64-bit signed integer representing seconds since a custom
 // epoch (00:00:00 01/01/2016 UTC).
 
-func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, fasttrackDomains *common.FasttrackDomains, sendXBQHeader bool) filters.Filter {
+func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, sendXBQHeader bool) filters.Filter {
 	if throttleConfig != nil {
 		log.Debug("Throttling enabled")
 	}
 
 	return &deviceFilterPre{
-		deviceFetcher:    df,
-		throttleConfig:   throttleConfig,
-		fasttrackDomains: fasttrackDomains,
-		sendXBQHeader:    sendXBQHeader,
+		deviceFetcher:  df,
+		throttleConfig: throttleConfig,
+		sendXBQHeader:  sendXBQHeader,
 	}
 }
 
@@ -78,9 +76,9 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 		log.Tracef("DeviceFilter Middleware received request:\n%s", reqStr)
 	}
 
-	// If we're requesting a whitelisted domain, don't count it towards the
+	// Some domains are excluded from being throttled and don't count towards the
 	// bandwidth cap.
-	if f.fasttrackDomains.Whitelisted(req) {
+	if domains.ConfigForRequest(req).Unthrottled {
 		return next(ctx, req)
 	}
 

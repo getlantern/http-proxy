@@ -10,7 +10,6 @@ cfgsvrdomains =   # Config-server domains on which to attach auth token, separat
 configUpdateInterval = 0s  # Update interval for re-reading config file set via -config flag. Zero disables config file re-reading.
 enablereports = false  # Enable stats reporting
 externalip =   # The external IP of this proxy, used for reporting to Borda
-fasttrackdomains =   # Whitelisted domains, such as the config server, pro server, etc, that should not count towards the bandwidth cap or be throttled, separated by comma
 google-captcha-regex = ^ipv4.google\..+  # Regex for detecting access to Google captcha page
 google-search-regex = ^(www.)?google\..+  # Regex for detecting access to Google Search
 help = false  # Get usage help
