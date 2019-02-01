@@ -1,18 +1,15 @@
-# This docker machine is able to compile http-proxy-lantern for Linux
+# This docker machine is able to compile http-proxy-lantern for Ubuntu Linux
 
-FROM fedora:21
+FROM ubuntu:16.04
 MAINTAINER "The Lantern Team" <team@getlantern.org>
-
-# Updating system.
-RUN yum install -y deltarpm && yum update -y && yum clean packages
 
 # Requisites for building Go.
 # Touching /var/lib/rpm/* to work around an issue building container. Same below.
 # See https://github.com/moby/moby/issues/10180#issuecomment-378005800.
-RUN touch /var/lib/rpm/* && yum install -y git tar gzip curl hostname && yum clean packages
+RUN apt-get update && apt-get install -y git tar gzip curl hostname
 
 # Compilers and tools for CGO.
-RUN touch /var/lib/rpm/* && yum install -y gcc gcc-c++ libgcc.i686 gcc-c++.i686 pkg-config make libpcap-devel && yum clean packages
+RUN apt-get install -y build-essential pkg-config make libpcap-dev
 
 # Getting Go.
 ENV GOROOT /usr/local/go

@@ -111,7 +111,7 @@ To build for distribution but not tagging or generating new changelog:
 make distnochange
 ```
 
-When working on non-linux machines, prepending `docker-` to the targets, i.e., `make docker-dist` and `make docker-distnochange` respectively.
+When building on non-linux machines, prepending `docker-` to the targets, i.e., `make docker-dist` and `make docker-distnochange` respectively.
 
 Once you've build a binary for distribution, you can deploy it to all live proxies with:
 

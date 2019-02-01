@@ -89,7 +89,7 @@ docker-builder: system-checks
 	cp Dockerfile $$DOCKER_CONTEXT && \
 	docker build -t $(DOCKER_IMAGE_TAG) --build-arg go_version=go$(GO_VERSION) $$DOCKER_CONTEXT
 
-# workaround to build linux binary on non-linux platforms.
+# workaround to build Ubuntu binary on non-Ubuntu platforms.
 docker-distnochange: docker-builder require-dep
 	docker run -e GIT_REVISION='$(GIT_REVISION)' \
 	-e SRCDIR='github.com/getlantern/http-proxy-lantern' \
