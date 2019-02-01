@@ -4,8 +4,6 @@ FROM ubuntu:16.04
 MAINTAINER "The Lantern Team" <team@getlantern.org>
 
 # Requisites for building Go.
-# Touching /var/lib/rpm/* to work around an issue building container. Same below.
-# See https://github.com/moby/moby/issues/10180#issuecomment-378005800.
 RUN apt-get update && apt-get install -y git tar gzip curl hostname
 
 # Compilers and tools for CGO.
