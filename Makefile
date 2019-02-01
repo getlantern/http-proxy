@@ -5,6 +5,14 @@ GIT_REVISION := $(shell git rev-parse --short HEAD)
 CHANGE_BIN   := $(shell which github_changelog_generator)
 
 GO_VERSION := 1.10.7
+DOCKER_IMAGE_TAG := http-proxy-builder
+DOCKER_VOLS = "-v $$PWD/../../..:/src"
+
+get-command = $(shell which="$$(which $(1) 2> /dev/null)" && if [[ ! -z "$$which" ]]; then printf %q "$$which"; fi)
+
+DEP_BIN   := $(call get-command,dep)
+DOCKER    := $(call get-command,docker)
+GO        := $(call get-command,go)
 
 .PHONY: dist build require-dep
 
@@ -69,3 +77,25 @@ deploy-staging: dist/http-proxy
 
 clean:
 	rm -rf dist bin
+
+
+system-checks:
+	@if [[ -z "$(DOCKER)" ]]; then echo 'Missing "docker" command.'; exit 1; fi && \
+	if [[ -z "$(GO)" ]]; then echo 'Missing "go" command.'; exit 1; fi
+
+docker-builder: system-checks
+	DOCKER_CONTEXT=.$(DOCKER_IMAGE_TAG)-context && \
+	mkdir -p $$DOCKER_CONTEXT && \
+	cp Dockerfile $$DOCKER_CONTEXT && \
+	docker build -t $(DOCKER_IMAGE_TAG) --build-arg go_version=go$(GO_VERSION) $$DOCKER_CONTEXT
+
+# workaround to build linux binary on non-linux platforms.
+docker-distnochange: docker-builder require-dep
+	docker run -e GIT_REVISION='$(GIT_REVISION)' \
+	-e SRCDIR='github.com/getlantern/http-proxy-lantern' \
+	-v $$PWD/../../..:/src -t $(DOCKER_IMAGE_TAG) /bin/bash -c \
+	'cd /src && go build -o $$SRCDIR/dist/http-proxy -ldflags="-X main.revision=$$GIT_REVISION" $$SRCDIR/http-proxy' && \
+	file dist/http-proxy
+
+docker-dist: require-dep require-upx require-version require-change docker-distnochange
+	$(call tag-changelog,http-proxy-lantern)
