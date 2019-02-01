@@ -182,6 +182,10 @@ func (p *Proxy) ListenAndServe() error {
 	p.initRedisClient()
 	p.loadThrottleConfig()
 
+	if p.ENHTTPAddr != "" {
+		return p.ListenAndServeENHTTP()
+	}
+
 	// Only allow connections from remote IPs that are not blacklisted
 	blacklist := p.createBlacklist()
 	filterChain, dial, err := p.createFilterChain(blacklist)
@@ -192,6 +196,7 @@ func (p *Proxy) ListenAndServe() error {
 	if p.QUICAddr != "" {
 		filterChain = filterChain.Prepend(quic.NewMiddleware())
 	}
+	filterChain = filterChain.Prepend(opsfilter.New(p.bm))
 
 	bwReporting, bordaReporter := p.configureBandwidthReporting()
 
@@ -222,9 +227,9 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	srv := server.New(&server.Opts{
-		IdleTimeout: p.IdleTimeout,
-		Dial:        reportingDial,
-		Filter:      filterChain.Prepend(opsfilter.New(p.bm)),
+		IdleTimeout:              p.IdleTimeout,
+		Dial:                     dial,
+		Filter:                   Instrumented("proxy", filterChain),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  onServerError,
 	})
@@ -233,20 +238,6 @@ func (p *Proxy) ListenAndServe() error {
 	srv.Allow = blacklist.OnConnect
 	p.applyThrottling(srv, bwReporting)
 	srv.AddListenerWrappers(bwReporting.wrapper)
-
-	if p.ENHTTPAddr != "" {
-		el, err := net.Listen("tcp", p.ENHTTPAddr)
-		if err != nil {
-			return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
-		}
-		log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
-		filterChain := filters.Join(tokenfilter.New(p.Token), ping.New(0))
-		enhttpHandler := enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL)
-		server := &http.Server{
-			Handler: filters.Intercept(enhttpHandler, filterChain),
-		}
-		return server.Serve(el)
-	}
 
 	allListeners := make([]net.Listener, 0)
 	addListenerIfNecessary := func(addr string, fn listenerBuilderFN) error {
@@ -295,6 +286,20 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	return <-errCh
+}
+
+func (p *Proxy) ListenAndServeENHTTP() error {
+	el, err := net.Listen("tcp", p.ENHTTPAddr)
+	if err != nil {
+		return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
+	}
+	log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
+	filterChain := filters.Join(tokenfilter.New(p.Token), ping.New(0))
+	enhttpHandler := enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL)
+	server := &http.Server{
+		Handler: filters.Intercept(enhttpHandler, Instrumented("proxy", filterChain)),
+	}
+	return server.Serve(el)
 }
 
 func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
