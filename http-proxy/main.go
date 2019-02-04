@@ -16,6 +16,7 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
+	"github.com/getlantern/http-proxy-lantern/instrument"
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/stackdrivererror"
 	"github.com/getlantern/http-proxy-lantern/throttle"
@@ -140,7 +141,7 @@ func main() {
 	if *promExporterAddr != "" {
 		go func() {
 			log.Debugf("Starting Prometheus exporter at http://%s/metrics", *promExporterAddr)
-			if err := proxy.StartPromExporter(*promExporterAddr); err != nil {
+			if err := instrument.Start(*promExporterAddr); err != nil {
 				log.Error(err)
 			}
 		}()
@@ -158,29 +159,29 @@ func main() {
 	go periodicallyForceGC()
 
 	p := &proxy.Proxy{
-		HTTPAddr:                           *addr,
-		HTTPMultiplexAddr:                  *multiplexAddr,
-		CertFile:                           *certfile,
-		CfgSvrAuthToken:                    *cfgSvrAuthToken,
-		ConnectOKWaitsForUpstream:          *connectOKWaitsForUpstream,
-		EnableReports:                      *enableReports,
-		ThrottleRefreshInterval:            *throttleRefreshInterval,
-		ThrottleThreshold:                  *throttleThreshold,
-		ThrottleRate:                       *throttleRate,
-		BordaReportInterval:                *bordaReportInterval,
-		BordaSamplePercentage:              *bordaSamplePercentage,
-		BordaBufferSize:                    *bordaBufferSize,
-		ExternalIP:                         *externalIP,
-		HTTPS:                              *https,
-		IdleTimeout:                        time.Duration(*idleClose) * time.Second,
-		KeyFile:                            *keyfile,
-		Pro:                                *pro,
-		ProxiedSitesSamplePercentage:       *proxiedSitesSamplePercentage,
-		ProxiedSitesTrackingID:             *proxiedSitesTrackingId,
-		ReportingRedisAddr:                 *reportingRedisAddr,
-		ReportingRedisCA:                   *reportingRedisCA,
-		ReportingRedisClientPK:             *reportingRedisClientPK,
-		ReportingRedisClientCert:           *reportingRedisClientCert,
+		HTTPAddr:                  *addr,
+		HTTPMultiplexAddr:         *multiplexAddr,
+		CertFile:                  *certfile,
+		CfgSvrAuthToken:           *cfgSvrAuthToken,
+		ConnectOKWaitsForUpstream: *connectOKWaitsForUpstream,
+		EnableReports:             *enableReports,
+		ThrottleRefreshInterval:   *throttleRefreshInterval,
+		ThrottleThreshold:         *throttleThreshold,
+		ThrottleRate:              *throttleRate,
+		BordaReportInterval:       *bordaReportInterval,
+		BordaSamplePercentage:     *bordaSamplePercentage,
+		BordaBufferSize:           *bordaBufferSize,
+		ExternalIP:                *externalIP,
+		HTTPS:                     *https,
+		IdleTimeout:               time.Duration(*idleClose) * time.Second,
+		KeyFile:                   *keyfile,
+		Pro:                       *pro,
+		ProxiedSitesSamplePercentage: *proxiedSitesSamplePercentage,
+		ProxiedSitesTrackingID:       *proxiedSitesTrackingId,
+		ReportingRedisAddr:           *reportingRedisAddr,
+		ReportingRedisCA:             *reportingRedisCA,
+		ReportingRedisClientPK:       *reportingRedisClientPK,
+		ReportingRedisClientCert:     *reportingRedisClientCert,
 		Token:                              *token,
 		TunnelPorts:                        *tunnelPorts,
 		Obfs4Addr:                          *obfs4Addr,

@@ -44,6 +44,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/domains"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/httpsrewriter"
+	"github.com/getlantern/http-proxy-lantern/instrument"
 	"github.com/getlantern/http-proxy-lantern/lampshade"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
@@ -229,7 +230,7 @@ func (p *Proxy) ListenAndServe() error {
 	srv := server.New(&server.Opts{
 		IdleTimeout:              p.IdleTimeout,
 		Dial:                     dial,
-		Filter:                   Instrumented("proxy", filterChain),
+		Filter:                   instrument.WrapFilter("proxy", filterChain),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  onServerError,
 	})
@@ -297,7 +298,7 @@ func (p *Proxy) ListenAndServeENHTTP() error {
 	filterChain := filters.Join(tokenfilter.New(p.Token), ping.New(0))
 	enhttpHandler := enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL)
 	server := &http.Server{
-		Handler: filters.Intercept(enhttpHandler, Instrumented("proxy", filterChain)),
+		Handler: filters.Intercept(enhttpHandler, instrument.WrapFilter("proxy", filterChain)),
 	}
 	return server.Serve(el)
 }
