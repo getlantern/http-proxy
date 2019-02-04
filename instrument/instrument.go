@@ -1,6 +1,7 @@
 package instrument
 
 import (
+	"net"
 	"net/http"
 	"time"
 
@@ -69,6 +70,20 @@ func (f *instrumentedFilter) Apply(ctx filters.Context, req *http.Request, next 
 	}
 	f.duration.Observe(time.Since(start).Seconds())
 	return res, ctx, err
+}
+
+// WrapConnErrorHandler wraps an error handler to instrument the error count.
+func WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error) {
+	c := register(prometheus.NewCounter(prometheus.CounterOpts{
+		Name: prefix + "_errors_total",
+	})).(prometheus.Counter)
+	if f == nil {
+		f = func(conn net.Conn, err error) {}
+	}
+	return func(conn net.Conn, err error) {
+		c.Inc()
+		f(conn, err)
+	}
 }
 
 // Blacklist instruments the blacklist checking.

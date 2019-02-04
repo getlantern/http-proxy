@@ -232,7 +232,7 @@ func (p *Proxy) ListenAndServe() error {
 		Dial:                     dial,
 		Filter:                   instrument.WrapFilter("proxy", filterChain),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
-		OnError:                  onServerError,
+		OnError:                  instrument.WrapConnErrorHandler("proxy_serve", onServerError),
 	})
 	// Although we include blacklist functionality, it's currently only used to
 	// track potential blacklisting ad doesn't actually blacklist anyone.
@@ -265,8 +265,9 @@ func (p *Proxy) ListenAndServe() error {
 	if err := addListenerIfNecessary(p.Obfs4MultiplexAddr, p.wrapMultiplexing(p.listenOBFS4)); err != nil {
 		return err
 	}
-	// We pass onListenerError to lampshade so that we can dump pcaps in response
-	// to errors in its internal connection handling.
+	// We pass onListenerError to lampshade so that we can count errors in its
+	// internal connection handling and dump pcaps in response to them.
+	onListenerError = instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
 	if err := addListenerIfNecessary(p.LampshadeAddr, p.listenLampshade(onListenerError)); err != nil {
 		return err
 	}
