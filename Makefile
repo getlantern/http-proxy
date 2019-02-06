@@ -95,7 +95,7 @@ docker-distnochange: docker-builder require-dep
 	-e SRCDIR='github.com/getlantern/http-proxy-lantern' \
 	-v $$PWD/../../..:/src -t $(DOCKER_IMAGE_TAG) /bin/bash -c \
 	'cd /src && go build -o $$SRCDIR/dist/http-proxy -ldflags="-X main.revision=$$GIT_REVISION" $$SRCDIR/http-proxy' && \
-	file dist/http-proxy
+	upx dist/http-proxy
 
 docker-dist: require-dep require-upx require-version require-change docker-distnochange
 	$(call tag-changelog,http-proxy-lantern)
