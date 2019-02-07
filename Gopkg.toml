@@ -203,3 +203,4 @@
 [[override]]
   name = "github.com/marten-seemann/qtls"
   branch = "qtls"
+  source = "https://github.com/marten-seemann/qtls-deprecated"
