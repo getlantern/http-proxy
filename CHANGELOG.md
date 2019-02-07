@@ -1,5 +1,17 @@
 # Change Log
 
+## [0.2.7](https://github.com/getlantern/http-proxy-lantern/tree/0.2.7) (2019-02-06)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.6...0.2.7)
+
+**Merged pull requests:**
+
+- update quic package [\#287](https://github.com/getlantern/http-proxy-lantern/pull/287) ([forkner](https://github.com/forkner))
+- Add ability to release linux binary on non-linux platforms [\#286](https://github.com/getlantern/http-proxy-lantern/pull/286) ([joesis](https://github.com/joesis))
+- update quic package to pick up race fix [\#285](https://github.com/getlantern/http-proxy-lantern/pull/285) ([forkner](https://github.com/forkner))
+- Fixed data race in obfs4listener [\#284](https://github.com/getlantern/http-proxy-lantern/pull/284) ([oxtoacart](https://github.com/oxtoacart))
+- Strip Lantern internal headers and Proxy-Connection header if not goi… [\#283](https://github.com/getlantern/http-proxy-lantern/pull/283) ([oxtoacart](https://github.com/oxtoacart))
+- update to latest quic packages [\#282](https://github.com/getlantern/http-proxy-lantern/pull/282) ([forkner](https://github.com/forkner))
+
 ## [0.2.6](https://github.com/getlantern/http-proxy-lantern/tree/0.2.6) (2019-01-08)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.5...0.2.6)
 
