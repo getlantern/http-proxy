@@ -86,9 +86,15 @@ var configs = configure(
 // ConfigForRequest is like ConfigForHost, using the hostname part of req.Host
 // from the given request.
 func ConfigForRequest(req *http.Request) *ConfigWithHost {
-	host, _, err := net.SplitHostPort(req.Host)
+	return ConfigForAddress(req.Host)
+}
+
+// ConfigForAddress returns the config for the deepest matching sub-domain for
+// the host portion of the given network address.
+func ConfigForAddress(addr string) *ConfigWithHost {
+	host, _, err := net.SplitHostPort(addr)
 	if err != nil {
-		host = req.Host
+		host = addr
 	}
 	return ConfigForHost(host)
 }

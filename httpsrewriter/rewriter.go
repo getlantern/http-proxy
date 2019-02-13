@@ -27,7 +27,7 @@ func (f *Rewriter) Dialer(d Dial) Dial {
 		if err != nil {
 			return conn, err
 		}
-		if cfg := domains.ConfigForHost(address); cfg.RewriteToHTTPS {
+		if cfg := domains.ConfigForAddress(address); cfg.RewriteToHTTPS {
 			conn = tls.Client(conn, &tls.Config{ServerName: cfg.Host})
 			log.Debugf("Added TLS to connection to %s", address)
 		}
@@ -53,4 +53,5 @@ func (f *Rewriter) rewrite(host string, req *http.Request) {
 	// for some reason we forgot, the scheme has to be cleared, rather than set to "https"
 	req.URL.Scheme = ""
 	req.Host = host + ":443"
+	log.Debugf("Rewrote request to HTTPS: %v  with host %v", req.URL, req.Host)
 }
