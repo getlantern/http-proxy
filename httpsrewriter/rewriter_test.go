@@ -66,7 +66,11 @@ func TestDialerConfigServer(t *testing.T) {
 	d := &net.Dialer{}
 	dial := (&Rewriter{}).Dialer(d.DialContext)
 	conn, err := dial(context.Background(), "tcp", "config.getiantem.org:443")
-	assert.NoError(t, err)
+	if assert.NoError(t, err) {
+		_, ok := conn.(*tls.Conn)
+		assert.True(t, ok, "should be a tls.Conn")
+	}
+
 	conn.Close()
 }
 
