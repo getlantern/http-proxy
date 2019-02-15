@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.2.9](https://github.com/getlantern/http-proxy-lantern/tree/0.2.9) (2019-02-15)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.8...0.2.9)
+
+**Merged pull requests:**
+
+- Lampshade now acks quickly on first frame of connection to try and pr… [\#290](https://github.com/getlantern/http-proxy-lantern/pull/290) ([oxtoacart](https://github.com/oxtoacart))
+
 ## [0.2.8](https://github.com/getlantern/http-proxy-lantern/tree/0.2.8) (2019-02-13)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.7...0.2.8)
 
