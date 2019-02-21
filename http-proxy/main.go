@@ -90,6 +90,7 @@ var (
 	pcapsPerIP                         = flag.Int("pcaps-per-ip", 0, "The number of packets to capture for each IP address")
 	pcapSnapLen                        = flag.Int("pcap-snap-len", 1600, "The maximum size packet to capture")
 	pcapTimeout                        = flag.Duration("pcap-timeout", 30*time.Millisecond, "Timeout for capturing packets")
+	packetForwardAddr                  = flag.String("pforward-addr", "", "Address at which to listen for packet forwarding connections")
 )
 
 func main() {
@@ -187,6 +188,7 @@ func main() {
 		PCAPSPerIP:                         *pcapsPerIP,
 		PCAPSnapLen:                        *pcapSnapLen,
 		PCAPTimeout:                        *pcapTimeout,
+		PacketForwardAddr:                  *packetForwardAddr,
 	}
 
 	err := p.ListenAndServe()

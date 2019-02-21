@@ -249,6 +249,14 @@
   revision = "c5f0cd24e7991579ba6f5f1bd20a1ad2c9f06cd4"
 
 [[projects]]
+  branch = "ox/issue2635"
+  digest = "1:70a1ea4270b3a90c236308628b8922c71040acf976c7e7f321bb964cdcca4a4e"
+  name = "github.com/getlantern/framed"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "a0ee46d06d5840ab5605b4d6465ec1686414700d"
+
+[[projects]]
   branch = "master"
   digest = "1:fb7825a4b694cd70c0250127c7cfb692c8f9c23a6bd0c4bcb899f0b93ec85ad8"
   name = "github.com/getlantern/geolookup"
@@ -284,6 +292,17 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "cca714f7feb5df8e455f409b549d384441ac4578"
+
+[[projects]]
+  branch = "master"
+  digest = "1:9264a5303dbdbaf779720c54b27c8990fb98f1a7adfeab332f3e26cb3c878091"
+  name = "github.com/getlantern/gotun"
+  packages = [
+    ".",
+    "packet",
+  ]
+  pruneopts = "UT"
+  revision = "a925033dae035d4f8f85a5bcc67b9bfaaed30268"
 
 [[projects]]
   branch = "master"
@@ -402,11 +421,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:30181df0b6eeb2a6cd136d480b6f688658c7976793fa83e00a731859a680dd05"
+  digest = "1:50425f63a4348b642f1ce2a343b86077e62f98153d1bf00d9bc3387524e71872"
   name = "github.com/getlantern/netx"
   packages = ["."]
   pruneopts = "UT"
-  revision = "2e444869f9f5c45c651ee847e4a2ea27231ecec9"
+  revision = "9912de6f94fd1dd35a2f3af9a9ce5650d1a10b7a"
 
 [[projects]]
   branch = "master"
@@ -415,6 +434,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "37353306c90844c8e0591956f56611f46299d202"
+
+[[projects]]
+  branch = "ox/issue2635"
+  digest = "1:0dc037c74982bf2b40923ab3d547f6adc2a8d60c1d68ee75cb0cc87271aad14a"
+  name = "github.com/getlantern/packetforward"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "09aef8a8f0ea134d672df1359d91cf05ec1912f4"
 
 [[projects]]
   branch = "master"
@@ -1025,7 +1052,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:a23da50ce831d199243c80aca80f0da15b6c74c736929c680dd4bdfc437e81c9"
+  digest = "1:f7bdb037b100c972aa39a3e252f63660c911876c2ccced29b0bed458d8ef278b"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -1037,8 +1064,10 @@
     "idna",
     "internal/iana",
     "internal/socket",
+    "internal/socks",
     "internal/timeseries",
     "ipv4",
+    "proxy",
     "trace",
   ]
   pruneopts = "UT"
@@ -1068,12 +1097,13 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ddbafa32d1899456edbf7a64aec7afe5aa287b840e6a12b996f8a8425c1d9a6a"
+  digest = "1:55fbf200c82044f842158575e7fd1c408388194b9d0aede172a4a4a414c8ae0b"
   name = "golang.org/x/sys"
   packages = [
     "cpu",
     "unix",
     "windows",
+    "windows/registry",
   ]
   pruneopts = "UT"
   revision = "d641721ec2dead6fe5ca284096fe4b1fcd49e427"
@@ -1223,6 +1253,7 @@
     "github.com/getlantern/errors",
     "github.com/getlantern/geolookup",
     "github.com/getlantern/golog",
+    "github.com/getlantern/gotun",
     "github.com/getlantern/hidden",
     "github.com/getlantern/http-proxy/buffers",
     "github.com/getlantern/http-proxy/listeners",
@@ -1236,6 +1267,7 @@
     "github.com/getlantern/mtime",
     "github.com/getlantern/netx",
     "github.com/getlantern/ops",
+    "github.com/getlantern/packetforward",
     "github.com/getlantern/pcapper",
     "github.com/getlantern/proxy",
     "github.com/getlantern/proxy/filters",

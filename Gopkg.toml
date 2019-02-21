@@ -204,3 +204,11 @@
   name = "github.com/marten-seemann/qtls"
   branch = "qtls"
   source = "https://github.com/marten-seemann/qtls-deprecated"
+
+[[constraint]]
+  branch = "ox/issue2635"
+  name = "github.com/getlantern/packetforward"
+
+[[override]]
+  name = "github.com/getlantern/framed"
+  branch = "ox/issue2635"

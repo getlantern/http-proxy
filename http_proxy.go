@@ -18,8 +18,10 @@ import (
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
+	"github.com/getlantern/gotun"
 	"github.com/getlantern/kcpwrapper"
 	"github.com/getlantern/ops"
+	"github.com/getlantern/packetforward"
 	"github.com/getlantern/pcapper"
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
@@ -127,6 +129,7 @@ type Proxy struct {
 	PCAPSPerIP                         int
 	PCAPSnapLen                        int
 	PCAPTimeout                        time.Duration
+	PacketForwardAddr                  string
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -172,6 +175,7 @@ func (p *Proxy) ListenAndServe() error {
 		}()
 	}
 
+	p.setupPacketForward()
 	p.setupOpsContext()
 	p.setBenchmarkMode()
 	p.bm = bbr.New()
@@ -401,7 +405,11 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	)
 
 	if !p.TestingLocal {
-		filterChain = filterChain.Append(proxyfilters.BlockLocal([]string{"127.0.0.1:7300"}))
+		allowedLocalAddrs := []string{"127.0.0.1:7300"}
+		if p.PacketForwardAddr != "" {
+			allowedLocalAddrs = append(allowedLocalAddrs, p.PacketForwardAddr)
+		}
+		filterChain = filterChain.Append(proxyfilters.BlockLocal(allowedLocalAddrs))
 	}
 	filterChain = filterChain.Append(ping.New(0))
 
@@ -666,6 +674,24 @@ func (p *Proxy) listenQUIC(addr string, bordaReporter listeners.MeasuredReportFN
 
 	log.Debugf("Listening for quic at %v", l.Addr())
 	return l, err
+}
+
+func (p *Proxy) setupPacketForward() {
+	if p.PacketForwardAddr == "" {
+		return
+	}
+	l, err := net.Listen("tcp", p.PacketForwardAddr)
+	if err != nil {
+		log.Errorf("Unable to listen for packet forwarding at %v: %v", p.PacketForwardAddr, err)
+		return
+	}
+	log.Debugf("Listening for packet forwarding at %v", l.Addr())
+	go func() {
+		err := packetforward.Serve(l, &tun.BridgeOpts{})
+		if err != nil {
+			log.Errorf("Error serving packet forwarding: %v", err)
+		}
+	}()
 }
 
 func portsFromCSV(csv string) ([]int, error) {
