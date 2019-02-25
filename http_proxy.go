@@ -193,9 +193,21 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	bwReporting, bordaReporter := p.configureBandwidthReporting()
+
+	reportingDial := func(ctx context.Context, isCONNECT bool, network, addr string) (net.Conn, error) {
+		op := ops.Begin("dial_origin")
+		start := time.Now()
+		conn, err := dial(ctx, isCONNECT, network, addr)
+		delta := time.Now().Sub(start)
+		op.Set("dial_origin_time", delta.Seconds())
+		op.FailIf(err)
+		op.End()
+		return conn, err
+	}
+
 	srv := server.New(&server.Opts{
 		IdleTimeout: p.IdleTimeout,
-		Dial:        dial,
+		Dial:        reportingDial,
 		Filter:      filterChain.Prepend(opsfilter.New(p.bm)),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  onServerError,
