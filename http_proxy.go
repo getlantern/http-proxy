@@ -197,12 +197,25 @@ func (p *Proxy) ListenAndServe() error {
 	reportingDial := func(ctx context.Context, isCONNECT bool, network, addr string) (net.Conn, error) {
 		op := ops.Begin("dial_origin")
 		start := time.Now()
-		conn, err := dial(ctx, isCONNECT, network, addr)
-		delta := time.Now().Sub(start)
-		op.Set("dial_origin_time", delta.Seconds())
-		op.FailIf(err)
-		op.End()
-		return conn, err
+
+		// resolve separately so that we can track the DNS resolution time
+		resolveOp := ops.Begin("resolve_origin")
+		resolvedAddr, resolveErr := net.ResolveTCPAddr(network, addr)
+		if resolveErr != nil {
+			resolveOp.FailIf(resolveErr)
+			op.FailIf(resolveErr)
+			return nil, resolveErr
+		}
+		op.Set("resolve_origin_time", time.Now().Sub(start).Seconds())
+
+		conn, dialErr := dial(ctx, isCONNECT, network, resolvedAddr.String())
+		if dialErr != nil {
+			op.FailIf(dialErr)
+			return nil, dialErr
+		}
+		op.Set("dial_origin_time", time.Now().Sub(start).Seconds())
+
+		return conn, nil
 	}
 
 	srv := server.New(&server.Opts{
