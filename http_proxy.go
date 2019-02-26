@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	bordaClient "github.com/getlantern/borda/client"
 	"github.com/getlantern/cmux"
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
@@ -206,14 +207,14 @@ func (p *Proxy) ListenAndServe() error {
 			op.FailIf(resolveErr)
 			return nil, resolveErr
 		}
-		op.Set("resolve_origin_time", time.Now().Sub(start).Seconds())
+		op.Set("resolve_origin_time", bordaClient.Avg(time.Now().Sub(start).Seconds()))
 
 		conn, dialErr := dial(ctx, isCONNECT, network, resolvedAddr.String())
 		if dialErr != nil {
 			op.FailIf(dialErr)
 			return nil, dialErr
 		}
-		op.Set("dial_origin_time", time.Now().Sub(start).Seconds())
+		op.Set("dial_origin_time", bordaClient.Avg(time.Now().Sub(start).Seconds()))
 
 		return conn, nil
 	}
