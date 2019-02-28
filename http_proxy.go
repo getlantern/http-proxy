@@ -18,7 +18,7 @@ import (
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
-	"github.com/getlantern/gotun"
+	"github.com/getlantern/ipproxy"
 	"github.com/getlantern/kcpwrapper"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/packetforward"
@@ -687,7 +687,12 @@ func (p *Proxy) setupPacketForward() {
 	}
 	log.Debugf("Listening for packet forwarding at %v", l.Addr())
 	go func() {
-		err := packetforward.Serve(l, &tun.BridgeOpts{})
+		err := packetforward.Serve(l, &ipproxy.Opts{
+			BufferPoolSize:      10000,
+			OutboundBufferDepth: 1000,
+			TCPConnectBacklog:   100,
+			IdleTimeout:         90 * time.Second,
+		})
 		if err != nil {
 			log.Errorf("Error serving packet forwarding: %v", err)
 		}
