@@ -332,11 +332,11 @@
 
 [[projects]]
   branch = "ox/init"
-  digest = "1:7920fc54b5e87abbf3d232a0e203964e85003f307016cdf3e99ca8f57f3a2ab6"
+  digest = "1:26bfd64b0a7ca05edc81551f42167bb8f2be8e473f828cd4823f7d4b4f9dba98"
   name = "github.com/getlantern/ipproxy"
   packages = ["."]
   pruneopts = "UT"
-  revision = "3afcd48f6c62ad867064f1ade9db5801a7c6f93e"
+  revision = "074b3eedb084d85d34020090a01c65ea172b80b0"
 
 [[projects]]
   digest = "1:24ccff6de46c9c7f87292e7cdd967e2d5d5bafcc47b62fd565b43a226d72743b"
@@ -434,11 +434,11 @@
 
 [[projects]]
   branch = "ox/ipproxy"
-  digest = "1:1d778f6c789030d3bf497a27bdd2eb03b614df7abedf41ee405c409bc3626c56"
+  digest = "1:2861da7fd5b59077403468d74f54fda7a42ed373f7ffe236332231cb2e891360"
   name = "github.com/getlantern/packetforward"
   packages = ["."]
   pruneopts = "UT"
-  revision = "86e1c6909e87533f3d321b83b2da6892e03a1011"
+  revision = "a4c0f27cfeb12428ec5cc6a2b2add135f505d76f"
 
 [[projects]]
   branch = "master"
@@ -1092,7 +1092,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:f7bdb037b100c972aa39a3e252f63660c911876c2ccced29b0bed458d8ef278b"
+  digest = "1:a23da50ce831d199243c80aca80f0da15b6c74c736929c680dd4bdfc437e81c9"
   name = "golang.org/x/net"
   packages = [
     "bpf",
@@ -1104,10 +1104,8 @@
     "idna",
     "internal/iana",
     "internal/socket",
-    "internal/socks",
     "internal/timeseries",
     "ipv4",
-    "proxy",
     "trace",
   ]
   pruneopts = "UT"

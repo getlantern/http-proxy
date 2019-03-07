@@ -688,8 +688,7 @@ func (p *Proxy) setupPacketForward() {
 	log.Debugf("Listening for packet forwarding at %v", l.Addr())
 	go func() {
 		err := packetforward.Serve(l, &ipproxy.Opts{
-			BufferPoolSize:      10000,
-			OutboundBufferDepth: 1000,
+			OutboundBufferDepth: 10000,
 			TCPConnectBacklog:   100,
 			IdleTimeout:         90 * time.Second,
 		})
