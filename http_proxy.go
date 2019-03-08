@@ -198,9 +198,9 @@ func (p *Proxy) ListenAndServe() error {
 
 	bwReporting, bordaReporter := p.configureBandwidthReporting()
 	srv := server.New(&server.Opts{
-		IdleTimeout: p.IdleTimeout,
-		Dial:        dial,
-		Filter:      filterChain.Prepend(opsfilter.New(p.bm)),
+		IdleTimeout:              p.IdleTimeout,
+		Dial:                     dial,
+		Filter:                   filterChain.Prepend(opsfilter.New(p.bm)),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  onServerError,
 	})
@@ -687,11 +687,12 @@ func (p *Proxy) setupPacketForward() {
 	}
 	log.Debugf("Listening for packet forwarding at %v", l.Addr())
 	go func() {
-		err := packetforward.Serve(l, &ipproxy.Opts{
+		s := packetforward.NewServer(&ipproxy.Opts{
 			OutboundBufferDepth: 10000,
 			TCPConnectBacklog:   100,
 			IdleTimeout:         90 * time.Second,
 		})
+		err := s.Serve(l)
 		if err != nil {
 			log.Errorf("Error serving packet forwarding: %v", err)
 		}
