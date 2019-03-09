@@ -242,14 +242,6 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:ffb017375e95065ae0bb675f646dc6d32a07a41d87c1b58cd07264afb55d9b8e"
-  name = "github.com/getlantern/eventual"
-  packages = ["."]
-  pruneopts = "UT"
-  revision = "84b02499361bd83c36db68d42f7d45aae760168e"
-
-[[projects]]
-  branch = "master"
   digest = "1:99c1c515274e6c3ead7bf68dcc77f56131d0f937adeb6808ba86e0911adfdda7"
   name = "github.com/getlantern/filepersist"
   packages = ["."]
@@ -442,11 +434,11 @@
 
 [[projects]]
   branch = "ox/ipproxy"
-  digest = "1:3ed6bc3e800a12dc6ce30accbe6e57545188406345af1f6b8a0688befe71b388"
+  digest = "1:e6b9ce11e26e1fab56c491b557f75ae6b44a538e5313e52a37871d8bcbc39de0"
   name = "github.com/getlantern/packetforward"
   packages = ["."]
   pruneopts = "UT"
-  revision = "143f302610201469d9e46ac9748fa8736b568a53"
+  revision = "b833273e09ffade9eaccaa75b29528427637cac6"
 
 [[projects]]
   branch = "master"
