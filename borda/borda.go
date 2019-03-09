@@ -90,10 +90,7 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 			values["success_count"] = borda.Float(1)
 		}
 
-		reportErr := reportToBorda(values, ctx)
-		if reportErr != nil {
-			log.Errorf("Error reporting error to borda: %v", reportErr)
-		}
+		reportToBorda(values, ctx)
 	})
 
 	golog.RegisterReporter(func(err error, linePrefix string, severity golog.Severity, ctx map[string]interface{}) {
