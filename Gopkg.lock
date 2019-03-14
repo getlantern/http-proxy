@@ -242,6 +242,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:ffb017375e95065ae0bb675f646dc6d32a07a41d87c1b58cd07264afb55d9b8e"
+  name = "github.com/getlantern/eventual"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "84b02499361bd83c36db68d42f7d45aae760168e"
+
+[[projects]]
+  branch = "master"
   digest = "1:99c1c515274e6c3ead7bf68dcc77f56131d0f937adeb6808ba86e0911adfdda7"
   name = "github.com/getlantern/filepersist"
   packages = ["."]
@@ -332,11 +340,11 @@
 
 [[projects]]
   branch = "ox/init"
-  digest = "1:ec5cee5e97b7c0dd78b07e789b7c457cdd851d6b24cd2f81b8b15269c4789447"
+  digest = "1:74d7e30870d459b3c117367b8282d0b0c68223ed5d497aacd5f5ff1fc17b8f0e"
   name = "github.com/getlantern/ipproxy"
   packages = ["."]
   pruneopts = "UT"
-  revision = "4a010cc6735ba56aa01f9db393b0e020be648517"
+  revision = "8996add3e13c94c1b6c23fce70701351b12dd25b"
 
 [[projects]]
   digest = "1:24ccff6de46c9c7f87292e7cdd967e2d5d5bafcc47b62fd565b43a226d72743b"
@@ -712,7 +720,7 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:b257949365e7c6dfb0adcc39c5c46a9563367c53af0a76258cb1169e3db1923c"
+  digest = "1:55142a16897f202530e0fefcac6f77aa0788f3dc87a26736b2035fd24850f92f"
   name = "github.com/google/netstack"
   packages = [
     "ilist",
@@ -735,7 +743,7 @@
     "waiter",
   ]
   pruneopts = "UT"
-  revision = "05662c3b6143929d3782837a35f5dc812b9a317d"
+  revision = "8999826b821d2ab1516549a8887f6760145e6f04"
   source = "https://github.com/getlantern/netstack"
 
 [[projects]]
