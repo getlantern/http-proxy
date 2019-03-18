@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 DEP_BIN      ?= $(shell which dep)
 UPX_BIN      ?= $(shell which upx)
 BUILD_DIR    ?= bin
