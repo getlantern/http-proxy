@@ -14,6 +14,7 @@ import (
 	"syscall"
 	"time"
 
+	bordaClient "github.com/getlantern/borda/client"
 	"github.com/getlantern/cmux"
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
@@ -193,9 +194,34 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	bwReporting, bordaReporter := p.configureBandwidthReporting()
+
+	reportingDial := func(ctx context.Context, isCONNECT bool, network, addr string) (net.Conn, error) {
+		op := ops.Begin("dial_origin")
+		start := time.Now()
+
+		// resolve separately so that we can track the DNS resolution time
+		resolveOp := ops.Begin("resolve_origin")
+		resolvedAddr, resolveErr := net.ResolveTCPAddr(network, addr)
+		if resolveErr != nil {
+			resolveOp.FailIf(resolveErr)
+			op.FailIf(resolveErr)
+			return nil, resolveErr
+		}
+		op.Set("resolve_origin_time", bordaClient.Avg(time.Now().Sub(start).Seconds()))
+
+		conn, dialErr := dial(ctx, isCONNECT, network, resolvedAddr.String())
+		if dialErr != nil {
+			op.FailIf(dialErr)
+			return nil, dialErr
+		}
+		op.Set("dial_origin_time", bordaClient.Avg(time.Now().Sub(start).Seconds()))
+
+		return conn, nil
+	}
+
 	srv := server.New(&server.Opts{
 		IdleTimeout: p.IdleTimeout,
-		Dial:        dial,
+		Dial:        reportingDial,
 		Filter:      filterChain.Prepend(opsfilter.New(p.bm)),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  onServerError,
