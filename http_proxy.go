@@ -197,6 +197,8 @@ func (p *Proxy) ListenAndServe() error {
 
 	reportingDial := func(ctx context.Context, isCONNECT bool, network, addr string) (net.Conn, error) {
 		op := ops.Begin("dial_origin")
+		defer op.End()
+
 		start := time.Now()
 
 		// resolve separately so that we can track the DNS resolution time
