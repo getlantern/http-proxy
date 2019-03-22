@@ -49,14 +49,14 @@ type instrumentedFilter struct {
 func WrapFilter(prefix string, f filters.Filter) filters.Filter {
 	return &instrumentedFilter{
 		register(prometheus.NewCounter(prometheus.CounterOpts{
-			Name: prefix + "_processed_requests_total",
+			Name: prefix + "_requests_total",
 		})).(prometheus.Counter),
 		register(prometheus.NewCounter(prometheus.CounterOpts{
-			Name: prefix + "_request_processing_errors_total",
+			Name: prefix + "_request_errors_total",
 		})).(prometheus.Counter),
 		register(prometheus.NewHistogram(prometheus.HistogramOpts{
-			Name:    prefix + "_request_processing_duration_seconds",
-			Buckets: []float64{0.01, 0.1, 1},
+			Name:    prefix + "_request_duration_seconds",
+			Buckets: []float64{0.001, 0.01, 0.1, 1},
 		})).(prometheus.Histogram),
 		f}
 }
@@ -89,10 +89,10 @@ func WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(
 // Blacklist instruments the blacklist checking.
 func Blacklist() func(bool) {
 	checked := register(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "proxy_requests_blacklist_checked_total",
+		Name: "blacklist_checked_requests_total",
 	})).(prometheus.Counter)
 	blacklisted := register(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "proxy_requests_blacklisted_total",
+		Name: "blacklist_blacklisted_requests_total",
 	})).(prometheus.Counter)
 
 	return func(b bool) {
@@ -106,10 +106,10 @@ func Blacklist() func(bool) {
 // Mimic instruments the Apache mimicry.
 func Mimic() func(bool) {
 	checked := register(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "proxy_apache_mimicry_checked_total",
+		Name: "apache_mimicry_checked_total",
 	})).(prometheus.Counter)
 	mimicked := register(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "proxy_apache_mimicked_total",
+		Name: "apache_mimicry_mimicked_total",
 	})).(prometheus.Counter)
 
 	return func(m bool) {
@@ -118,4 +118,36 @@ func Mimic() func(bool) {
 			mimicked.Inc()
 		}
 	}
+}
+
+// Throttle instruments the device based throttling.
+func Throttle() func(bool, string) {
+	checked := register(prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "device_throttling_checked_total",
+	})).(prometheus.Counter)
+	throttled := register(prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "device_throttling_throttled_total",
+	}, []string{"reason"})).(*prometheus.CounterVec)
+
+	notThrottled := register(prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "device_throttling_not_throttled_total",
+	}, []string{"reason"})).(*prometheus.CounterVec)
+
+	return func(m bool, reason string) {
+		checked.Inc()
+		if m {
+			throttled.With(prometheus.Labels{"reason": reason}).Inc()
+		} else {
+			notThrottled.With(prometheus.Labels{"reason": reason}).Inc()
+		}
+	}
+}
+
+// XBQHeaderSent counts the number of times XBQ header is sent along with the
+// response.
+func XBQHeaderSent() func() {
+	sent := register(prometheus.NewCounter(prometheus.CounterOpts{
+		Name: "device_throttling_xbq_header_sent_total",
+	})).(prometheus.Counter)
+	return sent.Inc
 }
