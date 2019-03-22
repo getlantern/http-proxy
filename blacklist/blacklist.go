@@ -94,17 +94,17 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 	defer bl.mutex.RUnlock()
 	_, blacklisted := bl.blacklist[ip]
 	if blacklisted {
+		log.Debugf("%v is blacklisted", ip)
 		bl.instrument(true)
 		return false
-		log.Debugf("%v is blacklisted", ip)
 	}
+	bl.instrument(false)
 	select {
 	case bl.connections <- ip:
 		// ip submitted as connected
 	default:
 		_ = log.Errorf("Unable to record connection from %v", ip)
 	}
-	bl.instrument(false)
 	return true
 }
 
