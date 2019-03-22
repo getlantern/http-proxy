@@ -23,7 +23,6 @@ type tokenFilter struct {
 }
 
 func New(token string) filters.Filter {
-	log.Error("New token filter")
 	return &tokenFilter{
 		token:      token,
 		instrument: instrument.Mimic(),
