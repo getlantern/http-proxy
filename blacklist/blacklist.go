@@ -9,9 +9,10 @@ import (
 	"time"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy-lantern/instrument"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/pcapper"
+
+	"github.com/getlantern/http-proxy-lantern/instrument"
 )
 
 var (

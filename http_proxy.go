@@ -229,7 +229,7 @@ func (p *Proxy) ListenAndServe() error {
 
 	srv := server.New(&server.Opts{
 		IdleTimeout:              p.IdleTimeout,
-		Dial:                     dial,
+		Dial:                     reportingDial,
 		Filter:                   instrument.WrapFilter("proxy", filterChain),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  instrument.WrapConnErrorHandler("proxy_serve", onServerError),
@@ -296,7 +296,7 @@ func (p *Proxy) ListenAndServeENHTTP() error {
 		return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
 	}
 	log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
-	filterChain := filters.Join(tokenfilter.New(p.Token), ping.New(0))
+	filterChain := filters.Join(tokenfilter.New(p.Token), instrument.WrapFilter("http_ping", ping.New(0)))
 	enhttpHandler := enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL)
 	server := &http.Server{
 		Handler: filters.Intercept(enhttpHandler, instrument.WrapFilter("proxy", filterChain)),
@@ -438,7 +438,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	if !p.TestingLocal {
 		filterChain = filterChain.Append(proxyfilters.BlockLocal([]string{"127.0.0.1:7300"}))
 	}
-	filterChain = filterChain.Append(ping.New(0))
+	filterChain = filterChain.Append(instrument.WrapFilter("http_ping", ping.New(0)))
 
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97
