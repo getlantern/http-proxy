@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.2.13](https://github.com/getlantern/http-proxy-lantern/tree/0.2.13) (2019-03-27)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.12...0.2.13)
+
+**Merged pull requests:**
+
+- Applying reporting on dial metrics at a lower level [\#299](https://github.com/getlantern/http-proxy-lantern/pull/299) ([oxtoacart](https://github.com/oxtoacart))
+
 ## [0.2.12](https://github.com/getlantern/http-proxy-lantern/tree/0.2.12) (2019-03-21)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.11...0.2.12)
 
