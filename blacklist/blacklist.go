@@ -50,7 +50,6 @@ type Blacklist struct {
 	failureCounts       map[string]int
 	blacklist           map[string]time.Time
 	mutex               sync.RWMutex
-	instrument          func(bool)
 }
 
 // New creates a new Blacklist with given options.
@@ -66,7 +65,6 @@ func New(opts Options) *Blacklist {
 		lastConnectionTime:  make(map[string]time.Time),
 		failureCounts:       make(map[string]int),
 		blacklist:           make(map[string]time.Time),
-		instrument:          instrument.Blacklist(),
 	}
 	go bl.track()
 	return bl
@@ -87,7 +85,7 @@ func (bl *Blacklist) Succeed(ip string) {
 // blacklisted, this returns false.
 func (bl *Blacklist) OnConnect(ip string) bool {
 	if !blacklistingEnabled {
-		bl.instrument(false)
+		instrument.Blacklist(false)
 		return true
 	}
 	bl.mutex.RLock()
@@ -95,10 +93,10 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 	_, blacklisted := bl.blacklist[ip]
 	if blacklisted {
 		log.Debugf("%v is blacklisted", ip)
-		bl.instrument(true)
+		instrument.Blacklist(true)
 		return false
 	}
-	bl.instrument(false)
+	instrument.Blacklist(false)
 	select {
 	case bl.connections <- ip:
 		// ip submitted as connected

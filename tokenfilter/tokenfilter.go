@@ -18,14 +18,12 @@ import (
 var log = golog.LoggerFor("tokenfilter")
 
 type tokenFilter struct {
-	token      string
-	instrument func(bool)
+	token string
 }
 
 func New(token string) filters.Filter {
 	return &tokenFilter{
-		token:      token,
-		instrument: instrument.Mimic(),
+		token: token,
 	}
 }
 
@@ -46,7 +44,7 @@ func (f *tokenFilter) Apply(ctx filters.Context, req *http.Request, next filters
 	tokens := req.Header[common.TokenHeader]
 	if tokens == nil || len(tokens) == 0 || tokens[0] == "" {
 		log.Error(errorf(op, "No token provided, mimicking apache"))
-		f.instrument(true)
+		instrument.Mimic(true)
 		return mimicApache(ctx, req)
 	}
 	tokenMatched := false
@@ -59,11 +57,11 @@ func (f *tokenFilter) Apply(ctx filters.Context, req *http.Request, next filters
 	if tokenMatched {
 		req.Header.Del(common.TokenHeader)
 		log.Debugf("Allowing connection from %v to %v", req.RemoteAddr, req.Host)
-		f.instrument(false)
+		instrument.Mimic(false)
 		return next(ctx, req)
 	}
 	log.Error(errorf(op, "Mismatched token(s) %v, mimicking apache", strings.Join(tokens, ",")))
-	f.instrument(true)
+	instrument.Mimic(true)
 	return mimicApache(ctx, req)
 }
 
