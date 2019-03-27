@@ -44,6 +44,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/domains"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/httpsrewriter"
+	"github.com/getlantern/http-proxy-lantern/instrument"
 	"github.com/getlantern/http-proxy-lantern/lampshade"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
 	"github.com/getlantern/http-proxy-lantern/mimic"
@@ -182,6 +183,10 @@ func (p *Proxy) ListenAndServe() error {
 	p.initRedisClient()
 	p.loadThrottleConfig()
 
+	if p.ENHTTPAddr != "" {
+		return p.ListenAndServeENHTTP()
+	}
+
 	// Only allow connections from remote IPs that are not blacklisted
 	blacklist := p.createBlacklist()
 	filterChain, dial, err := p.createFilterChain(blacklist)
@@ -192,35 +197,22 @@ func (p *Proxy) ListenAndServe() error {
 	if p.QUICAddr != "" {
 		filterChain = filterChain.Prepend(quic.NewMiddleware())
 	}
+	filterChain = filterChain.Prepend(opsfilter.New(p.bm))
 
 	bwReporting, bordaReporter := p.configureBandwidthReporting()
 
 	srv := server.New(&server.Opts{
-		IdleTimeout: p.IdleTimeout,
-		Dial:        dial,
-		Filter:      filterChain.Prepend(opsfilter.New(p.bm)),
+		IdleTimeout:              p.IdleTimeout,
+		Dial:                     dial,
+		Filter:                   instrument.WrapFilter("proxy", filterChain),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
-		OnError:                  onServerError,
+		OnError:                  instrument.WrapConnErrorHandler("proxy_serve", onServerError),
 	})
 	// Although we include blacklist functionality, it's currently only used to
 	// track potential blacklisting ad doesn't actually blacklist anyone.
 	srv.Allow = blacklist.OnConnect
 	p.applyThrottling(srv, bwReporting)
 	srv.AddListenerWrappers(bwReporting.wrapper)
-
-	if p.ENHTTPAddr != "" {
-		el, err := net.Listen("tcp", p.ENHTTPAddr)
-		if err != nil {
-			return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
-		}
-		log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
-		filterChain := filters.Join(tokenfilter.New(p.Token), ping.New(0))
-		enhttpHandler := enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL)
-		server := &http.Server{
-			Handler: filters.Intercept(enhttpHandler, filterChain),
-		}
-		return server.Serve(el)
-	}
 
 	allListeners := make([]net.Listener, 0)
 	addListenerIfNecessary := func(addr string, fn listenerBuilderFN) error {
@@ -247,8 +239,9 @@ func (p *Proxy) ListenAndServe() error {
 	if err := addListenerIfNecessary(p.Obfs4MultiplexAddr, p.wrapMultiplexing(p.listenOBFS4)); err != nil {
 		return err
 	}
-	// We pass onListenerError to lampshade so that we can dump pcaps in response
-	// to errors in its internal connection handling.
+	// We pass onListenerError to lampshade so that we can count errors in its
+	// internal connection handling and dump pcaps in response to them.
+	onListenerError = instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
 	if err := addListenerIfNecessary(p.LampshadeAddr, p.listenLampshade(onListenerError)); err != nil {
 		return err
 	}
@@ -269,6 +262,20 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	return <-errCh
+}
+
+func (p *Proxy) ListenAndServeENHTTP() error {
+	el, err := net.Listen("tcp", p.ENHTTPAddr)
+	if err != nil {
+		return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
+	}
+	log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
+	filterChain := filters.Join(tokenfilter.New(p.Token), instrument.WrapFilter("http_ping", ping.New(0)))
+	enhttpHandler := enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL)
+	server := &http.Server{
+		Handler: filters.Intercept(enhttpHandler, instrument.WrapFilter("proxy", filterChain)),
+	}
+	return server.Serve(el)
 }
 
 func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
@@ -405,7 +412,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	if !p.TestingLocal {
 		filterChain = filterChain.Append(proxyfilters.BlockLocal([]string{"127.0.0.1:7300"}))
 	}
-	filterChain = filterChain.Append(ping.New(0))
+	filterChain = filterChain.Append(instrument.WrapFilter("http_ping", ping.New(0)))
 
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97

@@ -11,6 +11,8 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/pcapper"
+
+	"github.com/getlantern/http-proxy-lantern/instrument"
 )
 
 var (
@@ -82,20 +84,26 @@ func (bl *Blacklist) Succeed(ip string) {
 // OnConnect records an attempt to connect from the given IP. If the IP is
 // blacklisted, this returns false.
 func (bl *Blacklist) OnConnect(ip string) bool {
+	if !blacklistingEnabled {
+		instrument.Blacklist(false)
+		return true
+	}
 	bl.mutex.RLock()
 	defer bl.mutex.RUnlock()
 	_, blacklisted := bl.blacklist[ip]
 	if blacklisted {
 		log.Debugf("%v is blacklisted", ip)
-	} else {
-		select {
-		case bl.connections <- ip:
-			// ip submitted as connected
-		default:
-			_ = log.Errorf("Unable to record connection from %v", ip)
-		}
+		instrument.Blacklist(true)
+		return false
 	}
-	return !blacklistingEnabled || !blacklisted
+	instrument.Blacklist(false)
+	select {
+	case bl.connections <- ip:
+		// ip submitted as connected
+	default:
+		_ = log.Errorf("Unable to record connection from %v", ip)
+	}
+	return true
 }
 
 func (bl *Blacklist) track() {
