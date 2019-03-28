@@ -770,7 +770,7 @@ func (m *targetHandler) Timeout(d time.Duration, msg string) {
 }
 
 func (m *targetHandler) Close() {
-	m.Close()
+	m.server.Close()
 }
 
 func newTargetHandler(msg string, tls bool) (string, *targetHandler) {

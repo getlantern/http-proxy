@@ -1,3 +1,4 @@
+SHELL := /bin/bash
 DEP_BIN      ?= $(shell which dep)
 UPX_BIN      ?= $(shell which upx)
 BUILD_DIR    ?= bin
@@ -60,7 +61,7 @@ build: require-dep require-go-version
 	github.com/getlantern/http-proxy-lantern/http-proxy && \
 	file $(BUILD_DIR)/http-proxy
 
-distnochange: require-dep require-upx require-version require-change
+distnochange: require-dep require-upx require-change
 	GOOS=linux GOARCH=amd64 BUILD_DIR=dist $(MAKE) build -o http-proxy && \
 	upx dist/http-proxy
 
