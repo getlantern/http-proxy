@@ -40,6 +40,6 @@ build:
         dep ensure
     # Test the project
     - script:
-      name: go test -race
+      name: go test -race -v
       code: |
-        go test -race $(go list ./...)
+        go test -race -v $(go list ./...)

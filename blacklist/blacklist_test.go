@@ -47,6 +47,7 @@ func TestBlacklistFail(t *testing.T) {
 		for k := 0; k < bl.allowedFailures; k++ {
 			bl.OnConnect(ip)
 		}
+		log.Debug("about to fail")
 		assert.False(t, bl.OnConnect(ip), "Connecting should fail once failures exceed threshold")
 
 		time.Sleep(bl.blacklistExpiration * 2)
