@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.2.14](https://github.com/getlantern/http-proxy-lantern/tree/0.2.14) (2019-03-28)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.13...0.2.14)
+
+**Merged pull requests:**
+
+- Export basic metrics to Prometheus [\#296](https://github.com/getlantern/http-proxy-lantern/pull/296) ([joesis](https://github.com/joesis))
+- Add support packet forwarding [\#291](https://github.com/getlantern/http-proxy-lantern/pull/291) ([oxtoacart](https://github.com/oxtoacart))
+
 ## [0.2.13](https://github.com/getlantern/http-proxy-lantern/tree/0.2.13) (2019-03-27)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.12...0.2.13)
 
