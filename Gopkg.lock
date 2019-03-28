@@ -250,11 +250,27 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:ffb017375e95065ae0bb675f646dc6d32a07a41d87c1b58cd07264afb55d9b8e"
+  name = "github.com/getlantern/eventual"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "84b02499361bd83c36db68d42f7d45aae760168e"
+
+[[projects]]
+  branch = "master"
   digest = "1:99c1c515274e6c3ead7bf68dcc77f56131d0f937adeb6808ba86e0911adfdda7"
   name = "github.com/getlantern/filepersist"
   packages = ["."]
   pruneopts = "UT"
   revision = "c5f0cd24e7991579ba6f5f1bd20a1ad2c9f06cd4"
+
+[[projects]]
+  branch = "master"
+  digest = "1:70a1ea4270b3a90c236308628b8922c71040acf976c7e7f321bb964cdcca4a4e"
+  name = "github.com/getlantern/framed"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "7f7919c8cf9be21bbe007d778ae641c06d858f79"
 
 [[projects]]
   branch = "master"
@@ -329,6 +345,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "d6af7c708ed589011044d1ca79945bbbaa42056e"
+
+[[projects]]
+  branch = "ox/init"
+  digest = "1:74d7e30870d459b3c117367b8282d0b0c68223ed5d497aacd5f5ff1fc17b8f0e"
+  name = "github.com/getlantern/ipproxy"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "8996add3e13c94c1b6c23fce70701351b12dd25b"
 
 [[projects]]
   digest = "1:24ccff6de46c9c7f87292e7cdd967e2d5d5bafcc47b62fd565b43a226d72743b"
@@ -410,11 +434,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:30181df0b6eeb2a6cd136d480b6f688658c7976793fa83e00a731859a680dd05"
+  digest = "1:50425f63a4348b642f1ce2a343b86077e62f98153d1bf00d9bc3387524e71872"
   name = "github.com/getlantern/netx"
   packages = ["."]
   pruneopts = "UT"
-  revision = "2e444869f9f5c45c651ee847e4a2ea27231ecec9"
+  revision = "9912de6f94fd1dd35a2f3af9a9ce5650d1a10b7a"
 
 [[projects]]
   branch = "master"
@@ -423,6 +447,14 @@
   packages = ["."]
   pruneopts = "UT"
   revision = "37353306c90844c8e0591956f56611f46299d202"
+
+[[projects]]
+  branch = "ox/ipproxy"
+  digest = "1:c895f897fc96be0c024bea3901391b54beab577d90aa34b5194a88839bc06400"
+  name = "github.com/getlantern/packetforward"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "1163d7820e8ab453f6ce29dfaada3816c2f99890"
 
 [[projects]]
   branch = "master"
@@ -675,6 +707,14 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:0bfbe13936953a98ae3cfe8ed6670d396ad81edf069a806d2f6515d7bb6950df"
+  name = "github.com/google/btree"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "4030bb1f1f0c35b30ca7009e9ebd06849dd45306"
+
+[[projects]]
+  branch = "master"
   digest = "1:2d510cf5486a6ab90196bd3cc07bf124e180bf978dc03ffe6b58af21e5607d7b"
   name = "github.com/google/gopacket"
   packages = [
@@ -685,6 +725,34 @@
   ]
   pruneopts = "UT"
   revision = "3c037fb4650eaecb208dfa07c0bf4c7e3bb3b7be"
+
+[[projects]]
+  branch = "master"
+  digest = "1:55142a16897f202530e0fefcac6f77aa0788f3dc87a26736b2035fd24850f92f"
+  name = "github.com/google/netstack"
+  packages = [
+    "ilist",
+    "rand",
+    "sleep",
+    "tcpip",
+    "tcpip/buffer",
+    "tcpip/hash/jenkins",
+    "tcpip/header",
+    "tcpip/link/channel",
+    "tcpip/network/fragmentation",
+    "tcpip/network/hash",
+    "tcpip/network/ipv4",
+    "tcpip/ports",
+    "tcpip/seqnum",
+    "tcpip/stack",
+    "tcpip/transport/tcp",
+    "tcpip/transport/udp",
+    "tmutex",
+    "waiter",
+  ]
+  pruneopts = "UT"
+  revision = "8999826b821d2ab1516549a8887f6760145e6f04"
+  source = "https://github.com/getlantern/netstack"
 
 [[projects]]
   digest = "1:e145e9710a10bc114a6d3e2738aadf8de146adaa031854ffdf7bbfe15da85e63"
@@ -812,6 +880,14 @@
   pruneopts = "UT"
   revision = "c01d1270ff3e442a8a57cddc1c92dc1138598194"
   version = "v1.2.0"
+
+[[projects]]
+  branch = "master"
+  digest = "1:3bf17a6e6eaa6ad24152148a631d18662f7212e21637c2699bff3369b7f00fa2"
+  name = "github.com/petar/GoLLRB"
+  packages = ["llrb"]
+  pruneopts = "UT"
+  revision = "53be0d36a84c2a886ca057d34b6aa4468df9ccb4"
 
 [[projects]]
   digest = "1:40e195917a951a8bf867cd05de2a46aaf1806c50cf92eebf4c16f78cd196f747"
@@ -1289,6 +1365,7 @@
     "github.com/getlantern/http-proxy/listeners",
     "github.com/getlantern/http-proxy/proxyfilters",
     "github.com/getlantern/http-proxy/server",
+    "github.com/getlantern/ipproxy",
     "github.com/getlantern/kcpwrapper",
     "github.com/getlantern/keyman",
     "github.com/getlantern/lampshade",
@@ -1297,6 +1374,7 @@
     "github.com/getlantern/mtime",
     "github.com/getlantern/netx",
     "github.com/getlantern/ops",
+    "github.com/getlantern/packetforward",
     "github.com/getlantern/pcapper",
     "github.com/getlantern/proxy",
     "github.com/getlantern/proxy/filters",

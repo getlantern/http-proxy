@@ -208,3 +208,16 @@
 [[constraint]]
   name = "github.com/prometheus/client_golang"
   version = "0.9.2"
+
+[[constraint]]
+  branch = "ox/ipproxy"
+  name = "github.com/getlantern/packetforward"
+
+[[override]]
+  branch = "ox/init"
+  name = "github.com/getlantern/ipproxy"
+
+[[override]]
+  name = "github.com/google/netstack"
+  branch = "master"
+  source = "https://github.com/getlantern/netstack"
