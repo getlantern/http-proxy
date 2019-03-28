@@ -265,12 +265,12 @@
   revision = "c5f0cd24e7991579ba6f5f1bd20a1ad2c9f06cd4"
 
 [[projects]]
-  branch = "ox/issue2635"
+  branch = "master"
   digest = "1:70a1ea4270b3a90c236308628b8922c71040acf976c7e7f321bb964cdcca4a4e"
   name = "github.com/getlantern/framed"
   packages = ["."]
   pruneopts = "UT"
-  revision = "a0ee46d06d5840ab5605b4d6465ec1686414700d"
+  revision = "7f7919c8cf9be21bbe007d778ae641c06d858f79"
 
 [[projects]]
   branch = "master"
