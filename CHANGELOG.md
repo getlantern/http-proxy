@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.2.15](https://github.com/getlantern/http-proxy-lantern/tree/0.2.15) (2019-03-28)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.14...0.2.15)
+
+**Merged pull requests:**
+
+- Enable packetforwarding by default [\#300](https://github.com/getlantern/http-proxy-lantern/pull/300) ([oxtoacart](https://github.com/oxtoacart))
+- RequestNewDeviceUsage: adding to ongoing only after successfully queued [\#298](https://github.com/getlantern/http-proxy-lantern/pull/298) ([joesis](https://github.com/joesis))
+
 ## [0.2.14](https://github.com/getlantern/http-proxy-lantern/tree/0.2.14) (2019-03-28)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.13...0.2.14)
 
