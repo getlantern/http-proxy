@@ -107,20 +107,18 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 }
 
 func (bl *Blacklist) track() {
-	idleTimer := time.NewTimer(bl.maxIdleTime)
-	blacklistTimer := time.NewTimer(bl.blacklistExpiration / 10)
+	idleTicker := time.NewTicker(bl.maxIdleTime)
+	blacklistTicker := time.NewTicker(bl.blacklistExpiration / 10)
 	for {
 		select {
 		case ip := <-bl.connections:
 			bl.onConnection(ip)
 		case ip := <-bl.successes:
 			bl.onSuccess(ip)
-		case <-idleTimer.C:
+		case <-idleTicker.C:
 			bl.checkForIdlers()
-			idleTimer.Reset(bl.maxIdleTime)
-		case <-blacklistTimer.C:
+		case <-blacklistTicker.C:
 			bl.checkExpiration()
-			blacklistTimer.Reset(bl.blacklistExpiration / 10)
 		}
 	}
 }
