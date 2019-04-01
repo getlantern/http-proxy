@@ -15,6 +15,24 @@ import (
 	"github.com/getlantern/http-proxy-lantern/instrument"
 )
 
+const (
+	// DefaultMaxIdleTime is used for MaxIdleTime if a non-positive value is
+	// specified.
+	DefaultMaxIdleTime = 2 * time.Minute
+
+	// DefaultMaxConnectInterval is used for MaxConnectInterval if a non-positive
+	// value is specified.
+	DefaultMaxConnectInterval = 10 * time.Second
+
+	// DefaultAllowedFailures is used for AllowedFailures if a non-positive value
+	// is specified.
+	DefaultAllowedFailures = 100
+
+	// DefaultExpiration is used fro Expiration if a non-positive value is
+	// specified.
+	DefaultExpiration = 6 * time.Hour
+)
+
 var (
 	log = golog.LoggerFor("blacklist")
 
@@ -25,16 +43,43 @@ var (
 type Options struct {
 	// The maximum amount of time we'll wait between the start of a connection
 	// and seeing a successful HTTP request before we mark the connection as
-	// failed.
+	// failed. Defaults to 2 minutes.
 	MaxIdleTime time.Duration
+
 	// Consecutive connection attempts within this interval will be treated as a
-	// single attempt.
+	// single attempt. Defaults to 10 seconds.
 	MaxConnectInterval time.Duration
-	// The number of consecutive failures allowed before an IP is blacklisted
+
+	// The number of consecutive failures allowed before an IP is blacklisted.
+	// Defaults to 100.
 	AllowedFailures int
+
 	// How long an IP is allowed to remain on the blacklist.  In practice, an
-	// IP may end up on the blacklist up to 1.1 * blacklistExpiration.
+	// IP may end up on the blacklist up to 1.1 * blacklistExpiration. Defaults to
+	// 6 hours.
 	Expiration time.Duration
+}
+
+func (opts *Options) applyDefaults() {
+	if opts.MaxIdleTime <= 0 {
+		opts.MaxIdleTime = DefaultMaxIdleTime
+		log.Debugf("Defaulted MaxIdleTime to %v", opts.MaxIdleTime)
+	}
+
+	if opts.MaxConnectInterval <= 0 {
+		opts.MaxConnectInterval = DefaultMaxConnectInterval
+		log.Debugf("Defaulted MaxConnectInterval to %v", opts.MaxConnectInterval)
+	}
+
+	if opts.AllowedFailures <= 0 {
+		opts.AllowedFailures = DefaultAllowedFailures
+		log.Debugf("Defaulted AllowedFailures to %v", opts.AllowedFailures)
+	}
+
+	if opts.Expiration <= 0 {
+		opts.Expiration = DefaultExpiration
+		log.Debugf("Defaulted Expiration to %v", opts.Expiration)
+	}
 }
 
 // Blacklist is a blacklist of IPs.
@@ -54,6 +99,8 @@ type Blacklist struct {
 
 // New creates a new Blacklist with given options.
 func New(opts Options) *Blacklist {
+	opts.applyDefaults()
+
 	bl := &Blacklist{
 		maxIdleTime:         opts.MaxIdleTime,
 		maxConnectInterval:  opts.MaxConnectInterval,
@@ -107,20 +154,18 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 }
 
 func (bl *Blacklist) track() {
-	idleTimer := time.NewTimer(bl.maxIdleTime)
-	blacklistTimer := time.NewTimer(bl.blacklistExpiration / 10)
+	idleTicker := time.NewTicker(bl.maxIdleTime)
+	blacklistTicker := time.NewTicker(bl.blacklistExpiration / 10)
 	for {
 		select {
 		case ip := <-bl.connections:
 			bl.onConnection(ip)
 		case ip := <-bl.successes:
 			bl.onSuccess(ip)
-		case <-idleTimer.C:
+		case <-idleTicker.C:
 			bl.checkForIdlers()
-			idleTimer.Reset(bl.maxIdleTime)
-		case <-blacklistTimer.C:
+		case <-blacklistTicker.C:
 			bl.checkExpiration()
-			blacklistTimer.Reset(bl.blacklistExpiration / 10)
 		}
 	}
 }

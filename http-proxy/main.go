@@ -15,6 +15,7 @@ import (
 	"github.com/getlantern/golog"
 
 	"github.com/getlantern/http-proxy-lantern"
+	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/instrument"
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
@@ -97,10 +98,10 @@ var (
 	googleSearchRegex  = flag.String("google-search-regex", googlefilter.DefaultSearchRegex, "Regex for detecting access to Google Search")
 	googleCaptchaRegex = flag.String("google-captcha-regex", googlefilter.DefaultCaptchaRegex, "Regex for detecting access to Google captcha page")
 
-	blacklistMaxIdleTime        = flag.Duration("blacklist-max-idle-time", 2*time.Minute, "How long to wait for an HTTP request before considering a connection failed for blacklisting")
-	blacklistMaxConnectInterval = flag.Duration("blacklist-max-connect-interval", 10*time.Second, "Successive connection attempts within this interval will be treated as a single attempt for blacklisting")
-	blacklistAllowedFailures    = flag.Int("blacklist-allowed-failures", 100, "The number of failed connection attempts we tolerate before blacklisting an IP address")
-	blacklistExpiration         = flag.Duration("blacklist-expiration", 6*time.Hour, "How long to wait before removing an ip from the blacklist")
+	blacklistMaxIdleTime        = flag.Duration("blacklist-max-idle-time", blacklist.DefaultMaxIdleTime, "How long to wait for an HTTP request before considering a connection failed for blacklisting")
+	blacklistMaxConnectInterval = flag.Duration("blacklist-max-connect-interval", blacklist.DefaultMaxConnectInterval, "Successive connection attempts within this interval will be treated as a single attempt for blacklisting")
+	blacklistAllowedFailures    = flag.Int("blacklist-allowed-failures", blacklist.DefaultAllowedFailures, "The number of failed connection attempts we tolerate before blacklisting an IP address")
+	blacklistExpiration         = flag.Duration("blacklist-expiration", blacklist.DefaultExpiration, "How long to wait before removing an ip from the blacklist")
 
 	stackdriverProjectID        = flag.String("stackdriver-project-id", "lantern-http-proxy", "Optional project ID for stackdriver error reporting as in http-proxy-lantern")
 	stackdriverCreds            = flag.String("stackdriver-creds", "/home/lantern/lantern-stackdriver.json", "Optional full json file path containing stackdriver credentials")

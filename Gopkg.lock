@@ -234,11 +234,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:1fa1d94f7e3078d13b2343681908c58af78b8c402045d6e280a5d8e9629db1d1"
+  digest = "1:e1bd5124f74246a43532df9469dec62e6d7a9e6977188495ca71daf0a4473977"
   name = "github.com/getlantern/enhttp"
   packages = ["."]
   pruneopts = "UT"
-  revision = "06cfcf06160d10ec1cc9d1b92452dd4d17cb684a"
+  revision = "a974fa851e3c18be5d0bb6f06d09656365731832"
 
 [[projects]]
   branch = "master"
@@ -340,11 +340,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:349cd7781b821a13bf9a005fa2f5b6c78c4248e477bc3b869e01bb601c1e6cdd"
+  digest = "1:59a77384882a3a0a1ae10face74624945baff93d03817c06f0682e34b455a59e"
   name = "github.com/getlantern/idletiming"
   packages = ["."]
   pruneopts = "UT"
-  revision = "d6af7c708ed589011044d1ca79945bbbaa42056e"
+  revision = "9540d1aeda2b5d50b52e2294fb5e0f2869fb6be0"
 
 [[projects]]
   branch = "ox/init"
@@ -383,11 +383,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:504d4c4d0b1dbd046c89aaf35db3b668b996ae779f465c1f6a87c69232f85cf0"
+  digest = "1:00dbe26b7f66af6d89649ef652bdf79d2d6df0d2bde25a65a59a09b05abce6bf"
   name = "github.com/getlantern/lampshade"
   packages = ["."]
   pruneopts = "UT"
-  revision = "676ced74c76e80fbd15ae530ff0b3fc86c708b50"
+  revision = "ebd21a8d92c30fb36283a36ed2e1e03a79a2dec3"
 
 [[projects]]
   branch = "master"
@@ -450,11 +450,11 @@
 
 [[projects]]
   branch = "ox/ipproxy"
-  digest = "1:c895f897fc96be0c024bea3901391b54beab577d90aa34b5194a88839bc06400"
+  digest = "1:15c2e94766b1e7a9442ca9dc2ab5584096d66a62a803edd9c8f6b182c5b6818f"
   name = "github.com/getlantern/packetforward"
   packages = ["."]
   pruneopts = "UT"
-  revision = "1163d7820e8ab453f6ce29dfaada3816c2f99890"
+  revision = "7d71eb99f499777d35eb4f2031f65f3fc10a77f3"
 
 [[projects]]
   branch = "master"
@@ -546,12 +546,12 @@
   revision = "5d4ed6dd3836cd7e1210a52da62ba4c4a923bfd7"
 
 [[projects]]
-  branch = "master"
-  digest = "1:9072181164e616e422cbfbe48ca9ac249a4d76301ca0876c9f56b937cf214a2f"
+  digest = "1:582b704bebaa06b48c29b0cec224a6058a09c86883aaddabde889cd1a5f73e1b"
   name = "github.com/getlantern/uuid"
   packages = ["."]
   pruneopts = "UT"
-  revision = "1318e7614b82cd38041b0b0bd3692d71f3901fb8"
+  revision = "0cd6bf5da1e1c83f8b45653022c74f71af0538a4"
+  version = "v1.1.1"
 
 [[projects]]
   branch = "master"
