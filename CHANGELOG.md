@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.2.16](https://github.com/getlantern/http-proxy-lantern/tree/0.2.16) (2019-04-01)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.15...0.2.16)
+
+**Merged pull requests:**
+
+- use ticker to track blacklist [\#301](https://github.com/getlantern/http-proxy-lantern/pull/301) ([joesis](https://github.com/joesis))
+
 ## [0.2.15](https://github.com/getlantern/http-proxy-lantern/tree/0.2.15) (2019-03-28)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.14...0.2.15)
 
