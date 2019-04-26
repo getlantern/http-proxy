@@ -265,6 +265,7 @@ func (p *Proxy) ListenAndServe() error {
 		if err := addListenerIfNecessary(addrs.httpMultiplex, p.wrapMultiplexing(p.wrapTLSIfNecessary(p.listenHTTP(baseListen)))); err != nil {
 			return err
 		}
+		return nil
 	}
 
 	if err := addListenerIfNecessary(p.KCPConf, p.wrapTLSIfNecessary(p.listenKCP)); err != nil {
