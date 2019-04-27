@@ -29,7 +29,6 @@ import (
 	"github.com/getlantern/quicwrapper"
 	"github.com/getlantern/tlsdefaults"
 	"github.com/getlantern/tlsredis"
-	rclient "gopkg.in/redis.v5"
 
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/http-proxy/proxyfilters"
@@ -59,6 +58,9 @@ import (
 	"github.com/getlantern/http-proxy-lantern/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 	"github.com/getlantern/http-proxy-lantern/versioncheck"
+
+	utp "github.com/anacrolix/go-libutp"
+	rclient "gopkg.in/redis.v5"
 )
 
 const (
@@ -76,6 +78,7 @@ type Proxy struct {
 	TestingLocal                       bool
 	HTTPAddr                           string
 	HTTPMultiplexAddr                  string
+	HTTPUTPAddr                        string
 	BordaReportInterval                time.Duration
 	BordaSamplePercentage              float64
 	BordaBufferSize                    int
@@ -105,6 +108,7 @@ type Proxy struct {
 	TunnelPorts                        string
 	Obfs4Addr                          string
 	Obfs4MultiplexAddr                 string
+	Obfs4UTPAddr                       string
 	Obfs4Dir                           string
 	Obfs4HandshakeConcurrency          int
 	Obfs4MaxPendingHandshakesPerClient int
@@ -113,6 +117,7 @@ type Proxy struct {
 	Benchmark                          bool
 	DiffServTOS                        int
 	LampshadeAddr                      string
+	LampshadeUTPAddr                   string
 	VersionCheck                       bool
 	VersionCheckRange                  string
 	VersionCheckRedirectURL            string
@@ -139,6 +144,14 @@ type Proxy struct {
 }
 
 type listenerBuilderFN func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error)
+
+type addresses struct {
+	obfs4          string
+	obfs4Multiplex string
+	http           string
+	httpMultiplex  string
+	lampshade      string
+}
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
@@ -206,9 +219,9 @@ func (p *Proxy) ListenAndServe() error {
 	bwReporting, bordaReporter := p.configureBandwidthReporting()
 
 	srv := server.New(&server.Opts{
-		IdleTimeout: p.IdleTimeout,
-		Dial:        dial,
-		Filter:      instrument.WrapFilter("proxy", filterChain),
+		IdleTimeout:              p.IdleTimeout,
+		Dial:                     dial,
+		Filter:                   instrument.WrapFilter("proxy", filterChain),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  instrument.WrapConnErrorHandler("proxy_serve", onServerError),
 	})
@@ -231,28 +244,54 @@ func (p *Proxy) ListenAndServe() error {
 		return nil
 	}
 
+	addListenersForBaseTransport := func(baseListen func(string, bool) (net.Listener, error), addrs *addresses) error {
+		if err := addListenerIfNecessary(addrs.obfs4, p.listenOBFS4(baseListen)); err != nil {
+			return err
+		}
+		if err := addListenerIfNecessary(addrs.obfs4Multiplex, p.wrapMultiplexing(p.listenOBFS4(baseListen))); err != nil {
+			return err
+		}
+
+		// We pass onListenerError to lampshade so that we can count errors in its
+		// internal connection handling and dump pcaps in response to them.
+		onListenerError = instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
+		if err := addListenerIfNecessary(addrs.lampshade, p.listenLampshade(true, onListenerError, baseListen)); err != nil {
+			return err
+		}
+
+		if err := addListenerIfNecessary(addrs.http, p.wrapTLSIfNecessary(p.listenHTTP(baseListen))); err != nil {
+			return err
+		}
+		if err := addListenerIfNecessary(addrs.httpMultiplex, p.wrapMultiplexing(p.wrapTLSIfNecessary(p.listenHTTP(baseListen)))); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	if err := addListenerIfNecessary(p.KCPConf, p.wrapTLSIfNecessary(p.listenKCP)); err != nil {
 		return err
 	}
 	if err := addListenerIfNecessary(p.QUICAddr, p.listenQUIC); err != nil {
 		return err
 	}
-	if err := addListenerIfNecessary(p.Obfs4Addr, p.listenOBFS4); err != nil {
+
+	if err := addListenersForBaseTransport(p.listenTCP, &addresses{
+		obfs4:          p.Obfs4Addr,
+		obfs4Multiplex: p.Obfs4MultiplexAddr,
+		lampshade:      p.LampshadeAddr,
+		http:           p.HTTPAddr,
+		httpMultiplex:  p.HTTPMultiplexAddr,
+	}); err != nil {
 		return err
 	}
-	if err := addListenerIfNecessary(p.Obfs4MultiplexAddr, p.wrapMultiplexing(p.listenOBFS4)); err != nil {
-		return err
-	}
-	// We pass onListenerError to lampshade so that we can count errors in its
-	// internal connection handling and dump pcaps in response to them.
-	onListenerError = instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
-	if err := addListenerIfNecessary(p.LampshadeAddr, p.listenLampshade(onListenerError)); err != nil {
-		return err
-	}
-	if err := addListenerIfNecessary(p.HTTPAddr, p.wrapTLSIfNecessary(p.listenHTTP)); err != nil {
-		return err
-	}
-	if err := addListenerIfNecessary(p.HTTPMultiplexAddr, p.wrapMultiplexing(p.wrapTLSIfNecessary(p.listenHTTP))); err != nil {
+
+	if err := addListenersForBaseTransport(p.listenUTP, &addresses{
+		obfs4:          p.Obfs4UTPAddr,
+		obfs4Multiplex: "",
+		lampshade:      p.LampshadeUTPAddr,
+		http:           p.HTTPUTPAddr,
+		httpMultiplex:  "",
+	}); err != nil {
 		return err
 	}
 
@@ -598,36 +637,38 @@ func (p *Proxy) initRedisClient() {
 	}
 }
 
-type listenerFN listenerBuilderFN
-
-func (p *Proxy) listenHTTP(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
-	l, err := p.listenTCP(addr, true)
-	if err != nil {
-		return nil, errors.New("Unable to listen for HTTP: %v", err)
-	}
-	log.Debugf("Listening for HTTP(S) at %v", l.Addr())
-	return l, nil
-}
-
-func (p *Proxy) listenOBFS4(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
-	l, err := p.listenTCP(addr, true)
-	if err != nil {
-		return nil, errors.New("Unable to listen for OBFS4: %v", err)
-	}
-	wrapped, err := obfs4listener.Wrap(l, p.Obfs4Dir, p.Obfs4HandshakeConcurrency, p.Obfs4MaxPendingHandshakesPerClient, p.Obfs4HandshakeTimeout)
-	if err != nil {
-		l.Close()
-		return nil, errors.New("Unable to wrap listener with OBFS4: %v", err)
-	}
-	log.Debugf("Listening for OBFS4 at %v", wrapped.Addr())
-	return wrapped, nil
-}
-
-func (p *Proxy) listenLampshade(onListenerError func(net.Conn, error)) listenerBuilderFN {
+func (p *Proxy) listenHTTP(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
-		l, err := p.listenTCP(addr, false)
+		l, err := baseListen(addr, true)
 		if err != nil {
-			return nil, errors.New("Unable to listen for lampshade with tcp: %v", err)
+			return nil, errors.New("Unable to listen for HTTP: %v", err)
+		}
+		log.Debugf("Listening for HTTP(S) at %v", l.Addr())
+		return l, nil
+	}
+}
+
+func (p *Proxy) listenOBFS4(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
+	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+		l, err := baseListen(addr, true)
+		if err != nil {
+			return nil, errors.New("Unable to listen for OBFS4: %v", err)
+		}
+		wrapped, err := obfs4listener.Wrap(l, p.Obfs4Dir, p.Obfs4HandshakeConcurrency, p.Obfs4MaxPendingHandshakesPerClient, p.Obfs4HandshakeTimeout)
+		if err != nil {
+			l.Close()
+			return nil, errors.New("Unable to wrap listener with OBFS4: %v", err)
+		}
+		log.Debugf("Listening for OBFS4 at %v", wrapped.Addr())
+		return wrapped, nil
+	}
+}
+
+func (p *Proxy) listenLampshade(trackBBR bool, onListenerError func(net.Conn, error), baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
+	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+		l, err := baseListen(addr, false)
+		if err != nil {
+			return nil, err
 		}
 		if bordaReporter != nil {
 			log.Debug("Wrapping lampshade's TCP listener with measured reporting")
@@ -641,9 +682,11 @@ func (p *Proxy) listenLampshade(onListenerError func(net.Conn, error)) listenerB
 		}
 		log.Debugf("Listening for lampshade at %v", wrapped.Addr())
 
-		// We wrap the lampshade listener itself so that we record BBR metrics on
-		// close of virtual streams rather than the physical connection.
-		wrapped = p.bm.Wrap(wrapped)
+		if trackBBR {
+			// We wrap the lampshade listener itself so that we record BBR metrics on
+			// close of virtual streams rather than the physical connection.
+			wrapped = p.bm.Wrap(wrapped)
+		}
 
 		return wrapped, nil
 	}
@@ -668,6 +711,21 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 	if wrapBBR {
 		l = p.bm.Wrap(l)
 	}
+	return l, nil
+}
+
+func (p *Proxy) listenUTP(addr string, wrapBBR bool) (net.Listener, error) {
+	var l net.Listener
+	var err error
+	l, err = utp.NewSocket("udp", addr)
+	if err != nil {
+		return nil, err
+	}
+
+	if p.IdleTimeout > 0 {
+		l = listeners.NewIdleConnListener(l, p.IdleTimeout)
+	}
+
 	return l, nil
 }
 
