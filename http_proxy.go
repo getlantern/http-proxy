@@ -59,7 +59,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 	"github.com/getlantern/http-proxy-lantern/versioncheck"
 
-	"github.com/anacrolix/go-libutp"
+	utp "github.com/anacrolix/go-libutp"
 	rclient "gopkg.in/redis.v5"
 )
 
@@ -144,6 +144,14 @@ type Proxy struct {
 }
 
 type listenerBuilderFN func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error)
+
+type addresses struct {
+	obfs4          string
+	obfs4Multiplex string
+	http           string
+	httpMultiplex  string
+	lampshade      string
+}
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
@@ -236,37 +244,54 @@ func (p *Proxy) ListenAndServe() error {
 		return nil
 	}
 
+	addListenersForBaseTransport := func(baseListen func(string, bool) (net.Listener, error), addrs *addresses) error {
+		if err := addListenerIfNecessary(addrs.obfs4, p.listenOBFS4(baseListen)); err != nil {
+			return err
+		}
+		if err := addListenerIfNecessary(addrs.obfs4Multiplex, p.wrapMultiplexing(p.listenOBFS4(baseListen))); err != nil {
+			return err
+		}
+
+		// We pass onListenerError to lampshade so that we can count errors in its
+		// internal connection handling and dump pcaps in response to them.
+		onListenerError = instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
+		if err := addListenerIfNecessary(addrs.lampshade, p.listenLampshade(true, onListenerError, baseListen)); err != nil {
+			return err
+		}
+
+		if err := addListenerIfNecessary(addrs.http, p.wrapTLSIfNecessary(p.listenHTTP(baseListen))); err != nil {
+			return err
+		}
+		if err := addListenerIfNecessary(addrs.httpMultiplex, p.wrapMultiplexing(p.wrapTLSIfNecessary(p.listenHTTP(baseListen)))); err != nil {
+			return err
+		}
+		return nil
+	}
+
 	if err := addListenerIfNecessary(p.KCPConf, p.wrapTLSIfNecessary(p.listenKCP)); err != nil {
 		return err
 	}
 	if err := addListenerIfNecessary(p.QUICAddr, p.listenQUIC); err != nil {
 		return err
 	}
-	if err := addListenerIfNecessary(p.Obfs4Addr, p.listenOBFS4(p.listenTCP)); err != nil {
+
+	if err := addListenersForBaseTransport(p.listenTCP, &addresses{
+		obfs4:          p.Obfs4Addr,
+		obfs4Multiplex: p.Obfs4MultiplexAddr,
+		lampshade:      p.LampshadeAddr,
+		http:           p.HTTPAddr,
+		httpMultiplex:  p.HTTPMultiplexAddr,
+	}); err != nil {
 		return err
 	}
-	if err := addListenerIfNecessary(p.Obfs4MultiplexAddr, p.wrapMultiplexing(p.listenOBFS4(p.listenTCP))); err != nil {
-		return err
-	}
-	if err := addListenerIfNecessary(p.Obfs4UTPAddr, p.listenOBFS4(p.listenUTP)); err != nil {
-		return err
-	}
-	// We pass onListenerError to lampshade so that we can count errors in its
-	// internal connection handling and dump pcaps in response to them.
-	onListenerError = instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
-	if err := addListenerIfNecessary(p.LampshadeAddr, p.listenLampshade(true, onListenerError, p.listenTCP)); err != nil {
-		return err
-	}
-	if err := addListenerIfNecessary(p.LampshadeUTPAddr, p.listenLampshade(false, onListenerError, p.listenUTP)); err != nil {
-		return err
-	}
-	if err := addListenerIfNecessary(p.HTTPAddr, p.wrapTLSIfNecessary(p.listenHTTP(p.listenTCP))); err != nil {
-		return err
-	}
-	if err := addListenerIfNecessary(p.HTTPMultiplexAddr, p.wrapMultiplexing(p.wrapTLSIfNecessary(p.listenHTTP(p.listenTCP)))); err != nil {
-		return err
-	}
-	if err := addListenerIfNecessary(p.HTTPUTPAddr, p.wrapTLSIfNecessary(p.listenHTTP(p.listenUTP))); err != nil {
+
+	if err := addListenersForBaseTransport(p.listenUTP, &addresses{
+		obfs4:          p.Obfs4UTPAddr,
+		obfs4Multiplex: "",
+		lampshade:      p.LampshadeUTPAddr,
+		http:           p.HTTPUTPAddr,
+		httpMultiplex:  "",
+	}); err != nil {
 		return err
 	}
 
@@ -611,8 +636,6 @@ func (p *Proxy) initRedisClient() {
 		log.Errorf("Error connecting to redis, will not be able to perform bandwidth limiting: %v", err)
 	}
 }
-
-type listenerFN listenerBuilderFN
 
 func (p *Proxy) listenHTTP(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
