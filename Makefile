@@ -61,7 +61,7 @@ build: require-dep require-go-version
 	github.com/getlantern/http-proxy-lantern/http-proxy && \
 	file $(BUILD_DIR)/http-proxy
 
-distnochange: require-dep require-upx require-change
+distnochange: require-dep require-upx
 	GOOS=linux GOARCH=amd64 BUILD_DIR=dist $(MAKE) build -o http-proxy && \
 	upx dist/http-proxy
 
