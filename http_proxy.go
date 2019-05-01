@@ -27,6 +27,7 @@ import (
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
 	"github.com/getlantern/quicwrapper"
+	"github.com/getlantern/tinywss"
 	"github.com/getlantern/tlsdefaults"
 	"github.com/getlantern/tlsredis"
 	rclient "gopkg.in/redis.v5"
@@ -126,6 +127,7 @@ type Proxy struct {
 	ProxyName                          string
 	BBRUpstreamProbeURL                string
 	QUICAddr                           string
+	WSSAddr                            string
 	PCAPDir                            string
 	PCAPIPs                            int
 	PCAPSPerIP                         int
@@ -206,9 +208,9 @@ func (p *Proxy) ListenAndServe() error {
 	bwReporting, bordaReporter := p.configureBandwidthReporting()
 
 	srv := server.New(&server.Opts{
-		IdleTimeout: p.IdleTimeout,
-		Dial:        dial,
-		Filter:      instrument.WrapFilter("proxy", filterChain),
+		IdleTimeout:              p.IdleTimeout,
+		Dial:                     dial,
+		Filter:                   instrument.WrapFilter("proxy", filterChain),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  instrument.WrapConnErrorHandler("proxy_serve", onServerError),
 	})
@@ -241,6 +243,9 @@ func (p *Proxy) ListenAndServe() error {
 		return err
 	}
 	if err := addListenerIfNecessary(p.Obfs4MultiplexAddr, p.wrapMultiplexing(p.listenOBFS4)); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary(p.WSSAddr, p.listenWSS); err != nil {
 		return err
 	}
 	// We pass onListenerError to lampshade so that we can count errors in its
@@ -353,6 +358,9 @@ func (p *Proxy) proxyProtocol() string {
 	}
 	if p.QUICAddr != "" {
 		return "quic"
+	}
+	if p.WSSAddr != "" {
+		return "wss"
 	}
 	return "https"
 }
@@ -710,6 +718,21 @@ func (p *Proxy) listenQUIC(addr string, bordaReporter listeners.MeasuredReportFN
 
 	log.Debugf("Listening for quic at %v", l.Addr())
 	return l, err
+}
+
+func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	l, err := p.listenTCP(addr, true)
+	if err != nil {
+		return nil, errors.New("Unable to listen for wss: %v", err)
+	}
+
+	opts := &tinywss.ListenOpts{
+		CertFile: p.CertFile,
+		KeyFile:  p.KeyFile,
+		Listener: l,
+	}
+
+	return tinywss.ListenAddr(opts)
 }
 
 func (p *Proxy) setupPacketForward() {
