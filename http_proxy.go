@@ -286,11 +286,11 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if err := addListenersForBaseTransport(p.listenUTP, &addresses{
-		obfs4:          p.Obfs4UTPAddr,
-		obfs4Multiplex: "",
+		obfs4:          "",
+		obfs4Multiplex: p.Obfs4UTPAddr,
 		lampshade:      p.LampshadeUTPAddr,
-		http:           p.HTTPUTPAddr,
-		httpMultiplex:  "",
+		http:           "",
+		httpMultiplex:  p.HTTPUTPAddr,
 	}); err != nil {
 		return err
 	}
