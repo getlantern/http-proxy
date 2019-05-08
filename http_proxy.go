@@ -22,7 +22,7 @@ import (
 	"github.com/getlantern/ipproxy"
 	"github.com/getlantern/kcpwrapper"
 	"github.com/getlantern/ops"
-	"github.com/getlantern/packetforward"
+	packetforward "github.com/getlantern/packetforward/server"
 	"github.com/getlantern/pcapper"
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"

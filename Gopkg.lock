@@ -390,12 +390,12 @@
   revision = "9540d1aeda2b5d50b52e2294fb5e0f2869fb6be0"
 
 [[projects]]
-  branch = "ox/init"
-  digest = "1:74d7e30870d459b3c117367b8282d0b0c68223ed5d497aacd5f5ff1fc17b8f0e"
+  branch = "master"
+  digest = "1:9ab19c222cb2522a9a1e8f8625bfb3eddc2ad9c33e3bd31144c95d12dc5a4ef6"
   name = "github.com/getlantern/ipproxy"
   packages = ["."]
   pruneopts = "UT"
-  revision = "8996add3e13c94c1b6c23fce70701351b12dd25b"
+  revision = "6329c3cbf2fa547ce1a726bdbb07e2d83cdb4643"
 
 [[projects]]
   digest = "1:24ccff6de46c9c7f87292e7cdd967e2d5d5bafcc47b62fd565b43a226d72743b"
@@ -492,12 +492,12 @@
   revision = "37353306c90844c8e0591956f56611f46299d202"
 
 [[projects]]
-  branch = "ox/ipproxy"
-  digest = "1:15c2e94766b1e7a9442ca9dc2ab5584096d66a62a803edd9c8f6b182c5b6818f"
+  branch = "master"
+  digest = "1:8a592eecbb5ec743b49f2d0b466d56ff1734930ae1a84c8b2a04d0382e00ece1"
   name = "github.com/getlantern/packetforward"
-  packages = ["."]
+  packages = ["server"]
   pruneopts = "UT"
-  revision = "7d71eb99f499777d35eb4f2031f65f3fc10a77f3"
+  revision = "800eb2c186b1fc79432d560bd7e959e2d2807fca"
 
 [[projects]]
   branch = "master"
@@ -1427,7 +1427,7 @@
     "github.com/getlantern/mtime",
     "github.com/getlantern/netx",
     "github.com/getlantern/ops",
-    "github.com/getlantern/packetforward",
+    "github.com/getlantern/packetforward/server",
     "github.com/getlantern/pcapper",
     "github.com/getlantern/proxy",
     "github.com/getlantern/proxy/filters",
