@@ -1,18 +1,16 @@
 package borda
 
 import (
-	"crypto/tls"
 	"math/rand"
-	"net"
 	"time"
 
 	borda "github.com/getlantern/borda/client"
+	"github.com/getlantern/borda/client/rpcclient"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/hidden"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/measured"
 	"github.com/getlantern/ops"
-	"github.com/getlantern/zenodb/rpc"
 )
 
 const (
@@ -48,34 +46,7 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 		}
 	}
 
-	opts := &borda.Options{
-		BatchInterval: bordaReportInterval,
-	}
-
-	clientSessionCache := tls.NewLRUClientSessionCache(10000)
-	clientTLSConfig := &tls.Config{
-		ServerName:         "borda.getlantern.org",
-		ClientSessionCache: clientSessionCache,
-	}
-
-	rc, err := rpc.Dial("borda.getlantern.org:17712", &rpc.ClientOpts{
-		Dialer: func(addr string, timeout time.Duration) (net.Conn, error) {
-			conn, dialErr := net.DialTimeout("tcp", addr, timeout)
-			if dialErr != nil {
-				return nil, dialErr
-			}
-			tlsConn := tls.Client(conn, clientTLSConfig)
-			return tlsConn, tlsConn.Handshake()
-		},
-	})
-	if err != nil {
-		log.Errorf("Unable to dial borda, will not use gRPC: %v", err)
-	} else {
-		log.Debug("Using RPC to communicate with borda")
-		opts.RPCClient = rc
-	}
-
-	bordaClient := borda.NewClient(opts)
+	bordaClient := rpcclient.Default(bordaReportInterval)
 	reportToBorda := bordaClient.ReducingSubmitter("proxy_results", maxBufferSize)
 
 	ops.RegisterReporter(func(failure error, ctx map[string]interface{}) {

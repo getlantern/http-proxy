@@ -215,11 +215,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4043dd80697b2a80ec36343621bae7f9e9412e56a7dd4459c9be47ae0858b008"
+  digest = "1:b6efc2e5eb4130a3d0bbf81d4e804213729a0f557e62aaf72c64fc4c5befa933"
   name = "github.com/getlantern/borda"
-  packages = ["client"]
+  packages = [
+    "client",
+    "client/rpcclient",
+  ]
   pruneopts = "UT"
-  revision = "53aa321fd6069a0be27747326f31bb5e83064b88"
+  revision = "9a0c110eea9d1b0856323bb4968004cb58d09867"
 
 [[projects]]
   branch = "master"
@@ -1403,6 +1406,7 @@
     "github.com/dustin/go-humanize",
     "github.com/getlantern/bbrconn",
     "github.com/getlantern/borda/client",
+    "github.com/getlantern/borda/client/rpcclient",
     "github.com/getlantern/cmux",
     "github.com/getlantern/ema",
     "github.com/getlantern/enhttp",
@@ -1433,7 +1437,6 @@
     "github.com/getlantern/tlsredis",
     "github.com/getlantern/waitforserver",
     "github.com/getlantern/withtimeout",
-    "github.com/getlantern/zenodb/rpc",
     "github.com/golang/groupcache/lru",
     "github.com/gonum/stat",
     "github.com/hashicorp/golang-lru",
