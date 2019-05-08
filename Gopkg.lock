@@ -67,6 +67,46 @@
   revision = "5312a61534124124185d41f09206b9fef1d88403"
 
 [[projects]]
+  digest = "1:9e4640c0d56e648789a443f456a38b6611756fe99878cecde657161990c17407"
+  name = "github.com/anacrolix/go-libutp"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "d7dd83bce17eb552d89dc42b7acdb8498e7e70db"
+  version = "v1.0.1"
+
+[[projects]]
+  digest = "1:d260febfa75a48e72ef78b1859635741bad6eb722c5913846f23e7582767055b"
+  name = "github.com/anacrolix/missinggo"
+  packages = [
+    ".",
+    "expect",
+    "inproc",
+    "perf",
+  ]
+  pruneopts = "UT"
+  revision = "1ab2af89c3c32bf788d1d1985c1b601489c7b331"
+  version = "v2.0.1"
+
+[[projects]]
+  branch = "master"
+  digest = "1:26f2e8da5e7d4b3ebdebac5da81a1f617960a97efe82139b5f251623024d0895"
+  name = "github.com/anacrolix/mmsg"
+  packages = [
+    ".",
+    "socket",
+  ]
+  pruneopts = "UT"
+  revision = "5adb2c1127c0320bcebc8b13189db19493090cd4"
+
+[[projects]]
+  branch = "master"
+  digest = "1:3adb53977686df2c767d57feaba122fa813df4b7d7a8a79c0bfcb47222e57ffc"
+  name = "github.com/anacrolix/sync"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "44578de4e778a60bb7a9c15ab60b3f0b0311a53a"
+
+[[projects]]
   branch = "master"
   digest = "1:7d191fd0c54ff370eaf6116a14dafe2a328df487baea280699f597aae858d00d"
   name = "github.com/aristanetworks/goarista"
@@ -175,11 +215,14 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:4043dd80697b2a80ec36343621bae7f9e9412e56a7dd4459c9be47ae0858b008"
+  digest = "1:b6efc2e5eb4130a3d0bbf81d4e804213729a0f557e62aaf72c64fc4c5befa933"
   name = "github.com/getlantern/borda"
-  packages = ["client"]
+  packages = [
+    "client",
+    "client/rpcclient",
+  ]
   pruneopts = "UT"
-  revision = "53aa321fd6069a0be27747326f31bb5e83064b88"
+  revision = "9a0c110eea9d1b0856323bb4968004cb58d09867"
 
 [[projects]]
   branch = "master"
@@ -355,12 +398,12 @@
   revision = "9540d1aeda2b5d50b52e2294fb5e0f2869fb6be0"
 
 [[projects]]
-  branch = "ox/init"
-  digest = "1:74d7e30870d459b3c117367b8282d0b0c68223ed5d497aacd5f5ff1fc17b8f0e"
+  branch = "master"
+  digest = "1:9ab19c222cb2522a9a1e8f8625bfb3eddc2ad9c33e3bd31144c95d12dc5a4ef6"
   name = "github.com/getlantern/ipproxy"
   packages = ["."]
   pruneopts = "UT"
-  revision = "8996add3e13c94c1b6c23fce70701351b12dd25b"
+  revision = "6329c3cbf2fa547ce1a726bdbb07e2d83cdb4643"
 
 [[projects]]
   digest = "1:24ccff6de46c9c7f87292e7cdd967e2d5d5bafcc47b62fd565b43a226d72743b"
@@ -391,11 +434,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:00dbe26b7f66af6d89649ef652bdf79d2d6df0d2bde25a65a59a09b05abce6bf"
+  digest = "1:5b063c5da2a7db665fab1c9e422b1cfc79a561f2634765babf1f84449bc5f337"
   name = "github.com/getlantern/lampshade"
   packages = ["."]
   pruneopts = "UT"
-  revision = "ebd21a8d92c30fb36283a36ed2e1e03a79a2dec3"
+  revision = "84b870a67bd61a15a531429435dfd2df1d8f2960"
 
 [[projects]]
   branch = "master"
@@ -457,12 +500,12 @@
   revision = "37353306c90844c8e0591956f56611f46299d202"
 
 [[projects]]
-  branch = "ox/ipproxy"
-  digest = "1:15c2e94766b1e7a9442ca9dc2ab5584096d66a62a803edd9c8f6b182c5b6818f"
+  branch = "master"
+  digest = "1:8a592eecbb5ec743b49f2d0b466d56ff1734930ae1a84c8b2a04d0382e00ece1"
   name = "github.com/getlantern/packetforward"
-  packages = ["."]
+  packages = ["server"]
   pruneopts = "UT"
-  revision = "7d71eb99f499777d35eb4f2031f65f3fc10a77f3"
+  revision = "800eb2c186b1fc79432d560bd7e959e2d2807fca"
 
 [[projects]]
   branch = "master"
@@ -788,6 +831,14 @@
   ]
   pruneopts = "UT"
   revision = "20f1fb78b0740ba8c3cb143a61e86ba5c8669768"
+
+[[projects]]
+  digest = "1:f9a5e090336881be43cfc1cf468330c1bdd60abdc9dd194e0b1ab69f4b94dd7c"
+  name = "github.com/huandu/xstrings"
+  packages = ["."]
+  pruneopts = "UT"
+  revision = "f02667b379e2fb5916c3cda2cf31e0eb885d79f8"
+  version = "v1.2.0"
 
 [[projects]]
   branch = "master"
@@ -1366,10 +1417,12 @@
     "git.torproject.org/pluggable-transports/goptlib.git",
     "git.torproject.org/pluggable-transports/obfs4.git/transports/base",
     "git.torproject.org/pluggable-transports/obfs4.git/transports/obfs4",
+    "github.com/anacrolix/go-libutp",
     "github.com/blang/semver",
     "github.com/dustin/go-humanize",
     "github.com/getlantern/bbrconn",
     "github.com/getlantern/borda/client",
+    "github.com/getlantern/borda/client/rpcclient",
     "github.com/getlantern/cmux",
     "github.com/getlantern/ema",
     "github.com/getlantern/enhttp",
@@ -1390,7 +1443,7 @@
     "github.com/getlantern/mtime",
     "github.com/getlantern/netx",
     "github.com/getlantern/ops",
-    "github.com/getlantern/packetforward",
+    "github.com/getlantern/packetforward/server",
     "github.com/getlantern/pcapper",
     "github.com/getlantern/proxy",
     "github.com/getlantern/proxy/filters",
@@ -1401,7 +1454,6 @@
     "github.com/getlantern/tlsredis",
     "github.com/getlantern/waitforserver",
     "github.com/getlantern/withtimeout",
-    "github.com/getlantern/zenodb/rpc",
     "github.com/golang/groupcache/lru",
     "github.com/gonum/stat",
     "github.com/hashicorp/golang-lru",
