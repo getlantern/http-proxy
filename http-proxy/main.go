@@ -35,6 +35,7 @@ var (
 	lampshadeAddr    = flag.String("lampshade-addr", "", "Address at which to listen for lampshade connections with tcp. Requires https to be true.")
 	lampshadeUTPAddr = flag.String("lampshade-utpaddr", "", "Address at which to listen for lampshade connections with utp. Requires https to be true.")
 	quicAddr         = flag.String("quic-addr", "", "Address at which to listen for QUIC connections.")
+	wssAddr          = flag.String("wss-addr", "", "Address at which to listen for WSS connections.")
 	kcpConf          = flag.String("kcpconf", "", "Path to file configuring kcp")
 
 	obfs4Addr                          = flag.String("obfs4-addr", "", "Provide an address here in order to listen with obfs4")
@@ -219,6 +220,7 @@ func main() {
 		ProxyName:                          *proxyName,
 		BBRUpstreamProbeURL:                *bbrUpstreamProbeURL,
 		QUICAddr:                           *quicAddr,
+		WSSAddr:                            *wssAddr,
 		PCAPDir:                            *pcapDir,
 		PCAPIPs:                            *pcapIPs,
 		PCAPSPerIP:                         *pcapsPerIP,

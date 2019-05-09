@@ -27,6 +27,7 @@ import (
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
 	"github.com/getlantern/quicwrapper"
+	"github.com/getlantern/tinywss"
 	"github.com/getlantern/tlsdefaults"
 	"github.com/getlantern/tlsredis"
 
@@ -131,6 +132,7 @@ type Proxy struct {
 	ProxyName                          string
 	BBRUpstreamProbeURL                string
 	QUICAddr                           string
+	WSSAddr                            string
 	PCAPDir                            string
 	PCAPIPs                            int
 	PCAPSPerIP                         int
@@ -274,6 +276,9 @@ func (p *Proxy) ListenAndServe() error {
 	if err := addListenerIfNecessary(p.QUICAddr, p.listenQUIC); err != nil {
 		return err
 	}
+	if err := addListenerIfNecessary(p.WSSAddr, p.listenWSS); err != nil {
+		return err
+	}
 
 	if err := addListenersForBaseTransport(p.listenTCP, &addresses{
 		obfs4:          p.Obfs4Addr,
@@ -392,6 +397,9 @@ func (p *Proxy) proxyProtocol() string {
 	}
 	if p.QUICAddr != "" {
 		return "quic"
+	}
+	if p.WSSAddr != "" {
+		return "wss"
 	}
 	return "https"
 }
@@ -768,6 +776,21 @@ func (p *Proxy) listenQUIC(addr string, bordaReporter listeners.MeasuredReportFN
 
 	log.Debugf("Listening for quic at %v", l.Addr())
 	return l, err
+}
+
+func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	l, err := p.listenTCP(addr, true)
+	if err != nil {
+		return nil, errors.New("Unable to listen for wss: %v", err)
+	}
+
+	opts := &tinywss.ListenOpts{
+		CertFile: p.CertFile,
+		KeyFile:  p.KeyFile,
+		Listener: l,
+	}
+
+	return tinywss.ListenAddr(opts)
 }
 
 func (p *Proxy) setupPacketForward() {
