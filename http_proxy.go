@@ -783,10 +783,12 @@ func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN)
 	if err != nil {
 		return nil, errors.New("Unable to listen for wss: %v", err)
 	}
+	l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile)
+	if err != nil {
+		return nil, err
+	}
 
 	opts := &tinywss.ListenOpts{
-		CertFile: p.CertFile,
-		KeyFile:  p.KeyFile,
 		Listener: l,
 	}
 
