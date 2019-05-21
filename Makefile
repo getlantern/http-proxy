@@ -1,17 +1,15 @@
 SHELL := /bin/bash
-DEP_BIN      ?= $(shell which dep)
 UPX_BIN      ?= $(shell which upx)
 BUILD_DIR    ?= bin
 GIT_REVISION := $(shell git rev-parse --short HEAD)
 CHANGE_BIN   := $(shell which github_changelog_generator)
 
-GO_VERSION := 1.10.7
+GO_VERSION := 1.11.5
 DOCKER_IMAGE_TAG := http-proxy-builder
 DOCKER_VOLS = "-v $$PWD/../../..:/src"
 
 get-command = $(shell which="$$(which $(1) 2> /dev/null)" && if [[ ! -z "$$which" ]]; then printf %q "$$which"; fi)
 
-DEP_BIN   := $(call get-command,dep)
 DOCKER    := $(call get-command,docker)
 GO        := $(call get-command,go)
 
@@ -38,11 +36,6 @@ require-go-version:
 		echo "go $(GO_VERSION) is required." && exit 1; \
 	fi
 
-require-dep:
-	@if [ "$(DEP_BIN)" = "" ]; then \
-		echo 'Missing "dep" command. See https://github.com/golang/dep or just brew install dep' && exit 1; \
-	fi
-
 require-upx:
 	@if [ "$(UPX_BIN)" = "" ]; then \
 		echo 'Missing "upx" command. See http://upx.sourceforge.net/' && exit 1; \
@@ -53,19 +46,18 @@ require-change:
 		echo 'Missing "github_changelog_generator" command. See https://github.com/github-changelog-generator/github-changelog-generator or just [sudo] gem install github_changelog_generator' && exit 1; \
 	fi
 
-build: require-dep require-go-version
-	$(DEP_BIN) ensure && \
+build: require-go-version
 	mkdir -p $(BUILD_DIR) && \
-	go build -o $(BUILD_DIR)/http-proxy \
+	GO111MODULE=on go build -o $(BUILD_DIR)/http-proxy \
 	-ldflags="-X main.revision=$(GIT_REVISION)" \
 	github.com/getlantern/http-proxy-lantern/http-proxy && \
 	file $(BUILD_DIR)/http-proxy
 
-distnochange: require-dep require-upx
+distnochange: require-upx
 	GOOS=linux GOARCH=amd64 BUILD_DIR=dist $(MAKE) build -o http-proxy && \
 	upx dist/http-proxy
 
-dist: require-dep require-upx require-version require-change distnochange
+dist: require-upx require-version require-change distnochange
 	$(call tag-changelog,http-proxy-lantern)
 
 deploy: dist/http-proxy
@@ -92,11 +84,12 @@ docker-builder: system-checks
 
 # workaround to build Ubuntu binary on non-Ubuntu platforms.
 docker-distnochange: docker-builder require-dep
+	GO111MODULE=on go mod vendor && \
 	docker run -e GIT_REVISION='$(GIT_REVISION)' \
 	-e SRCDIR='github.com/getlantern/http-proxy-lantern' \
 	-v $$PWD/../../..:/src -t $(DOCKER_IMAGE_TAG) /bin/bash -c \
 	'cd /src && go build -o $$SRCDIR/dist/http-proxy -ldflags="-X main.revision=$$GIT_REVISION" $$SRCDIR/http-proxy' && \
 	upx dist/http-proxy
 
-docker-dist: require-dep require-upx require-version require-change docker-distnochange
+docker-dist: require-upx require-version require-change docker-distnochange
 	$(call tag-changelog,http-proxy-lantern)
