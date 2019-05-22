@@ -784,16 +784,25 @@ func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN)
 	if err != nil {
 		return nil, errors.New("Unable to listen for wss: %v", err)
 	}
-	l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile)
-	if err != nil {
-		return nil, err
-	}
 
+	if p.HTTPS {
+		l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile)
+		if err != nil {
+			return nil, err
+		}
+		log.Debugf("Using TLS on %v", l.Addr())
+	}
 	opts := &tinywss.ListenOpts{
 		Listener: l,
 	}
 
-	return tinywss.ListenAddr(opts)
+	l, err = tinywss.ListenAddr(opts)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("Listening for wss at %v", l.Addr())
+	return l, err
 }
 
 func (p *Proxy) setupPacketForward() {
