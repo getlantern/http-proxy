@@ -3,7 +3,7 @@
 # If you want Google's container you would reference google/golang
 # Read more about containers on our dev center
 # http://devcenter.wercker.com/docs/containers/index.html
-box: golang:1.10.4
+box: golang:1.12.5
 # This is the build pipeline. Pipelines are the core of wercker
 # Read more about pipelines on our dev center
 # http://devcenter.wercker.com/docs/pipelines/index.html
@@ -30,16 +30,8 @@ build:
     - script:
       name: authenticate git
       code: git config --global url."https://71cee071ea22b7ffb10f68fa330d1130133bbfbd:x-oauth-basic@github.com/".insteadOf "https://github.com/"
-    - script:
-      name: get dep
-      code: |
-        curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-    - script:
-      name: dep ensure
-      code: |
-        dep ensure
     # Test the project
     - script:
-      name: go test -race
+      name: test
       code: |
         go test -race $(go list ./...)

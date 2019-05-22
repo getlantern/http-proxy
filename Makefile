@@ -4,7 +4,7 @@ BUILD_DIR    ?= bin
 GIT_REVISION := $(shell git rev-parse --short HEAD)
 CHANGE_BIN   := $(shell which github_changelog_generator)
 
-GO_VERSION := 1.11.5
+GO_VERSION := 1.12.5
 DOCKER_IMAGE_TAG := http-proxy-builder
 DOCKER_VOLS = "-v $$PWD/../../..:/src"
 
@@ -93,3 +93,6 @@ docker-distnochange: docker-builder require-dep
 
 docker-dist: require-upx require-version require-change docker-distnochange
 	$(call tag-changelog,http-proxy-lantern)
+
+test: require-go-version
+	GO111MODULE=on go test -race $(go list ./...)
