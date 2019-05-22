@@ -583,7 +583,9 @@ func TestDirectOK(t *testing.T) {
 		if !assert.NoError(t, err) {
 			t.FailNow()
 		}
-		assert.Equal(t, http.StatusBadGateway, resp.StatusCode)
+		if !assert.Equal(t, http.StatusBadRequest, resp.StatusCode) {
+			resp.Write(os.Stdout)
+		}
 	}
 
 	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testOk)
