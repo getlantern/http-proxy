@@ -34,4 +34,4 @@ build:
     - script:
       name: test
       code: |
-        go test -race $(go list ./...)
+        make test
