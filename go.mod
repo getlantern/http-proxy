@@ -128,5 +128,3 @@ require (
 )
 
 replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20190514232624-e5e2953885df
-
-replace github.com/google/netstack => github.com/getlantern/netstack v0.0.0-20190313202628-8999826b821d
