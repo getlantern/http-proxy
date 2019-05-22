@@ -37,7 +37,7 @@ require (
 	github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467 // indirect
 	github.com/getlantern/goexpr v0.0.0-20171209042432-610eae7c7314 // indirect
 	github.com/getlantern/golog v0.0.0-20170508214112-cca714f7feb5
-	github.com/getlantern/gonat v0.0.0-20190521155318-acd3481c8f99
+	github.com/getlantern/gonat v0.0.0-20190521180257-5d58bc2c0862
 	github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55
 	github.com/getlantern/http-proxy v0.0.0-20190321015922-4801e21d5eca
 	github.com/getlantern/ipproxy v0.0.0-20190508162323-6329c3cbf2fa // indirect
