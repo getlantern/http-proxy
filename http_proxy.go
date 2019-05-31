@@ -19,7 +19,7 @@ import (
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
-	"github.com/getlantern/ipproxy"
+	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
 	"github.com/getlantern/ops"
 	packetforward "github.com/getlantern/packetforward/server"
@@ -139,6 +139,7 @@ type Proxy struct {
 	PCAPSnapLen                        int
 	PCAPTimeout                        time.Duration
 	PacketForwardAddr                  string
+	PacketForwardIntf                  string
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -813,15 +814,23 @@ func (p *Proxy) setupPacketForward() {
 		log.Errorf("Unable to listen for packet forwarding at %v: %v", p.PacketForwardAddr, err)
 		return
 	}
+	s, err := packetforward.NewServer(&packetforward.Opts{
+		Opts: gonat.Opts{
+			StatsInterval: 15 * time.Second,
+			IFName:        p.PacketForwardIntf,
+			IdleTimeout:   90 * time.Second,
+			BufferDepth:   1000,
+		},
+		BufferPoolSize: 50 * 1024 * 1024,
+	})
+	if err != nil {
+		log.Errorf("Error configuring packet forwarding: %v", err)
+		return
+	}
 	log.Debugf("Listening for packet forwarding at %v", l.Addr())
+
 	go func() {
-		s := packetforward.NewServer(&ipproxy.Opts{
-			OutboundBufferDepth: 10000,
-			TCPConnectBacklog:   100,
-			IdleTimeout:         90 * time.Second,
-		})
-		err := s.Serve(l)
-		if err != nil {
+		if err := s.Serve(l); err != nil {
 			log.Errorf("Error serving packet forwarding: %v", err)
 		}
 	}()

@@ -14,7 +14,7 @@ import (
 
 	"github.com/getlantern/golog"
 
-	"github.com/getlantern/http-proxy-lantern"
+	proxy "github.com/getlantern/http-proxy-lantern"
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/instrument"
@@ -51,6 +51,7 @@ var (
 	enhttpReapIdleTime = flag.Duration("enhttp-reapidletime", time.Duration(*idleClose)*time.Second, "configure how long enhttp connections are allowed to remain idle before being forcibly closed")
 
 	packetForwardAddr = flag.String("pforward-addr", "127.0.0.1:3000", "Address at which to listen for packet forwarding connections")
+	packetForwardIntf = flag.String("pforward-intf", "eth0", "The name of the interface to use for upstream packet forwarding connections")
 
 	keyfile  = flag.String("key", "", "Private key file name")
 	certfile = flag.String("cert", "", "Certificate file name")
@@ -227,6 +228,7 @@ func main() {
 		PCAPSnapLen:                        *pcapSnapLen,
 		PCAPTimeout:                        *pcapTimeout,
 		PacketForwardAddr:                  *packetForwardAddr,
+		PacketForwardIntf:                  *packetForwardIntf,
 	}
 
 	err := p.ListenAndServe()

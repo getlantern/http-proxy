@@ -46,3 +46,4 @@ dist
 
 reflector
 .http-proxy-builder-context
+.vscode
