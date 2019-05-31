@@ -37,7 +37,7 @@ require (
 	github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467 // indirect
 	github.com/getlantern/goexpr v0.0.0-20171209042432-610eae7c7314 // indirect
 	github.com/getlantern/golog v0.0.0-20170508214112-cca714f7feb5
-	github.com/getlantern/gonat v0.0.0-20190521180257-5d58bc2c0862
+	github.com/getlantern/gonat v0.0.0-20190530205736-af2e31f0c56d
 	github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55
 	github.com/getlantern/http-proxy v0.0.0-20190321015922-4801e21d5eca
 	github.com/getlantern/ipproxy v0.0.0-20190508162323-6329c3cbf2fa // indirect
@@ -52,7 +52,7 @@ require (
 	github.com/getlantern/mtime v0.0.0-20170117193331-ba114e4a82b0
 	github.com/getlantern/netx v0.0.0-20190110220209-9912de6f94fd
 	github.com/getlantern/ops v0.0.0-20190325191751-d70cb0d6f85f
-	github.com/getlantern/packetforward v0.0.2-0.20190521165702-a4dc2bcdd309
+	github.com/getlantern/packetforward v0.0.0-20190531004311-d92b6414beca
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/preconn v0.0.0-20180328114929-0b5766010efe // indirect
 	github.com/getlantern/proxy v0.0.0-20181004033118-a1730c79960f
@@ -64,6 +64,7 @@ require (
 	github.com/getlantern/tinywss v0.0.0-20190508231233-72f4ddc30925
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
 	github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836
+	github.com/getlantern/unsafeslice v0.0.0-20190520180502-c8f6b3669ee7 // indirect
 	github.com/getlantern/uuid v1.2.0 // indirect
 	github.com/getlantern/waitforserver v1.0.1
 	github.com/getlantern/wal v0.0.0-20180604193457-e99945fbd2d2 // indirect
@@ -78,6 +79,7 @@ require (
 	github.com/gonum/lapack v0.0.0-20180125091020-f0b8b25edece // indirect
 	github.com/gonum/matrix v0.0.0-20180124231301-a41cc49d4c29 // indirect
 	github.com/gonum/stat v0.0.0-20180125090729-ec9c8a1062f4
+	github.com/google/netstack v0.0.0-20190505230633-4391e4a763ab // indirect
 	github.com/googleapis/gax-go v2.0.0+incompatible // indirect
 	github.com/gopherjs/gopherjs v0.0.0-20190430165422-3e4dfb77656c // indirect
 	github.com/hashicorp/golang-lru v0.5.0
