@@ -47,6 +47,8 @@ github.com/cheekybits/genny v1.0.0/go.mod h1:+tQajlRqAUrPI7DOSpB0XAqZYtQakVtB7wX
 github.com/client9/misspell v0.3.4/go.mod h1:qj6jICC3Q7zFZvVWo7KLAzC3yx5G7kyvSDkc90ppPyw=
 github.com/cloudflare/sidh v0.0.0-20181111220428-fc8e6378752b h1:pqwbJdj1rgMkE38tDSNnP97wdMYHzV+Lt/aLL2qw2LQ=
 github.com/cloudflare/sidh v0.0.0-20181111220428-fc8e6378752b/go.mod h1:o/DcCuWFr9jFzwO+c3y1hhwqKHHKfJ7HvLhWUwRnqfo=
+github.com/cloudflare/sidh v0.0.0-20190228162259-d2f0f90e08aa h1:2pQJShMsIfrl5+NnJRzWSmp6FDUZY3LcnviKOYn9qWM=
+github.com/cloudflare/sidh v0.0.0-20190228162259-d2f0f90e08aa/go.mod h1:o/DcCuWFr9jFzwO+c3y1hhwqKHHKfJ7HvLhWUwRnqfo=
 github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd h1:qMd81Ts1T2OTKmB4acZcyKaMtRnY5Y44NuXGX2GFJ1w=
 github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd/go.mod h1:sE/e/2PUdi/liOCUjSTXgM1o87ZssimdTWN964YiIeI=
 github.com/cupcake/rdb v0.0.0-20161107195141-43ba34106c76 h1:Lgdd/Qp96Qj8jqLpq2cI1I1X7BJnu06efS+XkhRoLUQ=
@@ -223,6 +225,8 @@ github.com/getlantern/preconn v0.0.0-20180328114929-0b5766010efe h1:6KgbumDfWYBJ
 github.com/getlantern/preconn v0.0.0-20180328114929-0b5766010efe/go.mod h1:FvIxQD61iYA42UjaJyzGl9DNne8jbowbgicdeNk/7kE=
 github.com/getlantern/proxy v0.0.0-20181004033118-a1730c79960f h1:pu/ytqyOklAu4Vp3TubIX0rsYENtjIsmkWgXAIqy72Q=
 github.com/getlantern/proxy v0.0.0-20181004033118-a1730c79960f/go.mod h1:z6u2OS1ynUdXIraWO04T1wcHFcGaIHwPed0n0bNilZU=
+github.com/getlantern/quic-go v0.7.1-0.20190207212844-f9d7a8b53ff5 h1:zX0FwPVxQdUlgoRF1IKjwH0B7x5e9Z1rqjKF/aZMZ9I=
+github.com/getlantern/quic-go v0.7.1-0.20190207212844-f9d7a8b53ff5/go.mod h1:kBFoTCTI+LRtbTg62OUa6VCz70Y//M/GvMYz8shF+wQ=
 github.com/getlantern/quic-go v0.7.1-0.20190514232624-e5e2953885df h1:IjoJmIakEktCggu6/9XxX0Itz9Txm3RVb16vlcZikEE=
 github.com/getlantern/quic-go v0.7.1-0.20190514232624-e5e2953885df/go.mod h1:/1Nq+p2X4mN722PHq3YaU2ks+N/djHf6aej/1I3IHsE=
 github.com/getlantern/quicwrapper v0.0.0-20190103180943-9afd6b9b3c2f h1:0mgDRPrxJf8jMY9IYE2Oo5C+r6vOR1yzhO4hLxMfqlc=
@@ -319,6 +323,8 @@ github.com/konsorten/go-windows-terminal-sequences v1.0.1/go.mod h1:T0+1ngSBFLxv
 github.com/kr/logfmt v0.0.0-20140226030751-b84e30acd515/go.mod h1:+0opPa2QZZtGFBFZlji/RkVcI2GknAs/DXo4wKdlNEc=
 github.com/marten-seemann/qtls v0.0.0-20190207043627-591c71538704 h1:7Fx1paF8onfPhcIMlwgznBklz62TrCZjOjoBbUod/3Y=
 github.com/marten-seemann/qtls v0.0.0-20190207043627-591c71538704/go.mod h1:DWDPNN1eWKaT5wsnMz2LR336Zh9hlw/YSRXxqEukrT8=
+github.com/marten-seemann/qtls v0.2.3 h1:0yWJ43C62LsZt08vuQJDK1uC1czUc3FJeCLPoNAI4vA=
+github.com/marten-seemann/qtls v0.2.3/go.mod h1:xzjG7avBwGGbdZ8dTGxlBnLArsVKLvwmjgmPuiQEcYk=
 github.com/matttproud/golang_protobuf_extensions v1.0.1 h1:4hp9jkHxhMHkqkrB3Ix0jegS5sx/RkqARlsWZ6pIwiU=
 github.com/matttproud/golang_protobuf_extensions v1.0.1/go.mod h1:D8He9yQNgCq6Z5Ld7szi9bcBfOoFv/3dc6xSMkL2PC0=
 github.com/mdlayher/netlink v0.0.0-20190313131330-258ea9dff42c/go.mod h1:eQB3mZE4aiYnlUsyGGCOpPETfdQq4Jhsgf1fk3cwQaA=
@@ -431,6 +437,7 @@ go.opencensus.io v0.17.0/go.mod h1:mp1VrMQxhlqqDpKvH4UcQUa4YwlzNmymAjPrDdfxNpI=
 golang.org/x/crypto v0.0.0-20180904163835-0709b304e793/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20180910181607-0e37d006457b/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
 golang.org/x/crypto v0.0.0-20181015023909-0c41d7ab0a0e/go.mod h1:6SG95UA2DQfeDnfUPMdvaQW0Q7yPrPDi9nlGo2tz2b4=
+golang.org/x/crypto v0.0.0-20190228161510-8dd112bcdc25/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20190513172903-22d7a77e9e5f h1:R423Cnkcp5JABoeemiGEPlt9tHXFfw5kvc0yqlxRPWo=
 golang.org/x/crypto v0.0.0-20190513172903-22d7a77e9e5f/go.mod h1:yigFU9vqHzYiE8UmvKecakEJjdnWj3jj499lnFckfCI=
@@ -460,6 +467,7 @@ golang.org/x/sys v0.0.0-20180920110915-d641721ec2de/go.mod h1:STP8DvDyc/dI5b8T5h
 golang.org/x/sys v0.0.0-20181011152604-fa43e7bc11ba/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20181116152217-5ac8a444bdc5/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
+golang.org/x/sys v0.0.0-20190228124157-a34e9553db1e/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190312061237-fead79001313/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190322080309-f49334f85ddc/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20190405154228-4b34438f7a67/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
