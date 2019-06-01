@@ -108,6 +108,8 @@ github.com/getlantern/framed v0.0.0-20190524160045-6ccdff51cb44 h1:Zl0/BFYgEngSl
 github.com/getlantern/framed v0.0.0-20190524160045-6ccdff51cb44/go.mod h1:0YL9EFe/pR1LBtvJ0FTENoFJbv80hsi5NpqgdRyHC3U=
 github.com/getlantern/framed v0.0.0-20190530205914-53a68d971aef h1:p/ir5K29w2zuV8DkAYurmkPG3A7EiFHVPmH3/KDMYyc=
 github.com/getlantern/framed v0.0.0-20190530205914-53a68d971aef/go.mod h1:nhnoiS6DE6zfe+BaCMU4YI01UpsuiXnDqM5S8jxHuuI=
+github.com/getlantern/framed v0.0.0-20190601192238-ceb6431eeede h1:yrU6Px3ZkvCsDLPryPGi6FN+2iqFPq+JeCb7EFoDBhw=
+github.com/getlantern/framed v0.0.0-20190601192238-ceb6431eeede/go.mod h1:nhnoiS6DE6zfe+BaCMU4YI01UpsuiXnDqM5S8jxHuuI=
 github.com/getlantern/geolookup v0.0.0-20180719190536-68d621f75f46 h1:Wn6iLKISC9f0EOzffdJqwC9ppLekPA47idBUP402nb4=
 github.com/getlantern/geolookup v0.0.0-20180719190536-68d621f75f46/go.mod h1:C4lSABOxuIeQi36iYsO7xrcBzLDNeeB/nPVqYbHEnbo=
 github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467 h1:10ez8C+7zyHzmnIiYybx9Qji/zO2tAAde69DfJMbUKY=
@@ -193,6 +195,8 @@ github.com/getlantern/packetforward v0.0.0-20190508162357-800eb2c186b1 h1:S1A/yB
 github.com/getlantern/packetforward v0.0.0-20190508162357-800eb2c186b1/go.mod h1:uY7WBC3rNtPeGoOmB2c7x6Z6fdLuNN9DTRy8C6a0zjg=
 github.com/getlantern/packetforward v0.0.0-20190531004311-d92b6414beca h1:uZepQ9VFJCpAKeMQErl93gQZmuVE5vnA5ZntgC3+5KY=
 github.com/getlantern/packetforward v0.0.0-20190531004311-d92b6414beca/go.mod h1:3Or2bV4UpF3R7moPkE7fvFxfnNBycyiJVA7ohLnc4XI=
+github.com/getlantern/packetforward v0.0.0-20190601192435-e72f3010afed h1:Qh+/zhYvi0YYfa3C3EsvdsKROjL5InQd6R/ij/vBhx8=
+github.com/getlantern/packetforward v0.0.0-20190601192435-e72f3010afed/go.mod h1:mx4yaQ8zJsLAahhrBbsUtCgthHKf2SqfC3hIfn11tVg=
 github.com/getlantern/packetforward v0.0.2-0.20190516212738-3dc99922af31 h1:sXmcOVULVqbrgw+zUmkf3QpWBUe05qh22x1RzA+elTA=
 github.com/getlantern/packetforward v0.0.2-0.20190516212738-3dc99922af31/go.mod h1:hnTPguGiJYlshrlsnVq2nSJktG+mzzYEC9lBHvrhG4k=
 github.com/getlantern/packetforward v0.0.2-0.20190517020454-84cb5ce36347 h1:dcQvZ3/Lu9CmElYg3lGE9zjj4t9I/Eo4d1eID5MnBO4=
