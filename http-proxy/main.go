@@ -50,7 +50,7 @@ var (
 	enhttpServerURL    = flag.String("enhttp-server-url", "", "specify a full URL for domain-fronting to this server with enhttp, required for sticky routing with CloudFront")
 	enhttpReapIdleTime = flag.Duration("enhttp-reapidletime", time.Duration(*idleClose)*time.Second, "configure how long enhttp connections are allowed to remain idle before being forcibly closed")
 
-	packetForwardAddr = flag.String("pforward-addr", "127.0.0.1:3000", "Address at which to listen for packet forwarding connections")
+	packetForwardAddr = flag.String("pforward-addr", "", "Address at which to listen for packet forwarding connections")
 	packetForwardIntf = flag.String("pforward-intf", "eth0", "The name of the interface to use for upstream packet forwarding connections")
 
 	keyfile  = flag.String("key", "", "Private key file name")
