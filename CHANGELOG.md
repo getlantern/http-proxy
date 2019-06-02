@@ -1,5 +1,13 @@
 # Change Log
 
+## [0.2.19](https://github.com/getlantern/http-proxy-lantern/tree/0.2.19) (2019-06-02)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.18...0.2.19)
+
+**Merged pull requests:**
+
+- Updated to packetforward with corrected buffer pool sizing [\#312](https://github.com/getlantern/http-proxy-lantern/pull/312) ([oxtoacart](https://github.com/oxtoacart))
+- Make sure we have the right QUIC version and its dependencies [\#311](https://github.com/getlantern/http-proxy-lantern/pull/311) ([oxtoacart](https://github.com/oxtoacart))
+
 ## [0.2.18](https://github.com/getlantern/http-proxy-lantern/tree/0.2.18) (2019-05-31)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.17...0.2.18)
 
