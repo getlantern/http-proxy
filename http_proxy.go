@@ -219,7 +219,7 @@ func (p *Proxy) ListenAndServe() error {
 		filterChain = filterChain.Prepend(quic.NewMiddleware())
 	}
 	if p.WSSAddr != "" {
-		filterChain = filterChain.Append(wss.NewMiddleware(p.CfgSvrAuthToken))
+		filterChain = filterChain.Append(wss.NewMiddleware())
 	}
 	filterChain = filterChain.Prepend(opsfilter.New(p.bm))
 

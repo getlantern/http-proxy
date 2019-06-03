@@ -17,20 +17,13 @@ var (
 	// to certain subrequests on a wss connection.
 	headerWhitelist = []string{
 		"CloudFront-Viewer-Country",
-		"X-Forwarded-For",
 	}
 )
 
-const (
-	CDNAuthTokenHeader = "X-Lantern-CDN-Auth-Token"
-)
+type middleware struct{}
 
-type middleware struct {
-	authToken string
-}
-
-func NewMiddleware(authToken string) *middleware {
-	return &middleware{authToken}
+func NewMiddleware() *middleware {
+	return &middleware{}
 }
 
 func (m *middleware) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
@@ -46,7 +39,7 @@ func (m *middleware) apply(ctx filters.Context, req *http.Request) {
 	// not reflect the correct client ip.
 
 	cfg := domains.ConfigForRequest(req)
-	if !(cfg.AddConfigServerHeaders || cfg.AddForwardedFor) {
+	if !(cfg.AddConfigServerHeaders) {
 		return
 	}
 
@@ -55,17 +48,14 @@ func (m *middleware) apply(ctx filters.Context, req *http.Request) {
 		switch t := conn.(type) {
 		case *tinywss.WsConn:
 			upHdr := t.UpgradeHeaders()
-			auth := upHdr.Get(CDNAuthTokenHeader)
-			// this is an authorized CDN request, so we can trust these headers.
-			if auth == m.authToken {
-				for _, header := range headerWhitelist {
-					if val := upHdr.Get(header); val != "" {
-						req.Header.Set(header, val)
-						log.Debugf("WSS: copied header %s (%s)", header, val)
-					}
+			// XXX use an auth token here to prove it's a CDN
+			for _, header := range headerWhitelist {
+				if val := upHdr.Get(header); val != "" {
+					req.Header.Set(header, val)
+					log.Debugf("WSS: copied header %s (%s)", header, val)
+				} else {
+					log.Debugf("WSS: header %s was not present!", header)
 				}
-			} else {
-				log.Errorf("internal WSS request did not contain valid authorization header (%s='%s')", CDNAuthTokenHeader, auth)
 			}
 			return false
 		}
