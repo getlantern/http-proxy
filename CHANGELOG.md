@@ -1,5 +1,12 @@
 # Change Log
 
+## [0.2.20](https://github.com/getlantern/http-proxy-lantern/tree/0.2.20) (2019-06-03)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.19...0.2.20)
+
+**Merged pull requests:**
+
+- Carry through cloudfront country header on wss requests [\#313](https://github.com/getlantern/http-proxy-lantern/pull/313) ([forkner](https://github.com/forkner))
+
 ## [0.2.19](https://github.com/getlantern/http-proxy-lantern/tree/0.2.19) (2019-06-02)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.18...0.2.19)
 
