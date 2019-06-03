@@ -246,6 +246,8 @@ github.com/getlantern/testredis v0.0.0-20180921025736-7a5ea00c9914 h1:kgfkmO94gA
 github.com/getlantern/testredis v0.0.0-20180921025736-7a5ea00c9914/go.mod h1:3AaQa3xeGKD3Id/FA3VacMp+0paYYwLr1aPWmUHAaDc=
 github.com/getlantern/tinywss v0.0.0-20190508231233-72f4ddc30925 h1:mFHb/gFfy8kSIhsMuXXQGntywknkvR39mBNK8vjOhqU=
 github.com/getlantern/tinywss v0.0.0-20190508231233-72f4ddc30925/go.mod h1:M/qiq0waagRvmKeCXo5afO0UxiGaHtqE2BX3BAyQlcE=
+github.com/getlantern/tinywss v0.0.0-20190603141034-49fb977700a3 h1:26IYWRipBhndF6ICcm3w6J1+4RjVNKzKkaI6EPzTZPE=
+github.com/getlantern/tinywss v0.0.0-20190603141034-49fb977700a3/go.mod h1:M/qiq0waagRvmKeCXo5afO0UxiGaHtqE2BX3BAyQlcE=
 github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4 h1:73U3J4msGw3cXeKtCEbY7hbOdD6aX8gJv8BOu+VagF8=
 github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4/go.mod h1:f8WmDYKFOaC5/y0d3GWl6UKf1ZbSlIoMzkuC8x7pUhg=
 github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836 h1:Qx9tRhqZdhF0RBxHe2OVE1OJ30ipOCPfMraDrZED3bc=

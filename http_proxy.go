@@ -59,6 +59,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 	"github.com/getlantern/http-proxy-lantern/versioncheck"
+	"github.com/getlantern/http-proxy-lantern/wss"
 
 	utp "github.com/anacrolix/go-libutp"
 	rclient "gopkg.in/redis.v5"
@@ -216,6 +217,9 @@ func (p *Proxy) ListenAndServe() error {
 
 	if p.QUICAddr != "" {
 		filterChain = filterChain.Prepend(quic.NewMiddleware())
+	}
+	if p.WSSAddr != "" {
+		filterChain = filterChain.Append(wss.NewMiddleware())
 	}
 	filterChain = filterChain.Prepend(opsfilter.New(p.bm))
 
