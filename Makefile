@@ -84,6 +84,7 @@ docker-builder: system-checks
 
 # workaround to build Ubuntu binary on non-Ubuntu platforms.
 docker-distnochange: docker-builder require-dep
+	mkdir -p dist && \
 	GO111MODULE=on go mod vendor && \
 	docker run -e GIT_REVISION='$(GIT_REVISION)' \
 	-e SRCDIR='github.com/getlantern/http-proxy-lantern' \
