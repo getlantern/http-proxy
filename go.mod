@@ -62,7 +62,7 @@ require (
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
 	github.com/getlantern/sqlparser v0.0.0-20171012210704-a879d8035f3c // indirect
 	github.com/getlantern/testredis v0.0.0-20180921025736-7a5ea00c9914
-	github.com/getlantern/tinywss v0.0.0-20190508231233-72f4ddc30925
+	github.com/getlantern/tinywss v0.0.0-20190603141034-49fb977700a3
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
 	github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836
 	github.com/getlantern/unsafeslice v0.0.0-20190520180502-c8f6b3669ee7 // indirect
