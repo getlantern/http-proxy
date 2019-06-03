@@ -45,8 +45,7 @@ func (m *middleware) apply(ctx filters.Context, req *http.Request) {
 
 	conn := ctx.DownstreamConn()
 	netx.WalkWrapped(conn, func(conn net.Conn) bool {
-		switch t := conn.(type) {
-		case *tinywss.WsConn:
+		if t, ok := conn.(*tinywss.WsConn); ok {
 			upHdr := t.UpgradeHeaders()
 			// XXX use an auth token here to prove it's a CDN
 			for _, header := range headerWhitelist {
