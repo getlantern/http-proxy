@@ -18,8 +18,6 @@ github.com/alecthomas/template v0.0.0-20160405071501-a0175ee3bccc/go.mod h1:LOuy
 github.com/alecthomas/units v0.0.0-20151022065526-2efee857e7cf/go.mod h1:ybxpYRFXyAe+OPACYpWeL0wqObRcbAqCMya13uyzqw0=
 github.com/anacrolix/envpprof v0.0.0-20180404065416-323002cec2fa/go.mod h1:KgHhUaQMc8cC0+cEflSgCFNFbKwi5h54gqtVn8yhP7c=
 github.com/anacrolix/envpprof v1.0.0/go.mod h1:KgHhUaQMc8cC0+cEflSgCFNFbKwi5h54gqtVn8yhP7c=
-github.com/anacrolix/go-libutp v1.0.1 h1:VuDf+T2avrHpaOB856Uni7I/lZB1R+OstXGQRKqc+os=
-github.com/anacrolix/go-libutp v1.0.1/go.mod h1:uIH0A72V++j0D1nnmTjjZUiH/ujPkFxYWkxQ02+7S0U=
 github.com/anacrolix/missinggo v0.0.0-20180725070939-60ef2fbf63df/go.mod h1:kwGiTUTZ0+p4vAz3VbAI5a30t2YbvemcmspjKwrAz5s=
 github.com/anacrolix/missinggo v1.1.0 h1:0lZbaNa6zTR1bELAIzCNmRGAtkHuLDPJqTiTtXoAIx8=
 github.com/anacrolix/missinggo v1.1.0/go.mod h1:MBJu3Sk/k3ZfGYcS7z18gwfu72Ey/xopPFJJbTi5yIo=
@@ -114,6 +112,8 @@ github.com/getlantern/geolookup v0.0.0-20180719190536-68d621f75f46 h1:Wn6iLKISC9
 github.com/getlantern/geolookup v0.0.0-20180719190536-68d621f75f46/go.mod h1:C4lSABOxuIeQi36iYsO7xrcBzLDNeeB/nPVqYbHEnbo=
 github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467 h1:10ez8C+7zyHzmnIiYybx9Qji/zO2tAAde69DfJMbUKY=
 github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467/go.mod h1:IQND0fl/mdTYNICpN/eDYKX+j90TqQYXdpNFWkJpCPs=
+github.com/getlantern/go-libutp v1.0.3 h1:ESmde7HKb1LaB+6G0eWUuWcjN4DmqOvTRqm49De33sI=
+github.com/getlantern/go-libutp v1.0.3/go.mod h1:59dYQcPvvYl4AsKVIoy1aS4wd08Q8lzlHG16y30c2V0=
 github.com/getlantern/goexpr v0.0.0-20171209042432-610eae7c7314 h1:YBOwrTqJAZccNMxGgiUXE03uXh01LVpW08DoC7bb70Q=
 github.com/getlantern/goexpr v0.0.0-20171209042432-610eae7c7314/go.mod h1:SHcmnWH2XPx8rAlsy8uh2eEsIIDK+rJ+aD1mQPv5cQo=
 github.com/getlantern/golog v0.0.0-20170508214112-cca714f7feb5 h1:Okd7vkn9CfIgDBj1ST/vtBTCfD/kxIhYD412K+FRKPc=

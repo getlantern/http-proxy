@@ -11,7 +11,6 @@ require (
 	github.com/Yawning/chacha20 v0.0.0-20170904085104-e3b1f968fc63 // indirect
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
 	github.com/anacrolix/envpprof v1.0.0 // indirect
-	github.com/anacrolix/go-libutp v1.0.1
 	github.com/anacrolix/missinggo v1.1.0 // indirect
 	github.com/anacrolix/tagflag v1.0.0 // indirect
 	github.com/blang/semver v0.0.0-20180723201105-3c1074078d32
@@ -36,6 +35,7 @@ require (
 	github.com/getlantern/filepersist v0.0.0-20160317154340-c5f0cd24e799 // indirect
 	github.com/getlantern/geolookup v0.0.0-20180719190536-68d621f75f46
 	github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467 // indirect
+	github.com/getlantern/go-libutp v1.0.3
 	github.com/getlantern/goexpr v0.0.0-20171209042432-610eae7c7314 // indirect
 	github.com/getlantern/golog v0.0.0-20170508214112-cca714f7feb5
 	github.com/getlantern/gonat v0.0.0-20190530205736-af2e31f0c56d

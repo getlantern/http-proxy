@@ -14,10 +14,13 @@ import (
 	"syscall"
 	"time"
 
+	rclient "gopkg.in/redis.v5"
+
 	bordaClient "github.com/getlantern/borda/client"
 	"github.com/getlantern/cmux"
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
+	utp "github.com/getlantern/go-libutp"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
@@ -60,9 +63,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 	"github.com/getlantern/http-proxy-lantern/versioncheck"
 	"github.com/getlantern/http-proxy-lantern/wss"
-
-	utp "github.com/anacrolix/go-libutp"
-	rclient "gopkg.in/redis.v5"
 )
 
 const (
