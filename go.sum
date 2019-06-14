@@ -33,6 +33,8 @@ github.com/aristanetworks/goarista v0.0.0-20190502180301-283422fc1708 h1:tS7jSmw
 github.com/aristanetworks/goarista v0.0.0-20190502180301-283422fc1708/go.mod h1:D/tb0zPVXnP7fmsLZjtdUhSsumbK/ij54UXjjVgMGxQ=
 github.com/aristanetworks/goarista v0.0.0-20190514202536-8f808a500156 h1:sdAZ4pJ5nD/EzLkcw4AonvhgrU1aBKxx6ga1b7Psr9o=
 github.com/aristanetworks/goarista v0.0.0-20190514202536-8f808a500156/go.mod h1:D/tb0zPVXnP7fmsLZjtdUhSsumbK/ij54UXjjVgMGxQ=
+github.com/bcmertz/chacha20 v0.0.0-20170904085104-e3b1f968fc63 h1:87dRZ50ovcGY4WzBStEYTfwDevr7RXmuW8AFPsfxzrA=
+github.com/bcmertz/chacha20 v0.0.0-20170904085104-e3b1f968fc63/go.mod h1:rkPtccVxWD/4sycMQDEO8tJ29Z/+u2z0lDXZW1ufex4=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973 h1:xJ4a3vCFaGF/jqvzLMYoU8P317H5OQ+Via4RmuPwCS0=
 github.com/beorn7/perks v0.0.0-20180321164747-3a771d992973/go.mod h1:Dwedo/Wpr24TaqPxmxbtue+5NUziq4I4S80YR8gNf3Q=
 github.com/blang/semver v0.0.0-20180723201105-3c1074078d32 h1:JN7dmcVkamyKIPCDJAtmfiBcpJCMyoLkxsFbxJs1r74=
@@ -175,6 +177,8 @@ github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a h1:SBw2c296eaLrr
 github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a/go.mod h1:FMf0g72BHs14jVcD8i8ubEk4sMB6JdidBn67d44i3ws=
 github.com/getlantern/lampshade v0.0.0-20190507122828-84b870a67bd6 h1:6CEX9wtE4/NhNOUMrGdTaFrj7PfqztjdAG0kpKB/628=
 github.com/getlantern/lampshade v0.0.0-20190507122828-84b870a67bd6/go.mod h1:h0JxtfSix7rXr+2dnLTmUV2rApjQH364hfM5YLAFXYc=
+github.com/getlantern/lampshade v0.0.0-20190614182052-9bb099fbf607 h1:pxQ0ET7wjq60JSY8UpWumz4i/7Y0ljyxct5FDVgAMmM=
+github.com/getlantern/lampshade v0.0.0-20190614182052-9bb099fbf607/go.mod h1:h0JxtfSix7rXr+2dnLTmUV2rApjQH364hfM5YLAFXYc=
 github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198 h1:J0CxRQc8J4iDyMTeSqXa338ZLDpAFf4jLZHBzw+iCMs=
 github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198/go.mod h1:5OW2WJitCKExpSw2bploW2fM7PjOd6QnLqyp+IqToqU=
 github.com/getlantern/mitm v0.0.0-20180205214248-4ce456bae650 h1:n3CmLDgXI1AUbybRxYcU48fAmfe4MPwL/ek4DgJHfcc=

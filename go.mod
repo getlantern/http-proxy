@@ -13,6 +13,7 @@ require (
 	github.com/anacrolix/envpprof v1.0.0 // indirect
 	github.com/anacrolix/missinggo v1.1.0 // indirect
 	github.com/anacrolix/tagflag v1.0.0 // indirect
+	github.com/bcmertz/chacha20 v0.0.0-20170904085104-e3b1f968fc63 // indirect
 	github.com/blang/semver v0.0.0-20180723201105-3c1074078d32
 	github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
@@ -45,7 +46,7 @@ require (
 	github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c // indirect
 	github.com/getlantern/kcpwrapper v0.0.0-20171114192627-a35c895f6de7
 	github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a
-	github.com/getlantern/lampshade v0.0.0-20190507122828-84b870a67bd6
+	github.com/getlantern/lampshade v0.0.0-20190614182052-9bb099fbf607
 	github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198
 	github.com/getlantern/mitm v0.0.0-20180205214248-4ce456bae650 // indirect
 	github.com/getlantern/mockconn v0.0.0-20190403061815-a8ffa60494a6
