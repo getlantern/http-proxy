@@ -20,7 +20,7 @@ import (
 	"github.com/getlantern/cmux"
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
-	utp "github.com/getlantern/go-libutp"
+	utp "github.com/anacrolix/go-libutp"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
