@@ -53,7 +53,7 @@ require (
 	github.com/getlantern/mtime v0.0.0-20170117193331-ba114e4a82b0
 	github.com/getlantern/netx v0.0.0-20190110220209-9912de6f94fd
 	github.com/getlantern/ops v0.0.0-20190325191751-d70cb0d6f85f
-	github.com/getlantern/packetforward v0.0.0-20190601192435-e72f3010afed
+	github.com/getlantern/packetforward v0.0.0-20190619115420-9b87ad1c4d45
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/preconn v0.0.0-20180328114929-0b5766010efe // indirect
 	github.com/getlantern/proxy v0.0.0-20181004033118-a1730c79960f

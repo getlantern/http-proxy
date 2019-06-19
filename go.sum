@@ -197,6 +197,8 @@ github.com/getlantern/packetforward v0.0.0-20190531004311-d92b6414beca h1:uZepQ9
 github.com/getlantern/packetforward v0.0.0-20190531004311-d92b6414beca/go.mod h1:3Or2bV4UpF3R7moPkE7fvFxfnNBycyiJVA7ohLnc4XI=
 github.com/getlantern/packetforward v0.0.0-20190601192435-e72f3010afed h1:Qh+/zhYvi0YYfa3C3EsvdsKROjL5InQd6R/ij/vBhx8=
 github.com/getlantern/packetforward v0.0.0-20190601192435-e72f3010afed/go.mod h1:mx4yaQ8zJsLAahhrBbsUtCgthHKf2SqfC3hIfn11tVg=
+github.com/getlantern/packetforward v0.0.0-20190619115420-9b87ad1c4d45 h1:Mi87VvoJz70AcwjCF20+G3cgo2b7R6cAXN4+9dK4axE=
+github.com/getlantern/packetforward v0.0.0-20190619115420-9b87ad1c4d45/go.mod h1:mx4yaQ8zJsLAahhrBbsUtCgthHKf2SqfC3hIfn11tVg=
 github.com/getlantern/packetforward v0.0.2-0.20190516212738-3dc99922af31 h1:sXmcOVULVqbrgw+zUmkf3QpWBUe05qh22x1RzA+elTA=
 github.com/getlantern/packetforward v0.0.2-0.20190516212738-3dc99922af31/go.mod h1:hnTPguGiJYlshrlsnVq2nSJktG+mzzYEC9lBHvrhG4k=
 github.com/getlantern/packetforward v0.0.2-0.20190517020454-84cb5ce36347 h1:dcQvZ3/Lu9CmElYg3lGE9zjj4t9I/Eo4d1eID5MnBO4=
