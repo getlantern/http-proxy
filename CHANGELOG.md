@@ -1,5 +1,14 @@
 # Change Log
 
+## [0.2.21](https://github.com/getlantern/http-proxy-lantern/tree/0.2.21) (2019-06-19)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.20...0.2.21)
+
+**Merged pull requests:**
+
+- Updated to latest packetforward without verbose packet logging [\#316](https://github.com/getlantern/http-proxy-lantern/pull/316) ([oxtoacart](https://github.com/oxtoacart))
+- Made libutp dependency match client [\#315](https://github.com/getlantern/http-proxy-lantern/pull/315) ([oxtoacart](https://github.com/oxtoacart))
+- use our own fork of go-libutp [\#314](https://github.com/getlantern/http-proxy-lantern/pull/314) ([joesis](https://github.com/joesis))
+
 ## [0.2.20](https://github.com/getlantern/http-proxy-lantern/tree/0.2.20) (2019-06-03)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.19...0.2.20)
 
