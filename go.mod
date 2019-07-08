@@ -45,7 +45,7 @@ require (
 	github.com/getlantern/lampshade v0.0.0-20190507122828-84b870a67bd6
 	github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198
 	github.com/getlantern/mitm v0.0.0-20180205214248-4ce456bae650 // indirect
-	github.com/getlantern/mockconn v0.0.0-20190403061815-a8ffa60494a6
+	github.com/getlantern/mockconn v0.0.0-20190708122800-637bd46d8034
 	github.com/getlantern/mtime v0.0.0-20170117193331-ba114e4a82b0
 	github.com/getlantern/netx v0.0.0-20190110220209-9912de6f94fd
 	github.com/getlantern/ops v0.0.0-20190325191751-d70cb0d6f85f
