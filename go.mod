@@ -24,14 +24,11 @@ require (
 	github.com/edsrzf/mmap-go v0.0.0-20170320065105-0bce6a688712 // indirect
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
 	github.com/getlantern/borda v0.0.0-20190702094755-23bd5a630f44
-	github.com/getlantern/bufconn v0.0.0-20190503112805-6402607914eb // indirect
 	github.com/getlantern/bytecounting v0.0.0-20190530140808-3b3f10d3b9ab // indirect
-	github.com/getlantern/byteexec v0.0.0-20170405023437-4cfb26ec74f4 // indirect
-	github.com/getlantern/cmux v0.0.0-20181009211959-acf511a0dc7c
+	github.com/getlantern/cmux v0.0.0-20190702172423-a16efed20804
 	github.com/getlantern/ema v0.0.0-20180718025023-42474605965c
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
-	github.com/getlantern/filepersist v0.0.0-20160317154340-c5f0cd24e799 // indirect
 	github.com/getlantern/fronted v0.0.0-20190606212108-e7744195eded // indirect
 	github.com/getlantern/geolookup v0.0.0-20180719190536-68d621f75f46
 	github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467 // indirect
@@ -57,7 +54,7 @@ require (
 	github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c // indirect
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
 	github.com/getlantern/testredis v0.0.0-20180921025736-7a5ea00c9914
-	github.com/getlantern/tinywss v0.0.0-20190603141034-49fb977700a3
+	github.com/getlantern/tinywss v0.0.0-20190708150441-b3c3bde6a6a5
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
 	github.com/getlantern/tlsdialer v2.0.12+incompatible // indirect
 	github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836
@@ -92,7 +89,6 @@ require (
 	github.com/prometheus/procfs v0.0.0-20190129233650-316cf8ccfec5 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20180503174638-e2704e165165
 	github.com/refraction-networking/utls v0.0.0-20190415193640-32987941ebd3 // indirect
-	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726 // indirect
 	github.com/siddontang/goredis v0.0.0-20180423163523-0b4019cbd7b7 // indirect
 	github.com/siddontang/ledisdb v0.0.0-20171128005033-56900470a899 // indirect
 	github.com/siddontang/rdb v0.0.0-20150307021120-fc89ed2e418d // indirect
@@ -104,12 +100,10 @@ require (
 	github.com/tjfoc/gmsm v0.0.0-20171124023159-98aa888b79d8 // indirect
 	github.com/ugorji/go v1.1.1 // indirect
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
-	github.com/xtaci/smux v0.0.0-20181001031909-545ecee9d2a9 // indirect
 	github.com/yuin/gopher-lua v0.0.0-20180918061612-799fa34954fb // indirect
 	go.opencensus.io v0.17.0 // indirect
 	golang.org/x/crypto v0.0.0-20190513172903-22d7a77e9e5f // indirect
 	golang.org/x/net v0.0.0-20190514140710-3ec191127204
-	golang.org/x/sync v0.0.0-20190423024810-112230192c58 // indirect
 	golang.org/x/text v0.3.2 // indirect
 	google.golang.org/api v0.0.0-20180921000521-920bb1beccf7
 	google.golang.org/appengine v1.2.0 // indirect
