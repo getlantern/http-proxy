@@ -116,3 +116,5 @@ require (
 replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20190207212844-f9d7a8b53ff5
 
 replace github.com/anacrolix/go-libutp => github.com/getlantern/go-libutp v1.0.3
+
+replace github.com/xtaci/smux => github.com/getlantern/smux v1.0.4-0.20190710020150-e7738d03db71
