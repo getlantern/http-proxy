@@ -87,7 +87,6 @@ require (
 	github.com/prometheus/client_model v0.0.0-20190129233127-fd36f4220a90 // indirect
 	github.com/prometheus/common v0.2.0 // indirect
 	github.com/prometheus/procfs v0.0.0-20190129233650-316cf8ccfec5 // indirect
-	github.com/rcrowley/go-metrics v0.0.0-20180503174638-e2704e165165
 	github.com/refraction-networking/utls v0.0.0-20190415193640-32987941ebd3 // indirect
 	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726 // indirect
 	github.com/siddontang/goredis v0.0.0-20180423163523-0b4019cbd7b7 // indirect
