@@ -25,7 +25,7 @@ require (
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
 	github.com/getlantern/borda v0.0.0-20190702094755-23bd5a630f44
 	github.com/getlantern/bytecounting v0.0.0-20190530140808-3b3f10d3b9ab // indirect
-	github.com/getlantern/cmux v0.0.0-20190702172423-a16efed20804
+	github.com/getlantern/cmux v0.0.0-20190711013109-98b1e3bae67b
 	github.com/getlantern/ema v0.0.0-20180718025023-42474605965c
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
@@ -42,7 +42,7 @@ require (
 	github.com/getlantern/lampshade v0.0.0-20190507122828-84b870a67bd6
 	github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198
 	github.com/getlantern/mitm v0.0.0-20180205214248-4ce456bae650 // indirect
-	github.com/getlantern/mockconn v0.0.0-20190403061815-a8ffa60494a6
+	github.com/getlantern/mockconn v0.0.0-20190708122800-637bd46d8034
 	github.com/getlantern/mtime v0.0.0-20170117193331-ba114e4a82b0
 	github.com/getlantern/netx v0.0.0-20190110220209-9912de6f94fd
 	github.com/getlantern/ops v0.0.0-20190325191751-d70cb0d6f85f
@@ -54,7 +54,7 @@ require (
 	github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c // indirect
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
 	github.com/getlantern/testredis v0.0.0-20180921025736-7a5ea00c9914
-	github.com/getlantern/tinywss v0.0.0-20190708150441-b3c3bde6a6a5
+	github.com/getlantern/tinywss v0.0.0-20190711013239-d816e122e1ae
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
 	github.com/getlantern/tlsdialer v2.0.12+incompatible // indirect
 	github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836
@@ -89,6 +89,7 @@ require (
 	github.com/prometheus/procfs v0.0.0-20190129233650-316cf8ccfec5 // indirect
 	github.com/rcrowley/go-metrics v0.0.0-20180503174638-e2704e165165
 	github.com/refraction-networking/utls v0.0.0-20190415193640-32987941ebd3 // indirect
+	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726 // indirect
 	github.com/siddontang/goredis v0.0.0-20180423163523-0b4019cbd7b7 // indirect
 	github.com/siddontang/ledisdb v0.0.0-20171128005033-56900470a899 // indirect
 	github.com/siddontang/rdb v0.0.0-20150307021120-fc89ed2e418d // indirect
@@ -116,5 +117,3 @@ require (
 replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20190207212844-f9d7a8b53ff5
 
 replace github.com/anacrolix/go-libutp => github.com/getlantern/go-libutp v1.0.3
-
-replace github.com/xtaci/smux => github.com/getlantern/smux v1.0.4-0.20190710020150-e7738d03db71
