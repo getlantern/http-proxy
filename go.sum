@@ -91,8 +91,6 @@ github.com/getlantern/byteexec v0.0.0-20170405023437-4cfb26ec74f4 h1:Nqmy8i81dzo
 github.com/getlantern/byteexec v0.0.0-20170405023437-4cfb26ec74f4/go.mod h1:4WCQkaCIwta0KlF9bQZA1jYqp8bzIS2PeCqjnef8nZ8=
 github.com/getlantern/bytemap v0.0.0-20180417025909-c7bf952233bc h1:TVT95IccIoeFnFPD169fak0Uxr0NSwgcqVI+oLPDdNo=
 github.com/getlantern/bytemap v0.0.0-20180417025909-c7bf952233bc/go.mod h1:DFhUkF3XKDQgnCNVn203TVnRxy4oUnIIMClem8MQxKE=
-github.com/getlantern/cmux v0.0.0-20190702172423-a16efed20804 h1:ngv6tmqAnJeYFcL+Yl3/O7TJp6nLJELTYh8rcLPH4Zw=
-github.com/getlantern/cmux v0.0.0-20190702172423-a16efed20804/go.mod h1:ak//nofE03p8SHfC3biXMf34fqC8xCdvIFveHWm8E7c=
 github.com/getlantern/cmux v0.0.0-20190711013109-98b1e3bae67b h1:BnDPZypzUXVF65+f2H2lTljue1p7XYL3i77pJ+UFuXg=
 github.com/getlantern/cmux v0.0.0-20190711013109-98b1e3bae67b/go.mod h1:nYsAgYIe+1pJsabjEnOgCOi0GCW6JmBZQ7mwkc6yGrM=
 github.com/getlantern/context v0.0.0-20190109183933-c447772a6520 h1:NRUJuo3v3WGC/g5YiyF790gut6oQr5f3FBI88Wv0dx4=
@@ -154,6 +152,7 @@ github.com/getlantern/mitm v0.0.0-20180205214248-4ce456bae650 h1:n3CmLDgXI1AUbyb
 github.com/getlantern/mitm v0.0.0-20180205214248-4ce456bae650/go.mod h1:jmIVbVxSVLdeY5hlD+6chiOR/9CdzPjVgIIQphviCl0=
 github.com/getlantern/mockconn v0.0.0-20190403061815-a8ffa60494a6 h1:+aO65ByJw74kV8vXqvkj49P5RtIqyUObyeRTIxMz218=
 github.com/getlantern/mockconn v0.0.0-20190403061815-a8ffa60494a6/go.mod h1:+F5GJ7qGpQ03DBtcOEyQpM30ix4BLswdaojecFtsdy8=
+github.com/getlantern/mockconn v0.0.0-20190708122800-637bd46d8034 h1:YtJxkucYlrHcD89/TIPAYIdOm8GGO7/xKUjDS6ZJFs4=
 github.com/getlantern/mockconn v0.0.0-20190708122800-637bd46d8034/go.mod h1:+F5GJ7qGpQ03DBtcOEyQpM30ix4BLswdaojecFtsdy8=
 github.com/getlantern/msgpack v3.1.4+incompatible h1:/XyJ9HTt8W31F6DjgOv+Nk+qKeKcv9kxp6hOww4pj1k=
 github.com/getlantern/msgpack v3.1.4+incompatible/go.mod h1:mUNR5C/x5E/8Jb8gU/lQd/ytwpKDhUvmGUj0STqInhc=
@@ -179,8 +178,6 @@ github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c h1:IkjF+RwRs8B/R
 github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c/go.mod h1:kExwbqTx1krUnT9ohmXG3jayDTEBfxUKeoRzU6XucLw=
 github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 h1:JyXEChj4lHy5w3hlQVnYpcH4QrBXmhEJgkxb0FPkFlM=
 github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01/go.mod h1:mnw3NsM0/oiJdZDMujNx+Kg60o72UClHB1UNqrEWqOM=
-github.com/getlantern/smux v1.0.4-0.20190710020150-e7738d03db71 h1:FcHfZ65h0CC/vUt9fexkti9frXZj0pZFlqWu6tVPSjQ=
-github.com/getlantern/smux v1.0.4-0.20190710020150-e7738d03db71/go.mod h1:iANtzO1+VlvqBNKl3j7MpNmMk6nfsAYjKgk+C4PozE4=
 github.com/getlantern/sqlparser v0.0.0-20171012210704-a879d8035f3c h1:+N/dste38K0oW/1/p4ixoFM0JxJFnFKIf2onc0PMpAI=
 github.com/getlantern/sqlparser v0.0.0-20171012210704-a879d8035f3c/go.mod h1:wGjYYh1vSkRes1bNy+zio7cmmI9cLbST+H8eqnt5Mg4=
 github.com/getlantern/stack v0.0.0-20160516001742-02f928aad224/go.mod h1:jFmW3KH+iSAt2vUkjB2vyM+SAxvdpIHa4PpAakJHO0w=
@@ -188,8 +185,6 @@ github.com/getlantern/testify v0.0.0-20160317154340-2eeb3906e78f h1:R6iv+VzCrbxl
 github.com/getlantern/testify v0.0.0-20160317154340-2eeb3906e78f/go.mod h1:uKKI9HSwZ4C8tx1vV+ovbG32Lw9LixtzPLNiS8U/ddA=
 github.com/getlantern/testredis v0.0.0-20180921025736-7a5ea00c9914 h1:kgfkmO94gAOSDZaGLTHYSQ/GW15x2t6GkWRjMDh6SmE=
 github.com/getlantern/testredis v0.0.0-20180921025736-7a5ea00c9914/go.mod h1:3AaQa3xeGKD3Id/FA3VacMp+0paYYwLr1aPWmUHAaDc=
-github.com/getlantern/tinywss v0.0.0-20190708150441-b3c3bde6a6a5 h1:YVrpwVjrUkoK8rTEPT2u27L79Z9Ye8VLlgx4S6tw0uw=
-github.com/getlantern/tinywss v0.0.0-20190708150441-b3c3bde6a6a5/go.mod h1:BvZAb/JWDLza0l0WqFjtgBKsxutotdlJp871yokil20=
 github.com/getlantern/tinywss v0.0.0-20190711013239-d816e122e1ae h1:DGlpE+pMGzf9BShxPmowHTCx7p/Glisv6OTjG3rlcA4=
 github.com/getlantern/tinywss v0.0.0-20190711013239-d816e122e1ae/go.mod h1:F8RkYDnWBkuBnGru1VwjiUOETxS3QAsebcRbuzTm3zc=
 github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4 h1:73U3J4msGw3cXeKtCEbY7hbOdD6aX8gJv8BOu+VagF8=
