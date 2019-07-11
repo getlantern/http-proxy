@@ -3,6 +3,7 @@ package instrument
 import (
 	"net"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
@@ -74,14 +75,35 @@ func (f *instrumentedFilter) Apply(ctx filters.Context, req *http.Request, next 
 
 // WrapConnErrorHandler wraps an error handler to instrument the error count.
 func WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error) {
-	c := register(prometheus.NewCounter(prometheus.CounterOpts{
+	errors := register(prometheus.NewCounter(prometheus.CounterOpts{
 		Name: prefix + "_errors_total",
+	})).(prometheus.Counter)
+	consec_errors := register(prometheus.NewCounter(prometheus.CounterOpts{
+		Name: prefix + "_consec_per_client_ip_errors_total",
 	})).(prometheus.Counter)
 	if f == nil {
 		f = func(conn net.Conn, err error) {}
 	}
+	var mu sync.Mutex
+	var lastRemoteIP string
 	return func(conn net.Conn, err error) {
-		c.Inc()
+		errors.Inc()
+		addr := conn.RemoteAddr()
+		if addr == nil {
+			panic("nil RemoteAddr")
+		}
+		host, _, err := net.SplitHostPort(addr.String())
+		if err != nil {
+			panic("Unexpected RemoteAddr " + addr.String())
+		}
+		mu.Lock()
+		if lastRemoteIP != host {
+			lastRemoteIP = host
+			mu.Unlock()
+			consec_errors.Inc()
+		} else {
+			mu.Unlock()
+		}
 		f(conn, err)
 	}
 }
