@@ -20,7 +20,7 @@ import (
 	"github.com/getlantern/cmux"
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
-	utp "github.com/anacrolix/go-libutp"
+	utp "github.com/getlantern/go-libutp"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
@@ -233,7 +233,7 @@ func (p *Proxy) ListenAndServe() error {
 		OnError:                  instrument.WrapConnErrorHandler("proxy_serve", onServerError),
 	})
 	// Although we include blacklist functionality, it's currently only used to
-	// track potential blacklisting ad doesn't actually blacklist anyone.
+	// track potential blacklisting and doesn't actually blacklist anyone.
 	srv.Allow = blacklist.OnConnect
 	p.applyThrottling(srv, bwReporting)
 	srv.AddListenerWrappers(bwReporting.wrapper)

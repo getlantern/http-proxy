@@ -4,6 +4,7 @@ import (
 	"context"
 	"flag"
 	"fmt"
+	"io"
 	"net/http"
 	"os"
 	"runtime"
@@ -21,6 +22,13 @@ import (
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/stackdrivererror"
 	"github.com/getlantern/http-proxy-lantern/throttle"
+
+	"github.com/uber/jaeger-lib/metrics"
+
+	jaeger "github.com/uber/jaeger-client-go"
+
+	jaegercfg "github.com/uber/jaeger-client-go/config"
+	jaegerlog "github.com/uber/jaeger-client-go/log"
 )
 
 var (
@@ -117,6 +125,8 @@ var (
 	pcapsPerIP  = flag.Int("pcaps-per-ip", 0, "The number of packets to capture for each IP address")
 	pcapSnapLen = flag.Int("pcap-snap-len", 1600, "The maximum size packet to capture")
 	pcapTimeout = flag.Duration("pcap-timeout", 30*time.Millisecond, "Timeout for capturing packets")
+
+	tracingEndpoint = flag.String("tracing-endpoint", "", "HTTP tracing collector endpoint to use, if any. For example: http://ENDPOINT_HOST:14268/api/traces")
 )
 
 func main() {
@@ -132,6 +142,12 @@ func main() {
 		flag.Usage()
 		return
 	}
+
+	log.Debug("Not initing tracing...")
+	//if *tracingEndpoint != "" {
+	//traceCloser := initTracing("")
+	//defer traceCloser.Close()
+	//}
 
 	if (*lampshadeAddr != "" || *lampshadeUTPAddr != "") && !*https {
 		log.Fatal("Use of lampshade requires https flag to be true")
@@ -242,4 +258,31 @@ func periodicallyForceGC() {
 		time.Sleep(1 * time.Minute)
 		debug.FreeOSMemory()
 	}
+}
+
+type nullCloser struct{}
+
+func (*nullCloser) Close() error { return nil }
+
+func initTracing(collectorEndpoint string) io.Closer {
+	cfg := jaegercfg.Configuration{
+		Sampler: &jaegercfg.SamplerConfig{
+			Type:  jaeger.SamplerTypeConst,
+			Param: 1,
+		},
+		Reporter: &jaegercfg.ReporterConfig{
+			CollectorEndpoint: "http://104.131.222.209:14268/api/traces",
+		},
+	}
+
+	closer, err := cfg.InitGlobalTracer(
+		"http-proxy-lantern",
+		jaegercfg.Logger(jaegerlog.StdLogger),
+		jaegercfg.Metrics(metrics.NullFactory),
+	)
+	if err != nil {
+		log.Errorf("Could not initialize jaeger tracer: %s", err.Error())
+		return &nullCloser{}
+	}
+	return closer
 }
