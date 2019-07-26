@@ -13,7 +13,7 @@ require (
 	github.com/alicebob/miniredis v2.5.0+incompatible // indirect
 	github.com/anacrolix/envpprof v1.0.0 // indirect
 	github.com/anacrolix/go-libutp v1.0.1
-	github.com/anacrolix/missinggo v1.1.0 // indirect
+	github.com/anacrolix/missinggo v1.1.1 // indirect
 	github.com/blang/semver v0.0.0-20180723201105-3c1074078d32
 	github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
