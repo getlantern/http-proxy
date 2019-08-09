@@ -198,8 +198,8 @@ github.com/getlantern/sqlparser v0.0.0-20171012210704-a879d8035f3c h1:+N/dste38K
 github.com/getlantern/sqlparser v0.0.0-20171012210704-a879d8035f3c/go.mod h1:wGjYYh1vSkRes1bNy+zio7cmmI9cLbST+H8eqnt5Mg4=
 github.com/getlantern/testify v0.0.0-20160317154340-2eeb3906e78f h1:R6iv+VzCrbxlBm2TcgyJi9c7tQguNXi9JmIvuUJKrdc=
 github.com/getlantern/testify v0.0.0-20160317154340-2eeb3906e78f/go.mod h1:uKKI9HSwZ4C8tx1vV+ovbG32Lw9LixtzPLNiS8U/ddA=
-github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0 h1:PTtPJG/OZd3CnJsjuFjSMManYS8mlNG9OWA8iMOVG6E=
-github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0/go.mod h1:3AaQa3xeGKD3Id/FA3VacMp+0paYYwLr1aPWmUHAaDc=
+github.com/getlantern/testredis v0.0.0-20180921025736-7a5ea00c9914 h1:kgfkmO94gAOSDZaGLTHYSQ/GW15x2t6GkWRjMDh6SmE=
+github.com/getlantern/testredis v0.0.0-20180921025736-7a5ea00c9914/go.mod h1:3AaQa3xeGKD3Id/FA3VacMp+0paYYwLr1aPWmUHAaDc=
 github.com/getlantern/tinywss v0.0.0-20190809093313-4439caa924e5 h1:pFKrSav5GuqBUxMzBGt4iL0CNoFj3mSlUqfypfmcKY8=
 github.com/getlantern/tinywss v0.0.0-20190809093313-4439caa924e5/go.mod h1:G4iFT0rI3zA56WisNZA1LvR7ImzRkUMq1q09/exNYlA=
 github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4 h1:73U3J4msGw3cXeKtCEbY7hbOdD6aX8gJv8BOu+VagF8=

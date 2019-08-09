@@ -90,3 +90,5 @@ require (
 replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20190207212844-f9d7a8b53ff5
 
 replace github.com/anacrolix/go-libutp => github.com/getlantern/go-libutp v1.0.3
+
+replace github.com/getlantern/testredis => github.com/getlantern/testredis v0.0.0-20180921025736-7a5ea00c9914
