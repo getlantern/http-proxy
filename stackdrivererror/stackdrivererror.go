@@ -31,7 +31,7 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string,
 		return func() {}
 	}
 
-	var reporter = func(err error, linePrefix string, severity golog.Severity, ctx map[string]interface{}) {
+	var reporter = func(err error, severity golog.Severity, ctx map[string]interface{}) {
 		if severity == golog.ERROR || severity == golog.FATAL {
 			r := rand.Float64()
 			if r > samplePercentage {
