@@ -18,7 +18,7 @@ require (
 	github.com/dchest/siphash v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
-	github.com/getlantern/borda v0.0.0-20190809092459-60391953406c
+	github.com/getlantern/borda v0.0.0-20190809122504-668025f4c2b9
 	github.com/getlantern/bytecounting v0.0.0-20190530140808-3b3f10d3b9ab // indirect
 	github.com/getlantern/cmux v0.0.0-20190809092548-4b7adf243efe
 	github.com/getlantern/ema v0.0.0-20180718025023-42474605965c
@@ -52,7 +52,6 @@ require (
 	github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836
 	github.com/getlantern/waitforserver v1.0.1
 	github.com/getlantern/withtimeout v0.0.0-20160829163843-511f017cd913
-	github.com/getlantern/zenodb v0.0.0-20190809092412-0a2ce8ac3026 // indirect
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7
 	github.com/gonum/blas v0.0.0-20180125090452-e7c5890b24cf // indirect
 	github.com/gonum/floats v0.0.0-20180125090339-7de1f4ea7ab5 // indirect
