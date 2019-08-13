@@ -64,7 +64,7 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 		reportToBorda(values, ctx)
 	})
 
-	golog.RegisterReporter(func(err error, linePrefix string, severity golog.Severity, ctx map[string]interface{}) {
+	golog.RegisterReporter(func(err error, severity golog.Severity, ctx map[string]interface{}) {
 		if !inSample(ctx) {
 			return
 		}
