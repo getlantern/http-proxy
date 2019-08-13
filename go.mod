@@ -13,7 +13,6 @@ require (
 	github.com/anacrolix/missinggo v1.1.1 // indirect
 	github.com/blang/semver v0.0.0-20180723201105-3c1074078d32
 	github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c // indirect
-	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/cloudflare/sidh v0.0.0-20190228162259-d2f0f90e08aa // indirect
 	github.com/dchest/siphash v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.0
@@ -21,7 +20,7 @@ require (
 	github.com/getlantern/borda v0.0.0-20190809122504-668025f4c2b9
 	github.com/getlantern/bytecounting v0.0.0-20190530140808-3b3f10d3b9ab // indirect
 	github.com/getlantern/cmux v0.0.0-20190809092548-4b7adf243efe
-	github.com/getlantern/ema v0.0.0-20180718025023-42474605965c
+	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
 	github.com/getlantern/fronted v0.0.0-20190606212108-e7744195eded // indirect
@@ -43,7 +42,7 @@ require (
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/preconn v0.0.0-20180328114929-0b5766010efe // indirect
 	github.com/getlantern/proxy v0.0.0-20181004033118-a1730c79960f
-	github.com/getlantern/quicwrapper v0.0.0-20190103180943-9afd6b9b3c2f
+	github.com/getlantern/quicwrapper v0.0.0-20190820201154-8079fdf487de
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
 	github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0
 	github.com/getlantern/tinywss v0.0.0-20190809093313-4439caa924e5
@@ -87,7 +86,9 @@ require (
 	gopkg.in/redis.v5 v5.2.9
 )
 
-replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20190207212844-f9d7a8b53ff5
+replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20190818104938-28e3ca4262e1
+
+replace github.com/marten-seemann/qtls => github.com/marten-seemann/qtls-deprecated v0.0.0-20190207043627-591c71538704
 
 replace github.com/anacrolix/go-libutp => github.com/getlantern/go-libutp v1.0.3
 
