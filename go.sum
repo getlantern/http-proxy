@@ -204,8 +204,8 @@ github.com/getlantern/tinywss v0.0.0-20190809093313-4439caa924e5 h1:pFKrSav5GuqB
 github.com/getlantern/tinywss v0.0.0-20190809093313-4439caa924e5/go.mod h1:G4iFT0rI3zA56WisNZA1LvR7ImzRkUMq1q09/exNYlA=
 github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4 h1:73U3J4msGw3cXeKtCEbY7hbOdD6aX8gJv8BOu+VagF8=
 github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4/go.mod h1:f8WmDYKFOaC5/y0d3GWl6UKf1ZbSlIoMzkuC8x7pUhg=
-github.com/getlantern/tlsdialer v2.0.12+incompatible h1:12p0PU+6xA8/HjeODx9tZlP2fzhSgFq7W8kFoRukGZo=
-github.com/getlantern/tlsdialer v2.0.12+incompatible/go.mod h1:O0cCO2crLwc02DtahTowM6jjUCvn6Jr26uDQaGVab4g=
+github.com/getlantern/tlsdialer v0.0.0-20190606180931-1ac26445d532 h1:rdmlf0r0lZpTHZLkY0aJeKXrY7ggX4WXuLtOepZvmXM=
+github.com/getlantern/tlsdialer v0.0.0-20190606180931-1ac26445d532/go.mod h1:O0cCO2crLwc02DtahTowM6jjUCvn6Jr26uDQaGVab4g=
 github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836 h1:Qx9tRhqZdhF0RBxHe2OVE1OJ30ipOCPfMraDrZED3bc=
 github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836/go.mod h1:1ZJE0mXEdPyyuF1daUTDBo2nVWB/6nuZy7IcNmRnHrc=
 github.com/getlantern/uuid v1.1.2-0.20190507182000-5c9436b8c718/go.mod h1:uX10hOzZUUDR+oYNSIks+RcozOEiwTNC/K2rw9SUi1k=
