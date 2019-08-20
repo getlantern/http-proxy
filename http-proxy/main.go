@@ -143,10 +143,10 @@ func main() {
 		return
 	}
 
-	log.Debug("Not initing tracing...")
+	log.Debug("Initing tracing...")
 	//if *tracingEndpoint != "" {
-	//traceCloser := initTracing("")
-	//defer traceCloser.Close()
+	traceCloser := initTracing("")
+	defer traceCloser.Close()
 	//}
 
 	if (*lampshadeAddr != "" || *lampshadeUTPAddr != "") && !*https {
