@@ -21,6 +21,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/stackdrivererror"
 	"github.com/getlantern/http-proxy-lantern/throttle"
+	"github.com/getlantern/quicwrapper"
 )
 
 var (
@@ -45,6 +46,14 @@ var (
 	obfs4HandshakeConcurrency          = flag.Int("obfs4-handshake-concurrency", obfs4listener.DefaultHandshakeConcurrency, "How many concurrent OBFS4 handshakes to process")
 	obfs4MaxPendingHandshakesPerClient = flag.Int("obfs4-max-pending-handshakes-per-client", obfs4listener.DefaultMaxPendingHandshakesPerClient, "How many pending OBFS4 handshakes to allow per client")
 	obfs4HandshakeTimeout              = flag.Duration("obfs4-handshake-timeout", obfs4listener.DefaultHandshakeTimeout, "How long to wait before timing out an OBFS4 handshake")
+
+	oquicDefaults          = quicwrapper.DefaultOQuicConfig([]byte(""))
+	oquicAddr              = flag.String("oquic-addr", "", "Address at which to listen for OQUIC connections.")
+	oquicCipher            = flag.String("oquic-cipher", oquicDefaults.Cipher, "OQUIC cipher")
+	oquicKey               = flag.String("oquic-key", "", "OQUIC base64 encoded 256 bit obfuscation key")
+	oquicAggressivePadding = flag.Uint64("oquic-aggressive-padding", uint64(oquicDefaults.AggressivePadding), "OQUIC number of initial aggressively padded packets")
+	oquicMaxPaddingHint    = flag.Uint64("oquic-max-padding-hint", uint64(oquicDefaults.MaxPaddingHint), "OQUIC max padding after aggressive phase")
+	oquicMinPadded         = flag.Uint64("oquic-min-padded", uint64(oquicDefaults.MinPadded), "OQUIC minimum size packet to pad")
 
 	enhttpAddr         = flag.String("enhttp-addr", "", "Address at which to accept encapsulated HTTP requests")
 	enhttpServerURL    = flag.String("enhttp-server-url", "", "specify a full URL for domain-fronting to this server with enhttp, required for sticky routing with CloudFront")
@@ -200,6 +209,12 @@ func main() {
 		Obfs4HandshakeConcurrency:          *obfs4HandshakeConcurrency,
 		Obfs4MaxPendingHandshakesPerClient: *obfs4MaxPendingHandshakesPerClient,
 		Obfs4HandshakeTimeout:              *obfs4HandshakeTimeout,
+		OQUICAddr:                          *oquicAddr,
+		OQUICKey:                           *oquicKey,
+		OQUICCipher:                        *oquicCipher,
+		OQUICAggressivePadding:             *oquicAggressivePadding,
+		OQUICMaxPaddingHint:                *oquicMaxPaddingHint,
+		OQUICMinPadded:                     *oquicMinPadded,
 		KCPConf:                            *kcpConf,
 		ENHTTPAddr:                         *enhttpAddr,
 		ENHTTPServerURL:                    *enhttpServerURL,
