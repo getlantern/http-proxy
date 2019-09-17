@@ -201,7 +201,9 @@ func (p *Proxy) ListenAndServe() error {
 		}()
 	}
 
-	p.setupPacketForward()
+	if err := p.setupPacketForward(); err != nil {
+		return err
+	}
 	p.setupOpsContext()
 	p.setBenchmarkMode()
 	p.bm = bbr.New()
@@ -854,14 +856,13 @@ func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN)
 	return l, err
 }
 
-func (p *Proxy) setupPacketForward() {
+func (p *Proxy) setupPacketForward() error {
 	if p.PacketForwardAddr == "" {
-		return
+		return nil
 	}
 	l, err := net.Listen("tcp", p.PacketForwardAddr)
 	if err != nil {
-		log.Errorf("Unable to listen for packet forwarding at %v: %v", p.PacketForwardAddr, err)
-		return
+		return errors.New("Unable to listen for packet forwarding at %v: %v", p.PacketForwardAddr, err)
 	}
 	s, err := packetforward.NewServer(&packetforward.Opts{
 		Opts: gonat.Opts{
@@ -873,8 +874,7 @@ func (p *Proxy) setupPacketForward() {
 		BufferPoolSize: 50 * 1024 * 1024,
 	})
 	if err != nil {
-		log.Errorf("Error configuring packet forwarding: %v", err)
-		return
+		return errors.New("Error configuring packet forwarding: %v", err)
 	}
 	log.Debugf("Listening for packet forwarding at %v", l.Addr())
 
@@ -883,6 +883,7 @@ func (p *Proxy) setupPacketForward() {
 			log.Errorf("Error serving packet forwarding: %v", err)
 		}
 	}()
+	return nil
 }
 
 func portsFromCSV(csv string) ([]int, error) {
