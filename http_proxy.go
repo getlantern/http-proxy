@@ -44,7 +44,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/borda"
 	"github.com/getlantern/http-proxy-lantern/cleanheadersfilter"
-	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/diffserv"
 	"github.com/getlantern/http-proxy-lantern/domains"
@@ -521,28 +520,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}
 	dialerForPforward := dialer
 
-	var requestRewriters []func(*http.Request)
-	rewriter := &httpsrewriter.Rewriter{}
-	dialerForPforward = rewriter.Dialer(dialerForPforward)
-	filterChain = filterChain.Append(rewriter)
-	requestRewriters = append(requestRewriters, rewriter.RewriteIfNecessary)
-	if p.CfgSvrAuthToken != "" {
-		rewrite := requestModifier(func(req *http.Request) {
-			if !domains.ConfigForRequest(req).AddConfigServerHeaders {
-				return
-			}
-			req.Header.Set(common.CfgSvrAuthTokenHeader, p.CfgSvrAuthToken)
-			ip, _, err := net.SplitHostPort(req.RemoteAddr)
-			if err != nil {
-				log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
-				return
-			}
-			req.Header.Set(common.CfgSvrClientIPHeader, ip)
-			log.Debugf("Adding header to config-server request from %s to %s", ip, req.Host)
-		})
-		filterChain = filterChain.Append(rewrite)
-		requestRewriters = append(requestRewriters, rewrite)
-	}
+	filterChain = filterChain.Append(httpsrewriter.NewRewriter(p.CfgSvrAuthToken))
 
 	// Check if Lantern client version is in the supplied range. If yes,
 	// redirect certain percentage of the requests to an URL to notify the user
@@ -563,17 +541,6 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 			dialerForPforward = vc.Dialer(dialerForPforward)
 			filterChain = filterChain.Append(vc.Filter())
 		}
-	}
-
-	if len(requestRewriters) > 0 {
-		filterChain = filterChain.Append(filters.FilterFunc(func(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
-			if req.Method != http.MethodConnect {
-				for _, rw := range requestRewriters {
-					rw(req)
-				}
-			}
-			return next(ctx, req)
-		}))
 	}
 
 	filterChain = filterChain.Append(
