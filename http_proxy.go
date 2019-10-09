@@ -48,6 +48,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/diffserv"
 	"github.com/getlantern/http-proxy-lantern/domains"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
+	"github.com/getlantern/http-proxy-lantern/http2direct"
 	"github.com/getlantern/http-proxy-lantern/httpsrewriter"
 	"github.com/getlantern/http-proxy-lantern/instrument"
 	"github.com/getlantern/http-proxy-lantern/lampshade"
@@ -552,6 +553,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 			}
 			return next(ctx, req)
 		}),
+		http2direct.NewHTTP2Direct(),
 		proxyfilters.RestrictConnectPorts(p.allowedTunnelPorts()),
 		proxyfilters.RecordOp,
 		cleanheadersfilter.New(), // IMPORTANT, this should be the last filter in the chain to avoid stripping any headers that other filters might need
