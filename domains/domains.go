@@ -27,6 +27,11 @@ type Config struct {
 	// PassInternalHeaders indicates that headers starting with X-Lantern-* should
 	// be passed to this domain.
 	PassInternalHeaders bool
+
+	// HTTP2Direct signifies that wee should bypass the normal proxy flow and instead
+	// initiate and HTTP2 connection to the domain to reduce TLS client overhead and
+	// to improve overall efficiency.
+	HTTP2Direct bool
 }
 
 func (cfg *Config) withRewriteToHTTPS() *Config {
@@ -38,6 +43,12 @@ func (cfg *Config) withRewriteToHTTPS() *Config {
 func (cfg *Config) withAddConfigServerHeaders() *Config {
 	var cfg2 = *cfg
 	cfg2.AddConfigServerHeaders = true
+	return &cfg2
+}
+
+func (cfg *Config) withHTTP2Direct() *Config {
+	var cfg2 = *cfg
+	cfg2.HTTP2Direct = true
 	return &cfg2
 }
 
@@ -61,10 +72,10 @@ var (
 
 var configs = configure(
 	map[string]*Config{
-		"config.getiantem.org":                     internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
-		"config-staging.getiantem.org":             internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
-		"api.getiantem.org":                        internal.withRewriteToHTTPS(),
-		"api-staging.getiantem.org":                internal.withRewriteToHTTPS(),
+		"config.getiantem.org":                     internal.withRewriteToHTTPS().withAddConfigServerHeaders().withHTTP2Direct(),
+		"config-staging.getiantem.org":             internal.withRewriteToHTTPS().withAddConfigServerHeaders().withHTTP2Direct(),
+		"api.getiantem.org":                        internal.withRewriteToHTTPS().withHTTP2Direct(),
+		"api-staging.getiantem.org":                internal.withRewriteToHTTPS().withHTTP2Direct(),
 		"getlantern.org":                           internal,
 		"lantern.io":                               internal,
 		"innovatelabs.io":                          internal,

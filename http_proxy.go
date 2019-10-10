@@ -44,6 +44,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/borda"
 	"github.com/getlantern/http-proxy-lantern/cleanheadersfilter"
+	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/diffserv"
 	"github.com/getlantern/http-proxy-lantern/domains"
@@ -521,7 +522,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}
 	dialerForPforward := dialer
 
-	filterChain = filterChain.Append(httpsrewriter.NewRewriter(p.CfgSvrAuthToken))
+	filterChain = filterChain.Append(httpsrewriter.NewRewriter())
 
 	// Check if Lantern client version is in the supplied range. If yes,
 	// redirect certain percentage of the requests to an URL to notify the user
@@ -550,6 +551,23 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 			if domains.ConfigForRequest(req).AddForwardedFor {
 				// Only add X-Forwarded-For for certain domains
 				return proxyfilters.AddForwardedFor(ctx, req, next)
+			}
+			return next(ctx, req)
+		}),
+		filters.FilterFunc(func(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+			if domains.ConfigForRequest(req).AddConfigServerHeaders {
+				if p.CfgSvrAuthToken == "" {
+					log.Error("No config server auth token")
+					return next(ctx, req)
+				}
+				req.Header.Set(common.CfgSvrAuthTokenHeader, p.CfgSvrAuthToken)
+				ip, _, err := net.SplitHostPort(req.RemoteAddr)
+				if err != nil {
+					log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
+					return next(ctx, req)
+				}
+				req.Header.Set(common.CfgSvrClientIPHeader, ip)
+				log.Debugf("Adding header to config-server request from %s to %s", ip, req.Host)
 			}
 			return next(ctx, req)
 		}),
