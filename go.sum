@@ -185,10 +185,10 @@ github.com/getlantern/preconn v0.0.0-20180328114929-0b5766010efe/go.mod h1:FvIxQ
 github.com/getlantern/proxy v0.0.0-20180713210748-e822de39af64/go.mod h1:z6u2OS1ynUdXIraWO04T1wcHFcGaIHwPed0n0bNilZU=
 github.com/getlantern/proxy v0.0.0-20181004033118-a1730c79960f h1:pu/ytqyOklAu4Vp3TubIX0rsYENtjIsmkWgXAIqy72Q=
 github.com/getlantern/proxy v0.0.0-20181004033118-a1730c79960f/go.mod h1:z6u2OS1ynUdXIraWO04T1wcHFcGaIHwPed0n0bNilZU=
-github.com/getlantern/quic-go v0.7.1-0.20190818104938-28e3ca4262e1 h1:FN2NgPkFjUSQuPv4N17+Q4/eSwZIhs6hVSHXGw66u+s=
-github.com/getlantern/quic-go v0.7.1-0.20190818104938-28e3ca4262e1/go.mod h1:uW88CoBr0zVnlyTAdwd9dd6qgk/CY23t6dRPqZ5TReU=
-github.com/getlantern/quicwrapper v0.0.0-20190822163127-f4cb66aff894 h1:CWymH+4TmlPky7yvvFHxew2j383sskrDlOTV7+aaX2c=
-github.com/getlantern/quicwrapper v0.0.0-20190822163127-f4cb66aff894/go.mod h1:MSyqD3I6BuMxLkScZoH6kuJT1ssW5DuA3fxZe67BN00=
+github.com/getlantern/quic-go v0.7.1-0.20190819144938-28e3ca4262e1 h1:ZninVtJJjpXgyljxDQ34ZKHTfBaj4kOsuSolVKhv0Ts=
+github.com/getlantern/quic-go v0.7.1-0.20190819144938-28e3ca4262e1/go.mod h1:uW88CoBr0zVnlyTAdwd9dd6qgk/CY23t6dRPqZ5TReU=
+github.com/getlantern/quicwrapper v0.0.0-20191010171358-6726e89fbe14 h1:zfbGNjLb0kI0vLcNdui7DUuQ77cuEgzDRUcoml/ZHX8=
+github.com/getlantern/quicwrapper v0.0.0-20191010171358-6726e89fbe14/go.mod h1:8S3cNfBSHZqsFcJBE9Nsj+EEg9WMnXCtOs4aww4KzOg=
 github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c h1:IkjF+RwRs8B/RsuD638eUFO2K/227OO2B1FLXGp17Ro=
 github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c/go.mod h1:kExwbqTx1krUnT9ohmXG3jayDTEBfxUKeoRzU6XucLw=
 github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 h1:JyXEChj4lHy5w3hlQVnYpcH4QrBXmhEJgkxb0FPkFlM=
