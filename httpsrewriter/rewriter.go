@@ -39,10 +39,5 @@ func (r *rewriter) rewrite(host string, req *http.Request) {
 	req.Host = host + ":443"
 	req.URL.Host = req.Host
 	req.URL.Scheme = "https"
-	req.Close = false
-
-	// The request URI is populated in the request to the proxy but raises an error if populated in outgoing client
-	// requests.
-	req.RequestURI = ""
 	r.log.Debugf("Rewrote request with URL %#v to HTTPS", req.URL)
 }

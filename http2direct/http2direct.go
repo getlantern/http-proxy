@@ -7,7 +7,6 @@ package http2direct
 
 import (
 	"net/http"
-	"sync/atomic"
 	"time"
 
 	"github.com/getlantern/golog"
@@ -29,8 +28,7 @@ func NewHTTP2Direct() filters.Filter {
 				IdleConnTimeout: 4 * time.Minute,
 			},
 		},
-		log:     golog.LoggerFor("httpsRewritter"),
-		traceID: 0,
+		log: golog.LoggerFor("httpsRewritter"),
 	}
 }
 
@@ -40,7 +38,13 @@ func (h *http2direct) Apply(ctx filters.Context, req *http.Request, next filters
 		return next(ctx, req)
 	}
 	if cfg := domains.ConfigForRequest(req); cfg.HTTP2Direct {
-		defer atomic.AddUint64(&h.traceID, 1)
+		// Make sure the request stays open.
+		req.Close = false
+
+		// The request URI is populated in the request to the proxy but raises an error if populated in outgoing client
+		// requests.
+		req.RequestURI = ""
+
 		res, err := h.httpClient.Do(req)
 		if err != nil {
 			h.log.Errorf("Error short circuiting with HTTP/2 with req %#v, %v", req, err)
