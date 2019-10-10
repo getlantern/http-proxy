@@ -12,13 +12,19 @@ import (
 )
 
 // Wrap wraps the specified listener in our default TLS listener.
-func Wrap(wrapped net.Listener, keyFile string, certFile string) (net.Listener, error) {
+func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKeyFile string) (net.Listener, error) {
 	cfg, err := tlsdefaults.BuildListenerConfig(wrapped.Addr().String(), keyFile, certFile)
 	if err != nil {
 		return nil, err
 	}
 
-	listener := &tlslistener{wrapped, cfg, golog.LoggerFor("lantern-proxy-tlslistener")}
+	log := golog.LoggerFor("lantern-proxy-tlslistener")
+	if sessionTicketKeyFile != "" {
+		log.Debugf("Will rotate session ticket key and store in %v", sessionTicketKeyFile)
+		maintainSessionTicketKey(cfg, sessionTicketKeyFile)
+	}
+
+	listener := &tlslistener{wrapped, cfg, log}
 	cfg.GetConfigForClient = listener.debugClientHello
 	return listener, nil
 }
