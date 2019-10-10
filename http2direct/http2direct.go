@@ -1,3 +1,8 @@
+// Package http2direct short circuits the normal proxy processing of requests to make direct
+// HTTP/2 connections to specific domains such as Lantern internal servers. This saves
+// a significant amount of CPU in reducing TLS client handshakes but also makes these
+// requests more efficient through the use of persistent connections and HTTP/2's multiplexing
+// and reduced headers.
 package http2direct
 
 import (
@@ -38,10 +43,8 @@ func (h *http2direct) Apply(ctx filters.Context, req *http.Request, next filters
 		defer atomic.AddUint64(&h.traceID, 1)
 		res, err := h.httpClient.Do(req)
 		if err != nil {
-			h.log.Debugf("Error fetching with trace ID %v with req %#v, %v", h.traceID, req, err)
-			return next(ctx, req)
+			h.log.Errorf("Error short circuiting with HTTP/2 with req %#v, %v", req, err)
 		}
-		h.log.Debugf("Response with trace ID %v: %#v", h.traceID, res)
 		return res, ctx, nil
 	}
 	return next(ctx, req)
