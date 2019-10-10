@@ -3,6 +3,11 @@
 // a significant amount of CPU in reducing TLS client handshakes but also makes these
 // requests more efficient through the use of persistent connections and HTTP/2's multiplexing
 // and reduced headers.
+//
+// It is worth noting this technique only works over HTTP2 if the upstream provider, such as
+// Cloudflare, supports it. Otherwise it will use regular HTTP and will not benefit to the
+// same degree from all of the above benefits, although it will still likely be an improvement
+// due to the use of persistent connections.
 package http2direct
 
 import (
