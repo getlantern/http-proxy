@@ -62,9 +62,10 @@ var (
 	packetForwardAddr = flag.String("pforward-addr", "", "Address at which to listen for packet forwarding connections")
 	packetForwardIntf = flag.String("pforward-intf", "eth0", "The name of the interface to use for upstream packet forwarding connections")
 
-	keyfile  = flag.String("key", "", "Private key file name")
-	certfile = flag.String("cert", "", "Certificate file name")
-	token    = flag.String("token", "", "Lantern token")
+	keyfile              = flag.String("key", "", "Private key file name")
+	certfile             = flag.String("cert", "", "Certificate file name")
+	token                = flag.String("token", "", "Lantern token")
+	sessionTicketKeyFile = flag.String("sessionticketkey", "", "File name for storing rotating session ticket keys")
 
 	cfgSvrAuthToken           = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
 	connectOKWaitsForUpstream = flag.Bool("connect-ok-waits-for-upstream", false, "Set to true to wait for upstream connection before responding OK to CONNECT requests")
@@ -193,6 +194,7 @@ func main() {
 		HTTPS:                              *https,
 		IdleTimeout:                        time.Duration(*idleClose) * time.Second,
 		KeyFile:                            *keyfile,
+		SessionTicketKeyFile:               *sessionTicketKeyFile,
 		Pro:                                *pro,
 		ProxiedSitesSamplePercentage:       *proxiedSitesSamplePercentage,
 		ProxiedSitesTrackingID:             *proxiedSitesTrackingId,
