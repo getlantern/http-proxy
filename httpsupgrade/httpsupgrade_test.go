@@ -1,23 +1,16 @@
-package httpsrewriter
+package httpsupgrade
 
 import (
 	"net/http"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-
 	"github.com/getlantern/proxy/filters"
 )
 
-type dummyHandler struct{ req *http.Request }
-
-func (h *dummyHandler) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
-	h.req = req
-	return next(ctx, req)
-}
 
 func TestRedirect(t *testing.T) {
-	chain := filters.Join(NewRewriter())
+	chain := filters.Join(NewHTTPSUpgrade("xyz"))
 
 	req, _ := http.NewRequest("GET", "http://config.getiantem.org:80/abc.gz", nil)
 	next := func(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
@@ -46,4 +39,32 @@ func TestRedirect(t *testing.T) {
 	chain.Apply(ctx, req, next)
 	assert.Equal(t, "http", req.URL.Scheme, "should not rewrite to https for other sites")
 	assert.Equal(t, "not-config-server.org", req.Host, "should not use port 443 for other sites")
+}
+
+func TestHTTPS2(t *testing.T) {
+	chain := filters.Join(NewHTTPSUpgrade("xyz"))
+	req, _ := http.NewRequest("GET", "http://config.getiantem.org/abc.gz", nil)
+	next := func(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
+		return nil, ctx, nil
+	}
+	ctx := filters.BackgroundContext()
+
+	res, ctx, err := chain.Apply(ctx, req, next)
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+
+	assert.Equal(t, "HTTP/2.0", res.Proto)
+
+	r, _ := http.NewRequest("GET", "http://api.getiantem.org/abc.gz", nil)
+
+	r.URL.Scheme = "http"
+	r.URL.Host = "api.getiantem.org"
+	r.Host = r.URL.Host
+	r.RequestURI = ""
+
+	res, ctx, err = chain.Apply(ctx, r, next)
+	assert.NoError(t, err)
+	assert.NotNil(t, res)
+
+	assert.Equal(t, "HTTP/2.0", res.Proto)
 }

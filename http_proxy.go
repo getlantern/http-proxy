@@ -44,13 +44,11 @@ import (
 	"github.com/getlantern/http-proxy-lantern/blacklist"
 	"github.com/getlantern/http-proxy-lantern/borda"
 	"github.com/getlantern/http-proxy-lantern/cleanheadersfilter"
-	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/diffserv"
 	"github.com/getlantern/http-proxy-lantern/domains"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
-	"github.com/getlantern/http-proxy-lantern/http2direct"
-	"github.com/getlantern/http-proxy-lantern/httpsrewriter"
+	"github.com/getlantern/http-proxy-lantern/httpsupgrade"
 	"github.com/getlantern/http-proxy-lantern/instrument"
 	"github.com/getlantern/http-proxy-lantern/lampshade"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
@@ -522,8 +520,6 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}
 	dialerForPforward := dialer
 
-	filterChain = filterChain.Append(httpsrewriter.NewRewriter())
-
 	// Check if Lantern client version is in the supplied range. If yes,
 	// redirect certain percentage of the requests to an URL to notify the user
 	// to upgrade.
@@ -554,24 +550,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 			}
 			return next(ctx, req)
 		}),
-		filters.FilterFunc(func(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
-			if domains.ConfigForRequest(req).AddConfigServerHeaders {
-				if p.CfgSvrAuthToken == "" {
-					log.Error("No config server auth token")
-					return next(ctx, req)
-				}
-				req.Header.Set(common.CfgSvrAuthTokenHeader, p.CfgSvrAuthToken)
-				ip, _, err := net.SplitHostPort(req.RemoteAddr)
-				if err != nil {
-					log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
-					return next(ctx, req)
-				}
-				req.Header.Set(common.CfgSvrClientIPHeader, ip)
-				log.Debugf("Adding header to config-server request from %s to %s", ip, req.Host)
-			}
-			return next(ctx, req)
-		}),
-		http2direct.NewHTTP2Direct(),
+		httpsupgrade.NewHTTPSUpgrade(p.CfgSvrAuthToken),
 		proxyfilters.RestrictConnectPorts(p.allowedTunnelPorts()),
 		proxyfilters.RecordOp,
 		cleanheadersfilter.New(), // IMPORTANT, this should be the last filter in the chain to avoid stripping any headers that other filters might need
