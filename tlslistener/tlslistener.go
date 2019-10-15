@@ -64,7 +64,7 @@ func (l *tlslistener) debugClientHello(info *tls.ClientHelloInfo) (*tls.Config, 
 	if len(info.CipherSuites) == 0 {
 		return nil, l.log.Errorf("Client Hello has no cipher suites %v", info.Conn.RemoteAddr())
 	}
-	l.logUnusualHellos(info)
+	//l.logUnusualHellos(info)
 
 	// Returning nil just tells the caller to use the standard config.
 	return nil, nil

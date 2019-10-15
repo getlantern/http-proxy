@@ -42,7 +42,7 @@ require (
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/preconn v0.0.0-20180328114929-0b5766010efe // indirect
 	github.com/getlantern/proxy v0.0.0-20181004033118-a1730c79960f
-	github.com/getlantern/quicwrapper v0.0.0-20190822163127-f4cb66aff894
+	github.com/getlantern/quicwrapper v0.0.0-20191010171358-6726e89fbe14
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
 	github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0
 	github.com/getlantern/tinywss v0.0.0-20190809093313-4439caa924e5
@@ -63,7 +63,6 @@ require (
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/juju/ratelimit v1.0.1
-	github.com/lucas-clemente/quic-go v0.7.1-0.20190207125157-7dc4be2ce994 // indirect
 	github.com/marten-seemann/qtls v0.0.0-20190207043627-591c71538704 // indirect
 	github.com/mikioh/tcp v0.0.0-20180707144002-02a37043a4f7 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20180831101334-131b59fef27f // indirect
@@ -86,7 +85,7 @@ require (
 	gopkg.in/redis.v5 v5.2.9
 )
 
-replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20190818104938-28e3ca4262e1
+replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20190819144938-28e3ca4262e1
 
 replace github.com/marten-seemann/qtls => github.com/marten-seemann/qtls-deprecated v0.0.0-20190207043627-591c71538704
 
