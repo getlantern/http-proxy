@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.3.1](https://github.com/getlantern/http-proxy-lantern/tree/2.3.1) (2019-10-17)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.3.0...2.3.1)
+
+**Merged pull requests:**
+
+- Explicitly close incoming connections requesting internal services [\#332](https://github.com/getlantern/http-proxy-lantern/pull/332) ([myleshorton](https://github.com/myleshorton))
+
 ## [2.3.0](https://github.com/getlantern/http-proxy-lantern/tree/2.3.0) (2019-10-15)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.2.24...2.3.0)
 
