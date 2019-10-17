@@ -88,6 +88,7 @@ func (h *httpsUpgrade) rewrite(ctx filters.Context, host string, req *http.Reque
 	res, err := h.httpClient.Do(req)
 	if err != nil {
 		h.log.Errorf("Error short circuiting with HTTP/2 with req %#v, %v", req, err)
+		return res, ctx, err
 	}
 
 	// Downgrade the response back to 1.1 to avoid any oddities with clients choking on h2, although
@@ -108,5 +109,5 @@ func (h *httpsUpgrade) rewrite(ctx filters.Context, host string, req *http.Reque
 	// response body is complete, as otherwise Lantern will hang until the TCP connection times out
 	// with the idle timer.
 	res.Close = true
-	return res, ctx, nil
+	return res, ctx, err
 }
