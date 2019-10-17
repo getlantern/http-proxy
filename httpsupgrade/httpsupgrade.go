@@ -1,4 +1,4 @@
-// Package httpsupgrade performs several functions. First, it upgrades uncoming HTTP requests to 
+// Package httpsupgrade performs several functions. First, it upgrades uncoming HTTP requests to
 // HTTPS for hitting our own services. This is necessary because we need to add special headers
 // to those requests, but we cannot do that if they're over TLS. Note that the incoming requests
 // are all wrapped in the encryption of the incoming transport, however.
@@ -88,9 +88,26 @@ func (h *httpsUpgrade) rewrite(ctx filters.Context, host string, req *http.Reque
 	res, err := h.httpClient.Do(req)
 	if err != nil {
 		h.log.Errorf("Error short circuiting with HTTP/2 with req %#v, %v", req, err)
-	} else {
-		h.log.Debugf("Successfully sent over HTTP/2 client with response %v and URL: %#v and full request: %#v",
-			res.Status, req.URL, req)
+		return res, ctx, err
 	}
-	return res, ctx, nil
+
+	// Downgrade the response back to 1.1 to avoid any oddities with clients choking on h2, although
+	// no incompatibilities have been observed in the field.
+	res.ProtoMajor = 1
+	res.ProtoMinor = 1
+	res.Proto = "HTTP/1.1"
+
+	// We need to explicitly tell the proxy to close the response, as otherwise particularly responses
+	// from the pro server will not be terminated because we don't set the Content-Length in the pro
+	// server and instead use Transfer-Encoding chunked. That is advantageous because Heroku will
+	// supposedly keep the connection open in that case, but it also means the client does not know
+	// how long the response body is, and the chunked encoding somehow doesn't make its way all the way
+	// through to the go client, perhaps in part because Cloudflare strips the Transfer-Encoding with
+	// the notion that it's the default encoding in the absence of a Content-Length.
+
+	// The short version is that we need to terminate the connection to communicate to clients that the
+	// response body is complete, as otherwise Lantern will hang until the TCP connection times out
+	// with the idle timer.
+	res.Close = true
+	return res, ctx, err
 }
