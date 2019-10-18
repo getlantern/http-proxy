@@ -90,24 +90,5 @@ func (h *httpsUpgrade) rewrite(ctx filters.Context, host string, req *http.Reque
 		h.log.Errorf("Error short circuiting with HTTP/2 with req %#v, %v", req, err)
 		return res, ctx, err
 	}
-
-	// Downgrade the response back to 1.1 to avoid any oddities with clients choking on h2, although
-	// no incompatibilities have been observed in the field.
-	res.ProtoMajor = 1
-	res.ProtoMinor = 1
-	res.Proto = "HTTP/1.1"
-
-	// We need to explicitly tell the proxy to close the response, as otherwise particularly responses
-	// from the pro server will not be terminated because we don't set the Content-Length in the pro
-	// server and instead use Transfer-Encoding chunked. That is advantageous because Heroku will
-	// supposedly keep the connection open in that case, but it also means the client does not know
-	// how long the response body is, and the chunked encoding somehow doesn't make its way all the way
-	// through to the go client, perhaps in part because Cloudflare strips the Transfer-Encoding with
-	// the notion that it's the default encoding in the absence of a Content-Length.
-
-	// The short version is that we need to terminate the connection to communicate to clients that the
-	// response body is complete, as otherwise Lantern will hang until the TCP connection times out
-	// with the idle timer.
-	res.Close = true
-	return res, ctx, err
+	return filters.ShortCircuit(ctx, req, res)
 }
