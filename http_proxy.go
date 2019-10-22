@@ -545,6 +545,12 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	filterChain = filterChain.Append(
 		proxyfilters.DiscardInitialPersistentRequest,
 		filters.FilterFunc(func(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+			// Some browsers send a Proxy-Connection header they expect proxies to convert to Connection on the outgoing request.
+			pc := req.Header.Get("Proxy-Connection")
+			if pc != "" {
+				req.Header.Set("Connection", pc)
+			}
+			req.Header.Del("Proxy-Connection")
 			if domains.ConfigForRequest(req).AddForwardedFor {
 				// Only add X-Forwarded-For for certain domains
 				return proxyfilters.AddForwardedFor(ctx, req, next)
