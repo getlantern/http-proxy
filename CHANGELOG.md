@@ -1,18 +1,11 @@
 # Change Log
 
-## [Unreleased](https://github.com/getlantern/http-proxy-lantern/tree/HEAD)
-
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.3.3...HEAD)
-
-**Merged pull requests:**
-
-- Fix Proxy-Connection header handling [\#336](https://github.com/getlantern/http-proxy-lantern/pull/336) ([myleshorton](https://github.com/myleshorton))
-
-## [2.3.3](https://github.com/getlantern/http-proxy-lantern/tree/2.3.3) (2019-10-18)
+## [2.3.3](https://github.com/getlantern/http-proxy-lantern/tree/2.3.3) (2019-10-22)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.3.1...2.3.3)
 
 **Merged pull requests:**
 
+- Fix Proxy-Connection header handling [\#336](https://github.com/getlantern/http-proxy-lantern/pull/336) ([myleshorton](https://github.com/myleshorton))
 - Capping max TLS version to 1.2 to allow tls session resumption trick … [\#334](https://github.com/getlantern/http-proxy-lantern/pull/334) ([oxtoacart](https://github.com/oxtoacart))
 
 ## [2.3.1](https://github.com/getlantern/http-proxy-lantern/tree/2.3.1) (2019-10-17)
