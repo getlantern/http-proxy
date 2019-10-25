@@ -1,5 +1,13 @@
 # Change Log
 
+## [2.3.4](https://github.com/getlantern/http-proxy-lantern/tree/2.3.4) (2019-10-25)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.3.3...2.3.4)
+
+**Merged pull requests:**
+
+- Use latest proxy package and go mod tidy [\#338](https://github.com/getlantern/http-proxy-lantern/pull/338) ([myleshorton](https://github.com/myleshorton))
+- Fix Proxy-Connection header handling [\#337](https://github.com/getlantern/http-proxy-lantern/pull/337) ([myleshorton](https://github.com/myleshorton))
+
 ## [2.3.3](https://github.com/getlantern/http-proxy-lantern/tree/2.3.3) (2019-10-22)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.3.1...2.3.3)
 
