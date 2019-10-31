@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.3.5](https://github.com/getlantern/http-proxy-lantern/tree/2.3.5) (2019-10-31)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.3.4...2.3.5)
+
+**Merged pull requests:**
+
+- updating lampshade [\#339](https://github.com/getlantern/http-proxy-lantern/pull/339) ([myleshorton](https://github.com/myleshorton))
+
 ## [2.3.4](https://github.com/getlantern/http-proxy-lantern/tree/2.3.4) (2019-10-25)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.3.3...2.3.4)
 
