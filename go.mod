@@ -32,7 +32,7 @@ require (
 	github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c // indirect
 	github.com/getlantern/kcpwrapper v0.0.0-20171114192627-a35c895f6de7
 	github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a
-	github.com/getlantern/lampshade v0.0.0-20190507122828-84b870a67bd6
+	github.com/getlantern/lampshade v0.0.0-20191031180632-2e7977c8e74c
 	github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198
 	github.com/getlantern/mockconn v0.0.0-20190708122800-637bd46d8034
 	github.com/getlantern/mtime v0.0.0-20170117193331-ba114e4a82b0
@@ -40,6 +40,7 @@ require (
 	github.com/getlantern/ops v0.0.0-20190325191751-d70cb0d6f85f
 	github.com/getlantern/packetforward v0.0.0-20190809094443-386cbcc0d498
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
+	github.com/getlantern/probe v0.0.0-20191030151335-8e4f5f98dbcc // indirect
 	github.com/getlantern/proxy v0.0.0-20191025190912-b5f45407d9f2
 	github.com/getlantern/quicwrapper v0.0.0-20191010171358-6726e89fbe14
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
