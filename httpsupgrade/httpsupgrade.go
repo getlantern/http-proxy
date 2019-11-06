@@ -16,6 +16,7 @@
 package httpsupgrade
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"time"
@@ -23,6 +24,7 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/common"
 	"github.com/getlantern/http-proxy-lantern/domains"
+	"github.com/getlantern/http-proxy-lantern/s3"
 	"github.com/getlantern/proxy/filters"
 )
 
@@ -54,6 +56,9 @@ func (h *httpsUpgrade) Apply(ctx filters.Context, req *http.Request, next filter
 		if cfg.AddConfigServerHeaders {
 			h.addConfigServerHeaders(req)
 		}
+		if cfg.AddS3Authorization {
+			h.addS3AuthorizationHeaders(req)
+		}
 		return h.rewrite(ctx, cfg.Host, req)
 	}
 	return next(ctx, req)
@@ -70,6 +75,19 @@ func (h *httpsUpgrade) addConfigServerHeaders(req *http.Request) {
 		h.log.Errorf("Unable to split host from '%s': %s", req.RemoteAddr, err)
 	} else {
 		req.Header.Set(common.CfgSvrClientIPHeader, ip)
+	}
+}
+
+func (h *httpsUpgrade) addS3AuthorizationHeaders(req *http.Request) {
+	// generate signature using go aws sdk
+	// TODO
+	_, err := s3.GenerateSignature(req)
+	if err != nil {
+		h.log.Errorf("Unable to sign s3 request")
+	} else {
+		for k, v := range req.Header {
+			fmt.Println(k, v)
+		}
 	}
 }
 

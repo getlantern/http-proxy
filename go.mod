@@ -11,6 +11,7 @@ require (
 	github.com/anacrolix/envpprof v1.0.0 // indirect
 	github.com/anacrolix/go-libutp v1.0.1
 	github.com/anacrolix/missinggo v1.1.1 // indirect
+	github.com/aws/aws-sdk-go v1.25.25
 	github.com/blang/semver v0.0.0-20180723201105-3c1074078d32
 	github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c // indirect
 	github.com/cloudflare/sidh v0.0.0-20190228162259-d2f0f90e08aa // indirect

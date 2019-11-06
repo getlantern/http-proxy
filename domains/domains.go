@@ -20,6 +20,9 @@ type Config struct {
 	// tokens and client IP headers on requests to this domain
 	AddConfigServerHeaders bool
 
+	// AddS3Authorization indicates that we should add an 'Authorization' header to all replica s3 requests thus authenticating them
+	AddS3Authorization bool
+
 	// AddForwardedFor indicates that we should include an X-Forwarded-For header
 	// with the client's IP.
 	AddForwardedFor bool
@@ -38,6 +41,12 @@ func (cfg *Config) withRewriteToHTTPS() *Config {
 func (cfg *Config) withAddConfigServerHeaders() *Config {
 	var cfg2 = *cfg
 	cfg2.AddConfigServerHeaders = true
+	return &cfg2
+}
+
+func (cfg *Config) withS3AuthorizationHeaders() *Config {
+	var cfg2 = *cfg
+	cfg2.AddS3Authorization = true
 	return &cfg2
 }
 
@@ -61,26 +70,27 @@ var (
 
 var configs = configure(
 	map[string]*Config{
-		"config.getiantem.org":                     internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
-		"config-staging.getiantem.org":             internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
-		"api.getiantem.org":                        internal.withRewriteToHTTPS(),
-		"api-staging.getiantem.org":                internal.withRewriteToHTTPS(),
-		"getlantern.org":                           internal,
-		"lantern.io":                               internal,
-		"innovatelabs.io":                          internal,
-		"getiantem.org":                            internal,
-		"lantern-pro-server.herokuapp.com":         internal,
-		"lantern-pro-server-staging.herokuapp.com": internal,
-		"adyenpayments.com":                        externalUnthrottled,
-		"adyen.com":                                externalUnthrottled,
-		"stripe.com":                               externalUnthrottled,
-		"paymentwall.com":                          externalUnthrottled,
-		"alipay.com":                               externalUnthrottled,
-		"app-measurement.com":                      externalUnthrottled,
-		"fastworldpay.com":                         externalUnthrottled,
-		"firebaseremoteconfig.googleapis.com":      externalUnthrottled,
-		"firebaseio.com":                           externalUnthrottled,
-		"optimizely.com":                           externalUnthrottled,
+		"config.getiantem.org":                        internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
+		"config-staging.getiantem.org":                internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
+		"api.getiantem.org":                           internal.withRewriteToHTTPS(),
+		"api-staging.getiantem.org":                   internal.withRewriteToHTTPS(),
+		"getlantern.org":                              internal,
+		"lantern.io":                                  internal,
+		"innovatelabs.io":                             internal,
+		"getiantem.org":                               internal,
+		"lantern-pro-server.herokuapp.com":            internal,
+		"lantern-pro-server-staging.herokuapp.com":    internal,
+		"adyenpayments.com":                           externalUnthrottled,
+		"adyen.com":                                   externalUnthrottled,
+		"stripe.com":                                  externalUnthrottled,
+		"paymentwall.com":                             externalUnthrottled,
+		"alipay.com":                                  externalUnthrottled,
+		"app-measurement.com":                         externalUnthrottled,
+		"fastworldpay.com":                            externalUnthrottled,
+		"firebaseremoteconfig.googleapis.com":         externalUnthrottled,
+		"firebaseio.com":                              externalUnthrottled,
+		"optimizely.com":                              externalUnthrottled,
+		"getlantern-replica-replica.s3.amazonaws.com": externalUnthrottled.withS3AuthorizationHeaders().withRewriteToHTTPS(),
 	})
 
 // ConfigForRequest is like ConfigForHost, using the hostname part of req.Host

@@ -13,4 +13,5 @@ const (
 	BBRRequested                        = "X-BBR"
 	BBRAvailableBandwidthEstimateHeader = "X-BBR-ABE"
 	XBQHeader                           = "XBQ"
+	S3Authorization                     = "Authorization"
 )
