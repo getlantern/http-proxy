@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/getlantern/golog"
-	ltls "github.com/getlantern/ltls"
+	utls "github.com/getlantern/utls"
 )
 
 func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config) (net.Conn, *tls.Config) {
@@ -48,9 +48,9 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	rrc.helloMutex.Unlock()
 
 	hello := rrc.dataRead.Bytes()
-	helloMsg, err := ltls.UnmarshalClientHello(hello)
+	helloMsg, err := utls.UnmarshalClientHello(hello)
 
-	if err != nil || !helloMsg.IsTicketSupported() || len(helloMsg.GetSessionTicket()) == 0 {
+	if err != nil || !helloMsg.TicketSupported || len(helloMsg.SessionTicket) == 0 {
 		rrc.cfg.ClientAuth = tls.RequireAndVerifyClientCert
 		return rrc.cfg, nil
 	}
