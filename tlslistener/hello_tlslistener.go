@@ -11,18 +11,17 @@ import (
 	ltls "github.com/getlantern/ltls"
 )
 
-func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, expectTickets bool) (net.Conn, *tls.Config) {
+func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config) (net.Conn, *tls.Config) {
 	// TODO: Possibly use sync.Pool here?
 	var buf bytes.Buffer
 	cfgClone := cfg.Clone()
 	rrc := &clientHelloRecordingConn{
-		Conn:          rawConn,
-		dataRead:      &buf,
-		log:           golog.LoggerFor("clienthello-conn"),
-		cfg:           cfgClone,
-		activeReader:  io.TeeReader(rawConn, &buf),
-		expectTickets: expectTickets,
-		helloMutex:    &sync.Mutex{},
+		Conn:         rawConn,
+		dataRead:     &buf,
+		log:          golog.LoggerFor("clienthello-conn"),
+		cfg:          cfgClone,
+		activeReader: io.TeeReader(rawConn, &buf),
+		helloMutex:   &sync.Mutex{},
 	}
 	cfgClone.GetConfigForClient = rrc.processHello
 
@@ -31,12 +30,11 @@ func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, expectTicket
 
 type clientHelloRecordingConn struct {
 	net.Conn
-	dataRead      *bytes.Buffer
-	log           golog.Logger
-	activeReader  io.Reader
-	helloMutex    *sync.Mutex
-	cfg           *tls.Config
-	expectTickets bool
+	dataRead     *bytes.Buffer
+	log          golog.Logger
+	activeReader io.Reader
+	helloMutex   *sync.Mutex
+	cfg          *tls.Config
 }
 
 func (rrc *clientHelloRecordingConn) Read(b []byte) (int, error) {

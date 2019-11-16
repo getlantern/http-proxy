@@ -48,7 +48,7 @@ func (l *tlslistener) Accept() (net.Conn, error) {
 	if !l.expectTickets {
 		return &tlsconn{tls.Server(conn, l.cfg), conn}, nil
 	}
-	helloConn, cfg := newClientHelloRecordingConn(conn, l.cfg, l.expectTickets)
+	helloConn, cfg := newClientHelloRecordingConn(conn, l.cfg)
 	return &tlsconn{tls.Server(helloConn, cfg), conn}, nil
 }
 
