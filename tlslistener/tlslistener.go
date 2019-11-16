@@ -45,13 +45,11 @@ func (l *tlslistener) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	var cfg *tls.Config
-	if l.expectTickets {
-		conn, cfg = newClientHelloRecordingConn(conn, l.cfg, l.expectTickets)
-	} else {
-		cfg = l.cfg
+	if !l.expectTickets {
+		return &tlsconn{tls.Server(conn, l.cfg), conn}, nil
 	}
-	return &tlsconn{tls.Server(conn, cfg), conn}, nil
+	helloConn, cfg := newClientHelloRecordingConn(conn, l.cfg, l.expectTickets)
+	return &tlsconn{tls.Server(helloConn, cfg), conn}, nil
 }
 
 func (l *tlslistener) Addr() net.Addr {
