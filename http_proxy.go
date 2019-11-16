@@ -148,6 +148,7 @@ type Proxy struct {
 	PCAPTimeout                        time.Duration
 	PacketForwardAddr                  string
 	PacketForwardIntf                  string
+	RequireSessionTickets              bool
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
