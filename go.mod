@@ -19,7 +19,7 @@ require (
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
 	github.com/getlantern/borda v0.0.0-20190809122504-668025f4c2b9
 	github.com/getlantern/bytecounting v0.0.0-20190530140808-3b3f10d3b9ab // indirect
-	github.com/getlantern/cmux v0.0.0-20190809092548-4b7adf243efe
+	github.com/getlantern/cmux v0.0.0-20191116212746-3b2ba1d7eb10
 	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
@@ -28,7 +28,7 @@ require (
 	github.com/getlantern/golog v0.0.0-20190830074920-4ef2e798c2d7
 	github.com/getlantern/gonat v0.0.0-20190809093358-98412e37c429
 	github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55
-	github.com/getlantern/http-proxy v0.0.3-0.20190809090746-b2f0d5c04754
+	github.com/getlantern/http-proxy v0.0.3-0.20191116215652-dda27f6bb8b1
 	github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c // indirect
 	github.com/getlantern/kcpwrapper v0.0.0-20171114192627-a35c895f6de7
 	github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a
@@ -72,6 +72,7 @@ require (
 	github.com/stretchr/testify v1.4.0
 	github.com/templexxx/reedsolomon v0.0.0-20170927015403-7092926d7d05 // indirect
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
+	github.com/xtaci/smux v1.4.5-0.20190922163313-2c4f88087ee9 // indirect
 	go.opencensus.io v0.17.0 // indirect
 	golang.org/x/net v0.0.0-20190912160710-24e19bdeb0f2
 	google.golang.org/api v0.0.0-20180921000521-920bb1beccf7
