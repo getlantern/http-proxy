@@ -3,6 +3,7 @@ package tlslistener
 import (
 	"bytes"
 	"crypto/tls"
+	"errors"
 	"io"
 	"net"
 	"sync"
@@ -11,16 +12,21 @@ import (
 	utls "github.com/getlantern/utls"
 )
 
+var bufferPool = sync.Pool{
+	New: func() interface{} {
+		return new(bytes.Buffer)
+	},
+}
+
 func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config) (net.Conn, *tls.Config) {
-	// TODO: Possibly use sync.Pool here?
-	var buf bytes.Buffer
+	buf := bufferPool.Get().(*bytes.Buffer)
 	cfgClone := cfg.Clone()
 	rrc := &clientHelloRecordingConn{
 		Conn:         rawConn,
-		dataRead:     &buf,
+		dataRead:     buf,
 		log:          golog.LoggerFor("clienthello-conn"),
 		cfg:          cfgClone,
-		activeReader: io.TeeReader(rawConn, &buf),
+		activeReader: io.TeeReader(rawConn, buf),
 		helloMutex:   &sync.Mutex{},
 	}
 	cfgClone.GetConfigForClient = rrc.processHello
@@ -48,11 +54,21 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	rrc.helloMutex.Unlock()
 
 	hello := rrc.dataRead.Bytes()
+
+	// Note we purely use utls here to parse the ClientHello.
 	helloMsg, err := utls.UnmarshalClientHello(hello)
 
-	if err != nil || !helloMsg.TicketSupported || len(helloMsg.SessionTicket) == 0 {
-		rrc.cfg.ClientAuth = tls.RequireAndVerifyClientCert
-		return rrc.cfg, nil
+	rrc.dataRead.Reset()
+	bufferPool.Put(rrc.dataRead)
+
+	if err != nil {
+		rrc.log.Errorf("Could not parse hello? %v", err)
+		return nil, err
+	}
+
+	if !helloMsg.TicketSupported || len(helloMsg.SessionTicket) == 0 {
+		rrc.log.Error("ClientHello does not support session tickets")
+		return nil, errors.New("ClientHello does not support session tickets")
 	}
 
 	return nil, nil
