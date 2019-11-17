@@ -12,7 +12,8 @@ import (
 )
 
 // Wrap wraps the specified listener in our default TLS listener.
-func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKeyFile string) (net.Listener, error) {
+func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKeyFile string,
+	requireSessionTickets bool) (net.Listener, error) {
 	cfg, err := tlsdefaults.BuildListenerConfig(wrapped.Addr().String(), keyFile, certFile)
 	if err != nil {
 		return nil, err
@@ -22,20 +23,23 @@ func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKe
 	cfg.MaxVersion = tls.VersionTLS12
 
 	log := golog.LoggerFor("lantern-proxy-tlslistener")
-	if sessionTicketKeyFile != "" {
+	expectTickets := sessionTicketKeyFile != ""
+	if expectTickets {
 		log.Debugf("Will rotate session ticket key and store in %v", sessionTicketKeyFile)
 		maintainSessionTicketKey(cfg, sessionTicketKeyFile)
 	}
 
-	listener := &tlslistener{wrapped, cfg, log}
+	listener := &tlslistener{wrapped, cfg, log, expectTickets, requireSessionTickets}
 	cfg.GetConfigForClient = listener.debugClientHello
 	return listener, nil
 }
 
 type tlslistener struct {
-	wrapped net.Listener
-	cfg     *tls.Config
-	log     golog.Logger
+	wrapped        net.Listener
+	cfg            *tls.Config
+	log            golog.Logger
+	expectTickets  bool
+	requireTickets bool
 }
 
 func (l *tlslistener) Accept() (net.Conn, error) {
@@ -43,7 +47,11 @@ func (l *tlslistener) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &tlsconn{tls.Server(conn, l.cfg), conn}, nil
+	if !l.expectTickets || !l.requireTickets {
+		return &tlsconn{tls.Server(conn, l.cfg), conn}, nil
+	}
+	helloConn, cfg := newClientHelloRecordingConn(conn, l.cfg)
+	return &tlsconn{tls.Server(helloConn, cfg), conn}, nil
 }
 
 func (l *tlslistener) Addr() net.Addr {

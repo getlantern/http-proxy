@@ -49,6 +49,7 @@ require (
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
 	github.com/getlantern/tlsdialer v0.0.0-20190606180931-1ac26445d532 // indirect
 	github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836
+	github.com/getlantern/utls v0.0.0-20191116044516-aa83a8a78932
 	github.com/getlantern/waitforserver v1.0.1
 	github.com/getlantern/withtimeout v0.0.0-20160829163843-511f017cd913
 	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7
@@ -73,6 +74,7 @@ require (
 	github.com/templexxx/reedsolomon v0.0.0-20170927015403-7092926d7d05 // indirect
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	go.opencensus.io v0.17.0 // indirect
+	golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708 // indirect
 	golang.org/x/net v0.0.0-20190912160710-24e19bdeb0f2
 	google.golang.org/api v0.0.0-20180921000521-920bb1beccf7
 	google.golang.org/genproto v0.0.0-20180918203901-c3f76f3b92d1 // indirect
