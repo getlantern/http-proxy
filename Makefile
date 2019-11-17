@@ -4,7 +4,7 @@ BUILD_DIR    ?= bin
 GIT_REVISION := $(shell git rev-parse --short HEAD)
 CHANGE_BIN   := $(shell which github_changelog_generator)
 
-GO_VERSION := 1.13
+GO_VERSION := 1.13.4
 
 DOCKER_IMAGE_TAG := http-proxy-builder
 DOCKER_VOLS = "-v $$PWD/../../..:/src"
@@ -31,11 +31,6 @@ guard-%:
 	 @ if [ -z '${${*}}' ]; then echo 'Environment variable $* not set' && exit 1; fi
 
 require-version: guard-VERSION
-
-require-go-version:
-	@ if go version | grep -q -v $(GO_VERSION); then \
-		echo "go $(GO_VERSION) is required." && exit 1; \
-	fi
 
 require-upx:
 	@if [ "$(UPX_BIN)" = "" ]; then \
@@ -71,7 +66,6 @@ deploy-staging: dist/http-proxy
 
 clean:
 	rm -rf dist bin
-
 
 system-checks:
 	@if [[ -z "$(DOCKER)" ]]; then echo 'Missing "docker" command.'; exit 1; fi && \
