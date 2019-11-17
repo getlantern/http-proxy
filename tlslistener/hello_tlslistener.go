@@ -53,7 +53,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	rrc.activeReader = rrc.Conn
 	rrc.helloMutex.Unlock()
 
-	hello := rrc.dataRead.Bytes()
+	hello := rrc.dataRead.Bytes()[5:]
 
 	// Note we purely use utls here to parse the ClientHello.
 	helloMsg, err := utls.UnmarshalClientHello(hello)
