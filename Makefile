@@ -4,7 +4,7 @@ BUILD_DIR    ?= bin
 GIT_REVISION := $(shell git rev-parse --short HEAD)
 CHANGE_BIN   := $(shell which github_changelog_generator)
 
-GO_VERSION := 1.13
+GO_VERSION := 1.13.4
 
 DOCKER_IMAGE_TAG := http-proxy-builder
 DOCKER_VOLS = "-v $$PWD/../../..:/src"
@@ -32,11 +32,6 @@ guard-%:
 
 require-version: guard-VERSION
 
-require-go-version:
-	@ if go version | grep -q -v $(GO_VERSION); then \
-		echo "go $(GO_VERSION) is required." && exit 1; \
-	fi
-
 require-upx:
 	@if [ "$(UPX_BIN)" = "" ]; then \
 		echo 'Missing "upx" command. See http://upx.sourceforge.net/' && exit 1; \
@@ -47,7 +42,7 @@ require-change:
 		echo 'Missing "github_changelog_generator" command. See https://github.com/github-changelog-generator/github-changelog-generator or just [sudo] gem install github_changelog_generator' && exit 1; \
 	fi
 
-build: require-go-version
+build: 
 	mkdir -p $(BUILD_DIR) && \
 	GO111MODULE=on go build -o $(BUILD_DIR)/http-proxy \
 	-ldflags="-X main.revision=$(GIT_REVISION)" \
@@ -72,7 +67,6 @@ deploy-staging: dist/http-proxy
 clean:
 	rm -rf dist bin
 
-
 system-checks:
 	@if [[ -z "$(DOCKER)" ]]; then echo 'Missing "docker" command.'; exit 1; fi && \
 	if [[ -z "$(GO)" ]]; then echo 'Missing "go" command.'; exit 1; fi
@@ -96,5 +90,5 @@ docker-distnochange: docker-builder require-dep
 docker-dist: require-upx require-version require-change docker-distnochange
 	$(call tag-changelog,http-proxy-lantern)
 
-test: require-go-version
+test: 
 	GO111MODULE=on go test -race $(go list ./...)
