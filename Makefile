@@ -42,7 +42,7 @@ require-change:
 		echo 'Missing "github_changelog_generator" command. See https://github.com/github-changelog-generator/github-changelog-generator or just [sudo] gem install github_changelog_generator' && exit 1; \
 	fi
 
-build: require-go-version
+build: 
 	mkdir -p $(BUILD_DIR) && \
 	GO111MODULE=on go build -o $(BUILD_DIR)/http-proxy \
 	-ldflags="-X main.revision=$(GIT_REVISION)" \
@@ -90,5 +90,5 @@ docker-distnochange: docker-builder require-dep
 docker-dist: require-upx require-version require-change docker-distnochange
 	$(call tag-changelog,http-proxy-lantern)
 
-test: require-go-version
+test: 
 	GO111MODULE=on go test -race $(go list ./...)
