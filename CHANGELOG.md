@@ -1,5 +1,20 @@
 # Change Log
 
+## [Unreleased](https://github.com/getlantern/http-proxy-lantern/tree/HEAD)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.3.6...HEAD)
+
+**Merged pull requests:**
+
+- Read hellos if we require tickets and kill clients w/o 'em [\#341](https://github.com/getlantern/http-proxy-lantern/pull/341) ([myleshorton](https://github.com/myleshorton))
+
+## [2.3.6](https://github.com/getlantern/http-proxy-lantern/tree/2.3.6) (2019-11-17)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.3.5...2.3.6)
+
+**Merged pull requests:**
+
+- Require Go 1.13.x [\#340](https://github.com/getlantern/http-proxy-lantern/pull/340) ([hwh33](https://github.com/hwh33))
+
 ## [2.3.5](https://github.com/getlantern/http-proxy-lantern/tree/2.3.5) (2019-10-31)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.3.4...2.3.5)
 
