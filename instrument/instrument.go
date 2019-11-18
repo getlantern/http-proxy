@@ -135,6 +135,10 @@ var (
 	xbqSent = register(prometheus.NewCounter(prometheus.CounterOpts{
 		Name: "device_throttling_xbq_header_sent_total",
 	})).(prometheus.Counter)
+
+	suspectedProbing = register(prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "suspected_probing_total",
+	}, []string{"source_ip"})).(*prometheus.CounterVec)
 )
 
 // Blacklist instruments the blacklist checking.
@@ -167,4 +171,12 @@ func Throttle(m bool, reason string) {
 // response.
 func XBQHeaderSent() {
 	xbqSent.Inc()
+}
+
+// SuspectedProbing records the number of visits from each source IP which
+// looks like active probing.
+func SuspectedProbing(sourceAddr net.Addr) {
+	// Skip checking error as net.Addr.String() should be in valid form
+	sourceIP, _, _ := net.SplitHostPort(sourceAddr.String())
+	suspectedProbing.With(prometheus.Labels{"source_ip": sourceIP}).Inc()
 }

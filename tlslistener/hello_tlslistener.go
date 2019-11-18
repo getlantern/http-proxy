@@ -10,6 +10,8 @@ import (
 
 	"github.com/getlantern/golog"
 	utls "github.com/getlantern/utls"
+
+	"github.com/getlantern/http-proxy-lantern/instrument"
 )
 
 var bufferPool = sync.Pool{
@@ -62,11 +64,13 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	bufferPool.Put(rrc.dataRead)
 
 	if err != nil {
+		instrument.SuspectedProbing(rrc.RemoteAddr())
 		rrc.log.Errorf("Could not parse hello? %v", err)
 		return nil, err
 	}
 
 	if !helloMsg.TicketSupported || len(helloMsg.SessionTicket) == 0 {
+		instrument.SuspectedProbing(rrc.RemoteAddr())
 		rrc.log.Error("ClientHello does not support session tickets")
 		return nil, errors.New("ClientHello does not support session tickets")
 	}
