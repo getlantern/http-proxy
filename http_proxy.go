@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"bufio"
 	"context"
 	"encoding/base64"
 	"encoding/json"
@@ -16,9 +15,9 @@ import (
 	"syscall"
 	"time"
 
-	utp "github.com/anacrolix/go-libutp"
 	rclient "gopkg.in/redis.v5"
 
+	utp "github.com/anacrolix/go-libutp"
 	bordaClient "github.com/getlantern/borda/client"
 	"github.com/getlantern/cmux"
 	"github.com/getlantern/enhttp"
@@ -242,7 +241,6 @@ func (p *Proxy) ListenAndServe() error {
 		Filter:                   instrument.WrapFilter("proxy", filterChain),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  instrument.WrapConnErrorHandler("proxy_serve", onServerError),
-		OnAcceptError:            onAcceptError,
 	})
 	// Although we include blacklist functionality, it's currently only used to
 	// track potential blacklisting ad doesn't actually blacklist anyone.
@@ -854,21 +852,6 @@ func (p *Proxy) setupPacketForward() error {
 		}
 	}()
 	return nil
-}
-
-func onAcceptError(err error) (fatalErr error) {
-	if eip, ok := err.(*cmux.ErrorInvalidProtocol); ok {
-		eip.StopCloseTimer()
-		log.Debug("Received invalid protocol. Mimicking Apache server.")
-		req, err := http.ReadRequest(bufio.NewReader(eip.ConnReader))
-		if err != nil {
-			log.Errorf("Failed to mimic Apache server; could not parse request as HTTP/1.x: %v", err)
-			return nil
-		}
-		mimic.Apache(eip.Conn, req)
-		return nil
-	}
-	return err
 }
 
 func portsFromCSV(csv string) ([]int, error) {
