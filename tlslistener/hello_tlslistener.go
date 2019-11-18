@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/getlantern/golog"
 	utls "github.com/getlantern/utls"
@@ -52,11 +53,15 @@ func (rrc *clientHelloRecordingConn) Read(b []byte) (int, error) {
 }
 
 func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*tls.Config, error) {
+	// Skip checking error as net.Addr.String() should be in valid form
+	sourceIP, _, _ := net.SplitHostPort(rrc.RemoteAddr().String())
+
 	// The hello is read at this point, so switch to no longer write incoming data to a second buffer.
 	rrc.helloMutex.Lock()
 	rrc.activeReader = rrc.Conn
 	rrc.helloMutex.Unlock()
 
+	// Skip the handshake record type byte, the protocol version, and the handshake message length.
 	hello := rrc.dataRead.Bytes()[5:]
 
 	// Note we purely use utls here to parse the ClientHello.
@@ -65,13 +70,8 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	rrc.dataRead.Reset()
 	bufferPool.Put(rrc.dataRead)
 
-	// Skip checking error as net.Addr.String() should be in valid form
-	sourceIP, _, _ := net.SplitHostPort(rrc.RemoteAddr().String())
-
 	if err != nil {
-		instrument.SuspectedProbing(sourceIP, "malformed ClientHello")
-		rrc.log.Errorf("Could not parse hello? %v", err)
-		return nil, err
+		return rrc.helloError("malformed ClientHello", sourceIP, true)
 	}
 
 	if !disallowLookbackForTesting && net.ParseIP(sourceIP).IsLoopback() {
@@ -79,17 +79,38 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	}
 
 	if !helloMsg.TicketSupported {
-		errStr := "ClientHello does not support session tickets"
-		instrument.SuspectedProbing(sourceIP, errStr)
-		rrc.log.Error(errStr)
-		return nil, errors.New(errStr)
+		if info.ServerName == "" {
+			return rrc.helloError("ClientHello does not support session tickets", sourceIP, true)
+		}
+		// TODO: Note we only want to honor SNI to the domains we're actually configured for, as allowing SNI
+		// to anywhere would be clearly fingerprintable.
+		rawConn, err := net.DialTimeout("tcp", info.ServerName+":443", 10*time.Second)
+		if err != nil {
+			return rrc.helloError("Could not dial upstream", sourceIP, false)
+		}
+		cfg := &utls.Config{}
+		uconn := utls.UClient(rawConn, cfg, utls.HelloChrome_Auto)
+		uconn.HandshakeState = utls.ClientHandshakeState{
+			Hello: helloMsg,
+			C:     uconn.Conn,
+		}
+		uconn.ClientHelloBuilt = true
+		uconn.Handshake()
+		//uconn.SetSessionState(chs)
+		//conn.Write(hello)
 	}
 	if len(helloMsg.SessionTicket) == 0 {
-		errStr := "ClientHello has no session ticket"
-		instrument.SuspectedProbing(sourceIP, errStr)
-		rrc.log.Error(errStr)
-		return nil, errors.New(errStr)
+		return rrc.helloError("ClientHello has no session ticket", sourceIP, true)
 	}
 
+	rrc.log.Debugf("Session ticket is: %#v", helloMsg.SessionTicket)
 	return nil, nil
+}
+
+func (rrc *clientHelloRecordingConn) helloError(errStr, sourceIP string, suspicious bool) (*tls.Config, error) {
+	if suspicious {
+		instrument.SuspectedProbing(sourceIP, errStr)
+	}
+	rrc.log.Error(errStr)
+	return nil, errors.New(errStr)
 }

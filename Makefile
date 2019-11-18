@@ -14,8 +14,6 @@ get-command = $(shell which="$$(which $(1) 2> /dev/null)" && if [[ ! -z "$$which
 DOCKER    := $(call get-command,docker)
 GO        := $(call get-command,go)
 
-.PHONY: dist build require-dep
-
 # This tags the current version and creates a CHANGELOG for the current directory.
 define tag-changelog
 	echo "Tagging..." && \
@@ -42,20 +40,6 @@ require-change:
 		echo 'Missing "github_changelog_generator" command. See https://github.com/github-changelog-generator/github-changelog-generator or just [sudo] gem install github_changelog_generator' && exit 1; \
 	fi
 
-build: 
-	mkdir -p $(BUILD_DIR) && \
-	GO111MODULE=on go build -o $(BUILD_DIR)/http-proxy \
-	-ldflags="-X main.revision=$(GIT_REVISION)" \
-	github.com/getlantern/http-proxy-lantern/http-proxy && \
-	file $(BUILD_DIR)/http-proxy
-
-distnochange: require-upx
-	GOOS=linux GOARCH=amd64 BUILD_DIR=dist $(MAKE) build -o http-proxy && \
-	upx dist/http-proxy
-
-dist: require-upx require-version require-change distnochange
-	$(call tag-changelog,http-proxy-lantern)
-
 deploy: dist/http-proxy
 	s3cmd put dist/http-proxy s3://http-proxy/http-proxy && \
 	s3cmd setacl --acl-grant read:f87080f71ec0be3b9a933cbb244a6c24d4aca584ac32b3220f56d59071043747 s3://http-proxy/http-proxy
@@ -78,7 +62,7 @@ docker-builder: system-checks
 	docker build -t $(DOCKER_IMAGE_TAG) --build-arg go_version=go$(GO_VERSION) $$DOCKER_CONTEXT
 
 # workaround to build Ubuntu binary on non-Ubuntu platforms.
-docker-distnochange: docker-builder require-dep
+docker-distnochange: docker-builder
 	mkdir -p dist && \
 	GO111MODULE=on go mod vendor && \
 	docker run -e GIT_REVISION='$(GIT_REVISION)' \
