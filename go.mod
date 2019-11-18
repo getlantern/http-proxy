@@ -19,7 +19,7 @@ require (
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
 	github.com/getlantern/borda v0.0.0-20190809122504-668025f4c2b9
 	github.com/getlantern/bytecounting v0.0.0-20190530140808-3b3f10d3b9ab // indirect
-	github.com/getlantern/cmux v0.0.0-20191116212746-3b2ba1d7eb10
+	github.com/getlantern/cmux v0.0.0-20191118192654-91f5d8edaea1
 	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
