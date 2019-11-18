@@ -20,6 +20,8 @@ var bufferPool = sync.Pool{
 	},
 }
 
+var disallowLookbackForTesting bool
+
 func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config) (net.Conn, *tls.Config) {
 	buf := bufferPool.Get().(*bytes.Buffer)
 	cfgClone := cfg.Clone()
@@ -72,7 +74,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		return nil, err
 	}
 
-	if net.ParseIP(sourceIP).IsLoopback() {
+	if !disallowLookbackForTesting && net.ParseIP(sourceIP).IsLoopback() {
 		return nil, nil
 	}
 

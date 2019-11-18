@@ -13,7 +13,7 @@ import (
 )
 
 func TestAbortOnHello(t *testing.T) {
-	t.Skip("skip for now because visits from loopback should be allowed or makesessions would fail")
+	disallowLookbackForTesting = true
 	l, err := net.Listen("tcp", ":0")
 	assert.NoError(t, err)
 
