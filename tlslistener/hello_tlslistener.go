@@ -63,21 +63,28 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	rrc.dataRead.Reset()
 	bufferPool.Put(rrc.dataRead)
 
+	// Skip checking error as net.Addr.String() should be in valid form
+	sourceIP, _, _ := net.SplitHostPort(rrc.RemoteAddr().String())
+
 	if err != nil {
-		instrument.SuspectedProbing(rrc.RemoteAddr(), "malformed ClientHello")
+		instrument.SuspectedProbing(sourceIP, "malformed ClientHello")
 		rrc.log.Errorf("Could not parse hello? %v", err)
 		return nil, err
 	}
 
+	if net.ParseIP(sourceIP).IsLoopback() {
+		return nil, nil
+	}
+
 	if !helloMsg.TicketSupported {
 		errStr := "ClientHello does not support session tickets"
-		instrument.SuspectedProbing(rrc.RemoteAddr(), errStr)
+		instrument.SuspectedProbing(sourceIP, errStr)
 		rrc.log.Error(errStr)
 		return nil, errors.New(errStr)
 	}
 	if len(helloMsg.SessionTicket) == 0 {
 		errStr := "ClientHello has no session ticket"
-		instrument.SuspectedProbing(rrc.RemoteAddr(), errStr)
+		instrument.SuspectedProbing(sourceIP, errStr)
 		rrc.log.Error(errStr)
 		return nil, errors.New(errStr)
 	}
