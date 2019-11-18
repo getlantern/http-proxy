@@ -64,15 +64,22 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	bufferPool.Put(rrc.dataRead)
 
 	if err != nil {
-		instrument.SuspectedProbing(rrc.RemoteAddr())
+		instrument.SuspectedProbing(rrc.RemoteAddr(), "malformed ClientHello")
 		rrc.log.Errorf("Could not parse hello? %v", err)
 		return nil, err
 	}
 
-	if !helloMsg.TicketSupported || len(helloMsg.SessionTicket) == 0 {
-		instrument.SuspectedProbing(rrc.RemoteAddr())
-		rrc.log.Error("ClientHello does not support session tickets")
-		return nil, errors.New("ClientHello does not support session tickets")
+	if !helloMsg.TicketSupported {
+		errStr := "ClientHello does not support session tickets"
+		instrument.SuspectedProbing(rrc.RemoteAddr(), errStr)
+		rrc.log.Error(errStr)
+		return nil, errors.New(errStr)
+	}
+	if len(helloMsg.SessionTicket) == 0 {
+		errStr := "ClientHello has no session ticket"
+		instrument.SuspectedProbing(rrc.RemoteAddr(), errStr)
+		rrc.log.Error(errStr)
+		return nil, errors.New(errStr)
 	}
 
 	return nil, nil

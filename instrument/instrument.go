@@ -138,7 +138,7 @@ var (
 
 	suspectedProbing = register(prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "suspected_probing_total",
-	}, []string{"source_ip"})).(*prometheus.CounterVec)
+	}, []string{"source_ip", "reason"})).(*prometheus.CounterVec)
 )
 
 // Blacklist instruments the blacklist checking.
@@ -175,8 +175,10 @@ func XBQHeaderSent() {
 
 // SuspectedProbing records the number of visits from each source IP which
 // looks like active probing.
-func SuspectedProbing(sourceAddr net.Addr) {
+func SuspectedProbing(sourceAddr net.Addr, reason string) {
 	// Skip checking error as net.Addr.String() should be in valid form
 	sourceIP, _, _ := net.SplitHostPort(sourceAddr.String())
-	suspectedProbing.With(prometheus.Labels{"source_ip": sourceIP}).Inc()
+	suspectedProbing.With(
+	  prometheus.Labels{"source_ip": sourceIP, "reason": reason}
+	).Inc()
 }
