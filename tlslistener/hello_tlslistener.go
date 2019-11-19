@@ -91,5 +91,9 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		return nil, errors.New(errStr)
 	}
 
+	// Otherwise, we want to make sure that the client is using resumption with one of our
+	// pre-defined tickets. If it doesn't we should again return some sort of error or just
+	// close the connection.
+
 	return nil, nil
 }
