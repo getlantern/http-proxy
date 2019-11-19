@@ -2,14 +2,15 @@ package tlslistener
 
 import (
 	"bufio"
+	"crypto/rand"
+	"crypto/tls"
 	"net"
 	"net/http"
 	"testing"
 	"time"
 
+	utls "github.com/getlantern/utls"
 	"github.com/stretchr/testify/assert"
-
-	tls "github.com/getlantern/utls"
 )
 
 func TestAbortOnHello(t *testing.T) {
@@ -17,7 +18,7 @@ func TestAbortOnHello(t *testing.T) {
 	l, err := net.Listen("tcp", ":0")
 	assert.NoError(t, err)
 
-	hl, err := Wrap(l, "../test/data/server.key", "../test/data/server.crt", "dummytickets", true)
+	hl, err := Wrap(l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", true)
 	assert.NoError(t, err)
 
 	handleConnection := func(sconn net.Conn) {
@@ -33,11 +34,13 @@ func TestAbortOnHello(t *testing.T) {
 	}
 
 	go func() {
-		sconn, err := hl.Accept()
-		//defer sconn.Close()
-		time.Sleep(2 * time.Second)
-		assert.NoError(t, err)
-		go handleConnection(sconn)
+		for {
+			sconn, err := hl.Accept()
+			//defer sconn.Close()
+			time.Sleep(2 * time.Second)
+			assert.NoError(t, err)
+			go handleConnection(sconn)
+		}
 	}()
 
 	cfg := &tls.Config{
@@ -47,4 +50,38 @@ func TestAbortOnHello(t *testing.T) {
 
 	_, err = tls.Dial("tcp", l.Addr().String(), cfg)
 	assert.Error(t, err)
+
+	// Now make sure we can't spoof a session ticket.
+	rawConn, err := net.DialTimeout("tcp", l.Addr().String(), 4*time.Second)
+
+	ucfg := &utls.Config{
+		ServerName: "microsoft.com",
+	}
+	maintainSessionTicketKey(&tls.Config{}, "../test/testtickets", func(keys [][32]byte) { ucfg.SetSessionTicketKeys(keys) })
+
+	ss := &utls.ClientSessionState{}
+	ticket := make([]byte, 120)
+	rand.Read(ticket)
+	ss.SetSessionTicket(ticket)
+	ss.SetVers(tls.VersionTLS12)
+
+	uconn := utls.UClient(rawConn, ucfg, utls.HelloChrome_Auto)
+	uconn.SetSessionState(ss)
+
+	req, err := http.NewRequest("get", "https://microsoft.com", nil)
+	assert.NoError(t, err)
+	err = req.Write(uconn)
+	assert.Error(t, err)
+	hl.Close()
+}
+
+func TestParseInvalidTicket(t *testing.T) {
+	scfg := &utls.Config{}
+	var tk [32]byte
+	rand.Read(tk[:])
+	scfg.SetSessionTicketKeys([][32]byte{tk})
+	ticket := make([]byte, 120)
+	rand.Read(ticket)
+	plainText, _ := utls.DecryptTicketWith(ticket, scfg)
+	assert.Len(t, plainText, 0)
 }
