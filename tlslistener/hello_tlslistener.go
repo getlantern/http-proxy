@@ -61,7 +61,10 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 
 	hello := rrc.dataRead.Bytes()[5:]
 
-	// Note we purely use utls here to parse the ClientHello and for ticket verification below.
+	// We use uTLS here purely because it exposes more TLS handshake internals, allowing
+	// us to decrypt the ClientHello and session tickets, for example. We use those functions
+	// separately without switching to uTLS entirely to allow continued upgrading of the TLS stack
+	// as new Go versions are released.
 	helloMsg, err := utls.UnmarshalClientHello(hello)
 
 	rrc.dataRead.Reset()

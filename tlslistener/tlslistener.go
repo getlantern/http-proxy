@@ -25,10 +25,6 @@ func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKe
 
 	log := golog.LoggerFor("lantern-proxy-tlslistener")
 
-	// We use a separate UTLS config here purely because it exposes more TLS handshake internals,
-	// allowing us to decrypt the ClientHello and session tickets, for example. We use thos functions
-	// separately without switching to UTLS entirely to allow continued upgrading of the TLS stack
-	// as new Go versions are released.
 	utlsConfig := &utls.Config{}
 	onKeys := func(keys [][32]byte) {
 		utlsConfig.SetSessionTicketKeys(keys)
