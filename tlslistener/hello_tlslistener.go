@@ -3,7 +3,6 @@ package tlslistener
 import (
 	"bytes"
 	"crypto/tls"
-	"errors"
 	"io"
 	"net"
 	"sync"
@@ -74,22 +73,33 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		return nil, err
 	}
 
+	// Allow access from localhost to generate session states to distribute to
+	// Lantern clients.
 	if !disallowLookbackForTesting && net.ParseIP(sourceIP).IsLoopback() {
 		return nil, nil
+	}
+
+	newConfig := rrc.cfg.Clone()
+	if true { // is TLS 1.2 or below
+		// Return an non-existent cipher suite to prevent full handshake if the
+		// client doesn't have a valid session ticket.
+		newConfig.CipherSuites = []uint16{0} // tls.TLS_RSA_WITH_RC4_128_SHA
+	} else {
+		newConfig.Certificates = []uint16{Certificate{}} // tls.TLS_RSA_WITH_RC4_128_SHA
 	}
 
 	if !helloMsg.TicketSupported {
 		errStr := "ClientHello does not support session tickets"
 		instrument.SuspectedProbing(sourceIP, errStr)
 		rrc.log.Error(errStr)
-		return nil, errors.New(errStr)
+		return newConfig, nil
 	}
 	if len(helloMsg.SessionTicket) == 0 {
 		errStr := "ClientHello has no session ticket"
 		instrument.SuspectedProbing(sourceIP, errStr)
 		rrc.log.Error(errStr)
-		return nil, errors.New(errStr)
+		return newConfig, nil
 	}
 
-	return nil, nil
+	return newConfig, nil
 }
