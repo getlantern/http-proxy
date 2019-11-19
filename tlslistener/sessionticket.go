@@ -9,7 +9,7 @@ import (
 	"time"
 )
 
-func maintainSessionTicketKey(cfg *tls.Config, sessionTicketKeyFile string) {
+func maintainSessionTicketKey(cfg *tls.Config, sessionTicketKeyFile string, keyListener func(keys [][32]byte)) {
 	// read cached session ticket keys
 	keyBytes, err := ioutil.ReadFile(sessionTicketKeyFile)
 	if err != nil {
@@ -20,18 +20,18 @@ func maintainSessionTicketKey(cfg *tls.Config, sessionTicketKeyFile string) {
 	}
 
 	// Create a new key right away
-	keyBytes = prependToSessionTicketKeys(cfg, sessionTicketKeyFile, keyBytes)
+	keyBytes = prependToSessionTicketKeys(cfg, sessionTicketKeyFile, keyBytes, keyListener)
 
 	// Then rotate key every 24 hours
 	go func() {
 		for {
 			time.Sleep(24 * time.Hour)
-			keyBytes = prependToSessionTicketKeys(cfg, sessionTicketKeyFile, keyBytes)
+			keyBytes = prependToSessionTicketKeys(cfg, sessionTicketKeyFile, keyBytes, keyListener)
 		}
 	}()
 }
 
-func prependToSessionTicketKeys(cfg *tls.Config, sessionTicketKeyFile string, keyBytes []byte) []byte {
+func prependToSessionTicketKeys(cfg *tls.Config, sessionTicketKeyFile string, keyBytes []byte, keyListener func(keys [][32]byte)) []byte {
 	newKey := makeSessionTicketKey()
 	keyBytes = append(newKey, keyBytes...)
 	saveSessionTicketKeys(sessionTicketKeyFile, keyBytes)
@@ -45,7 +45,7 @@ func prependToSessionTicketKeys(cfg *tls.Config, sessionTicketKeyFile string, ke
 		keys = append(keys, key)
 	}
 	cfg.SetSessionTicketKeys(keys)
-
+	keyListener(keys)
 	return keyBytes
 }
 

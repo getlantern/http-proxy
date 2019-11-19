@@ -22,7 +22,7 @@ var bufferPool = sync.Pool{
 
 var disallowLookbackForTesting bool
 
-func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config) (net.Conn, *tls.Config) {
+func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utls.Config) (net.Conn, *tls.Config) {
 	buf := bufferPool.Get().(*bytes.Buffer)
 	cfgClone := cfg.Clone()
 	rrc := &clientHelloRecordingConn{
@@ -32,6 +32,7 @@ func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config) (net.Conn, *
 		cfg:          cfgClone,
 		activeReader: io.TeeReader(rawConn, buf),
 		helloMutex:   &sync.Mutex{},
+		utlsCfg:      utlsCfg,
 	}
 	cfgClone.GetConfigForClient = rrc.processHello
 
@@ -45,6 +46,7 @@ type clientHelloRecordingConn struct {
 	activeReader io.Reader
 	helloMutex   *sync.Mutex
 	cfg          *tls.Config
+	utlsCfg      *utls.Config
 }
 
 func (rrc *clientHelloRecordingConn) Read(b []byte) (int, error) {
@@ -59,7 +61,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 
 	hello := rrc.dataRead.Bytes()[5:]
 
-	// Note we purely use utls here to parse the ClientHello.
+	// Note we purely use utls here to parse the ClientHello and for ticket verification below.
 	helloMsg, err := utls.UnmarshalClientHello(hello)
 
 	rrc.dataRead.Reset()
@@ -69,31 +71,33 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	sourceIP, _, _ := net.SplitHostPort(rrc.RemoteAddr().String())
 
 	if err != nil {
-		instrument.SuspectedProbing(sourceIP, "malformed ClientHello")
-		rrc.log.Errorf("Could not parse hello? %v", err)
-		return nil, err
+		return rrc.helloError("malformed ClientHello", sourceIP, true)
 	}
 
+	// We allow loopback so that checkfallbacks can work.
 	if !disallowLookbackForTesting && net.ParseIP(sourceIP).IsLoopback() {
 		return nil, nil
-	}
-
-	if !helloMsg.TicketSupported {
-		errStr := "ClientHello does not support session tickets"
-		instrument.SuspectedProbing(sourceIP, errStr)
-		rrc.log.Error(errStr)
-		return nil, errors.New(errStr)
-	}
-	if len(helloMsg.SessionTicket) == 0 {
-		errStr := "ClientHello has no session ticket"
-		instrument.SuspectedProbing(sourceIP, errStr)
-		rrc.log.Error(errStr)
-		return nil, errors.New(errStr)
 	}
 
 	// Otherwise, we want to make sure that the client is using resumption with one of our
 	// pre-defined tickets. If it doesn't we should again return some sort of error or just
 	// close the connection.
+	if !helloMsg.TicketSupported {
+		return rrc.helloError("ClientHello does not support session tickets", sourceIP, true)
+	}
+
+	plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, rrc.utlsCfg)
+	if len(plainText) == 0 {
+		return rrc.helloError("ClientHello has invalid session ticket", sourceIP, true)
+	}
 
 	return nil, nil
+}
+
+func (rrc *clientHelloRecordingConn) helloError(errStr, sourceIP string, suspicious bool) (*tls.Config, error) {
+	if suspicious {
+		instrument.SuspectedProbing(sourceIP, errStr)
+	}
+	rrc.log.Error(errStr)
+	return nil, errors.New(errStr)
 }
