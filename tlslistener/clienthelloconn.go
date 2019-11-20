@@ -7,6 +7,7 @@ import (
 	"io"
 	"net"
 	"sync"
+	"time"
 
 	"github.com/getlantern/golog"
 	utls "github.com/getlantern/utls"
@@ -66,7 +67,6 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	// separately without switching to uTLS entirely to allow continued upgrading of the TLS stack
 	// as new Go versions are released.
 	helloMsg, err := utls.UnmarshalClientHello(hello)
-
 	rrc.dataRead.Reset()
 	bufferPool.Put(rrc.dataRead)
 
@@ -81,6 +81,27 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	// distribute to Lantern clients.
 	if !disallowLookbackForTesting && net.ParseIP(sourceIP).IsLoopback() {
 		return nil, nil
+	}
+
+	// TODO: Connect to whatever domain the proxy is mimicking, not whatever the client
+	// says to connect to.
+	rawConn, err := net.DialTimeout("tcp", info.ServerName+":443", 20*time.Second)
+
+	if err != nil {
+		rrc.log.Errorf("Could not connect upstream %v", err)
+		return nil, err
+	}
+
+	cfg := &utls.Config{
+		ServerName: info.ServerName,
+	}
+	uconn := utls.UClient(rawConn, cfg, utls.HelloChrome_Auto)
+	uconn.HandshakeState.Hello = helloMsg
+	err = uconn.Handshake()
+	if err != nil {
+		rrc.log.Debugf("Handshake error: %v", err)
+	} else {
+		rrc.log.Debug("Handshake completed!")
 	}
 
 	// Otherwise, we want to make sure that the client is using resumption with one of our
