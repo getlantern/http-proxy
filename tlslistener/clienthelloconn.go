@@ -90,7 +90,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		return rrc.helloError("ClientHello does not support session tickets", sourceIP)
 	}
 
-	if len(!helloMsg.SessionTicket) == 0 {
+	if len(helloMsg.SessionTicket) == 0 {
 		return rrc.helloError("ClientHello has no session ticket", sourceIP)
 	}
 
