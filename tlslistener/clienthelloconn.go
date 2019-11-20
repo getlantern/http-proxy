@@ -77,7 +77,8 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		return rrc.helloError("malformed ClientHello", sourceIP)
 	}
 
-	// We allow loopback so that checkfallbacks can work.
+	// We allow loopback to generate session states (makesessions) to
+	// distribute to Lantern clients.
 	if !disallowLookbackForTesting && net.ParseIP(sourceIP).IsLoopback() {
 		return nil, nil
 	}
