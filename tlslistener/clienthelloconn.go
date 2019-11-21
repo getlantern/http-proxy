@@ -100,26 +100,43 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	err = uconn.Handshake()
 	if err != nil {
 		rrc.log.Debugf("Handshake error: %v", err)
-	} else {
-		rrc.log.Debug("Handshake completed!")
+		return nil, err
 	}
+	rrc.log.Debugf("Handshake completed...replaying %v byte ServerHello", len(uconn.HandshakeState.ServerHello.Raw))
 
-	// Otherwise, we want to make sure that the client is using resumption with one of our
-	// pre-defined tickets. If it doesn't we should again return some sort of error or just
-	// close the connection.
-	if !helloMsg.TicketSupported {
-		return rrc.helloError("ClientHello does not support session tickets", sourceIP)
+	n, err := rrc.Conn.Write(uconn.HandshakeState.ServerHello.Raw)
+	if err != nil {
+		rrc.log.Errorf("Could not write %v", err)
+		return nil, err
 	}
+	rrc.log.Debugf("Wrote %v bytes of ServerHello", n)
 
-	if len(helloMsg.SessionTicket) == 0 {
-		return rrc.helloError("ClientHello has no session ticket", sourceIP)
-	}
+	go func() {
+		io.Copy(rrc.Conn, rawConn)
+	}()
 
-	plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, rrc.utlsCfg)
-	if plainText == nil || len(plainText) == 0 {
-		return rrc.helloError("ClientHello has invalid session ticket", sourceIP)
-	}
+	go func() {
+		io.Copy(rawConn, rrc.Conn)
+	}()
 
+	/*
+		// Otherwise, we want to make sure that the client is using resumption with one of our
+		// pre-defined tickets. If it doesn't we should again return some sort of error or just
+		// close the connection.
+		if !helloMsg.TicketSupported {
+			return rrc.helloError("ClientHello does not support session tickets", sourceIP)
+		}
+
+		if len(helloMsg.SessionTicket) == 0 {
+			return rrc.helloError("ClientHello has no session ticket", sourceIP)
+		}
+
+		plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, rrc.utlsCfg)
+		if plainText == nil || len(plainText) == 0 {
+			return rrc.helloError("ClientHello has invalid session ticket", sourceIP)
+		}
+
+	*/
 	return nil, nil
 }
 

@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/rand"
 	"crypto/tls"
+	"fmt"
 	"net"
 	"net/http"
 	"testing"
@@ -22,24 +23,28 @@ func TestAbortOnHello(t *testing.T) {
 	assert.NoError(t, err)
 
 	handleConnection := func(sconn net.Conn) {
+		fmt.Println("Handling connection")
+
 		buf := bufio.NewReader(sconn)
 		_, err := http.ReadRequest(buf)
 		if err != nil {
 			return
 		}
-		res := http.Response{
-			Status: "200 OK",
-		}
-		res.Write(sconn)
+		/*
+			res := http.Response{
+				Status: "200 OK",
+			}
+			res.Write(sconn)
+		*/
 	}
 
 	go func() {
 		for {
 			sconn, err := hl.Accept()
 			//defer sconn.Close()
-			time.Sleep(2 * time.Second)
 			assert.NoError(t, err)
 			go handleConnection(sconn)
+
 		}
 	}()
 
@@ -72,6 +77,23 @@ func TestAbortOnHello(t *testing.T) {
 	assert.NoError(t, err)
 	err = req.Write(uconn)
 	assert.Error(t, err)
+
+	// Now try to get an actual response from microsoft.com.
+	fmt.Printf("trying for real...")
+	cfg = &tls.Config{
+		ServerName: "microsoft.com",
+	}
+	conn, err := tls.Dial("tcp", l.Addr().String(), cfg)
+	assert.NoError(t, err)
+	req, _ = http.NewRequest("get", "https://microsoft.com", nil)
+	err = req.Write(conn)
+
+	assert.NoError(t, err)
+
+	res, err := http.ReadResponse(bufio.NewReader(conn), req)
+	assert.NoError(t, err)
+	fmt.Printf("Response: %#v", res)
+
 	hl.Close()
 }
 
