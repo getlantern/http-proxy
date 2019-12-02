@@ -74,7 +74,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	sourceIP, _, _ := net.SplitHostPort(rrc.RemoteAddr().String())
 
 	if err != nil {
-		return rrc.helloError("malformed ClientHello", sourceIP)
+		return rrc.helloError("malformed ClientHello")
 	}
 
 	// We allow loopback to generate session states (makesessions) to
@@ -87,23 +87,23 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	// pre-defined tickets. If it doesn't we should again return some sort of error or just
 	// close the connection.
 	if !helloMsg.TicketSupported {
-		return rrc.helloError("ClientHello does not support session tickets", sourceIP)
+		return rrc.helloError("ClientHello does not support session tickets")
 	}
 
 	if len(helloMsg.SessionTicket) == 0 {
-		return rrc.helloError("ClientHello has no session ticket", sourceIP)
+		return rrc.helloError("ClientHello has no session ticket")
 	}
 
 	plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, rrc.utlsCfg)
 	if plainText == nil || len(plainText) == 0 {
-		return rrc.helloError("ClientHello has invalid session ticket", sourceIP)
+		return rrc.helloError("ClientHello has invalid session ticket")
 	}
 
 	return nil, nil
 }
 
-func (rrc *clientHelloRecordingConn) helloError(errStr, sourceIP string) (*tls.Config, error) {
-	instrument.SuspectedProbing(sourceIP, errStr)
+func (rrc *clientHelloRecordingConn) helloError(errStr string) (*tls.Config, error) {
+	instrument.SuspectedProbing(errStr)
 	rrc.log.Error(errStr)
 	return nil, errors.New(errStr)
 }
