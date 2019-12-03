@@ -38,45 +38,53 @@ var (
 		"missing_ticket_reaction",
 	}
 
-	c CommonLabels
+	commonLabels CommonLabels
 
+	blacklist_checked, blacklisted, mimicry_checked, mimicked, xbqSent, throttling_checked prometheus.Counter
+
+	throttled, notThrottled, suspectedProbing *prometheus.CounterVec
+)
+
+func initCollectors() {
 	blacklist_checked = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "blacklist_checked_requests_total",
-	}, commonLabelNames).With(c.Labels())
+	}, commonLabelNames).With(commonLabels.Labels())
 	blacklisted = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "blacklist_blacklisted_requests_total",
-	}, commonLabelNames).With(c.Labels())
+	}, commonLabelNames).With(commonLabels.Labels())
 	mimicry_checked = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "apache_mimicry_checked_total",
-	}, commonLabelNames).With(c.Labels())
+	}, commonLabelNames).With(commonLabels.Labels())
 	mimicked = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "apache_mimicry_mimicked_total",
-	}, commonLabelNames).With(c.Labels())
+	}, commonLabelNames).With(commonLabels.Labels())
 
 	xbqSent = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "device_throttling_xbq_header_sent_total",
-	}, commonLabelNames).With(c.Labels())
+	}, commonLabelNames).With(commonLabels.Labels())
 
 	throttling_checked = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "device_throttling_checked_total",
-	}, commonLabelNames).With(c.Labels())
+	}, commonLabelNames).With(commonLabels.Labels())
 	throttled = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "device_throttling_throttled_total",
-	}, append(commonLabelNames, "reason")).MustCurryWith(c.Labels())
+	}, append(commonLabelNames, "reason")).MustCurryWith(commonLabels.Labels())
 
 	notThrottled = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "device_throttling_not_throttled_total",
-	}, append(commonLabelNames, "reason")).MustCurryWith(c.Labels())
+	}, append(commonLabelNames, "reason")).MustCurryWith(commonLabels.Labels())
 
 	suspectedProbing = promauto.NewCounterVec(prometheus.CounterOpts{
 		Name: "suspected_probing_total",
-	}, append(commonLabelNames, "reason")).MustCurryWith(c.Labels())
-)
+	}, append(commonLabelNames, "reason")).MustCurryWith(commonLabels.Labels())
+
+}
 
 // Start starts the Prometheus exporter on the given address. The
 // path is /metrics.
 func Start(addr string, c CommonLabels) error {
-	c = c
+	commonLabels = c
+	initCollectors()
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	server := http.Server{
@@ -113,14 +121,14 @@ func WrapFilter(prefix string, f filters.Filter) filters.Filter {
 	return &instrumentedFilter{
 		register(prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: prefix + "_requests_total",
-		}, commonLabelNames).With(c.Labels())).(prometheus.Counter),
+		}, commonLabelNames).With(commonLabels.Labels())).(prometheus.Counter),
 		register(prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: prefix + "_request_errors_total",
-		}, commonLabelNames).With(c.Labels())).(prometheus.Counter),
+		}, commonLabelNames).With(commonLabels.Labels())).(prometheus.Counter),
 		register(prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    prefix + "_request_duration_seconds",
 			Buckets: []float64{0.001, 0.01, 0.1, 1},
-		}, commonLabelNames).With(c.Labels()).(prometheus.Histogram)).(prometheus.Histogram),
+		}, commonLabelNames).With(commonLabels.Labels()).(prometheus.Histogram)).(prometheus.Histogram),
 		f}
 }
 
@@ -139,10 +147,10 @@ func (f *instrumentedFilter) Apply(ctx filters.Context, req *http.Request, next 
 func WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error) {
 	errors := register(prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: prefix + "_errors_total",
-	}, commonLabelNames).With(c.Labels())).(prometheus.Counter)
+	}, commonLabelNames).With(commonLabels.Labels())).(prometheus.Counter)
 	consec_errors := register(prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: prefix + "_consec_per_client_ip_errors_total",
-	}, commonLabelNames).With(c.Labels())).(prometheus.Counter)
+	}, commonLabelNames).With(commonLabels.Labels())).(prometheus.Counter)
 	if f == nil {
 		f = func(conn net.Conn, err error) {}
 	}
