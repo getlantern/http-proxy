@@ -96,7 +96,6 @@ type Proxy struct {
 	HTTPS                              bool
 	IdleTimeout                        time.Duration
 	KeyFile                            string
-	SessionTicketKeyFile               string
 	Pro                                bool
 	ProxiedSitesSamplePercentage       float64
 	ProxiedSitesTrackingID             string
@@ -148,7 +147,9 @@ type Proxy struct {
 	PCAPTimeout                        time.Duration
 	PacketForwardAddr                  string
 	PacketForwardIntf                  string
+	SessionTicketKeyFile               string
 	RequireSessionTickets              bool
+	MissingTicketReaction              tlslistener.HandshakeReaction
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -352,7 +353,7 @@ func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
 		}
 
 		if p.HTTPS {
-			l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.RequireSessionTickets)
+			l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.RequireSessionTickets, p.MissingTicketReaction)
 			if err != nil {
 				return nil, err
 			}
@@ -805,7 +806,7 @@ func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN)
 	}
 
 	if p.HTTPS {
-		l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.RequireSessionTickets)
+		l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.RequireSessionTickets, p.MissingTicketReaction)
 		if err != nil {
 			return nil, err
 		}

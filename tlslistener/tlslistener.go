@@ -14,7 +14,7 @@ import (
 
 // Wrap wraps the specified listener in our default TLS listener.
 func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKeyFile string,
-	requireSessionTickets bool) (net.Listener, error) {
+	requireSessionTickets bool, missingTicketReaction HandshakeReaction) (net.Listener, error) {
 	cfg, err := tlsdefaults.BuildListenerConfig(wrapped.Addr().String(), keyFile, certFile)
 	if err != nil {
 		return nil, err
@@ -35,17 +35,18 @@ func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKe
 		maintainSessionTicketKey(cfg, sessionTicketKeyFile, onKeys)
 	}
 
-	listener := &tlslistener{wrapped, cfg, log, expectTickets, requireSessionTickets, utlsConfig}
+	listener := &tlslistener{wrapped, cfg, log, expectTickets, requireSessionTickets, utlsConfig, missingTicketReaction}
 	return listener, nil
 }
 
 type tlslistener struct {
-	wrapped        net.Listener
-	cfg            *tls.Config
-	log            golog.Logger
-	expectTickets  bool
-	requireTickets bool
-	utlsCfg        *utls.Config
+	wrapped               net.Listener
+	cfg                   *tls.Config
+	log                   golog.Logger
+	expectTickets         bool
+	requireTickets        bool
+	utlsCfg               *utls.Config
+	missingTicketReaction HandshakeReaction
 }
 
 func (l *tlslistener) Accept() (net.Conn, error) {
@@ -56,7 +57,7 @@ func (l *tlslistener) Accept() (net.Conn, error) {
 	if !l.expectTickets || !l.requireTickets {
 		return &tlsconn{tls.Server(conn, l.cfg), conn}, nil
 	}
-	helloConn, cfg := newClientHelloRecordingConn(conn, l.cfg, l.utlsCfg)
+	helloConn, cfg := newClientHelloRecordingConn(conn, l.cfg, l.utlsCfg, l.missingTicketReaction)
 	return &tlsconn{tls.Server(helloConn, cfg), conn}, nil
 }
 
