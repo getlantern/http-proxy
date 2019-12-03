@@ -3,18 +3,80 @@ package instrument
 import (
 	"net"
 	"net/http"
+	"strconv"
 	"sync"
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/getlantern/proxy/filters"
 )
 
+type CommonLabels struct {
+	Protocol              string
+	SupportTLSResumption  bool
+	RequireTLSResumption  bool
+	MissingTicketReaction string
+}
+
+func (c *CommonLabels) Labels() prometheus.Labels {
+	return map[string]string{
+		"protocol":                c.Protocol,
+		"support_tls_resumption":  strconv.FormatBool(c.SupportTLSResumption),
+		"require_tls_resumption":  strconv.FormatBool(c.RequireTLSResumption),
+		"missing_ticket_reaction": c.MissingTicketReaction,
+	}
+}
+
+var (
+	commonLabelNames = []string{
+		"protocol",
+		"support_tls_resumption",
+		"require_tls_resumption",
+		"missing_ticket_reaction",
+	}
+
+	c CommonLabels
+
+	blacklist_checked = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "blacklist_checked_requests_total",
+	}, commonLabelNames).With(c.Labels())
+	blacklisted = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "blacklist_blacklisted_requests_total",
+	}, commonLabelNames).With(c.Labels())
+	mimicry_checked = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "apache_mimicry_checked_total",
+	}, commonLabelNames).With(c.Labels())
+	mimicked = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "apache_mimicry_mimicked_total",
+	}, commonLabelNames).With(c.Labels())
+
+	xbqSent = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "device_throttling_xbq_header_sent_total",
+	}, commonLabelNames).With(c.Labels())
+
+	throttling_checked = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "device_throttling_checked_total",
+	}, commonLabelNames).With(c.Labels())
+	throttled = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "device_throttling_throttled_total",
+	}, append(commonLabelNames, "reason")).MustCurryWith(c.Labels())
+
+	notThrottled = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "device_throttling_not_throttled_total",
+	}, append(commonLabelNames, "reason")).MustCurryWith(c.Labels())
+
+	suspectedProbing = promauto.NewCounterVec(prometheus.CounterOpts{
+		Name: "suspected_probing_total",
+	}, append(commonLabelNames, "reason")).MustCurryWith(c.Labels())
+)
+
 // Start starts the Prometheus exporter on the given address. The
 // path is /metrics.
-func Start(addr string) error {
+func Start(addr string, c CommonLabels) error {
+	c = c
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	server := http.Server{
@@ -49,16 +111,16 @@ type instrumentedFilter struct {
 // (so-called RED) of processed requests.
 func WrapFilter(prefix string, f filters.Filter) filters.Filter {
 	return &instrumentedFilter{
-		register(prometheus.NewCounter(prometheus.CounterOpts{
+		register(prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: prefix + "_requests_total",
-		})).(prometheus.Counter),
-		register(prometheus.NewCounter(prometheus.CounterOpts{
+		}, commonLabelNames).With(c.Labels())).(prometheus.Counter),
+		register(prometheus.NewCounterVec(prometheus.CounterOpts{
 			Name: prefix + "_request_errors_total",
-		})).(prometheus.Counter),
-		register(prometheus.NewHistogram(prometheus.HistogramOpts{
+		}, commonLabelNames).With(c.Labels())).(prometheus.Counter),
+		register(prometheus.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    prefix + "_request_duration_seconds",
 			Buckets: []float64{0.001, 0.01, 0.1, 1},
-		})).(prometheus.Histogram),
+		}, commonLabelNames).With(c.Labels()).(prometheus.Histogram)).(prometheus.Histogram),
 		f}
 }
 
@@ -75,12 +137,12 @@ func (f *instrumentedFilter) Apply(ctx filters.Context, req *http.Request, next 
 
 // WrapConnErrorHandler wraps an error handler to instrument the error count.
 func WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error) {
-	errors := register(prometheus.NewCounter(prometheus.CounterOpts{
+	errors := register(prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: prefix + "_errors_total",
-	})).(prometheus.Counter)
-	consec_errors := register(prometheus.NewCounter(prometheus.CounterOpts{
+	}, commonLabelNames).With(c.Labels())).(prometheus.Counter)
+	consec_errors := register(prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: prefix + "_consec_per_client_ip_errors_total",
-	})).(prometheus.Counter)
+	}, commonLabelNames).With(c.Labels())).(prometheus.Counter)
 	if f == nil {
 		f = func(conn net.Conn, err error) {}
 	}
@@ -107,39 +169,6 @@ func WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(
 		f(conn, err)
 	}
 }
-
-var (
-	blacklist_checked = register(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "blacklist_checked_requests_total",
-	})).(prometheus.Counter)
-	blacklisted = register(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "blacklist_blacklisted_requests_total",
-	})).(prometheus.Counter)
-	mimicry_checked = register(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "apache_mimicry_checked_total",
-	})).(prometheus.Counter)
-	mimicked = register(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "apache_mimicry_mimicked_total",
-	})).(prometheus.Counter)
-
-	throttling_checked = register(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "device_throttling_checked_total",
-	})).(prometheus.Counter)
-	throttled = register(prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "device_throttling_throttled_total",
-	}, []string{"reason"})).(*prometheus.CounterVec)
-
-	notThrottled = register(prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "device_throttling_not_throttled_total",
-	}, []string{"reason"})).(*prometheus.CounterVec)
-	xbqSent = register(prometheus.NewCounter(prometheus.CounterOpts{
-		Name: "device_throttling_xbq_header_sent_total",
-	})).(prometheus.Counter)
-
-	suspectedProbing = register(prometheus.NewCounterVec(prometheus.CounterOpts{
-		Name: "suspected_probing_total",
-	}, []string{"reason"})).(*prometheus.CounterVec)
-)
 
 // Blacklist instruments the blacklist checking.
 func Blacklist(b bool) {

@@ -29,6 +29,10 @@ type HandshakeReaction struct {
 	handleConn func(c *clientHelloRecordingConn)
 }
 
+func (hr HandshakeReaction) Action() string {
+	return hr.action
+}
+
 var (
 	// AlertHandshakeFailure responds TLS alert 40 (Handshake failure).
 	AlertHandshakeFailure = HandshakeReaction{
