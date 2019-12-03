@@ -170,7 +170,7 @@ func main() {
 	}
 
 	if *versionCheck != "" && *versionCheckRedirectURL == "" {
-		log.Fatal("version check redirect URL should not empty")
+		log.Fatal("version check redirect URL should not be empty")
 	}
 
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
@@ -190,7 +190,7 @@ func main() {
 		reaction = tlslistener.CloseConnection
 	case "ReflectToSite":
 		if *missingTicketReflectSite == "" {
-			log.Fatal("missing-session-ticket-reflect-site should not empty")
+			log.Fatal("missing-session-ticket-reflect-site should not be empty")
 		}
 		reaction = tlslistener.ReflectToSite(*missingTicketReflectSite)
 	default:

@@ -52,7 +52,7 @@ var (
 	AlertInternalError = HandshakeReaction{
 		action: "AlertInternalError",
 		getConfig: func(c *tls.Config) (*tls.Config, error) {
-			return nil, errors.New("abc")
+			return nil, errors.New("whatever")
 		}}
 
 	// CloseConnection closes the TLS connection arbitrarily.
