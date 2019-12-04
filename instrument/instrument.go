@@ -14,6 +14,7 @@ import (
 	"github.com/getlantern/proxy/filters"
 )
 
+// Instrument is the common interface about what can be instrumented.
 type Instrument interface {
 	WrapFilter(prefix string, f filters.Filter) filters.Filter
 	WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error)
@@ -24,6 +25,7 @@ type Instrument interface {
 	SuspectedProbing(reason string)
 }
 
+// NoInstrument is an implementation of Instrument which does nothing
 type NoInstrument struct {
 }
 
@@ -72,7 +74,9 @@ func (f *instrumentedFilter) Apply(ctx filters.Context, req *http.Request, next 
 	return res, ctx, err
 }
 
-type promInstrument struct {
+// PromInstrument is an implementation of Instrument which exports Prometheus
+// metrics.
+type PromInstrument struct {
 	commonLabels     prometheus.Labels
 	commonLabelNames []string
 	filters          map[string]*instrumentedFilter
@@ -83,7 +87,7 @@ type promInstrument struct {
 	throttled, notThrottled, suspectedProbing *prometheus.CounterVec
 }
 
-func NewPrometheus(c CommonLabels) Instrument {
+func NewPrometheus(c CommonLabels) *PromInstrument {
 	commonLabels := c.Labels()
 	commonLabelNames := make([]string, len(commonLabels))
 	i := 0
@@ -91,7 +95,7 @@ func NewPrometheus(c CommonLabels) Instrument {
 		commonLabelNames[i] = k
 		i++
 	}
-	return &promInstrument{
+	return &PromInstrument{
 		commonLabels:     commonLabels,
 		commonLabelNames: commonLabelNames,
 		filters:          make(map[string]*instrumentedFilter),
@@ -129,9 +133,9 @@ func NewPrometheus(c CommonLabels) Instrument {
 	}
 }
 
-// Run runs the promInstrument exporter on the given address. The
+// Run runs the PromInstrument exporter on the given address. The
 // path is /metrics.
-func (p *promInstrument) Run(addr string) error {
+func (p *PromInstrument) Run(addr string) error {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	server := http.Server{
@@ -143,7 +147,7 @@ func (p *promInstrument) Run(addr string) error {
 
 // WrapFilter wraps a filter to instrument the requests/errors/duration
 // (so-called RED) of processed requests.
-func (p *promInstrument) WrapFilter(prefix string, f filters.Filter) filters.Filter {
+func (p *PromInstrument) WrapFilter(prefix string, f filters.Filter) filters.Filter {
 	wrapped := p.filters[prefix]
 	if wrapped == nil {
 		wrapped = &instrumentedFilter{
@@ -164,7 +168,7 @@ func (p *promInstrument) WrapFilter(prefix string, f filters.Filter) filters.Fil
 }
 
 // WrapConnErrorHandler wraps an error handler to instrument the error count.
-func (p *promInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error) {
+func (p *PromInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error) {
 	h := p.errorHandlers[prefix]
 	if h == nil {
 		errors := promauto.NewCounterVec(prometheus.CounterOpts{
@@ -204,7 +208,7 @@ func (p *promInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Con
 }
 
 // Blacklist instruments the blacklist checking.
-func (p *promInstrument) Blacklist(b bool) {
+func (p *PromInstrument) Blacklist(b bool) {
 	p.blacklist_checked.Inc()
 	if b {
 		p.blacklisted.Inc()
@@ -212,7 +216,7 @@ func (p *promInstrument) Blacklist(b bool) {
 }
 
 // Mimic instruments the Apache mimicry.
-func (p *promInstrument) Mimic(m bool) {
+func (p *PromInstrument) Mimic(m bool) {
 	p.mimicry_checked.Inc()
 	if m {
 		p.mimicked.Inc()
@@ -220,7 +224,7 @@ func (p *promInstrument) Mimic(m bool) {
 }
 
 // Throttle instruments the device based throttling.
-func (p *promInstrument) Throttle(m bool, reason string) {
+func (p *PromInstrument) Throttle(m bool, reason string) {
 	p.throttling_checked.Inc()
 	if m {
 		p.throttled.With(prometheus.Labels{"reason": reason}).Inc()
@@ -231,12 +235,12 @@ func (p *promInstrument) Throttle(m bool, reason string) {
 
 // XBQHeaderSent counts the number of times XBQ header is sent along with the
 // response.
-func (p *promInstrument) XBQHeaderSent() {
+func (p *PromInstrument) XBQHeaderSent() {
 	p.xbqSent.Inc()
 }
 
 // SuspectedProbing records the number of visits which looks like active
 // probing.
-func (p *promInstrument) SuspectedProbing(reason string) {
+func (p *PromInstrument) SuspectedProbing(reason string) {
 	p.suspectedProbing.With(prometheus.Labels{"reason": reason}).Inc()
 }
