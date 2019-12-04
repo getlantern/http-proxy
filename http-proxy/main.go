@@ -195,8 +195,8 @@ func main() {
 
 	if *promExporterAddr != "" {
 		go func() {
-			log.Debugf("Starting Prometheus exporter at http://%s/metrics", *promExporterAddr)
-			if err := instrument.Start(*promExporterAddr, instrument.CommonLabels{
+			log.Debugf("Running Prometheus exporter at http://%s/metrics", *promExporterAddr)
+			if err := instrument.Run(*promExporterAddr, instrument.CommonLabels{
 				Protocol:              *proxyProtocol,
 				SupportTLSResumption:  *sessionTicketKeyFile != "",
 				RequireTLSResumption:  *requireSessionTickets,

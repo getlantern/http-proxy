@@ -80,9 +80,9 @@ func initCollectors() {
 
 }
 
-// Start starts the Prometheus exporter on the given address. The
+// Run runs the Prometheus exporter on the given address. The
 // path is /metrics.
-func Start(addr string, c CommonLabels) error {
+func Run(addr string, c CommonLabels) error {
 	commonLabels = c
 	initCollectors()
 	mux := http.NewServeMux()
