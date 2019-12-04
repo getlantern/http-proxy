@@ -18,7 +18,6 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
 	github.com/getlantern/borda v0.0.0-20190809122504-668025f4c2b9
-	github.com/getlantern/bytecounting v0.0.0-20190530140808-3b3f10d3b9ab // indirect
 	github.com/getlantern/cmux v0.0.0-20190809092548-4b7adf243efe
 	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
@@ -32,15 +31,14 @@ require (
 	github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c // indirect
 	github.com/getlantern/kcpwrapper v0.0.0-20171114192627-a35c895f6de7
 	github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a
-	github.com/getlantern/lampshade v0.0.0-20191031180632-2e7977c8e74c
+	github.com/getlantern/lampshade v0.0.0-20191204181531-ebfa5eae0e6d
 	github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198
-	github.com/getlantern/mockconn v0.0.0-20190708122800-637bd46d8034
+	github.com/getlantern/mockconn v0.0.0-20191023022503-481dbcceeb58
 	github.com/getlantern/mtime v0.0.0-20170117193331-ba114e4a82b0
 	github.com/getlantern/netx v0.0.0-20190110220209-9912de6f94fd
 	github.com/getlantern/ops v0.0.0-20190325191751-d70cb0d6f85f
 	github.com/getlantern/packetforward v0.0.0-20190809094443-386cbcc0d498
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
-	github.com/getlantern/probe v0.0.0-20191030151335-8e4f5f98dbcc // indirect
 	github.com/getlantern/proxy v0.0.0-20191025190912-b5f45407d9f2
 	github.com/getlantern/quicwrapper v0.0.0-20191010171358-6726e89fbe14
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
@@ -61,7 +59,7 @@ require (
 	github.com/gonum/matrix v0.0.0-20180124231301-a41cc49d4c29 // indirect
 	github.com/gonum/stat v0.0.0-20180125090729-ec9c8a1062f4
 	github.com/googleapis/gax-go v2.0.0+incompatible // indirect
-	github.com/hashicorp/golang-lru v0.5.1
+	github.com/hashicorp/golang-lru v0.5.3
 	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/juju/ratelimit v1.0.1
 	github.com/marten-seemann/qtls v0.0.0-20190207043627-591c71538704 // indirect
@@ -74,7 +72,6 @@ require (
 	github.com/templexxx/reedsolomon v0.0.0-20170927015403-7092926d7d05 // indirect
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	go.opencensus.io v0.17.0 // indirect
-	golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708 // indirect
 	golang.org/x/net v0.0.0-20190912160710-24e19bdeb0f2
 	google.golang.org/api v0.0.0-20180921000521-920bb1beccf7
 	google.golang.org/genproto v0.0.0-20180918203901-c3f76f3b92d1 // indirect
