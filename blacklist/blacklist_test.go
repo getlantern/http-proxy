@@ -16,7 +16,12 @@ func init() {
 }
 
 func TestBlacklistSucceed(t *testing.T) {
-	bl := New(Options{50 * time.Millisecond, 1 * time.Millisecond, 2, 5 * time.Second})
+	bl := New(Options{
+		MaxIdleTime:        50 * time.Millisecond,
+		MaxConnectInterval: 1 * time.Millisecond,
+		AllowedFailures:    2,
+		Expiration:         5 * time.Second,
+	})
 	for i := 0; i < 10000; i++ {
 		assert.True(t, bl.OnConnect(ip), "Should be able to continuously connect while succeeding")
 		bl.Succeed(ip)

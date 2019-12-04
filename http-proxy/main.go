@@ -193,18 +193,21 @@ func main() {
 		reaction = tlslistener.Delayed(*missingTicketReactionDelay, reaction)
 	}
 
+	var inst instrument.Instrument = instrument.NoInstrument{}
 	if *promExporterAddr != "" {
+		prom := instrument.NewPrometheus(instrument.CommonLabels{
+			Protocol:              *proxyProtocol,
+			SupportTLSResumption:  *sessionTicketKeyFile != "",
+			RequireTLSResumption:  *requireSessionTickets,
+			MissingTicketReaction: reaction.Action(),
+		})
 		go func() {
 			log.Debugf("Running Prometheus exporter at http://%s/metrics", *promExporterAddr)
-			if err := instrument.Run(*promExporterAddr, instrument.CommonLabels{
-				Protocol:              *proxyProtocol,
-				SupportTLSResumption:  *sessionTicketKeyFile != "",
-				RequireTLSResumption:  *requireSessionTickets,
-				MissingTicketReaction: reaction.Action(),
-			}); err != nil {
+			if err := prom.Run(*promExporterAddr); err != nil {
 				log.Error(err)
 			}
 		}()
+		inst = prom
 	}
 
 	go periodicallyForceGC()
@@ -281,6 +284,7 @@ func main() {
 		PacketForwardIntf:                  *packetForwardIntf,
 		RequireSessionTickets:              *requireSessionTickets,
 		MissingTicketReaction:              reaction,
+		Instrument:                         inst,
 	}
 
 	err := p.ListenAndServe()

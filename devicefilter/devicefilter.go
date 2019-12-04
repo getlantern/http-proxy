@@ -37,6 +37,7 @@ type deviceFilterPre struct {
 	deviceFetcher  *redis.DeviceFetcher
 	throttleConfig throttle.Config
 	sendXBQHeader  bool
+	instrument     instrument.Instrument
 }
 
 // deviceFilterPost cleans up
@@ -59,7 +60,7 @@ type deviceFilterPost struct {
 // <asof> is the 64-bit signed integer representing seconds since a custom
 // epoch (00:00:00 01/01/2016 UTC).
 
-func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, sendXBQHeader bool) filters.Filter {
+func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, sendXBQHeader bool, instrument instrument.Instrument) filters.Filter {
 	if throttleConfig != nil {
 		log.Debug("Throttling enabled")
 	}
@@ -68,6 +69,7 @@ func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, sendXBQHead
 		deviceFetcher:  df,
 		throttleConfig: throttleConfig,
 		sendXBQHeader:  sendXBQHeader,
+		instrument:     instrument,
 	}
 }
 
@@ -80,7 +82,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	// Some domains are excluded from being throttled and don't count towards the
 	// bandwidth cap.
 	if domains.ConfigForRequest(req).Unthrottled {
-		instrument.Throttle(false, "domain-excluded")
+		f.instrument.Throttle(false, "domain-excluded")
 		return next(ctx, req)
 	}
 
@@ -92,18 +94,18 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	if lanternDeviceID == "" {
 		// Old lantern versions and possible cracks do not include the device
 		// ID. Just throttle them.
-		instrument.Throttle(true, "no-device-id")
+		f.instrument.Throttle(true, "no-device-id")
 		wc.ControlMessage("throttle", alwaysThrottle)
 		return next(ctx, req)
 	}
 	if lanternDeviceID == "~~~~~~" {
 		// This is checkfallbacks, don't throttle it
-		instrument.Throttle(false, "checkfallbacks")
+		f.instrument.Throttle(false, "checkfallbacks")
 		return next(ctx, req)
 	}
 
 	if f.throttleConfig == nil {
-		instrument.Throttle(false, "no-config")
+		f.instrument.Throttle(false, "no-config")
 		return next(ctx, req)
 	}
 
@@ -112,7 +114,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	if u == nil {
 		// Eagerly request device ID data from Redis and store it in usage
 		f.deviceFetcher.RequestNewDeviceUsage(lanternDeviceID)
-		instrument.Throttle(false, "no-usage-data")
+		f.instrument.Throttle(false, "no-usage-data")
 		return next(ctx, req)
 	}
 	threshold, rate, capOn := f.throttleConfig.ThresholdAndRateFor(lanternDeviceID, u.CountryCode)
@@ -127,12 +129,12 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 		limiter := lanternlisteners.NewRateLimiter(rate)
 		log.Debugf("Throttling connection from device %s to %v per second", lanternDeviceID,
 			humanize.Bytes(uint64(rate)))
-		instrument.Throttle(true, "datacap")
+		f.instrument.Throttle(true, "datacap")
 		wc.ControlMessage("throttle", limiter)
 	}
 
 	// default case is not throttling
-	instrument.Throttle(false, "")
+	f.instrument.Throttle(false, "")
 	resp, nextCtx, err := next(ctx, req)
 	if resp == nil || err != nil {
 		return resp, nextCtx, err
@@ -146,7 +148,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	uMiB := u.Bytes / (1024 * 1024)
 	xbq := fmt.Sprintf("%d/%d/%d", uMiB, threshold/(1024*1024), int64(u.AsOf.Sub(epoch).Seconds()))
 	resp.Header.Set(common.XBQHeader, xbq)
-	instrument.XBQHeaderSent()
+	f.instrument.XBQHeaderSent()
 	return resp, nextCtx, err
 }
 

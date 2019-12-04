@@ -126,7 +126,7 @@ var bytePool = sync.Pool{
 		return make([]byte, reflectBufferSize)
 	}}
 
-func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utls.Config, missingTicketReaction HandshakeReaction) (net.Conn, *tls.Config) {
+func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utls.Config, missingTicketReaction HandshakeReaction, instrument instrument.Instrument) (net.Conn, *tls.Config) {
 	buf := bufferPool.Get().(*bytes.Buffer)
 	cfgClone := cfg.Clone()
 	rrc := &clientHelloRecordingConn{
@@ -138,6 +138,7 @@ func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utl
 		helloMutex:            &sync.Mutex{},
 		utlsCfg:               utlsCfg,
 		missingTicketReaction: missingTicketReaction,
+		instrument:            instrument,
 	}
 	cfgClone.GetConfigForClient = rrc.processHello
 
@@ -153,6 +154,7 @@ type clientHelloRecordingConn struct {
 	cfg                   *tls.Config
 	utlsCfg               *utls.Config
 	missingTicketReaction HandshakeReaction
+	instrument            instrument.Instrument
 }
 
 func (rrc *clientHelloRecordingConn) Read(b []byte) (int, error) {
@@ -210,7 +212,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 }
 
 func (rrc *clientHelloRecordingConn) helloError(errStr string) (*tls.Config, error) {
-	instrument.SuspectedProbing(errStr)
+	rrc.instrument.SuspectedProbing(errStr)
 	rrc.log.Error(errStr)
 	if rrc.missingTicketReaction.handleConn != nil {
 		rrc.missingTicketReaction.handleConn(rrc)
