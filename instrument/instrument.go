@@ -40,6 +40,7 @@ func (i NoInstrument) Throttle(m bool, reason string) {}
 func (i NoInstrument) XBQHeaderSent()                 {}
 func (i NoInstrument) SuspectedProbing(reason string) {}
 
+// CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
 	Protocol              string
 	SupportTLSResumption  bool
@@ -47,7 +48,8 @@ type CommonLabels struct {
 	MissingTicketReaction string
 }
 
-func (c *CommonLabels) Labels() prometheus.Labels {
+// PromLabels turns the common labels to Prometheus form.
+func (c *CommonLabels) PromLabels() prometheus.Labels {
 	return map[string]string{
 		"protocol":                c.Protocol,
 		"support_tls_resumption":  strconv.FormatBool(c.SupportTLSResumption),
@@ -88,7 +90,7 @@ type PromInstrument struct {
 }
 
 func NewPrometheus(c CommonLabels) *PromInstrument {
-	commonLabels := c.Labels()
+	commonLabels := c.PromLabels()
 	commonLabelNames := make([]string, len(commonLabels))
 	i := 0
 	for k := range commonLabels {
