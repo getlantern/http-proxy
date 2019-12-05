@@ -23,6 +23,7 @@ import (
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/http-proxy/server"
 
+	"github.com/getlantern/http-proxy-lantern/instrument"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
 
@@ -669,7 +670,7 @@ func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
 	// Create server
 	srv := server.New(&server.Opts{
 		IdleTimeout: idleTimeout,
-		Filter:      tokenfilter.New(validToken),
+		Filter:      tokenfilter.New(validToken, instrument.NoInstrument{}),
 	})
 
 	// Add net.Listener wrappers for inbound connections

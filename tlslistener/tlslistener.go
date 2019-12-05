@@ -10,11 +10,13 @@ import (
 	"github.com/getlantern/tlsdefaults"
 
 	utls "github.com/getlantern/utls"
+
+	"github.com/getlantern/http-proxy-lantern/instrument"
 )
 
 // Wrap wraps the specified listener in our default TLS listener.
 func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKeyFile string,
-	requireSessionTickets bool, missingTicketReaction HandshakeReaction) (net.Listener, error) {
+	requireSessionTickets bool, missingTicketReaction HandshakeReaction, instrument instrument.Instrument) (net.Listener, error) {
 	cfg, err := tlsdefaults.BuildListenerConfig(wrapped.Addr().String(), keyFile, certFile)
 	if err != nil {
 		return nil, err
@@ -35,7 +37,7 @@ func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKe
 		maintainSessionTicketKey(cfg, sessionTicketKeyFile, onKeys)
 	}
 
-	listener := &tlslistener{wrapped, cfg, log, expectTickets, requireSessionTickets, utlsConfig, missingTicketReaction}
+	listener := &tlslistener{wrapped, cfg, log, expectTickets, requireSessionTickets, utlsConfig, missingTicketReaction, instrument}
 	return listener, nil
 }
 
@@ -47,6 +49,7 @@ type tlslistener struct {
 	requireTickets        bool
 	utlsCfg               *utls.Config
 	missingTicketReaction HandshakeReaction
+	instrument            instrument.Instrument
 }
 
 func (l *tlslistener) Accept() (net.Conn, error) {
@@ -57,7 +60,7 @@ func (l *tlslistener) Accept() (net.Conn, error) {
 	if !l.expectTickets || !l.requireTickets {
 		return &tlsconn{tls.Server(conn, l.cfg), conn}, nil
 	}
-	helloConn, cfg := newClientHelloRecordingConn(conn, l.cfg, l.utlsCfg, l.missingTicketReaction)
+	helloConn, cfg := newClientHelloRecordingConn(conn, l.cfg, l.utlsCfg, l.missingTicketReaction, l.instrument)
 	return &tlsconn{tls.Server(helloConn, cfg), conn}, nil
 }
 

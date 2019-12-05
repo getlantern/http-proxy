@@ -21,6 +21,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/stackdrivererror"
 	"github.com/getlantern/http-proxy-lantern/throttle"
+	"github.com/getlantern/http-proxy-lantern/tlslistener"
 	"github.com/getlantern/quicwrapper"
 )
 
@@ -100,6 +101,7 @@ var (
 	tunnelPorts         = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
 	tos                 = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")
 	proxyName           = flag.String("proxyname", hostname, "The name of this proxy (defaults to hostname)")
+	proxyProtocol       = flag.String("proxyprotocol", "", "The protocol of this proxy, for information only")
 	bbrUpstreamProbeURL = flag.String("bbrprobeurl", "", "optional URL to probe for upstream BBR bandwidth estimates")
 
 	bench   = flag.Bool("bench", false, "Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.")
@@ -160,15 +162,6 @@ func main() {
 		}()
 	}
 
-	if *promExporterAddr != "" {
-		go func() {
-			log.Debugf("Starting Prometheus exporter at http://%s/metrics", *promExporterAddr)
-			if err := instrument.Start(*promExporterAddr); err != nil {
-				log.Error(err)
-			}
-		}()
-	}
-
 	if *versionCheck != "" && *versionCheckRedirectURL == "" {
 		log.Fatal("version check redirect URL should not be empty")
 	}
@@ -194,10 +187,27 @@ func main() {
 		}
 		reaction = tlslistener.ReflectToSite(*missingTicketReflectSite)
 	default:
-		log.Fatalf("unrecognized missing-session-ticket-reaction %s", *MissingTicketReaction)
+		log.Fatalf("unrecognized missing-session-ticket-reaction %s", *missingTicketReaction)
 	}
 	if *missingTicketReactionDelay != 0 {
 		reaction = tlslistener.Delayed(*missingTicketReactionDelay, reaction)
+	}
+
+	var inst instrument.Instrument = instrument.NoInstrument{}
+	if *promExporterAddr != "" {
+		prom := instrument.NewPrometheus(instrument.CommonLabels{
+			Protocol:              *proxyProtocol,
+			SupportTLSResumption:  *sessionTicketKeyFile != "",
+			RequireTLSResumption:  *requireSessionTickets,
+			MissingTicketReaction: reaction.Action(),
+		})
+		go func() {
+			log.Debugf("Running Prometheus exporter at http://%s/metrics", *promExporterAddr)
+			if err := prom.Run(*promExporterAddr); err != nil {
+				log.Error(err)
+			}
+		}()
+		inst = prom
 	}
 
 	go periodicallyForceGC()
@@ -274,6 +284,7 @@ func main() {
 		PacketForwardIntf:                  *packetForwardIntf,
 		RequireSessionTickets:              *requireSessionTickets,
 		MissingTicketReaction:              reaction,
+		Instrument:                         inst,
 	}
 
 	err := p.ListenAndServe()
