@@ -67,8 +67,8 @@ var (
 		}}
 
 	// ReflectToSite dials TLS connection to the designated site and copies
-	// everything including the ClientHello back and forth from the client to
-	// the site, pretending to be the site itself. It closes the client
+	// everything including the ClientHello back and forth between the client
+	// and the site, pretending to be the site itself. It closes the client
 	// connection if unable to dial the site.
 	ReflectToSite = func(site string) HandshakeReaction {
 		return HandshakeReaction{
