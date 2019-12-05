@@ -121,6 +121,8 @@ type Proxy struct {
 	DiffServTOS                        int
 	LampshadeAddr                      string
 	LampshadeUTPAddr                   string
+	LampshadeKeyCacheSize              int
+	LampshadeMaxClientInitAge          time.Duration
 	VersionCheck                       bool
 	VersionCheckRange                  string
 	VersionCheckRedirectURL            string
@@ -672,7 +674,7 @@ func (p *Proxy) listenLampshade(trackBBR bool, onListenerError func(net.Conn, er
 				measuredReportingInterval,
 				borda.ConnectionTypedBordaReporter("physical", bordaReporter))
 		}
-		wrapped, wrapErr := lampshade.Wrap(l, p.CertFile, p.KeyFile, onListenerError)
+		wrapped, wrapErr := lampshade.Wrap(l, p.CertFile, p.KeyFile, p.LampshadeKeyCacheSize, p.LampshadeMaxClientInitAge, onListenerError)
 		if wrapErr != nil {
 			log.Fatalf("Unable to initialize lampshade with tcp: %v", wrapErr)
 		}

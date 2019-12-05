@@ -67,6 +67,9 @@ var (
 	token                = flag.String("token", "", "Lantern token")
 	sessionTicketKeyFile = flag.String("sessionticketkey", "", "File name for storing rotating session ticket keys")
 
+	lampshadeKeyCacheSize     = flag.Int("lampshade-keycache-size", 0, "set this to a positive value to cache client keys and reject duplicates to thwart replay attacks")
+	lampshadeMaxClientInitAge = flag.Duration("lampshade-max-clientinit-age", 0, "set this to a positive value to limit the age of client init messages to thwart replay attacks")
+
 	cfgSvrAuthToken           = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
 	connectOKWaitsForUpstream = flag.Bool("connect-ok-waits-for-upstream", false, "Set to true to wait for upstream connection before responding OK to CONNECT requests")
 
@@ -226,6 +229,8 @@ func main() {
 		DiffServTOS:                        *tos,
 		LampshadeAddr:                      *lampshadeAddr,
 		LampshadeUTPAddr:                   *lampshadeUTPAddr,
+		LampshadeKeyCacheSize:              *lampshadeKeyCacheSize,
+		LampshadeMaxClientInitAge:          *lampshadeMaxClientInitAge,
 		VersionCheck:                       *versionCheck != "",
 		VersionCheckRange:                  *versionCheck,
 		VersionCheckRedirectURL:            *versionCheckRedirectURL,

@@ -43,7 +43,7 @@ func TestRoundTrip(t *testing.T) {
 		return
 	}
 
-	l, err = Wrap(l, certFile, keyFile, nil)
+	l, err = Wrap(l, certFile, keyFile, 0, 0, nil)
 	if !assert.NoError(t, err) {
 		return
 	}
