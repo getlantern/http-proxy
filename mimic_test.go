@@ -16,6 +16,7 @@ import (
 
 	"github.com/getlantern/http-proxy/server"
 
+	"github.com/getlantern/http-proxy-lantern/instrument"
 	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 )
@@ -94,7 +95,7 @@ type entryWithHeaders struct {
 }
 
 func TestMimicApache(t *testing.T) {
-	tf := tokenfilter.New("arbitrary-token")
+	tf := tokenfilter.New("arbitrary-token", instrument.NoInstrument{})
 	s := server.New(&server.Opts{
 		IdleTimeout: 30 * time.Second,
 		Filter:      filters.Join(tf),

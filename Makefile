@@ -14,7 +14,7 @@ get-command = $(shell which="$$(which $(1) 2> /dev/null)" && if [[ ! -z "$$which
 DOCKER    := $(call get-command,docker)
 GO        := $(call get-command,go)
 
-.PHONY: dist build require-dep
+.PHONY: dist build require-dep test
 
 # This tags the current version and creates a CHANGELOG for the current directory.
 define tag-changelog
@@ -90,5 +90,5 @@ docker-distnochange: docker-builder require-dep
 docker-dist: require-upx require-version require-change docker-distnochange
 	$(call tag-changelog,http-proxy-lantern)
 
-test: 
+test:
 	GO111MODULE=on go test -race $(go list ./...)

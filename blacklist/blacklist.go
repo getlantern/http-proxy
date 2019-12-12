@@ -58,6 +58,8 @@ type Options struct {
 	// IP may end up on the blacklist up to 1.1 * blacklistExpiration. Defaults to
 	// 6 hours.
 	Expiration time.Duration
+
+	Instrument instrument.Instrument
 }
 
 func (opts *Options) applyDefaults() {
@@ -80,6 +82,9 @@ func (opts *Options) applyDefaults() {
 		opts.Expiration = DefaultExpiration
 		log.Debugf("Defaulted Expiration to %v", opts.Expiration)
 	}
+	if opts.Instrument == nil {
+		opts.Instrument = instrument.NoInstrument{}
+	}
 }
 
 // Blacklist is a blacklist of IPs.
@@ -94,6 +99,7 @@ type Blacklist struct {
 	lastConnectionTime  map[string]time.Time
 	failureCounts       map[string]int
 	blacklist           map[string]time.Time
+	instrument          instrument.Instrument
 	mutex               sync.RWMutex
 }
 
@@ -112,6 +118,7 @@ func New(opts Options) *Blacklist {
 		lastConnectionTime:  make(map[string]time.Time),
 		failureCounts:       make(map[string]int),
 		blacklist:           make(map[string]time.Time),
+		instrument:          opts.Instrument,
 	}
 	go bl.track()
 	return bl
@@ -132,7 +139,7 @@ func (bl *Blacklist) Succeed(ip string) {
 // blacklisted, this returns false.
 func (bl *Blacklist) OnConnect(ip string) bool {
 	if !blacklistingEnabled {
-		instrument.Blacklist(false)
+		bl.instrument.Blacklist(false)
 		return true
 	}
 	bl.mutex.RLock()
@@ -140,10 +147,10 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 	_, blacklisted := bl.blacklist[ip]
 	if blacklisted {
 		log.Debugf("%v is blacklisted", ip)
-		instrument.Blacklist(true)
+		bl.instrument.Blacklist(true)
 		return false
 	}
-	instrument.Blacklist(false)
+	bl.instrument.Blacklist(false)
 	select {
 	case bl.connections <- ip:
 		// ip submitted as connected

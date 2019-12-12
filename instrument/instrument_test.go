@@ -15,7 +15,7 @@ import (
 
 func TestWrapConnErrorHandler(t *testing.T) {
 	var wg sync.WaitGroup
-	f := WrapConnErrorHandler("test", func(conn net.Conn, err error) {
+	f := NewPrometheus(CommonLabels{}).WrapConnErrorHandler("test", func(conn net.Conn, err error) {
 		time.Sleep(100 * time.Millisecond)
 		wg.Done()
 	})

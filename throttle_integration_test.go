@@ -22,6 +22,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/getlantern/http-proxy-lantern/instrument"
 	"github.com/getlantern/http-proxy-lantern/throttle"
 )
 
@@ -117,6 +118,7 @@ func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string
 		TestingLocal:            true,
 		GoogleSearchRegex:       "bequiet",
 		GoogleCaptchaRegex:      "bequiet",
+		Instrument:              instrument.NoInstrument{},
 	}
 	if forceThrottling {
 		proxy.ThrottleThreshold = int64(throttleThreshold)

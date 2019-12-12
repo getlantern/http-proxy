@@ -15,64 +15,85 @@ import (
 
 func TestAbortOnHello(t *testing.T) {
 	disallowLookbackForTesting = true
-	l, err := net.Listen("tcp", ":0")
-	assert.NoError(t, err)
+	testCases := []struct {
+		response    HandshakeReaction
+		expectedErr string
+	}{
+		{AlertHandshakeFailure, "remote error: tls: handshake failure"},
+		{AlertProtocolVersion, "remote error: tls: protocol version not supported"},
+		{AlertInternalError, "remote error: tls: internal error"},
+		{CloseConnection, "EOF"},
+		{ReflectToSite("microsoft.com"), ""},
+		{ReflectToSite("site.not-exist"), "EOF"},
 
-	hl, err := Wrap(l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", true)
-	assert.NoError(t, err)
-
-	handleConnection := func(sconn net.Conn) {
-		buf := bufio.NewReader(sconn)
-		_, err := http.ReadRequest(buf)
-		if err != nil {
-			return
-		}
-		res := http.Response{
-			Status: "200 OK",
-		}
-		res.Write(sconn)
+		{Delayed(100*time.Millisecond, AlertInternalError), "remote error: tls: internal error"},
+		{Delayed(100*time.Millisecond, CloseConnection), "EOF"},
 	}
 
-	go func() {
-		for {
-			sconn, err := hl.Accept()
-			//defer sconn.Close()
-			time.Sleep(2 * time.Second)
+	for _, tc := range testCases {
+		t.Run(tc.response.action, func(t *testing.T) {
+			l, _ := net.Listen("tcp", ":0")
+			defer l.Close()
+			hl, err := Wrap(l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", true, tc.response)
 			assert.NoError(t, err)
-			go handleConnection(sconn)
-		}
-	}()
+			defer hl.Close()
 
-	cfg := &tls.Config{
-		InsecureSkipVerify: true,
-		ServerName:         "microsoft.com",
+			go func() {
+				for {
+					sconn, err := hl.Accept()
+					if err != nil {
+						return
+					}
+					go func(sconn net.Conn) {
+						_, err := http.ReadRequest(bufio.NewReader(sconn))
+						if err != nil {
+							return
+						}
+						(&http.Response{Status: "200 OK"}).Write(sconn)
+					}(sconn)
+				}
+			}()
+
+			cfg := &tls.Config{ServerName: "microsoft.com"}
+			conn, err := tls.Dial("tcp", l.Addr().String(), cfg)
+			if tc.expectedErr != "" {
+				assert.Error(t, err)
+				assert.Equal(t, tc.expectedErr, err.Error())
+			} else {
+				assert.NoError(t, err)
+				defer conn.Close()
+				assert.Equal(t, "microsoft.com", conn.ConnectionState().PeerCertificates[0].Subject.CommonName)
+				req, _ := http.NewRequest("GET", "https://microsoft.com", nil)
+				assert.NoError(t, req.Write(conn))
+				resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+				assert.NoError(t, err)
+				assert.Equal(t, http.StatusMovedPermanently, resp.StatusCode)
+			}
+
+			// Now make sure we can't spoof a session ticket.
+			rawConn, err := net.Dial("tcp", l.Addr().String())
+			assert.NoError(t, err)
+			ucfg := &utls.Config{ServerName: "microsoft.com"}
+			maintainSessionTicketKey(&tls.Config{}, "../test/testtickets", func(keys [][32]byte) { ucfg.SetSessionTicketKeys(keys) })
+			ss := &utls.ClientSessionState{}
+			ticket := make([]byte, 120)
+			rand.Read(ticket)
+			ss.SetSessionTicket(ticket)
+			ss.SetVers(tls.VersionTLS12)
+
+			uconn := utls.UClient(rawConn, ucfg, utls.HelloChrome_Auto)
+			uconn.SetSessionState(ss)
+			err = uconn.Handshake()
+			if tc.expectedErr != "" {
+				assert.Error(t, err)
+				assert.Equal(t, tc.expectedErr, err.Error())
+			} else {
+				assert.NoError(t, err)
+				defer conn.Close()
+				assert.Equal(t, "microsoft.com", uconn.ConnectionState().PeerCertificates[0].Subject.CommonName)
+			}
+		})
 	}
-
-	_, err = tls.Dial("tcp", l.Addr().String(), cfg)
-	assert.Error(t, err)
-
-	// Now make sure we can't spoof a session ticket.
-	rawConn, err := net.DialTimeout("tcp", l.Addr().String(), 4*time.Second)
-
-	ucfg := &utls.Config{
-		ServerName: "microsoft.com",
-	}
-	maintainSessionTicketKey(&tls.Config{}, "../test/testtickets", func(keys [][32]byte) { ucfg.SetSessionTicketKeys(keys) })
-
-	ss := &utls.ClientSessionState{}
-	ticket := make([]byte, 120)
-	rand.Read(ticket)
-	ss.SetSessionTicket(ticket)
-	ss.SetVers(tls.VersionTLS12)
-
-	uconn := utls.UClient(rawConn, ucfg, utls.HelloChrome_Auto)
-	uconn.SetSessionState(ss)
-
-	req, err := http.NewRequest("get", "https://microsoft.com", nil)
-	assert.NoError(t, err)
-	err = req.Write(uconn)
-	assert.Error(t, err)
-	hl.Close()
 }
 
 func TestParseInvalidTicket(t *testing.T) {

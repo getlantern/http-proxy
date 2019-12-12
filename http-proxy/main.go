@@ -21,6 +21,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/stackdrivererror"
 	"github.com/getlantern/http-proxy-lantern/throttle"
+	"github.com/getlantern/http-proxy-lantern/tlslistener"
 	"github.com/getlantern/quicwrapper"
 )
 
@@ -103,6 +104,7 @@ var (
 	tunnelPorts         = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
 	tos                 = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")
 	proxyName           = flag.String("proxyname", hostname, "The name of this proxy (defaults to hostname)")
+	proxyProtocol       = flag.String("proxyprotocol", "", "The protocol of this proxy, for information only")
 	bbrUpstreamProbeURL = flag.String("bbrprobeurl", "", "optional URL to probe for upstream BBR bandwidth estimates")
 
 	bench   = flag.Bool("bench", false, "Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.")
@@ -125,12 +127,15 @@ var (
 	stackdriverCreds            = flag.String("stackdriver-creds", "/home/lantern/lantern-stackdriver.json", "Optional full json file path containing stackdriver credentials")
 	stackdriverSamplePercentage = flag.Float64("stackdriver-sample-percentage", 0.003, "The percentage of devices to report to Stackdriver (0.01 = 1%)")
 
-	pcapDir               = flag.String("pcap-dir", "/tmp", "Directory in which to save pcaps")
-	pcapIPs               = flag.Int("pcap-ips", 0, "The number of IP addresses for which to capture packets")
-	pcapsPerIP            = flag.Int("pcaps-per-ip", 0, "The number of packets to capture for each IP address")
-	pcapSnapLen           = flag.Int("pcap-snap-len", 1600, "The maximum size packet to capture")
-	pcapTimeout           = flag.Duration("pcap-timeout", 30*time.Millisecond, "Timeout for capturing packets")
-	requireSessionTickets = flag.Bool("require-session-tickets", true, "Specifies whether or not to require TLS session tickets in ClientHellos")
+	pcapDir                    = flag.String("pcap-dir", "/tmp", "Directory in which to save pcaps")
+	pcapIPs                    = flag.Int("pcap-ips", 0, "The number of IP addresses for which to capture packets")
+	pcapsPerIP                 = flag.Int("pcaps-per-ip", 0, "The number of packets to capture for each IP address")
+	pcapSnapLen                = flag.Int("pcap-snap-len", 1600, "The maximum size packet to capture")
+	pcapTimeout                = flag.Duration("pcap-timeout", 30*time.Millisecond, "Timeout for capturing packets")
+	requireSessionTickets      = flag.Bool("require-session-tickets", true, "Specifies whether or not to require TLS session tickets in ClientHellos")
+	missingTicketReaction      = flag.String("missing-session-ticket-reaction", "AlertInternalError", "Specifies the reaction when seeing ClientHellos without TLS session tickets. Apply only if require-session-tickets is set")
+	missingTicketReactionDelay = flag.Duration("missing-session-ticket-reaction-delay", 0, "Specifies the delay before reaction to ClientHellos without TLS session tickets. Apply only if require-session-tickets is set.")
+	missingTicketReflectSite   = flag.String("missing-session-ticket-reflect-site", "", "Specifies the site to mirror when seeing no TLS session ticket in ClientHellos. Useful only if missing-session-ticket-reaction is ReflectToSite.")
 )
 
 func main() {
@@ -160,22 +165,52 @@ func main() {
 		}()
 	}
 
-	if *promExporterAddr != "" {
-		go func() {
-			log.Debugf("Starting Prometheus exporter at http://%s/metrics", *promExporterAddr)
-			if err := instrument.Start(*promExporterAddr); err != nil {
-				log.Error(err)
-			}
-		}()
-	}
-
 	if *versionCheck != "" && *versionCheckRedirectURL == "" {
-		log.Fatal("version check redirect URL should not empty")
+		log.Fatal("version check redirect URL should not be empty")
 	}
 
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
 		close := stackdrivererror.Enable(ctx, *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *externalIP)
 		defer close()
+	}
+
+	var reaction tlslistener.HandshakeReaction
+	switch *missingTicketReaction {
+	case "AlertHandshakeFailure":
+		reaction = tlslistener.AlertHandshakeFailure
+	case "AlertProtocolVersion":
+		reaction = tlslistener.AlertProtocolVersion
+	case "AlertInternalError":
+		reaction = tlslistener.AlertInternalError
+	case "CloseConnection":
+		reaction = tlslistener.CloseConnection
+	case "ReflectToSite":
+		if *missingTicketReflectSite == "" {
+			log.Fatal("missing-session-ticket-reflect-site should not be empty")
+		}
+		reaction = tlslistener.ReflectToSite(*missingTicketReflectSite)
+	default:
+		log.Fatalf("unrecognized missing-session-ticket-reaction %s", *missingTicketReaction)
+	}
+	if *missingTicketReactionDelay != 0 {
+		reaction = tlslistener.Delayed(*missingTicketReactionDelay, reaction)
+	}
+
+	var inst instrument.Instrument = instrument.NoInstrument{}
+	if *promExporterAddr != "" {
+		prom := instrument.NewPrometheus(instrument.CommonLabels{
+			Protocol:              *proxyProtocol,
+			SupportTLSResumption:  *sessionTicketKeyFile != "",
+			RequireTLSResumption:  *requireSessionTickets,
+			MissingTicketReaction: reaction.Action(),
+		})
+		go func() {
+			log.Debugf("Running Prometheus exporter at http://%s/metrics", *promExporterAddr)
+			if err := prom.Run(*promExporterAddr); err != nil {
+				log.Error(err)
+			}
+		}()
+		inst = prom
 	}
 
 	go periodicallyForceGC()
@@ -253,6 +288,8 @@ func main() {
 		PacketForwardAddr:                  *packetForwardAddr,
 		PacketForwardIntf:                  *packetForwardIntf,
 		RequireSessionTickets:              *requireSessionTickets,
+		MissingTicketReaction:              reaction,
+		Instrument:                         inst,
 	}
 
 	err := p.ListenAndServe()
