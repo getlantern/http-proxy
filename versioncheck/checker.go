@@ -214,11 +214,14 @@ func (c *VersionChecker) matchVersion(req *http.Request) (bool, string) {
 			return false, "malformed version"
 		}
 		if !c.versionRange(v) {
-			return false, "version not in range"
+			return false, "ineligible version"
 		}
 	}
 	if random.Intn(oneMillion) >= c.ppm {
 		return false, "not sampled"
 	}
-	return true, ""
+	if version == "" {
+		return true, "no version header"
+	}
+	return true, "eligible version"
 }
