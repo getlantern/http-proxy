@@ -25,36 +25,40 @@ const (
 )
 
 func TestParseVersionRange(t *testing.T) {
-	_, e := New("> 3.1.x", "", nil, 1)
+	_, e := New("> 3.1.x", "", nil, 1, nil)
 	assert.NoError(t, e)
-	_, e = New("< 3.x", "", nil, 1)
+	_, e = New("< 3.x", "", nil, 1, nil)
 	assert.NoError(t, e)
-	_, e = New("= 3.1.1", "", nil, 1)
+	_, e = New("= 3.1.1", "", nil, 1, nil)
 	assert.NoError(t, e)
 }
 
 func TestRedirectRules(t *testing.T) {
-	f, _ := New("< 3.1.x", redirectURL, nil, 1)
+	f, _ := New("< 3.1.x", redirectURL, nil, 1, nil)
 	req, _ := http.NewRequest("POST", "http://anysite.com", nil)
-	assert.False(t, f.shouldRedirect(req), "should not redirect POST requests")
+	shouldRedirect := func() bool {
+		should, _ := f.shouldRedirect(req)
+		return should
+	}
+	assert.False(t, shouldRedirect(), "should not redirect POST requests")
 	req, _ = http.NewRequest("CONNECT", "http://anysite.com", nil)
-	assert.False(t, f.shouldRedirect(req), "should not redirect CONNECT requests")
+	assert.False(t, shouldRedirect(), "should not redirect CONNECT requests")
 	req, _ = http.NewRequest("GET", "http://anysite.com", nil)
-	assert.False(t, f.shouldRedirect(req), "should not redirect non-HTML requests")
+	assert.False(t, shouldRedirect(), "should not redirect non-HTML requests")
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
-	assert.False(t, f.shouldRedirect(req), "should only redirect requests from browser")
+	assert.False(t, shouldRedirect(), "should only redirect requests from browser")
 	req.Header.Set("User-Agent", "Mozilla/5.0 xxx")
-	assert.True(t, f.shouldRedirect(req), "should redirect if no version header present")
+	assert.True(t, shouldRedirect(), "should redirect if no version header present")
 	req.Header.Set("X-Lantern-Version", "development")
-	assert.True(t, f.shouldRedirect(req), "should redirect if the version is not semantic")
+	assert.False(t, shouldRedirect(), "should not redirect if the version is not semantic")
 	req.Header.Set("X-Lantern-Version", "3.1.0")
-	assert.False(t, f.shouldRedirect(req), "should not redirect if version equals to the min version")
+	assert.False(t, shouldRedirect(), "should not redirect if version equals to the min version")
 	req.Header.Set("X-Lantern-Version", "3.1.1")
-	assert.False(t, f.shouldRedirect(req), "should not redirect if version is above the min version")
+	assert.False(t, shouldRedirect(), "should not redirect if version is above the min version")
 	req.Header.Set("X-Lantern-Version", "3.11.0")
-	assert.False(t, f.shouldRedirect(req), "should not redirect if version is above the min version")
+	assert.False(t, shouldRedirect(), "should not redirect if version is above the min version")
 	req.Header.Set("X-Lantern-Version", "3.0.1")
-	assert.True(t, f.shouldRedirect(req), "should redirect if version is below the min version")
+	assert.True(t, shouldRedirect(), "should redirect if version is below the min version")
 }
 
 func TestPercentage(t *testing.T) {
@@ -64,14 +68,14 @@ func TestPercentage(t *testing.T) {
 }
 
 func testPercentage(t *testing.T, percentage float64, exact bool) {
-	f, _ := New("3.1.1", redirectURL, nil, percentage)
+	f, _ := New("3.1.1", redirectURL, nil, percentage, nil)
 	req, _ := http.NewRequest("GET", "http://anysite.com", nil)
 	req.Header.Set("Accept", "text/html")
 	req.Header.Set("User-Agent", "Mozilla/5.0 xxx")
 	hit := 0
 	expected := int(percentage * oneMillion)
 	for i := 0; i < oneMillion; i++ {
-		if f.shouldRedirect(req) {
+		if should, _ := f.shouldRedirect(req); should {
 			hit++
 		}
 	}
@@ -147,7 +151,7 @@ func setupServers(t *testing.T) (string, string, func()) {
 		return "", "", originServer.Close
 	}
 
-	f, _ := New("< 3.1.1", redirectURL, []string{originPort}, 1)
+	f, _ := New("< 3.1.1", redirectURL, []string{originPort}, 1, nil)
 	p, _ := proxy.New(&proxy.Opts{Filter: f})
 	go p.Serve(l)
 	return originServer.URL, l.Addr().String(), func() {

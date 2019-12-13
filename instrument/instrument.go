@@ -23,6 +23,7 @@ type Instrument interface {
 	Throttle(m bool, reason string)
 	XBQHeaderSent()
 	SuspectedProbing(reason string)
+	VersionCheck(redirect bool, method, reason string)
 }
 
 // NoInstrument is an implementation of Instrument which does nothing
@@ -37,8 +38,9 @@ func (i NoInstrument) Blacklist(b bool)               {}
 func (i NoInstrument) Mimic(m bool)                   {}
 func (i NoInstrument) Throttle(m bool, reason string) {}
 
-func (i NoInstrument) XBQHeaderSent()                 {}
-func (i NoInstrument) SuspectedProbing(reason string) {}
+func (i NoInstrument) XBQHeaderSent()                                    {}
+func (i NoInstrument) SuspectedProbing(reason string)                    {}
+func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
@@ -86,7 +88,7 @@ type PromInstrument struct {
 
 	blacklist_checked, blacklisted, mimicry_checked, mimicked, xbqSent, throttling_checked prometheus.Counter
 
-	throttled, notThrottled, suspectedProbing *prometheus.CounterVec
+	throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
 }
 
 func NewPrometheus(c CommonLabels) *PromInstrument {
@@ -132,6 +134,10 @@ func NewPrometheus(c CommonLabels) *PromInstrument {
 		suspectedProbing: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "suspected_probing_total",
 		}, append(commonLabelNames, "reason")).MustCurryWith(commonLabels),
+
+		versionCheck: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "version_check_total",
+		}, append(commonLabelNames, "method", "redirected", "reason")).MustCurryWith(commonLabels),
 	}
 }
 
@@ -245,4 +251,11 @@ func (p *PromInstrument) XBQHeaderSent() {
 // probing.
 func (p *PromInstrument) SuspectedProbing(reason string) {
 	p.suspectedProbing.With(prometheus.Labels{"reason": reason}).Inc()
+}
+
+// VersionCheck records the number of times the Lantern version header is
+// checked and if redirecting to the upgrade page is required.
+func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
+	labels := prometheus.Labels{"method": method, "redirected": strconv.FormatBool(redirect), "reason": reason}
+	p.versionCheck.With(labels).Inc()
 }

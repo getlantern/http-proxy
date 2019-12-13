@@ -530,7 +530,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	// redirect certain percentage of the requests to an URL to notify the user
 	// to upgrade.
 	if p.VersionCheck {
-		log.Debugf("versioncheck: Will redirect %.4f%% of requests from Lantern clients below %s to %s",
+		log.Debugf("versioncheck: Will redirect %.4f%% of requests from Lantern clients %s to %s",
 			p.VersionCheckRedirectPercentage*100,
 			p.VersionCheckRange,
 			p.VersionCheckRedirectURL,
@@ -538,7 +538,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		vc, err := versioncheck.New(p.VersionCheckRange,
 			p.VersionCheckRedirectURL,
 			[]string{"80"}, // checks CONNECT tunnel to 80 port only.
-			p.VersionCheckRedirectPercentage)
+			p.VersionCheckRedirectPercentage, p.Instrument)
 		if err != nil {
 			log.Errorf("Fail to init versioncheck, skipping: %v", err)
 		} else {
