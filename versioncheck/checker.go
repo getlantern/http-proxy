@@ -37,6 +37,7 @@ import (
 	"github.com/getlantern/proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/getlantern/http-proxy-lantern/instrument"
 )
 
 var (
@@ -56,12 +57,13 @@ type VersionChecker struct {
 	rewriteAddr      string
 	tunnelPorts      []string
 	ppm              int
+	instrument       instrument.Instrument
 }
 
 // New constructs a VersionChecker to check the request and rewrite/redirect if
 // required.  It errors if the versionRange string is not valid, or the rewrite
 // URL is malformed. tunnelPortsToCheck defaults to 80 only.
-func New(versionRange string, rewriteURL string, tunnelPortsToCheck []string, percentage float64) (*VersionChecker, error) {
+func New(versionRange string, rewriteURL string, tunnelPortsToCheck []string, percentage float64, inst instrument.Instrument) (*VersionChecker, error) {
 	u, err := url.Parse(rewriteURL)
 	if err != nil {
 		return nil, err
@@ -79,7 +81,10 @@ func New(versionRange string, rewriteURL string, tunnelPortsToCheck []string, pe
 	if err != nil {
 		return nil, err
 	}
-	return &VersionChecker{ver, u, rewriteURL, rewriteAddr, tunnelPortsToCheck, int(percentage * oneMillion)}, nil
+	if inst == nil {
+		inst = instrument.NoInstrument{}
+	}
+	return &VersionChecker{ver, u, rewriteURL, rewriteAddr, tunnelPortsToCheck, int(percentage * oneMillion), inst}, nil
 }
 
 // Dial is a function that dials a network connection.
@@ -111,14 +116,21 @@ func (c *VersionChecker) Filter() filters.Filter {
 // Apply satisfies the filters.Filter interface.
 func (c *VersionChecker) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
 	defer req.Header.Del(common.VersionHeader)
+	// avoid redirect loop
+	if req.Host == c.rewriteURL.Host {
+		return next(ctx, req)
+	}
+	var shouldRedirect bool
+	var reason string
+	defer c.instrument.VersionCheck(shouldRedirect, req.Method, reason)
 	switch req.Method {
 	case http.MethodConnect:
-		if c.shouldRedirectOnConnect(req) {
+		if shouldRedirect, reason = c.shouldRedirectOnConnect(req); shouldRedirect {
 			return c.redirectOnConnect(ctx, req)
 		}
 	case http.MethodGet:
 		// the first request from browser should always be GET
-		if c.shouldRedirect(req) {
+		if shouldRedirect, reason = c.shouldRedirect(req); shouldRedirect {
 			return c.redirect(ctx, req)
 		}
 	}
@@ -130,7 +142,7 @@ func (c *VersionChecker) redirect(ctx filters.Context, req *http.Request) (*http
 		req.Method,
 		req.Host,
 		req.URL.Path,
-		c.rewriteURL.String(),
+		c.rewriteURLString,
 	)
 	return &http.Response{
 		StatusCode: http.StatusFound,
@@ -143,34 +155,27 @@ func (c *VersionChecker) redirect(ctx filters.Context, req *http.Request) (*http
 	}, ctx, nil
 }
 
-func (c *VersionChecker) shouldRedirect(req *http.Request) bool {
-	// Typical browsers always have this as the first value
+func (c *VersionChecker) shouldRedirect(req *http.Request) (bool, string) {
 	if !strings.HasPrefix(req.Header.Get("Accept"), "text/html") {
-		return false
+		return false, "not html"
 	}
-	// This covers almost all browsers
 	if !strings.HasPrefix(req.Header.Get("User-Agent"), "Mozilla/") {
-		return false
+		return false, "not from browser"
 	}
 	return c.matchVersion(req)
 }
 
-func (c *VersionChecker) shouldRedirectOnConnect(req *http.Request) bool {
-	if !c.matchVersion(req) {
-		return false
-	}
+func (c *VersionChecker) shouldRedirectOnConnect(req *http.Request) (bool, string) {
 	_, port, err := net.SplitHostPort(req.Host)
 	if err != nil {
-		return false
+		return false, "malformed host"
 	}
-	portMeet := false
 	for _, p := range c.tunnelPorts {
 		if port == p {
-			portMeet = true
-			break
+			return c.matchVersion(req)
 		}
 	}
-	return portMeet
+	return false, "ineligible port"
 }
 
 func (c *VersionChecker) redirectOnConnect(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
@@ -201,18 +206,22 @@ func (c *VersionChecker) redirectOnConnect(ctx filters.Context, req *http.Reques
 	return c.redirect(ctx, req)
 }
 
-func (c *VersionChecker) matchVersion(req *http.Request) bool {
-	// Avoid infinite loop
-	if req.Host == c.rewriteURL.Host {
-		return false
-	}
+func (c *VersionChecker) matchVersion(req *http.Request) (bool, string) {
 	version := req.Header.Get(common.VersionHeader)
-	v, e := semver.Make(version)
-	if e == nil && !c.versionRange(v) {
-		return false
+	if version != "" {
+		v, e := semver.Make(version)
+		if e != nil {
+			return false, "malformed version"
+		}
+		if !c.versionRange(v) {
+			return false, "ineligible version"
+		}
 	}
 	if random.Intn(oneMillion) >= c.ppm {
-		return false
+		return false, "not sampled"
 	}
-	return true
+	if version == "" {
+		return true, "no version header"
+	}
+	return true, "eligible version"
 }
