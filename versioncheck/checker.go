@@ -122,7 +122,9 @@ func (c *VersionChecker) Apply(ctx filters.Context, req *http.Request, next filt
 	}
 	var shouldRedirect bool
 	var reason string
-	defer c.instrument.VersionCheck(shouldRedirect, req.Method, reason)
+	defer func() {
+		c.instrument.VersionCheck(shouldRedirect, req.Method, reason)
+	}()
 	switch req.Method {
 	case http.MethodConnect:
 		if shouldRedirect, reason = c.shouldRedirectOnConnect(req); shouldRedirect {
