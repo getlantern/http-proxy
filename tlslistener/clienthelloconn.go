@@ -3,11 +3,9 @@ package tlslistener
 import (
 	"bytes"
 	"crypto/tls"
-	"errors"
 	"io"
 	"net"
 	"sync"
-	"time"
 
 	"github.com/getlantern/golog"
 	utls "github.com/getlantern/utls"
@@ -48,6 +46,7 @@ type clientHelloRecordingConn struct {
 	helloMutex   *sync.Mutex
 	cfg          *tls.Config
 	utlsCfg      *utls.Config
+	fullHello    []byte
 }
 
 func (rrc *clientHelloRecordingConn) Read(b []byte) (int, error) {
@@ -55,23 +54,28 @@ func (rrc *clientHelloRecordingConn) Read(b []byte) (int, error) {
 }
 
 func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*tls.Config, error) {
+	// Skip checking error as net.Addr.String() should be in valid form
+	sourceIP, _, _ := net.SplitHostPort(rrc.RemoteAddr().String())
+
 	// The hello is read at this point, so switch to no longer write incoming data to a second buffer.
 	rrc.helloMutex.Lock()
 	rrc.activeReader = rrc.Conn
 	rrc.helloMutex.Unlock()
 
-	hello := rrc.dataRead.Bytes()[5:]
+	// TODO: be a little more memory efficient here?
+	rrc.fullHello = rrc.dataRead.Bytes()
+	hello := rrc.fullHello[5:]
+
+	defer func() {
+		rrc.dataRead.Reset()
+		bufferPool.Put(rrc.dataRead)
+	}()
 
 	// We use uTLS here purely because it exposes more TLS handshake internals, allowing
 	// us to decrypt the ClientHello and session tickets, for example. We use those functions
 	// separately without switching to uTLS entirely to allow continued upgrading of the TLS stack
 	// as new Go versions are released.
 	helloMsg, err := utls.UnmarshalClientHello(hello)
-	rrc.dataRead.Reset()
-	bufferPool.Put(rrc.dataRead)
-
-	// Skip checking error as net.Addr.String() should be in valid form
-	sourceIP, _, _ := net.SplitHostPort(rrc.RemoteAddr().String())
 
 	if err != nil {
 		return rrc.helloError("malformed ClientHello", sourceIP)
@@ -83,65 +87,67 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		return nil, nil
 	}
 
-	// TODO: Connect to whatever domain the proxy is mimicking, not whatever the client
-	// says to connect to.
-	rawConn, err := net.DialTimeout("tcp", info.ServerName+":443", 20*time.Second)
-
-	if err != nil {
-		rrc.log.Errorf("Could not connect upstream %v", err)
-		return nil, err
+	// Otherwise, we want to make sure that the client is using resumption with one of our
+	// pre-defined tickets. If it doesn't we should again return some sort of error or just
+	// close the connection.
+	if !helloMsg.TicketSupported {
+		return rrc.helloError("ClientHello does not support session tickets", sourceIP)
 	}
 
-	cfg := &utls.Config{
-		ServerName: info.ServerName,
+	if len(helloMsg.SessionTicket) == 0 {
+		return rrc.helloError("ClientHello has no session ticket", sourceIP)
 	}
-	uconn := utls.UClient(rawConn, cfg, utls.HelloChrome_Auto)
-	uconn.HandshakeState.Hello = helloMsg
-	err = uconn.Handshake()
-	if err != nil {
-		rrc.log.Debugf("Handshake error: %v", err)
-		return nil, err
+
+	plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, rrc.utlsCfg)
+	if plainText == nil || len(plainText) == 0 {
+		return rrc.helloError("ClientHello has invalid session ticket", sourceIP)
 	}
-	rrc.log.Debugf("Handshake completed...replaying %v byte ServerHello", len(uconn.HandshakeState.ServerHello.Raw))
 
-	n, err := rrc.Conn.Write(uconn.HandshakeState.ServerHello.Raw)
-	if err != nil {
-		rrc.log.Errorf("Could not write %v", err)
-		return nil, err
-	}
-	rrc.log.Debugf("Wrote %v bytes of ServerHello", n)
-
-	go func() {
-		io.Copy(rrc.Conn, rawConn)
-	}()
-
-	go func() {
-		io.Copy(rawConn, rrc.Conn)
-	}()
-
-	/*
-		// Otherwise, we want to make sure that the client is using resumption with one of our
-		// pre-defined tickets. If it doesn't we should again return some sort of error or just
-		// close the connection.
-		if !helloMsg.TicketSupported {
-			return rrc.helloError("ClientHello does not support session tickets", sourceIP)
-		}
-
-		if len(helloMsg.SessionTicket) == 0 {
-			return rrc.helloError("ClientHello has no session ticket", sourceIP)
-		}
-
-		plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, rrc.utlsCfg)
-		if plainText == nil || len(plainText) == 0 {
-			return rrc.helloError("ClientHello has invalid session ticket", sourceIP)
-		}
-
-	*/
 	return nil, nil
 }
 
 func (rrc *clientHelloRecordingConn) helloError(errStr, sourceIP string) (*tls.Config, error) {
 	instrument.SuspectedProbing(sourceIP, errStr)
 	rrc.log.Error(errStr)
-	return nil, errors.New(errStr)
+
+	return nil, newNonLanternHelloError(errStr, rrc.fullHello)
+	/*
+		// TODO: Connect to whatever domain the proxy is mimicking, not whatever the client
+		// says to connect to.
+		rawUpstreamConn, err := net.DialTimeout("tcp", "microsoft.com:443", 20*time.Second)
+
+		if err != nil {
+			rrc.log.Errorf("Could not connect upstream %v", err)
+			return nil, err
+		}
+
+		defer rrc.Conn.Close()
+		defer rawUpstreamConn.Close()
+		errc := make(chan error, 1)
+		rc := refractionCopier{
+			in:  rrc.Conn,
+			out: rawUpstreamConn,
+		}
+		go rc.copyToBackend(errc)
+		go rc.copyFromBackend(errc)
+		<-errc
+		return nil, nil
+	*/
 }
+
+/*
+// refractionCopier exists so goroutines proxying data have nice names in stacks.
+type refractionCopier struct {
+	in, out io.ReadWriter
+}
+
+func (c refractionCopier) copyFromBackend(errc chan<- error) {
+	_, err := io.Copy(c.in, c.out)
+	errc <- err
+}
+
+func (c refractionCopier) copyToBackend(errc chan<- error) {
+	_, err := io.Copy(c.out, c.in)
+	errc <- err
+}
+*/

@@ -1,4 +1,4 @@
-package tlslistener
+package sessionticket
 
 import (
 	"crypto/rand"

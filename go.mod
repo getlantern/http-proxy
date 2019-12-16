@@ -8,6 +8,8 @@ require (
 	git.torproject.org/pluggable-transports/goptlib.git v0.0.0-20180321061416-7d56ec4f381e
 	git.torproject.org/pluggable-transports/obfs4.git v0.0.0-20180421031126-89c21805c212
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
+	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751 // indirect
+	github.com/alecthomas/units v0.0.0-20190924025748-f65c72e2690d // indirect
 	github.com/anacrolix/go-libutp v1.0.1
 	github.com/anacrolix/missinggo v1.2.1 // indirect
 	github.com/blang/semver v0.0.0-20180723201105-3c1074078d32
@@ -66,18 +68,22 @@ require (
 	github.com/mikioh/tcp v0.0.0-20180707144002-02a37043a4f7 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20180831101334-131b59fef27f // indirect
 	github.com/mikioh/tcpopt v0.0.0-20180707144150-7178f18b4ea8 // indirect
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/prometheus/client_golang v1.1.0
-	github.com/refraction-networking/utls v0.0.0-20190415193640-32987941ebd3 // indirect
+	github.com/prometheus/common v0.6.0
 	github.com/stretchr/testify v1.4.0
 	github.com/templexxx/reedsolomon v0.0.0-20170927015403-7092926d7d05 // indirect
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	go.opencensus.io v0.17.0 // indirect
-	golang.org/x/crypto v0.0.0-20191112222119-e1110fd1c708 // indirect
 	golang.org/x/net v0.0.0-20190912160710-24e19bdeb0f2
 	google.golang.org/api v0.0.0-20180921000521-920bb1beccf7
+	google.golang.org/appengine v1.6.1
 	google.golang.org/genproto v0.0.0-20180918203901-c3f76f3b92d1 // indirect
 	gopkg.in/redis.v5 v5.2.9
 )
+
+replace github.com/getlantern/utls => ../utls
 
 replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20190819144938-28e3ca4262e1
 
