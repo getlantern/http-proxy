@@ -48,7 +48,7 @@ func TestRedirectRules(t *testing.T) {
 	req.Header.Set("Accept", "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8")
 	assert.False(t, shouldRedirect(), "should only redirect requests from browser")
 	req.Header.Set("User-Agent", "Mozilla/5.0 xxx")
-	assert.True(t, shouldRedirect(), "should redirect if no version header present")
+	assert.False(t, shouldRedirect(), "should not redirect if no version header present")
 	req.Header.Set("X-Lantern-Version", "development")
 	assert.False(t, shouldRedirect(), "should not redirect if the version is not semantic")
 	req.Header.Set("X-Lantern-Version", "3.1.0")
@@ -68,10 +68,11 @@ func TestPercentage(t *testing.T) {
 }
 
 func testPercentage(t *testing.T, percentage float64, exact bool) {
-	f, _ := New("3.1.1", redirectURL, nil, percentage, nil)
+	f, _ := New("< 3.1.1", redirectURL, nil, percentage, nil)
 	req, _ := http.NewRequest("GET", "http://anysite.com", nil)
 	req.Header.Set("Accept", "text/html")
 	req.Header.Set("User-Agent", "Mozilla/5.0 xxx")
+	req.Header.Set("X-Lantern-Version", "3.0.1")
 	hit := 0
 	expected := int(percentage * oneMillion)
 	for i := 0; i < oneMillion; i++ {
@@ -112,11 +113,10 @@ func TestRedirectConnect(t *testing.T) {
 	if !assert.NoError(t, err) {
 		return
 	}
-	assert.Equal(t, http.StatusFound, r.StatusCode,
-		"should redirect when no version header is present")
-	assert.Equal(t, r.Header.Get("Location"), redirectURL)
+	assert.Equal(t, http.StatusOK, r.StatusCode,
+		"should not redirect when no version header is present")
 	b, _ := ioutil.ReadAll(r.Body)
-	assert.Equal(t, "", string(b))
+	assert.Equal(t, "good", string(b))
 
 	r, err = requestViaProxy(t, proxiedReq, proxyAddr, "3.1.0", true)
 	if !assert.NoError(t, err) {
