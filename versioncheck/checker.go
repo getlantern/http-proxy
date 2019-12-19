@@ -1,6 +1,6 @@
 // Package versioncheck checks if the X-Lantern-Version header in the request
-// is absent or below than a semantic version, and rewrite/redirect a fraction
-// of such requests to a predefined URL.
+// is below than a semantic version, and rewrite/redirect a fraction of such
+// requests to a predefined URL.
 //
 // For CONNECT tunnels, it simply checks the X-Lantern-Version header in the
 // CONNECT request, as it's ineffeicient to inspect the tunneled data
@@ -210,20 +210,18 @@ func (c *VersionChecker) redirectOnConnect(ctx filters.Context, req *http.Reques
 
 func (c *VersionChecker) matchVersion(req *http.Request) (bool, string) {
 	version := req.Header.Get(common.VersionHeader)
-	if version != "" {
-		v, e := semver.Make(version)
-		if e != nil {
-			return false, "malformed version"
-		}
-		if !c.versionRange(v) {
-			return false, "ineligible version"
-		}
+	if version == "" {
+		return false, "no version header"
+	}
+	v, e := semver.Make(version)
+	if e != nil {
+		return false, "malformed version"
+	}
+	if !c.versionRange(v) {
+		return false, "ineligible version"
 	}
 	if random.Intn(oneMillion) >= c.ppm {
 		return false, "not sampled"
-	}
-	if version == "" {
-		return true, "no version header"
 	}
 	return true, "eligible version"
 }
