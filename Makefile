@@ -14,7 +14,7 @@ get-command = $(shell which="$$(which $(1) 2> /dev/null)" && if [[ ! -z "$$which
 DOCKER    := $(call get-command,docker)
 GO        := $(call get-command,go)
 
-.PHONY: dist build require-dep test
+.PHONY: dist build test
 
 # This tags the current version and creates a CHANGELOG for the current directory.
 define tag-changelog
@@ -42,7 +42,7 @@ require-change:
 		echo 'Missing "github_changelog_generator" command. See https://github.com/github-changelog-generator/github-changelog-generator or just [sudo] gem install github_changelog_generator' && exit 1; \
 	fi
 
-build: 
+build:
 	mkdir -p $(BUILD_DIR) && \
 	GO111MODULE=on go build -o $(BUILD_DIR)/http-proxy \
 	-ldflags="-X main.revision=$(GIT_REVISION)" \
@@ -78,7 +78,7 @@ docker-builder: system-checks
 	docker build -t $(DOCKER_IMAGE_TAG) --build-arg go_version=go$(GO_VERSION) $$DOCKER_CONTEXT
 
 # workaround to build Ubuntu binary on non-Ubuntu platforms.
-docker-distnochange: docker-builder require-dep
+docker-distnochange: docker-builder
 	mkdir -p dist && \
 	GO111MODULE=on go mod vendor && \
 	docker run -e GIT_REVISION='$(GIT_REVISION)' \
