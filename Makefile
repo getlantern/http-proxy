@@ -21,7 +21,7 @@ define tag-changelog
 	echo "Tagging..." && \
 	git tag -a "$$VERSION" -f --annotate -m"Tagged $$VERSION" && \
 	git push --tags -f && \
-	$(CHANGE_BIN) --max-issues 1000 --token "5bfda07d0382fff2285de3579caa92b1764d0db9" getlantern/$(1) && \
+	$(CHANGE_BIN) --max-issues 1000 --token "5bfda07d0382fff2285de3579caa92b1764d0db9" --user getlantern --project http-proxy-lantern && \
 	git add CHANGELOG.md && \
 	git commit -m "Updated changelog for $$VERSION" && \
 	git push origin HEAD
@@ -54,7 +54,7 @@ distnochange: require-upx
 	upx dist/http-proxy
 
 dist: require-upx require-version require-change distnochange
-	$(call tag-changelog,http-proxy-lantern)
+	$(call tag-changelog)
 
 deploy: dist/http-proxy
 	s3cmd put dist/http-proxy s3://http-proxy/http-proxy && \
@@ -88,7 +88,7 @@ docker-distnochange: docker-builder
 	upx dist/http-proxy
 
 docker-dist: require-upx require-version require-change docker-distnochange
-	$(call tag-changelog,http-proxy-lantern)
+	$(call tag-changelog)
 
 test:
 	GO111MODULE=on go test -race $(go list ./...)
