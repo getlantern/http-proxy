@@ -214,8 +214,8 @@ github.com/getlantern/proxy v0.0.0-20191025190912-b5f45407d9f2 h1:EwBVuJWzA68ceS
 github.com/getlantern/proxy v0.0.0-20191025190912-b5f45407d9f2/go.mod h1:bxNylSVdAlc+bv0245lIdf09a7N/2u3DeLHI73y4sQQ=
 github.com/getlantern/quic-go v0.7.1-0.20190819144938-28e3ca4262e1 h1:ZninVtJJjpXgyljxDQ34ZKHTfBaj4kOsuSolVKhv0Ts=
 github.com/getlantern/quic-go v0.7.1-0.20190819144938-28e3ca4262e1/go.mod h1:uW88CoBr0zVnlyTAdwd9dd6qgk/CY23t6dRPqZ5TReU=
-github.com/getlantern/quicwrapper v0.0.0-20191010171358-6726e89fbe14 h1:zfbGNjLb0kI0vLcNdui7DUuQ77cuEgzDRUcoml/ZHX8=
-github.com/getlantern/quicwrapper v0.0.0-20191010171358-6726e89fbe14/go.mod h1:8S3cNfBSHZqsFcJBE9Nsj+EEg9WMnXCtOs4aww4KzOg=
+github.com/getlantern/quicwrapper v0.0.0-20191220185748-4721f84faa16 h1:IXRG8bb9awPwZA4PVdcg7tYUdPw58F/iolSmu5wsYxQ=
+github.com/getlantern/quicwrapper v0.0.0-20191220185748-4721f84faa16/go.mod h1:NQ7m0azcOKZq8+1ltxlLbE2k8lV9I7qyYCoWWJ/ib5o=
 github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c h1:IkjF+RwRs8B/RsuD638eUFO2K/227OO2B1FLXGp17Ro=
 github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c/go.mod h1:kExwbqTx1krUnT9ohmXG3jayDTEBfxUKeoRzU6XucLw=
 github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 h1:JyXEChj4lHy5w3hlQVnYpcH4QrBXmhEJgkxb0FPkFlM=
