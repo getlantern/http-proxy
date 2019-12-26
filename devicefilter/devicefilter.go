@@ -131,10 +131,10 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 			humanize.Bytes(uint64(rate)))
 		f.instrument.Throttle(true, "datacap")
 		wc.ControlMessage("throttle", limiter)
+	} else {
+		// default case is not throttling
+		f.instrument.Throttle(false, "")
 	}
-
-	// default case is not throttling
-	f.instrument.Throttle(false, "")
 	resp, nextCtx, err := next(ctx, req)
 	if resp == nil || err != nil {
 		return resp, nextCtx, err
