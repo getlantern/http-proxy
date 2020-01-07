@@ -120,21 +120,19 @@ func loadLimits(rc *redis.Client, suffix string) (map[string]*thresholdAndRate, 
 	for country, limit := range _limits {
 		tar, err := parseThresholdAndRate(limit)
 		if err != nil {
-			log.Errorf("For %v in country %v %v", key, country, err)
+			log.Errorf("For %v in country %v: %v", key, country, err)
 			continue
 		}
+		threshold, rate := tar.threshold(), tar.rate()
+		log.Debugf("Throttling %v from '%v' to %v per second after %v", suffix, country,
+			humanize.Bytes(uint64(rate)), humanize.Bytes(uint64(threshold)))
 		limits[country] = tar
 	}
 
-	log.Debugf("%+v", limits)
-	defaultTR, hasDefault := limits[DefaultCountryCode]
+	_, hasDefault := limits[DefaultCountryCode]
 	if !hasDefault {
 		log.Debugf(`No default "__" country configured in %v`, key)
-		return limits, nil
 	}
-	threshold, rate := defaultTR.threshold(), defaultTR.rate()
-	log.Debugf("Throttling %v by default to %v per second after %v", suffix, humanize.Bytes(uint64(rate)), humanize.Bytes(uint64(threshold)))
-
 	return limits, nil
 }
 
@@ -166,7 +164,6 @@ func (cfg *redisConfig) refreshLimits() {
 	cfg.desktop = desktop
 	cfg.mobile = mobile
 	cfg.mx.Unlock()
-	log.Debug("Refreshed")
 }
 
 func (cfg *redisConfig) ThresholdAndRateFor(deviceID string, countryCode string) (int64, int64, bool) {
