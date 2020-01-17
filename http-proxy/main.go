@@ -136,6 +136,9 @@ var (
 	missingTicketReaction      = flag.String("missing-session-ticket-reaction", "AlertInternalError", "Specifies the reaction when seeing ClientHellos without TLS session tickets. Apply only if require-session-tickets is set")
 	missingTicketReactionDelay = flag.Duration("missing-session-ticket-reaction-delay", 0, "Specifies the delay before reaction to ClientHellos without TLS session tickets. Apply only if require-session-tickets is set.")
 	missingTicketReflectSite   = flag.String("missing-session-ticket-reflect-site", "", "Specifies the site to mirror when seeing no TLS session ticket in ClientHellos. Useful only if missing-session-ticket-reaction is ReflectToSite.")
+	tlsmasqAddr                = flag.String("tlsmasq-addr", "", "Address at which to listen for tlsmasq connections.")
+	tlsmasqOriginAddr          = flag.String("tlsmasq-origin-addr", "microsoft.com:443", "Address of tlsmasq origin.")
+	tlsmasqSecret              = flag.String("tlsmasq-secret", "", "Hex encoded 52 byte tlsmasq shared secret.")
 )
 
 func main() {
@@ -194,6 +197,10 @@ func main() {
 	}
 	if *missingTicketReactionDelay != 0 {
 		reaction = tlslistener.Delayed(*missingTicketReactionDelay, reaction)
+	}
+
+	if *tlsmasqAddr != "" && (*tlsmasqSecret == "" || *tlsmasqOriginAddr == "") {
+		log.Fatalf("tlsmasq requires tlsmasq-secret and tlsmasq-origin-addr")
 	}
 
 	var inst instrument.Instrument = instrument.NoInstrument{}
@@ -289,6 +296,9 @@ func main() {
 		PacketForwardIntf:                  *packetForwardIntf,
 		RequireSessionTickets:              *requireSessionTickets,
 		MissingTicketReaction:              reaction,
+		TLSMasqAddr:                        *tlsmasqAddr,
+		TLSMasqOriginAddr:                  *tlsmasqOriginAddr,
+		TLSMasqSecret:                      *tlsmasqSecret,
 		Instrument:                         inst,
 	}
 

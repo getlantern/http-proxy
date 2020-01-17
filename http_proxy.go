@@ -60,6 +60,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/redis"
 	"github.com/getlantern/http-proxy-lantern/throttle"
 	"github.com/getlantern/http-proxy-lantern/tlslistener"
+	"github.com/getlantern/http-proxy-lantern/tlsmasq"
 	"github.com/getlantern/http-proxy-lantern/tokenfilter"
 	"github.com/getlantern/http-proxy-lantern/versioncheck"
 	"github.com/getlantern/http-proxy-lantern/wss"
@@ -152,6 +153,9 @@ type Proxy struct {
 	SessionTicketKeyFile               string
 	RequireSessionTickets              bool
 	MissingTicketReaction              tlslistener.HandshakeReaction
+	TLSMasqAddr                        string
+	TLSMasqOriginAddr                  string
+	TLSMasqSecret                      string
 	Instrument                         instrument.Instrument
 
 	bm             bbr.Middleware
@@ -167,6 +171,7 @@ type addresses struct {
 	http           string
 	httpMultiplex  string
 	lampshade      string
+	tlsmasq        string
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -286,6 +291,11 @@ func (p *Proxy) ListenAndServe() error {
 		if err := addListenerIfNecessary(addrs.httpMultiplex, p.wrapMultiplexing(p.wrapTLSIfNecessary(p.listenHTTP(baseListen)))); err != nil {
 			return err
 		}
+
+		if err := addListenerIfNecessary(addrs.tlsmasq, p.listenTLSMasq(baseListen)); err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -308,6 +318,7 @@ func (p *Proxy) ListenAndServe() error {
 		lampshade:      p.LampshadeAddr,
 		http:           p.HTTPAddr,
 		httpMultiplex:  p.HTTPMultiplexAddr,
+		tlsmasq:        p.TLSMasqAddr,
 	}); err != nil {
 		return err
 	}
@@ -318,6 +329,7 @@ func (p *Proxy) ListenAndServe() error {
 		lampshade:      p.LampshadeUTPAddr,
 		http:           "",
 		httpMultiplex:  p.HTTPUTPAddr,
+		tlsmasq:        "",
 	}); err != nil {
 		return err
 	}
@@ -687,6 +699,23 @@ func (p *Proxy) listenLampshade(trackBBR bool, onListenerError func(net.Conn, er
 			// close of virtual streams rather than the physical connection.
 			wrapped = p.bm.Wrap(wrapped)
 		}
+
+		return wrapped, nil
+	}
+}
+
+func (p *Proxy) listenTLSMasq(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
+	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+		l, err := baseListen(addr, false)
+		if err != nil {
+			return nil, err
+		}
+
+		wrapped, wrapErr := tlsmasq.Wrap(l, p.CertFile, p.KeyFile, p.TLSMasqOriginAddr, p.TLSMasqSecret)
+		if wrapErr != nil {
+			log.Fatalf("unable to wrap listener with tlsmasq: %v", wrapErr)
+		}
+		log.Debugf("listening for tlsmasq at %v", wrapped.Addr())
 
 		return wrapped, nil
 	}
