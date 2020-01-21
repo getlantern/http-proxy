@@ -30,6 +30,7 @@ import (
 	"github.com/getlantern/pcapper"
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/quic0"
 	"github.com/getlantern/quicwrapper"
 	"github.com/getlantern/tinywss"
 	"github.com/getlantern/tlsdefaults"
@@ -135,7 +136,8 @@ type Proxy struct {
 	BlacklistExpiration                time.Duration
 	ProxyName                          string
 	BBRUpstreamProbeURL                string
-	QUICAddr                           string
+	QUICIETFAddr                       string
+	QUIC0Addr                          string
 	OQUICAddr                          string
 	OQUICKey                           string
 	OQUICCipher                        string
@@ -238,7 +240,7 @@ func (p *Proxy) ListenAndServe() error {
 		return err
 	}
 
-	if p.QUICAddr != "" || p.OQUICAddr != "" {
+	if p.QUICIETFAddr != "" || p.QUIC0Addr != "" || p.OQUICAddr != "" {
 		filterChain = filterChain.Prepend(quic.NewMiddleware())
 	}
 	if p.WSSAddr != "" {
@@ -306,7 +308,10 @@ func (p *Proxy) ListenAndServe() error {
 	if err := addListenerIfNecessary(p.KCPConf, p.wrapTLSIfNecessary(p.listenKCP)); err != nil {
 		return err
 	}
-	if err := addListenerIfNecessary(p.QUICAddr, p.listenQUIC); err != nil {
+	if err := addListenerIfNecessary(p.QUICIETFAddr, p.listenQUICIETF); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary(p.QUIC0Addr, p.listenQUIC0); err != nil {
 		return err
 	}
 	if err := addListenerIfNecessary(p.OQUICAddr, p.listenOQUIC); err != nil {
@@ -433,8 +438,11 @@ func (p *Proxy) proxyProtocol() string {
 	if p.KCPConf != "" {
 		return "kcp"
 	}
-	if p.QUICAddr != "" {
+	if p.QUIC0Addr != "" {
 		return "quic"
+	}
+	if p.QUICIETFAddr != "" {
+		return "quic_ietf"
 	}
 	if p.OQUICAddr != "" {
 		return "oquic"
@@ -788,7 +796,26 @@ func (p *Proxy) listenKCP(kcpConf string, bordaReporter listeners.MeasuredReport
 	})
 }
 
-func (p *Proxy) listenQUIC(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+func (p *Proxy) listenQUIC0(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	tlsConf, err := tlsdefaults.BuildListenerConfig(addr, p.KeyFile, p.CertFile)
+	if err != nil {
+		return nil, err
+	}
+
+	config := &quic0.Config{
+		MaxIncomingStreams: 1000,
+	}
+
+	l, err := quic0.ListenAddr(p.QUIC0Addr, tlsConf, config)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("Listening for quic (v0) at %v", l.Addr())
+	return l, err
+}
+
+func (p *Proxy) listenQUICIETF(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
 	tlsConf, err := tlsdefaults.BuildListenerConfig(addr, p.KeyFile, p.CertFile)
 	if err != nil {
 		return nil, err
@@ -798,7 +825,7 @@ func (p *Proxy) listenQUIC(addr string, bordaReporter listeners.MeasuredReportFN
 		MaxIncomingStreams: 1000,
 	}
 
-	l, err := quicwrapper.ListenAddr(p.QUICAddr, tlsConf, config)
+	l, err := quicwrapper.ListenAddr(p.QUICIETFAddr, tlsConf, config)
 	if err != nil {
 		return nil, err
 	}

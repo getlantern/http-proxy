@@ -39,7 +39,8 @@ require (
 	github.com/getlantern/packetforward v0.0.0-20190809094443-386cbcc0d498
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/proxy v0.0.0-20191025190912-b5f45407d9f2
-	github.com/getlantern/quicwrapper v0.0.0-20200116041745-587fbed819e6
+	github.com/getlantern/quic0 v0.0.0-20200121154153-8b18c2ba09f9
+	github.com/getlantern/quicwrapper v0.0.0-20200129232925-8ef70253fcae
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
 	github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
@@ -79,7 +80,7 @@ require (
 	gopkg.in/redis.v5 v5.2.9
 )
 
-replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.0.0-20200110040505-6e02a255c65c
+replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.0.0-20200129225515-f0142adfc7dd
 
 replace github.com/anacrolix/go-libutp => github.com/getlantern/go-libutp v1.0.3
 
