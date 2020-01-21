@@ -140,7 +140,7 @@ func (c *VersionChecker) Apply(ctx filters.Context, req *http.Request, next filt
 }
 
 func (c *VersionChecker) redirect(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
-	log.Debugf("Redirecting %s %s%s to %s",
+	log.Tracef("Redirecting %s %s%s to %s",
 		req.Method,
 		req.Host,
 		req.URL.Path,
@@ -197,7 +197,7 @@ func (c *VersionChecker) redirectOnConnect(ctx filters.Context, req *http.Reques
 	bufReader := bufio.NewReader(conn)
 	req, err := http.ReadRequest(bufReader)
 	if err != nil {
-		log.Debugf("Fail to read tunneled request before redirecting: %v", err)
+		log.Tracef("Fail to read tunneled request before redirecting: %v", err)
 	} else if req.Body != nil {
 		_, _ = io.Copy(ioutil.Discard, req.Body)
 		req.Body.Close()

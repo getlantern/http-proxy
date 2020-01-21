@@ -46,7 +46,7 @@ func (bm *middleware) AddMetrics(ctx filters.Context, req *http.Request, resp *h
 	bbrRequested := req.Header.Get(common.BBRRequested)
 	clear := bbrRequested == "clear"
 	if clear {
-		log.Debugf("Clearing stats for %v", conn.RemoteAddr())
+		log.Tracef("Clearing stats for %v", conn.RemoteAddr())
 		s.clear()
 	}
 
@@ -89,7 +89,7 @@ func (bm *middleware) statsFor(conn net.Conn) *stats {
 
 func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, bytesSent int, info *bbrconn.TCPInfo, bbrInfo *bbrconn.BBRInfo, err error) {
 	if err != nil {
-		log.Debugf("Unable to get BBR info (this happens when connections are closed unexpectedly): %v", err)
+		log.Tracef("Unable to get BBR info (this happens when connections are closed unexpectedly): %v", err)
 		return
 	}
 	s.update(float64(bytesSent), float64(bbrInfo.MaxBW)*8/1000/1000)
@@ -114,7 +114,7 @@ func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, b
 				op.Set("est_mbps_min", borda.Min(estMbps))
 				op.Set("est_mbps_max", borda.Max(estMbps))
 			}
-			log.Debugf("Reporting tcp info for %v", remoteAddr)
+			log.Tracef("Reporting tcp info for %v", remoteAddr)
 			op.End()
 		}()
 	}

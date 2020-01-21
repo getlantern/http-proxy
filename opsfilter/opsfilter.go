@@ -45,7 +45,7 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 		Set("origin_host", originHost).
 		Set("origin_port", originPort).
 		Set("proxy_dial_timeout", req.Header.Get(proxy.DialTimeoutHeader))
-	log.Debug("Starting op")
+	log.Tracef("Starting op")
 	defer op.End()
 
 	opsCtx := map[string]interface{}{

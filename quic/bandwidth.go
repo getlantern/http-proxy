@@ -39,12 +39,12 @@ func (m *middleware) apply(ctx filters.Context, req *http.Request, resp *http.Re
 
 	bbrRequested := req.Header.Get(common.BBRRequested)
 	if bbrRequested == "" {
-		log.Debugf("No BBR estimate requested...")
+		log.Tracef("No BBR estimate requested...")
 		// BBR info not requested, ignore
 		return
 	}
 
-	log.Debugf("Using QUIC 'BBR' estimate...")
+	log.Tracef("Using QUIC 'BBR' estimate...")
 	var estABE float64
 	netx.WalkWrapped(conn, func(conn net.Conn) bool {
 		switch t := conn.(type) {
@@ -57,7 +57,7 @@ func (m *middleware) apply(ctx filters.Context, req *http.Request, resp *http.Re
 		return true
 	})
 
-	log.Debugf("Quic estABE = %v", estABE)
+	log.Tracef("Quic estABE = %v", estABE)
 	if resp.Header == nil {
 		resp.Header = make(http.Header, 1)
 	}

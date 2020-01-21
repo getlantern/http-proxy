@@ -51,9 +51,9 @@ func (m *middleware) apply(ctx filters.Context, req *http.Request) {
 			for _, header := range headerWhitelist {
 				if val := upHdr.Get(header); val != "" {
 					req.Header.Set(header, val)
-					log.Debugf("WSS: copied header %s (%s)", header, val)
+					log.Tracef("WSS: copied header %s (%s)", header, val)
 				} else {
-					log.Debugf("WSS: header %s was not present!", header)
+					log.Tracef("WSS: header %s was not present!", header)
 				}
 			}
 			return false

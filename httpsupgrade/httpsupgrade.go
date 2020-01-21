@@ -77,7 +77,7 @@ func (h *httpsUpgrade) rewrite(ctx filters.Context, host string, req *http.Reque
 	req.Host = host + ":443"
 	req.URL.Host = req.Host
 	req.URL.Scheme = "https"
-	h.log.Debugf("Rewrote request with URL %#v to HTTPS", req.URL)
+	h.log.Tracef("Rewrote request with URL %#v to HTTPS", req.URL)
 	// Make sure the request stays open.
 	req.Close = false
 

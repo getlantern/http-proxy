@@ -57,12 +57,12 @@ func Wrap(wrapped net.Listener, stateDir string, handshakeConcurrency int, maxPe
 	ol := &obfs4listener{
 		handshakeTimeout:              handshakeTimeout,
 		maxPendingHandshakesPerClient: maxPendingHandshakesPerClient,
-		wrapped:         wrapped,
-		sf:              sf,
-		clientsFinished: &clientsFinished,
-		clients:         make(map[string]*client),
-		pending:         make(chan net.Conn, handshakeConcurrency),
-		ready:           make(chan *result),
+		wrapped:                       wrapped,
+		sf:                            sf,
+		clientsFinished:               &clientsFinished,
+		clients:                       make(map[string]*client),
+		pending:                       make(chan net.Conn, handshakeConcurrency),
+		ready:                         make(chan *result),
 	}
 
 	go ol.accept()
@@ -203,13 +203,13 @@ func (l *obfs4listener) wrap(conn net.Conn) {
 	})
 
 	if timedOut {
-		log.Debugf("Handshake with %v timed out", conn.RemoteAddr())
+		log.Tracef("Handshake with %v timed out", conn.RemoteAddr())
 		conn.Close()
 	} else if err != nil {
-		log.Debugf("Handshake error with %v: %v", conn.RemoteAddr(), err)
+		log.Tracef("Handshake error with %v: %v", conn.RemoteAddr(), err)
 		conn.Close()
 	} else {
-		log.Debugf("Successful obfs4 handshake in %v", time.Now().Sub(start))
+		log.Tracef("Successful obfs4 handshake in %v", time.Now().Sub(start))
 		l.ready <- &result{_wrapped.(net.Conn), err}
 	}
 }

@@ -62,7 +62,7 @@ func New(opts *Options) filters.Filter {
 		log.Errorf("Unable to determine hostname, will use '(direct))': %v", hostname)
 		hostname = "(direct)"
 	}
-	log.Debugf("Will report analytics to Google as %v using hostname '%v', sampling %d percent of requests", opts.TrackingID, hostname, int(opts.SamplePercentage*100))
+	log.Tracef("Will report analytics to Google as %v using hostname '%v', sampling %d percent of requests", opts.TrackingID, hostname, int(opts.SamplePercentage*100))
 	am := &analyticsMiddleware{
 		Options:      opts,
 		hostname:     hostname,
@@ -99,7 +99,7 @@ func (am *analyticsMiddleware) track(req *http.Request) {
 		}:
 			// Submitted
 		default:
-			log.Debug("Site access request queue is full")
+			log.Trace("Site access request queue is full")
 		}
 	}
 }
@@ -168,7 +168,7 @@ func (am *analyticsMiddleware) normalizeSite(site string, port string) []string 
 		if !found {
 			names, err := net.LookupAddr(site)
 			if err != nil {
-				log.Debugf("Unable to perform reverse DNS lookup for %v: %v", site, err)
+				log.Tracef("Unable to perform reverse DNS lookup for %v: %v", site, err)
 				cached = site
 			} else {
 				name := names[0]
@@ -233,7 +233,7 @@ func (am *analyticsMiddleware) trackSession(args string) {
 	}
 	log.Tracef("Successfully sent request to GA: %s", resp.Status)
 	if err := resp.Body.Close(); err != nil {
-		log.Debugf("Unable to close response body: %v", err)
+		log.Tracef("Unable to close response body: %v", err)
 	}
 }
 

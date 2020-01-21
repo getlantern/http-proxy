@@ -23,7 +23,7 @@ require (
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
 	github.com/getlantern/fronted v0.0.0-20190606212108-e7744195eded // indirect
-	github.com/getlantern/geolookup v0.0.0-20180719190536-68d621f75f46
+	github.com/getlantern/geolookup v0.0.0-20200121184643-02217082e50f
 	github.com/getlantern/golog v0.0.0-20190830074920-4ef2e798c2d7
 	github.com/getlantern/gonat v0.0.0-20190809093358-98412e37c429
 	github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55

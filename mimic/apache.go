@@ -56,7 +56,7 @@ func SetServerAddr(addr string) {
 // Set 'Host' and 'Port' before calling it.
 func Apache(conn net.Conn, req *http.Request) {
 	ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-	log.Debugf("Mimicking apache to client at %v", ip)
+	log.Tracef("Mimicking apache to client at %v", ip)
 	ops.Begin("mimic_apache").Set("client_ip", ip).End()
 	pcapper.Dump(ip, "Mimicking apache")
 	path := req.URL.Path
