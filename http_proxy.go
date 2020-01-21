@@ -711,7 +711,11 @@ func (p *Proxy) listenTLSMasq(baseListen func(string, bool) (net.Listener, error
 			return nil, err
 		}
 
-		wrapped, wrapErr := tlsmasq.Wrap(l, p.CertFile, p.KeyFile, p.TLSMasqOriginAddr, p.TLSMasqSecret)
+		nonFatalErrorsHandler := func(err error) {
+			log.Debugf("non-fatal error from tlsmasq: %v", err)
+		}
+
+		wrapped, wrapErr := tlsmasq.Wrap(l, p.CertFile, p.KeyFile, p.TLSMasqOriginAddr, p.TLSMasqSecret, nonFatalErrorsHandler)
 		if wrapErr != nil {
 			log.Fatalf("unable to wrap listener with tlsmasq: %v", wrapErr)
 		}

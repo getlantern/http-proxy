@@ -3,6 +3,7 @@ package tlsmasq
 import (
 	"crypto/rand"
 	"crypto/tls"
+	"encoding/hex"
 	"io"
 	"net"
 	"sync"
@@ -17,8 +18,10 @@ import (
 )
 
 func TestWrap(t *testing.T) {
-	var secret [52]byte
-	rand.Read(secret[:])
+	var secretBytes [52]byte
+	rand.Read(secretBytes[:])
+
+	secretString := hex.EncodeToString(secretBytes[:])
 
 	proxyPrivateKey, err := keyman.GeneratePK(2048)
 	if !assert.NoError(t, err) {
@@ -72,7 +75,11 @@ func TestWrap(t *testing.T) {
 		return
 	}
 
-	tlsmasqListener, err := Wrap(l, proxyCertFile, proxyKeyFile, proxiedListener.Addr().String(), secret)
+	nonFatalErrorsHandler := func(err error) {
+		assert.NoError(t, err)
+	}
+
+	tlsmasqListener, err := Wrap(l, proxyCertFile, proxyKeyFile, proxiedListener.Addr().String(), secretString, nonFatalErrorsHandler)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -92,7 +99,7 @@ func TestWrap(t *testing.T) {
 	dialerCfg := tlsmasq.DialerConfig{
 		ProxiedHandshakeConfig: ptlshs.DialerConfig{
 			TLSConfig: insecureTLSConfig,
-			Secret:    secret,
+			Secret:    secretBytes,
 		},
 		TLSConfig: insecureTLSConfig,
 	}

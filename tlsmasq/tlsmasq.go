@@ -10,8 +10,8 @@ import (
 	"github.com/getlantern/tlsmasq/ptlshs"
 )
 
-func Wrap(ll net.Listener, certFile string, keyFile string, proxiedAddr string, secret string) (net.Listener, error) {
-	var secretBytes [52]byte
+func Wrap(ll net.Listener, certFile string, keyFile string, originAddr string, secret string, onNonFatalErrors func(error)) (net.Listener, error) {
+	var secretBytes ptlshs.Secret
 	if _secretBytes, decodeErr := hex.DecodeString(secret); decodeErr != nil {
 		return nil, fmt.Errorf(`unable to decode secret string "%v": %v`, secret, decodeErr)
 	} else {
@@ -25,7 +25,14 @@ func Wrap(ll net.Listener, certFile string, keyFile string, proxiedAddr string, 
 		return nil, fmt.Errorf("unable to load key file for tlsmasq: %v", keyErr)
 	}
 
-	dialOrigin := func() (net.Conn, error) { return net.Dial("tcp", proxiedAddr) }
+	dialOrigin := func() (net.Conn, error) { return net.Dial("tcp", originAddr) }
+
+	nonFatalErrChan := make(chan error)
+	go func() {
+		for err := range nonFatalErrChan {
+			onNonFatalErrors(err)
+		}
+	}()
 
 	tlsConfig := &tls.Config{Certificates: []tls.Certificate{cert}}
 	listenerCfg := tlsmasq.ListenerConfig{

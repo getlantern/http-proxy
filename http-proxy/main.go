@@ -137,7 +137,7 @@ var (
 	missingTicketReactionDelay = flag.Duration("missing-session-ticket-reaction-delay", 0, "Specifies the delay before reaction to ClientHellos without TLS session tickets. Apply only if require-session-tickets is set.")
 	missingTicketReflectSite   = flag.String("missing-session-ticket-reflect-site", "", "Specifies the site to mirror when seeing no TLS session ticket in ClientHellos. Useful only if missing-session-ticket-reaction is ReflectToSite.")
 	tlsmasqAddr                = flag.String("tlsmasq-addr", "", "Address at which to listen for tlsmasq connections.")
-	tlsmasqOriginAddr          = flag.String("tlsmasq-origin-addr", "microsoft.com:443", "Address of tlsmasq origin.")
+	tlsmasqOriginAddr          = flag.String("tlsmasq-origin-addr", "", "Address of tlsmasq origin with port.")
 	tlsmasqSecret              = flag.String("tlsmasq-secret", "", "Hex encoded 52 byte tlsmasq shared secret.")
 )
 
