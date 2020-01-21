@@ -241,6 +241,8 @@ github.com/getlantern/tlsmasq v0.0.0-20200113200705-63f324055355 h1:QWIUr6r36FwD
 github.com/getlantern/tlsmasq v0.0.0-20200113200705-63f324055355/go.mod h1:MKzh5QPCD33MjPDUn1sTHkoUXFjtShpIC8e+rlGCDRc=
 github.com/getlantern/tlsmasq v0.0.0-20200116034010-fb442befdea5 h1:5uUZgllwd0cw+2/IZJKkY6Di+zh0waAy+xxCFtSD2O8=
 github.com/getlantern/tlsmasq v0.0.0-20200116034010-fb442befdea5/go.mod h1:MKzh5QPCD33MjPDUn1sTHkoUXFjtShpIC8e+rlGCDRc=
+github.com/getlantern/tlsmasq v0.1.0 h1:Z7coLA8/gxYQNM3U5Iwr5KuJUx/V4eb+myw0J12c8pw=
+github.com/getlantern/tlsmasq v0.1.0/go.mod h1:MKzh5QPCD33MjPDUn1sTHkoUXFjtShpIC8e+rlGCDRc=
 github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836 h1:Qx9tRhqZdhF0RBxHe2OVE1OJ30ipOCPfMraDrZED3bc=
 github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836/go.mod h1:1ZJE0mXEdPyyuF1daUTDBo2nVWB/6nuZy7IcNmRnHrc=
 github.com/getlantern/utls v0.0.0-20191119185840-3db8c755b682 h1:gK0+CerB0oFReyfhHZhTDywm7YU7NIx/xrhRGDhgiK0=

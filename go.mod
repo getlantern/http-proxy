@@ -46,7 +46,7 @@ require (
 	github.com/getlantern/tinywss v0.0.0-20190809093313-4439caa924e5
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
 	github.com/getlantern/tlsdialer v0.0.0-20190606180931-1ac26445d532 // indirect
-	github.com/getlantern/tlsmasq v0.0.0-20200116034010-fb442befdea5
+	github.com/getlantern/tlsmasq v0.1.0
 	github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836
 	github.com/getlantern/utls v0.0.0-20191119185840-3db8c755b682
 	github.com/getlantern/waitforserver v1.0.1
