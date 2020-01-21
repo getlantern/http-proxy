@@ -171,6 +171,10 @@ type addresses struct {
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
+	if p.Instrument == nil {
+		p.Instrument = instrument.NoInstrument{}
+	}
+
 	var onServerError func(conn net.Conn, err error)
 	var onListenerError func(conn net.Conn, err error)
 	if p.PCAPDir != "" && p.PCAPIPs > 0 && p.PCAPSPerIP > 0 {
