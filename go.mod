@@ -18,7 +18,7 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
 	github.com/getlantern/borda v0.0.0-20190809122504-668025f4c2b9
-	github.com/getlantern/cmux v0.0.0-20190809092548-4b7adf243efe
+	github.com/getlantern/cmux v0.0.0-20200120072431-136083c8edb8
 	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
@@ -43,7 +43,7 @@ require (
 	github.com/getlantern/quicwrapper v0.0.0-20191220185748-4721f84faa16
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
 	github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0
-	github.com/getlantern/tinywss v0.0.0-20190809093313-4439caa924e5
+	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
 	github.com/getlantern/tlsdialer v0.0.0-20190606180931-1ac26445d532 // indirect
 	github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836

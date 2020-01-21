@@ -44,7 +44,6 @@ github.com/aristanetworks/goarista v0.0.0-20190502180301-283422fc1708 h1:tS7jSmw
 github.com/aristanetworks/goarista v0.0.0-20190502180301-283422fc1708/go.mod h1:D/tb0zPVXnP7fmsLZjtdUhSsumbK/ij54UXjjVgMGxQ=
 github.com/aristanetworks/goarista v0.0.0-20190514202536-8f808a500156 h1:sdAZ4pJ5nD/EzLkcw4AonvhgrU1aBKxx6ga1b7Psr9o=
 github.com/aristanetworks/goarista v0.0.0-20190514202536-8f808a500156/go.mod h1:D/tb0zPVXnP7fmsLZjtdUhSsumbK/ij54UXjjVgMGxQ=
-github.com/aristanetworks/goarista v0.0.0-20190625195245-f3b0eb5a88b2/go.mod h1:D/tb0zPVXnP7fmsLZjtdUhSsumbK/ij54UXjjVgMGxQ=
 github.com/aristanetworks/goarista v0.0.0-20190628000427-15fc8b0bfcde h1:K99m0kwjkqQ7hWRhWf4D+aC5BqUV5HREDlOzlZWb0/Q=
 github.com/aristanetworks/goarista v0.0.0-20190628000427-15fc8b0bfcde/go.mod h1:D/tb0zPVXnP7fmsLZjtdUhSsumbK/ij54UXjjVgMGxQ=
 github.com/aristanetworks/goarista v0.0.0-20190712234253-ed1100a1c015 h1:7ABPr1+uJdqESAdlVevnc/2FJGiC/K3uMg1JiELeF+0=
@@ -114,8 +113,8 @@ github.com/getlantern/byteexec v0.0.0-20170405023437-4cfb26ec74f4 h1:Nqmy8i81dzo
 github.com/getlantern/byteexec v0.0.0-20170405023437-4cfb26ec74f4/go.mod h1:4WCQkaCIwta0KlF9bQZA1jYqp8bzIS2PeCqjnef8nZ8=
 github.com/getlantern/bytemap v0.0.0-20180417025909-c7bf952233bc h1:TVT95IccIoeFnFPD169fak0Uxr0NSwgcqVI+oLPDdNo=
 github.com/getlantern/bytemap v0.0.0-20180417025909-c7bf952233bc/go.mod h1:DFhUkF3XKDQgnCNVn203TVnRxy4oUnIIMClem8MQxKE=
-github.com/getlantern/cmux v0.0.0-20190809092548-4b7adf243efe h1:GOIyhXIt/VhW4vlYG42It2mtZztJPSLBL0DFlrSrsqs=
-github.com/getlantern/cmux v0.0.0-20190809092548-4b7adf243efe/go.mod h1:6YG7dGkCkWvp7wXlbONN3gjVQypSq6+NCvSEXBhgNC0=
+github.com/getlantern/cmux v0.0.0-20200120072431-136083c8edb8 h1:MljTva0fcc/zBrysfFiApJjlT3IDTOBSnmmXDHQlaJo=
+github.com/getlantern/cmux v0.0.0-20200120072431-136083c8edb8/go.mod h1:imgbvmGS4GkyCTBEnVVdCB2TgBQNEaP+nuegf/SzXIQ=
 github.com/getlantern/context v0.0.0-20190109183933-c447772a6520 h1:NRUJuo3v3WGC/g5YiyF790gut6oQr5f3FBI88Wv0dx4=
 github.com/getlantern/context v0.0.0-20190109183933-c447772a6520/go.mod h1:L+mq6/vvYHKjCX2oez0CgEAJmbq1fbb/oNJIWQkBybY=
 github.com/getlantern/elevate v0.0.0-20180207094634-c2e2e4901072 h1:Sxd/u3rnHYAqXzpRXjOA7DPyRKYzcivMRBKtOhsRwW8=
@@ -183,8 +182,6 @@ github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198/go.mod h1:5OW2
 github.com/getlantern/mitm v0.0.0-20180205214248-4ce456bae650 h1:n3CmLDgXI1AUbybRxYcU48fAmfe4MPwL/ek4DgJHfcc=
 github.com/getlantern/mitm v0.0.0-20180205214248-4ce456bae650/go.mod h1:jmIVbVxSVLdeY5hlD+6chiOR/9CdzPjVgIIQphviCl0=
 github.com/getlantern/mockconn v0.0.0-20161230140259-422a5afd4432/go.mod h1:+F5GJ7qGpQ03DBtcOEyQpM30ix4BLswdaojecFtsdy8=
-github.com/getlantern/mockconn v0.0.0-20190403061815-a8ffa60494a6 h1:+aO65ByJw74kV8vXqvkj49P5RtIqyUObyeRTIxMz218=
-github.com/getlantern/mockconn v0.0.0-20190403061815-a8ffa60494a6/go.mod h1:+F5GJ7qGpQ03DBtcOEyQpM30ix4BLswdaojecFtsdy8=
 github.com/getlantern/mockconn v0.0.0-20190708122800-637bd46d8034 h1:YtJxkucYlrHcD89/TIPAYIdOm8GGO7/xKUjDS6ZJFs4=
 github.com/getlantern/mockconn v0.0.0-20190708122800-637bd46d8034/go.mod h1:+F5GJ7qGpQ03DBtcOEyQpM30ix4BLswdaojecFtsdy8=
 github.com/getlantern/mockconn v0.0.0-20191023022503-481dbcceeb58 h1:95ogd2dX0JeYDUI4Ssl9ARhVAh+kvOTpN6TOD/tX0Vs=
@@ -228,8 +225,8 @@ github.com/getlantern/testify v0.0.0-20160317154340-2eeb3906e78f h1:R6iv+VzCrbxl
 github.com/getlantern/testify v0.0.0-20160317154340-2eeb3906e78f/go.mod h1:uKKI9HSwZ4C8tx1vV+ovbG32Lw9LixtzPLNiS8U/ddA=
 github.com/getlantern/testredis v0.0.0-20180921025736-7a5ea00c9914 h1:kgfkmO94gAOSDZaGLTHYSQ/GW15x2t6GkWRjMDh6SmE=
 github.com/getlantern/testredis v0.0.0-20180921025736-7a5ea00c9914/go.mod h1:3AaQa3xeGKD3Id/FA3VacMp+0paYYwLr1aPWmUHAaDc=
-github.com/getlantern/tinywss v0.0.0-20190809093313-4439caa924e5 h1:pFKrSav5GuqBUxMzBGt4iL0CNoFj3mSlUqfypfmcKY8=
-github.com/getlantern/tinywss v0.0.0-20190809093313-4439caa924e5/go.mod h1:G4iFT0rI3zA56WisNZA1LvR7ImzRkUMq1q09/exNYlA=
+github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7 h1:wVcJbQS7pf4h1PBpoIvuAUGkk+EjPT0TPS1h/vqh6EA=
+github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7/go.mod h1:ZLyPOKtNWU4vWnAiRiNQ7hbfLMqCEuj1DgQWBtHp7tQ=
 github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4 h1:73U3J4msGw3cXeKtCEbY7hbOdD6aX8gJv8BOu+VagF8=
 github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4/go.mod h1:f8WmDYKFOaC5/y0d3GWl6UKf1ZbSlIoMzkuC8x7pUhg=
 github.com/getlantern/tlsdialer v0.0.0-20190606180931-1ac26445d532 h1:rdmlf0r0lZpTHZLkY0aJeKXrY7ggX4WXuLtOepZvmXM=
@@ -479,8 +476,8 @@ github.com/xdg/scram v0.0.0-20180814205039-7eeb5667e42c/go.mod h1:lB8K/P019DLNhe
 github.com/xdg/stringprep v1.0.0/go.mod h1:Jhud4/sHMO4oL310DaZAKk9ZaJ08SJfe+sJh0HrGL1Y=
 github.com/xtaci/kcp-go v5.4.5+incompatible/go.mod h1:bN6vIwHQbfHaHtFpEssmWsN45a+AZwO7eyRCmEIbtvE=
 github.com/xtaci/lossyconn v0.0.0-20190602105132-8df528c0c9ae/go.mod h1:gXtu8J62kEgmN++bm9BVICuT/e8yiLI2KFobd/TRFsE=
-github.com/xtaci/smux v1.3.4 h1:7BJNo6A3d8CJXV1cCwwN9lZaGigNB2BbSDKIbtf7bHE=
-github.com/xtaci/smux v1.3.4/go.mod h1:f+nYm6SpuHMy/SH0zpbvAFHT1QoMcgLOsWcFip5KfPw=
+github.com/xtaci/smux v1.5.10 h1:DM8CT6mO3b7u02NU6848Mb+nHJTK0rNE/qyzrEhNzn8=
+github.com/xtaci/smux v1.5.10/go.mod h1:OMlQbT5vcgl2gb49mFkYo6SMf+zP3rcjcwQz7ZU7IGY=
 github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2 h1:zzrxE1FKn5ryBNl9eKOeqQ58Y/Qpo3Q9QNxKHX5uzzQ=
 github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2/go.mod h1:hzfGeIUDq/j97IG+FhNqkowIyEcD88LrW6fyU3K3WqY=
 github.com/yuin/gopher-lua v0.0.0-20190514113301-1cd887cd7036 h1:1b6PAtenNyhsmo/NKXVe34h7JEZKva1YB/ne7K7mqKM=
