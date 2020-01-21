@@ -38,11 +38,11 @@ func (pm *pingMiddleware) urlPing(ctx filters.Context, req *http.Request, pingUR
 	timing, found := pm.urlTimings[pingURL]
 	pm.urlTimingsMx.RUnlock()
 	if found {
-		log.Debugf("Returning existing timing for %v", pingURL)
+		log.Tracef("Returning existing timing for %v", pingURL)
 		// Simulate latency by sleeping
 		time.Sleep(timing.latency)
 	} else {
-		log.Debugf("Pinging %v", pingURL)
+		log.Tracef("Pinging %v", pingURL)
 		var err error
 		timing, err = pm.timeURL(pingURL)
 		if err != nil {

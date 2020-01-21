@@ -94,7 +94,7 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 			"server_connection":          borda.Float(1),
 			"server_connection_duration": borda.Float(float64(stats.Duration) / nanosPerSecond),
 		}
-		log.Debugf("xfer: %v %v", _ctx, vals)
+		log.Tracef("xfer: %v %v", _ctx, vals)
 
 		if !inSample(_ctx) {
 			return

@@ -48,13 +48,13 @@ func (f *googleFilter) Apply(ctx filters.Context, req *http.Request, next filter
 func (f *googleFilter) recordActivity(req *http.Request) (sawSearch bool, sawCaptcha bool) {
 	if f.searchRegex.MatchString(req.Host) {
 		op := ops.Begin("google_search")
-		log.Debug("Saw google search")
+		log.Tracef("Saw google search")
 		op.End()
 		return true, false
 	}
 	if f.captchaRegex.MatchString(req.Host) {
 		op := ops.Begin("google_captcha")
-		log.Debug("Saw google captcha")
+		log.Tracef("Saw google captcha")
 		op.End()
 		return false, true
 	}

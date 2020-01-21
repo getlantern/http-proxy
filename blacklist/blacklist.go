@@ -146,7 +146,7 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 	defer bl.mutex.RUnlock()
 	_, blacklisted := bl.blacklist[ip]
 	if blacklisted {
-		log.Debugf("%v is blacklisted", ip)
+		log.Tracef("%v is blacklisted", ip)
 		bl.instrument.Blacklist(true)
 		return false
 	}
@@ -208,7 +208,7 @@ func (bl *Blacklist) checkForIdlers() {
 	for ip, t := range bl.firstConnectionTime {
 		if now.Sub(t) > bl.maxIdleTime {
 			msg := fmt.Sprintf("%v connected but failed to successfully send an HTTP request within %v", ip, bl.maxIdleTime)
-			log.Debug(msg)
+			log.Trace(msg)
 			delete(bl.firstConnectionTime, ip)
 			ops.Begin("connect_without_request").Set("client_ip", ip).End()
 			pcapper.Dump(ip, fmt.Sprintf("Blacklist Check: %v", msg))
@@ -236,7 +236,7 @@ func (bl *Blacklist) checkExpiration() {
 	bl.mutex.Lock()
 	for ip, blacklistedAt := range bl.blacklist {
 		if now.Sub(blacklistedAt) > bl.blacklistExpiration {
-			log.Debugf("Removing %v from blacklist", ip)
+			log.Tracef("Removing %v from blacklist", ip)
 			delete(bl.blacklist, ip)
 			delete(bl.failureCounts, ip)
 			delete(bl.firstConnectionTime, ip)

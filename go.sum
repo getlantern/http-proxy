@@ -141,6 +141,10 @@ github.com/getlantern/fronted v0.0.0-20190606212108-e7744195eded h1:zyE6PKoT+jY7
 github.com/getlantern/fronted v0.0.0-20190606212108-e7744195eded/go.mod h1:+2ylraMe5Yyd44hi9AlZqnKH5RPNMIDYpDLyYSwQh1E=
 github.com/getlantern/geolookup v0.0.0-20180719190536-68d621f75f46 h1:Wn6iLKISC9f0EOzffdJqwC9ppLekPA47idBUP402nb4=
 github.com/getlantern/geolookup v0.0.0-20180719190536-68d621f75f46/go.mod h1:C4lSABOxuIeQi36iYsO7xrcBzLDNeeB/nPVqYbHEnbo=
+github.com/getlantern/geolookup v0.0.0-20200121164034-8acc7a45b617 h1:lNUajhUcw/6VyPLl3a6vEwNGUMLzPvIIdPNVh/75lqo=
+github.com/getlantern/geolookup v0.0.0-20200121164034-8acc7a45b617/go.mod h1:C4lSABOxuIeQi36iYsO7xrcBzLDNeeB/nPVqYbHEnbo=
+github.com/getlantern/geolookup v0.0.0-20200121184643-02217082e50f h1:1yPtM1N/MTfSgzvEKbMhbaY7vFjp64nkzcDCX3JrdLs=
+github.com/getlantern/geolookup v0.0.0-20200121184643-02217082e50f/go.mod h1:C4lSABOxuIeQi36iYsO7xrcBzLDNeeB/nPVqYbHEnbo=
 github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467 h1:10ez8C+7zyHzmnIiYybx9Qji/zO2tAAde69DfJMbUKY=
 github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467/go.mod h1:IQND0fl/mdTYNICpN/eDYKX+j90TqQYXdpNFWkJpCPs=
 github.com/getlantern/go-libutp v1.0.3 h1:ESmde7HKb1LaB+6G0eWUuWcjN4DmqOvTRqm49De33sI=

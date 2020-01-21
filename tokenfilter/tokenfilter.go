@@ -39,7 +39,7 @@ func (f *tokenFilter) Apply(ctx filters.Context, req *http.Request, next filters
 	}
 
 	if f.token == "" {
-		log.Debug("Not checking token")
+		log.Trace("Not checking token")
 		return next(ctx, req)
 	}
 
@@ -58,7 +58,7 @@ func (f *tokenFilter) Apply(ctx filters.Context, req *http.Request, next filters
 	}
 	if tokenMatched {
 		req.Header.Del(common.TokenHeader)
-		log.Debugf("Allowing connection from %v to %v", req.RemoteAddr, req.Host)
+		log.Tracef("Allowing connection from %v to %v", req.RemoteAddr, req.Host)
 		f.instrument.Mimic(false)
 		return next(ctx, req)
 	}
