@@ -44,7 +44,7 @@ require-change:
 
 build:
 	mkdir -p $(BUILD_DIR) && \
-	GO111MODULE=on go build -o $(BUILD_DIR)/http-proxy \
+	GO111MODULE=on GOPRIVATE="github.com/getlantern" go build -o $(BUILD_DIR)/http-proxy \
 	-ldflags="-X main.revision=$(GIT_REVISION)" \
 	github.com/getlantern/http-proxy-lantern/http-proxy && \
 	file $(BUILD_DIR)/http-proxy
@@ -82,9 +82,8 @@ docker-distnochange: docker-builder
 	mkdir -p dist && \
 	GO111MODULE=on go mod vendor && \
 	docker run -e GIT_REVISION='$(GIT_REVISION)' \
-	-e SRCDIR='github.com/getlantern/http-proxy-lantern' \
-	-v $$PWD/../../..:/src -t $(DOCKER_IMAGE_TAG) /bin/bash -c \
-	'cd /src && go build -o $$SRCDIR/dist/http-proxy -ldflags="-X main.revision=$$GIT_REVISION" $$SRCDIR/http-proxy' && \
+	-v $$PWD:/src -t $(DOCKER_IMAGE_TAG) /bin/bash -c \
+	'cd /src && go build -o dist/http-proxy -ldflags="-X main.revision=$$GIT_REVISION" -mod=vendor ./http-proxy' && \
 	upx dist/http-proxy
 
 docker-dist: require-upx require-version require-change docker-distnochange
