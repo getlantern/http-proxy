@@ -80,7 +80,7 @@ docker-builder: system-checks
 # workaround to build Ubuntu binary on non-Ubuntu platforms.
 docker-distnochange: docker-builder
 	mkdir -p dist && \
-	go mod vendor && \
+	GO111MODULE=on go mod vendor && \
 	docker run -e GIT_REVISION='$(GIT_REVISION)' \
 	-v $$PWD:/src -t $(DOCKER_IMAGE_TAG) /bin/bash -c \
 	'cd /src && go build -o dist/http-proxy -ldflags="-X main.revision=$$GIT_REVISION" -mod=vendor ./http-proxy' && \
