@@ -16,5 +16,13 @@ func Wrap(ll net.Listener, certFile string, keyFile string, keyCacheSize int, ma
 	if keyErr != nil {
 		return nil, fmt.Errorf("Unable to load key file for lampshade: %v", keyErr)
 	}
-	return lampshade.WrapListenerLimitingInitAge(ll, buffers.Pool(), cert.PrivateKey.(*rsa.PrivateKey), true, keyCacheSize, maxClientInitAge, onListenerError), nil
+	return lampshade.WrapListener(
+		ll,
+		buffers.Pool(),
+		cert.PrivateKey.(*rsa.PrivateKey),
+		&lampshade.ListenerOpts{
+			AckOnFirst:       true,
+			KeyCacheSize:     keyCacheSize,
+			MaxClientInitAge: maxClientInitAge,
+			OnError:          onListenerError}), nil
 }
