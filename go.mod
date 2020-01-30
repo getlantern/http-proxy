@@ -13,7 +13,6 @@ require (
 	github.com/anacrolix/missinggo v1.1.1 // indirect
 	github.com/blang/semver v0.0.0-20180723201105-3c1074078d32
 	github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c // indirect
-	github.com/cloudflare/sidh v0.0.0-20190228162259-d2f0f90e08aa // indirect
 	github.com/dchest/siphash v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
@@ -40,7 +39,8 @@ require (
 	github.com/getlantern/packetforward v0.0.0-20190809094443-386cbcc0d498
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/proxy v0.0.0-20191025190912-b5f45407d9f2
-	github.com/getlantern/quicwrapper v0.0.0-20191220185748-4721f84faa16
+	github.com/getlantern/quic0 v0.0.0-20200121154153-8b18c2ba09f9
+	github.com/getlantern/quicwrapper v0.0.0-20200129232925-8ef70253fcae
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
 	github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
@@ -63,7 +63,6 @@ require (
 	github.com/hashicorp/golang-lru v0.5.3
 	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/juju/ratelimit v1.0.1
-	github.com/marten-seemann/qtls v0.0.0-20190207043627-591c71538704 // indirect
 	github.com/mikioh/tcp v0.0.0-20180707144002-02a37043a4f7 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20180831101334-131b59fef27f // indirect
 	github.com/mikioh/tcpopt v0.0.0-20180707144150-7178f18b4ea8 // indirect
@@ -81,9 +80,7 @@ require (
 	gopkg.in/redis.v5 v5.2.9
 )
 
-replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20190819144938-28e3ca4262e1
-
-replace github.com/marten-seemann/qtls => github.com/marten-seemann/qtls-deprecated v0.0.0-20190207043627-591c71538704
+replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.0.0-20200129225515-f0142adfc7dd
 
 replace github.com/anacrolix/go-libutp => github.com/getlantern/go-libutp v1.0.3
 
