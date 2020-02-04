@@ -168,6 +168,10 @@ github.com/getlantern/http-proxy v0.0.3-0.20190809090746-b2f0d5c04754/go.mod h1:
 github.com/getlantern/idletiming v0.0.0-20170131220046-7a71d2e71cf2/go.mod h1:MGP8kEgZGgAhvHISt0hJGQgxg/VAqGdw3+kSZBnfC/4=
 github.com/getlantern/idletiming v0.0.0-20190529182719-d2fbc83372a5 h1:laM1s/bxUH8xbbC9TBGWsOc7A0KCAPZMa4pdwO5e6Vw=
 github.com/getlantern/idletiming v0.0.0-20190529182719-d2fbc83372a5/go.mod h1:MGP8kEgZGgAhvHISt0hJGQgxg/VAqGdw3+kSZBnfC/4=
+github.com/getlantern/idletiming v0.0.0-20200204041424-25f0e0eb510a h1:h1LkTNiqMAPRyuShPyit2Iq0karxtFXp4b9p5fgUU8Y=
+github.com/getlantern/idletiming v0.0.0-20200204041424-25f0e0eb510a/go.mod h1:MGP8kEgZGgAhvHISt0hJGQgxg/VAqGdw3+kSZBnfC/4=
+github.com/getlantern/idletiming v0.0.0-20200204045451-3f1a3710fae3 h1:lN7uAeOiAqcO2kkeDo6CGtPPyizhTTVsyW+giZlGDZ8=
+github.com/getlantern/idletiming v0.0.0-20200204045451-3f1a3710fae3/go.mod h1:MGP8kEgZGgAhvHISt0hJGQgxg/VAqGdw3+kSZBnfC/4=
 github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c h1:RRKKa+o6Yqb0s1Qkdcx54eF2yAXh1P4As4i+L5UwMuo=
 github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c/go.mod h1:AZHOQRIy6GnSLBR4EUUNj7tw635t43+FOxZMzj8FSok=
 github.com/getlantern/kcpwrapper v0.0.0-20171114192627-a35c895f6de7 h1:0uglM96WZ137+gN+/qipUmjAif/cpTCD0vRkBPrElkM=
@@ -177,6 +181,10 @@ github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a/go.mod h1:FMf0g7
 github.com/getlantern/lampshade v0.0.0-20171122120757-b10a301ad56e/go.mod h1:h0JxtfSix7rXr+2dnLTmUV2rApjQH364hfM5YLAFXYc=
 github.com/getlantern/lampshade v0.0.0-20200123165158-e0efbb58c68b h1:vj38qXPBAw0zZzGl+c3TZhwfKSjgU3c949/8L+zZUMg=
 github.com/getlantern/lampshade v0.0.0-20200123165158-e0efbb58c68b/go.mod h1:LUY/ad1TCBCGnBIF5os1WwLZ+LVnlaG4pIUaIdkrmFw=
+github.com/getlantern/lampshade v0.0.0-20200204042316-f1252e9ec9ed h1:32DJZB9Xyahr+lcWPJOE7FHy+i43jLmHsFh+tHBzF5M=
+github.com/getlantern/lampshade v0.0.0-20200204042316-f1252e9ec9ed/go.mod h1:3mKB0OGeo27MarCM3sZLwjCGFENRfk7jo+PjJlFALYY=
+github.com/getlantern/lampshade v0.0.0-20200204045703-6896bfd5d39a h1:1LN97uR/B1bIhJ7NwkPl6NHMpnXuTrcMHin5ESoqQxg=
+github.com/getlantern/lampshade v0.0.0-20200204045703-6896bfd5d39a/go.mod h1:c1v6yS27CAnJ5TYaFdMyIZ++wqW8pnZGEmQXCJdsJLo=
 github.com/getlantern/measured v0.0.0-20170302221919-0582bf799783/go.mod h1:5OW2WJitCKExpSw2bploW2fM7PjOd6QnLqyp+IqToqU=
 github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198 h1:J0CxRQc8J4iDyMTeSqXa338ZLDpAFf4jLZHBzw+iCMs=
 github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198/go.mod h1:5OW2WJitCKExpSw2bploW2fM7PjOd6QnLqyp+IqToqU=
