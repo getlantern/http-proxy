@@ -1,5 +1,14 @@
 # Change Log
 
+## [2.4.3](https://github.com/getlantern/http-proxy-lantern/tree/2.4.3) (2020-02-04)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.4.2...2.4.3)
+
+**Merged pull requests:**
+
+- Updated to latest lampshade with latest probing mitigation [\#371](https://github.com/getlantern/http-proxy-lantern/pull/371) ([oxtoacart](https://github.com/oxtoacart))
+- do not crash if missing-session-ticket-reaction parameter is invalid [\#370](https://github.com/getlantern/http-proxy-lantern/pull/370) ([joesis](https://github.com/joesis))
+- Quic ietf draft 24 [\#369](https://github.com/getlantern/http-proxy-lantern/pull/369) ([forkner](https://github.com/forkner))
+
 ## [2.4.2](https://github.com/getlantern/http-proxy-lantern/tree/2.4.2) (2020-01-24)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.4.1...2.4.2)
 
