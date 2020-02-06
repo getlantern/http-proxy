@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.4.4](https://github.com/getlantern/http-proxy-lantern/tree/2.4.4) (2020-02-06)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.4.3...2.4.4)
+
+**Merged pull requests:**
+
+- Updated to latest lampshade to fix goroutine leak [\#372](https://github.com/getlantern/http-proxy-lantern/pull/372) ([oxtoacart](https://github.com/oxtoacart))
+
 ## [2.4.3](https://github.com/getlantern/http-proxy-lantern/tree/2.4.3) (2020-02-04)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.4.2...2.4.3)
 
