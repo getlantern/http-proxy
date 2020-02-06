@@ -30,7 +30,7 @@ require (
 	github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c // indirect
 	github.com/getlantern/kcpwrapper v0.0.0-20171114192627-a35c895f6de7
 	github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a
-	github.com/getlantern/lampshade v0.0.0-20200204045703-6896bfd5d39a
+	github.com/getlantern/lampshade v0.0.0-20200206173010-2361428efb87
 	github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198
 	github.com/getlantern/mockconn v0.0.0-20191023022503-481dbcceeb58
 	github.com/getlantern/mtime v0.0.0-20170117193331-ba114e4a82b0
