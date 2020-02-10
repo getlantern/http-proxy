@@ -11,6 +11,8 @@ import (
 
 	utls "github.com/getlantern/utls"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/getlantern/http-proxy-lantern/instrument"
 )
 
 func TestAbortOnHello(t *testing.T) {
@@ -34,7 +36,7 @@ func TestAbortOnHello(t *testing.T) {
 		t.Run(tc.response.action, func(t *testing.T) {
 			l, _ := net.Listen("tcp", ":0")
 			defer l.Close()
-			hl, err := Wrap(l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", true, tc.response)
+			hl, err := Wrap(l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", true, tc.response, instrument.NoInstrument{})
 			assert.NoError(t, err)
 			defer hl.Close()
 

@@ -14,6 +14,7 @@ import (
 	"github.com/getlantern/netx"
 	utls "github.com/getlantern/utls"
 
+	"github.com/getlantern/http-proxy-lantern/geo"
 	"github.com/getlantern/http-proxy-lantern/instrument"
 )
 
@@ -172,23 +173,20 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	}()
 
 	hello := rrc.dataRead.Bytes()[5:]
-
 	// We use uTLS here purely because it exposes more TLS handshake internals, allowing
 	// us to decrypt the ClientHello and session tickets, for example. We use those functions
 	// separately without switching to uTLS entirely to allow continued upgrading of the TLS stack
 	// as new Go versions are released.
 	helloMsg, err := utls.UnmarshalClientHello(hello)
 
-	// Skip checking error as net.Addr.String() should be in valid form
-	sourceIP, _, _ := net.SplitHostPort(rrc.RemoteAddr().String())
-
 	if err != nil {
 		return rrc.helloError("malformed ClientHello")
 	}
 
+	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
 	// We allow loopback to generate session states (makesessions) to
 	// distribute to Lantern clients.
-	if !disallowLookbackForTesting && net.ParseIP(sourceIP).IsLoopback() {
+	if !disallowLookbackForTesting && sourceIP.IsLoopback() {
 		return nil, nil
 	}
 
@@ -212,7 +210,9 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 }
 
 func (rrc *clientHelloRecordingConn) helloError(errStr string) (*tls.Config, error) {
-	rrc.instrument.SuspectedProbing(errStr)
+	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
+	sourceCountry := geo.Default.CountryCode(sourceIP.String())
+	rrc.instrument.SuspectedProbing(sourceCountry, errStr)
 	rrc.log.Error(errStr)
 	if rrc.missingTicketReaction.handleConn != nil {
 		rrc.missingTicketReaction.handleConn(rrc)

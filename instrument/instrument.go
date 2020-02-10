@@ -22,7 +22,7 @@ type Instrument interface {
 	Mimic(m bool)
 	Throttle(m bool, reason string)
 	XBQHeaderSent()
-	SuspectedProbing(reason string)
+	SuspectedProbing(fromCountry string, reason string)
 	VersionCheck(redirect bool, method, reason string)
 }
 
@@ -38,9 +38,9 @@ func (i NoInstrument) Blacklist(b bool)               {}
 func (i NoInstrument) Mimic(m bool)                   {}
 func (i NoInstrument) Throttle(m bool, reason string) {}
 
-func (i NoInstrument) XBQHeaderSent()                                    {}
-func (i NoInstrument) SuspectedProbing(reason string)                    {}
-func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
+func (i NoInstrument) XBQHeaderSent()                                     {}
+func (i NoInstrument) SuspectedProbing(fromCountry string, reason string) {}
+func (i NoInstrument) VersionCheck(redirect bool, method, reason string)  {}
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
@@ -133,7 +133,7 @@ func NewPrometheus(c CommonLabels) *PromInstrument {
 
 		suspectedProbing: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "suspected_probing_total",
-		}, append(commonLabelNames, "reason")).MustCurryWith(commonLabels),
+		}, append(commonLabelNames, "country", "reason")).MustCurryWith(commonLabels),
 
 		versionCheck: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "version_check_total",
@@ -249,8 +249,8 @@ func (p *PromInstrument) XBQHeaderSent() {
 
 // SuspectedProbing records the number of visits which looks like active
 // probing.
-func (p *PromInstrument) SuspectedProbing(reason string) {
-	p.suspectedProbing.With(prometheus.Labels{"reason": reason}).Inc()
+func (p *PromInstrument) SuspectedProbing(fromCountry string, reason string) {
+	p.suspectedProbing.With(prometheus.Labels{"country": fromCountry, "reason": reason}).Inc()
 }
 
 // VersionCheck records the number of times the Lantern version header is

@@ -36,7 +36,7 @@ const script = `
 var (
 	log = golog.LoggerFor("redis")
 
-	geoLookup = geo.New(1000000)
+	geoLookup = geo.Default
 )
 
 func init() {

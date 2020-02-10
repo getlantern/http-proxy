@@ -16,6 +16,8 @@ var (
 	log = golog.LoggerFor("http-proxy-lantern.geo")
 
 	rt = &http.Transport{}
+
+	Default = New(1000000)
 )
 
 // Lookup allows looking up the country for an IP address and exposes some
