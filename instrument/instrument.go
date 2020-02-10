@@ -12,6 +12,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/getlantern/proxy/filters"
+
+	"github.com/getlantern/http-proxy-lantern/geo"
 )
 
 // Instrument is the common interface about what can be instrumented.
@@ -22,7 +24,7 @@ type Instrument interface {
 	Mimic(m bool)
 	Throttle(m bool, reason string)
 	XBQHeaderSent()
-	SuspectedProbing(fromCountry string, reason string)
+	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
 }
 
@@ -38,9 +40,9 @@ func (i NoInstrument) Blacklist(b bool)               {}
 func (i NoInstrument) Mimic(m bool)                   {}
 func (i NoInstrument) Throttle(m bool, reason string) {}
 
-func (i NoInstrument) XBQHeaderSent()                                     {}
-func (i NoInstrument) SuspectedProbing(fromCountry string, reason string) {}
-func (i NoInstrument) VersionCheck(redirect bool, method, reason string)  {}
+func (i NoInstrument) XBQHeaderSent()                                    {}
+func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
+func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
@@ -81,6 +83,7 @@ func (f *instrumentedFilter) Apply(ctx filters.Context, req *http.Request, next 
 // PromInstrument is an implementation of Instrument which exports Prometheus
 // metrics.
 type PromInstrument struct {
+	geolookup        geo.Lookup
 	commonLabels     prometheus.Labels
 	commonLabelNames []string
 	filters          map[string]*instrumentedFilter
@@ -91,7 +94,7 @@ type PromInstrument struct {
 	throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
 }
 
-func NewPrometheus(c CommonLabels) *PromInstrument {
+func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 	commonLabels := c.PromLabels()
 	commonLabelNames := make([]string, len(commonLabels))
 	i := 0
@@ -100,6 +103,7 @@ func NewPrometheus(c CommonLabels) *PromInstrument {
 		i++
 	}
 	return &PromInstrument{
+		geolookup:        geolookup,
 		commonLabels:     commonLabels,
 		commonLabelNames: commonLabelNames,
 		filters:          make(map[string]*instrumentedFilter),
@@ -249,7 +253,8 @@ func (p *PromInstrument) XBQHeaderSent() {
 
 // SuspectedProbing records the number of visits which looks like active
 // probing.
-func (p *PromInstrument) SuspectedProbing(fromCountry string, reason string) {
+func (p *PromInstrument) SuspectedProbing(fromIP net.IP, reason string) {
+	fromCountry := p.geolookup.CountryCode(fromIP)
 	p.suspectedProbing.With(prometheus.Labels{"country": fromCountry, "reason": reason}).Inc()
 }
 

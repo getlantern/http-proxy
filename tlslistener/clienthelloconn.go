@@ -14,7 +14,6 @@ import (
 	"github.com/getlantern/netx"
 	utls "github.com/getlantern/utls"
 
-	"github.com/getlantern/http-proxy-lantern/geo"
 	"github.com/getlantern/http-proxy-lantern/instrument"
 )
 
@@ -211,8 +210,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 
 func (rrc *clientHelloRecordingConn) helloError(errStr string) (*tls.Config, error) {
 	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
-	sourceCountry := geo.Default.CountryCode(sourceIP.String())
-	rrc.instrument.SuspectedProbing(sourceCountry, errStr)
+	rrc.instrument.SuspectedProbing(sourceIP, errStr)
 	rrc.log.Error(errStr)
 	if rrc.missingTicketReaction.handleConn != nil {
 		rrc.missingTicketReaction.handleConn(rrc)

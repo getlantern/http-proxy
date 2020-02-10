@@ -48,6 +48,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/diffserv"
 	"github.com/getlantern/http-proxy-lantern/domains"
+	"github.com/getlantern/http-proxy-lantern/geo"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/httpsupgrade"
 	"github.com/getlantern/http-proxy-lantern/instrument"
@@ -135,6 +136,7 @@ type Proxy struct {
 	BlacklistAllowedFailures           int
 	BlacklistExpiration                time.Duration
 	ProxyName                          string
+	ProxyProtocol                      string
 	BBRUpstreamProbeURL                string
 	QUICIETFAddr                       string
 	QUIC0Addr                          string
@@ -158,11 +160,13 @@ type Proxy struct {
 	TLSMasqAddr                        string
 	TLSMasqOriginAddr                  string
 	TLSMasqSecret                      string
-	Instrument                         instrument.Instrument
+	PromExporterAddr                   string
+	GeoLookup                          geo.Lookup
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
 	throttleConfig throttle.Config
+	instrument     instrument.Instrument
 }
 
 type listenerBuilderFN func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error)
@@ -178,8 +182,23 @@ type addresses struct {
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
-	if p.Instrument == nil {
-		p.Instrument = instrument.NoInstrument{}
+	p.instrument = instrument.NoInstrument{}
+	if p.PromExporterAddr != "" {
+		prom := instrument.NewPrometheus(
+			p.GeoLookup,
+			instrument.CommonLabels{
+				Protocol:              p.ProxyProtocol,
+				SupportTLSResumption:  p.SessionTicketKeyFile != "",
+				RequireTLSResumption:  p.RequireSessionTickets,
+				MissingTicketReaction: p.MissingTicketReaction.Action(),
+			})
+		go func() {
+			log.Debugf("Running Prometheus exporter at http://%s/metrics", p.PromExporterAddr)
+			if err := prom.Run(p.PromExporterAddr); err != nil {
+				log.Error(err)
+			}
+		}()
+		p.instrument = prom
 	}
 
 	var onServerError func(conn net.Conn, err error)
@@ -253,9 +272,9 @@ func (p *Proxy) ListenAndServe() error {
 	srv := server.New(&server.Opts{
 		IdleTimeout:              p.IdleTimeout,
 		Dial:                     dial,
-		Filter:                   p.Instrument.WrapFilter("proxy", filterChain),
+		Filter:                   p.instrument.WrapFilter("proxy", filterChain),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
-		OnError:                  p.Instrument.WrapConnErrorHandler("proxy_serve", onServerError),
+		OnError:                  p.instrument.WrapConnErrorHandler("proxy_serve", onServerError),
 	})
 	// Although we include blacklist functionality, it's currently only used to
 	// track potential blacklisting ad doesn't actually blacklist anyone.
@@ -286,7 +305,7 @@ func (p *Proxy) ListenAndServe() error {
 
 		// We pass onListenerError to lampshade so that we can count errors in its
 		// internal connection handling and dump pcaps in response to them.
-		onListenerError = p.Instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
+		onListenerError = p.instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
 		if err := addListenerIfNecessary(addrs.lampshade, p.listenLampshade(true, onListenerError, baseListen)); err != nil {
 			return err
 		}
@@ -361,10 +380,10 @@ func (p *Proxy) ListenAndServeENHTTP() error {
 		return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
 	}
 	log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
-	filterChain := filters.Join(tokenfilter.New(p.Token, p.Instrument), p.Instrument.WrapFilter("http_ping", ping.New(0)))
+	filterChain := filters.Join(tokenfilter.New(p.Token, p.instrument), p.instrument.WrapFilter("http_ping", ping.New(0)))
 	enhttpHandler := enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL)
 	server := &http.Server{
-		Handler: filters.Intercept(enhttpHandler, p.Instrument.WrapFilter("proxy", filterChain)),
+		Handler: filters.Intercept(enhttpHandler, p.instrument.WrapFilter("proxy", filterChain)),
 	}
 	return server.Serve(el)
 }
@@ -377,7 +396,7 @@ func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
 		}
 
 		if p.HTTPS {
-			l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.RequireSessionTickets, p.MissingTicketReaction, p.Instrument)
+			l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.RequireSessionTickets, p.MissingTicketReaction, p.instrument)
 			if err != nil {
 				return nil, err
 			}
@@ -488,7 +507,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 			"ping-chained-server": 1 * time.Nanosecond, // Internal ping-chained-server protocol
 		}))
 	} else {
-		filterChain = filterChain.Append(proxy.OnFirstOnly(tokenfilter.New(p.Token, p.Instrument)))
+		filterChain = filterChain.Append(proxy.OnFirstOnly(tokenfilter.New(p.Token, p.instrument)))
 	}
 
 	if p.rc == nil {
@@ -496,7 +515,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	} else {
 		filterChain = filterChain.Append(
 			proxy.OnFirstOnly(devicefilter.NewPre(
-				redis.NewDeviceFetcher(p.rc), p.throttleConfig, !p.Pro, p.Instrument)),
+				redis.NewDeviceFetcher(p.rc), p.throttleConfig, !p.Pro, p.instrument)),
 		)
 	}
 
@@ -516,7 +535,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		}
 		filterChain = filterChain.Append(proxyfilters.BlockLocal(allowedLocalAddrs))
 	}
-	filterChain = filterChain.Append(p.Instrument.WrapFilter("http_ping", ping.New(0)))
+	filterChain = filterChain.Append(p.instrument.WrapFilter("http_ping", ping.New(0)))
 
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97
@@ -562,7 +581,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		vc, err := versioncheck.New(p.VersionCheckRange,
 			p.VersionCheckRedirectURL,
 			[]string{"80"}, // checks CONNECT tunnel to 80 port only.
-			p.VersionCheckRedirectPercentage, p.Instrument)
+			p.VersionCheckRedirectPercentage, p.instrument)
 		if err != nil {
 			log.Errorf("Fail to init versioncheck, skipping: %v", err)
 		} else {
@@ -599,7 +618,7 @@ func (p *Proxy) configureBandwidthReporting() (*reportingConfig, listeners.Measu
 	if p.BordaReportInterval > 0 {
 		bordaReporter = borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
 	}
-	return newReportingConfig(p.rc, p.EnableReports, bordaReporter), bordaReporter
+	return newReportingConfig(p.GeoLookup, p.rc, p.EnableReports, bordaReporter), bordaReporter
 }
 
 func (p *Proxy) loadThrottleConfig() {
@@ -873,7 +892,7 @@ func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN)
 	}
 
 	if p.HTTPS {
-		l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.RequireSessionTickets, p.MissingTicketReaction, p.Instrument)
+		l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.RequireSessionTickets, p.MissingTicketReaction, p.instrument)
 		if err != nil {
 			return nil, err
 		}

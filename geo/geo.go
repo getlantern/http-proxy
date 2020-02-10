@@ -3,90 +3,72 @@
 package geo
 
 import (
-	"net/http"
-	"strings"
+	"fmt"
+	"net"
 	"sync/atomic"
+	"time"
 
-	"github.com/getlantern/geolookup"
 	"github.com/getlantern/golog"
-	"github.com/hashicorp/golang-lru"
+	"github.com/getlantern/keepcurrent"
+	geoip2 "github.com/oschwald/geoip2-golang"
 )
 
 var (
 	log = golog.LoggerFor("http-proxy-lantern.geo")
 
-	rt = &http.Transport{}
-
-	Default = New(1000000)
+	geolite2_url = "https://download.maxmind.com/app/geoip_download?license_key=%s&edition_id=GeoLite2-Country&suffix=tar.gz"
 )
 
-// Lookup allows looking up the country for an IP address and exposes some
-// statistics about itself. It caches results indefinitely, up to a configurable
-// cache size.
+// Lookup allows looking up the country for an IP address
 type Lookup interface {
-	// CountryCode looks up the 2 digit ISO 3166 country code for the given IP
-	// address and returns "" if there was an error looking up the country.
-	CountryCode(ip string) string
-
-	// CacheSize returns the current size of the cache.
-	CacheSize() int
-
-	// CacheHits counts the number of lookups that were performed from cache.
-	CacheHits() int
-
-	// NetworkLookups counts the number of lookups that were performed over the
-	// network (whether successful or not).
-	NetworkLookups() int
-
-	// NetworkLookupErrors counts the number of errors encountered looking up ips
-	// over the network.
-	NetworkLookupErrors() int
+	// CountryCode looks up the 2 digit ISO 3166 country code in upper case for
+	// the given IP address and returns "" if there was an error.
+	CountryCode(ip net.IP) string
 }
 
 type lookup struct {
-	cache               *lru.Cache
-	cacheHits           int64
-	networkLookups      int64
-	networkLookupErrors int64
+	runner *keepcurrent.Runner
+	db     atomic.Value
 }
 
-// New constructs a new caching Lookup with an LRU cache limited to maxSize.
-func New(maxSize int) Lookup {
-	cache, _ := lru.New(maxSize)
-	return &lookup{cache: cache}
-}
-
-func (l *lookup) CountryCode(ip string) string {
-	cached, found := l.cache.Get(ip)
-	if found {
-		atomic.AddInt64(&l.cacheHits, 1)
-		return cached.(string)
+// New constructs a new Lookup from the MaxMind GeoLite2 Country database with
+// the given license key and keeps in sync with it every day. It saves the
+// database file to filePath and uses the file if available.
+func New(licenseKey string, filePath string) Lookup {
+	chDB := make(chan []byte)
+	runner := keepcurrent.New(
+		keepcurrent.FromTarGz(keepcurrent.FromWeb(
+			fmt.Sprintf(geolite2_url, licenseKey)),
+			"GeoLite2-Country.mmdb"),
+		keepcurrent.ToFile(filePath),
+		keepcurrent.ToChannel(chDB))
+	runner.InitFrom(keepcurrent.FromFile(filePath))
+	runner.OnSourceError = func(err error) {
+		log.Errorf("Error fetching geo database: %v", err)
 	}
-	lookedUp, _, err := geolookup.LookupIP(ip, rt)
-	atomic.AddInt64(&l.networkLookups, 1)
-	if err != nil {
-		atomic.AddInt64(&l.networkLookupErrors, 1)
-		log.Errorf("Error looking up country for %v: %v", ip, err)
-		l.cache.Add(ip, "")
-		return ""
+	runner.Start(24 * time.Hour)
+	v := &lookup{runner: runner}
+	go func() {
+		for data := range chDB {
+			db, err := geoip2.FromBytes(data)
+			if err != nil {
+				log.Errorf("Error loading geo database: %v", err)
+			} else {
+				v.db.Store(db)
+			}
+		}
+	}()
+	return v
+}
+
+func (l *lookup) CountryCode(ip net.IP) string {
+	if db := l.db.Load(); db != nil {
+		geoData, err := db.(*geoip2.Reader).Country(ip)
+		if err != nil {
+			log.Debugf("Unable to look up ip address %s: %s", ip, err)
+			return ""
+		}
+		return geoData.Country.IsoCode
 	}
-	country := strings.ToLower(lookedUp.Country.IsoCode)
-	l.cache.Add(ip, country)
-	return country
-}
-
-func (l *lookup) CacheSize() int {
-	return l.cache.Len()
-}
-
-func (l *lookup) CacheHits() int {
-	return int(atomic.LoadInt64(&l.cacheHits))
-}
-
-func (l *lookup) NetworkLookups() int {
-	return int(atomic.LoadInt64(&l.networkLookups))
-}
-
-func (l *lookup) NetworkLookupErrors() int {
-	return int(atomic.LoadInt64(&l.networkLookupErrors))
+	return ""
 }

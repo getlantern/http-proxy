@@ -4,11 +4,12 @@ import (
 	"net"
 	"time"
 
+	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/measured"
 	rclient "gopkg.in/redis.v5"
 
+	"github.com/getlantern/http-proxy-lantern/geo"
 	"github.com/getlantern/http-proxy-lantern/redis"
-	"github.com/getlantern/http-proxy/listeners"
 )
 
 var (
@@ -22,11 +23,11 @@ type reportingConfig struct {
 	wrapper func(ls net.Listener) net.Listener
 }
 
-func newReportingConfig(rc *rclient.Client, enabled bool, bordaReporter listeners.MeasuredReportFN) *reportingConfig {
+func newReportingConfig(geolookup geo.Lookup, rc *rclient.Client, enabled bool, bordaReporter listeners.MeasuredReportFN) *reportingConfig {
 	if !enabled || rc == nil {
 		return noReport
 	}
-	reporter := redis.NewMeasuredReporter(rc, measuredReportingInterval)
+	reporter := redis.NewMeasuredReporter(geolookup, rc, measuredReportingInterval)
 	if bordaReporter != nil {
 		reporter = combineReporter(reporter, bordaReporter)
 	}

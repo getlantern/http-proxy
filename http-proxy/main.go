@@ -16,8 +16,8 @@ import (
 
 	proxy "github.com/getlantern/http-proxy-lantern"
 	"github.com/getlantern/http-proxy-lantern/blacklist"
+	"github.com/getlantern/http-proxy-lantern/geo"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
-	"github.com/getlantern/http-proxy-lantern/instrument"
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/stackdrivererror"
 	"github.com/getlantern/http-proxy-lantern/throttle"
@@ -89,8 +89,10 @@ var (
 	idleClose  = flag.Uint64("idleclose", 70, "Time in seconds that an idle connection will be allowed before closing it")
 	_          = flag.Uint64("maxconns", 0, "Max number of simultaneous allowed connections, unused")
 
-	pprofAddr        = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
-	promExporterAddr = flag.String("promexporteraddr", "", "Prometheus exporter address to listen on, not activate exporter if empty")
+	pprofAddr         = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
+	promExporterAddr  = flag.String("promexporteraddr", "", "Prometheus exporter address to listen on, not activate exporter if empty")
+	maxmindLicenseKey = flag.String("maxmindlicensekey", "", "MaxMind license key to load the GeoLite2 Country database")
+	geolite2DBFile    = flag.String("geolite2dbfile", "GeoLite2-Country.mmdb", "The local copy of the GeoLite2 Country database for bandwidth conservation and faster initialization")
 
 	pro = flag.Bool("pro", false, "Set to true to make this a pro proxy (no bandwidth limiting unless forced throttling)")
 
@@ -128,18 +130,20 @@ var (
 	stackdriverCreds            = flag.String("stackdriver-creds", "/home/lantern/lantern-stackdriver.json", "Optional full json file path containing stackdriver credentials")
 	stackdriverSamplePercentage = flag.Float64("stackdriver-sample-percentage", 0.003, "The percentage of devices to report to Stackdriver (0.01 = 1%)")
 
-	pcapDir                    = flag.String("pcap-dir", "/tmp", "Directory in which to save pcaps")
-	pcapIPs                    = flag.Int("pcap-ips", 0, "The number of IP addresses for which to capture packets")
-	pcapsPerIP                 = flag.Int("pcaps-per-ip", 0, "The number of packets to capture for each IP address")
-	pcapSnapLen                = flag.Int("pcap-snap-len", 1600, "The maximum size packet to capture")
-	pcapTimeout                = flag.Duration("pcap-timeout", 30*time.Millisecond, "Timeout for capturing packets")
+	pcapDir     = flag.String("pcap-dir", "/tmp", "Directory in which to save pcaps")
+	pcapIPs     = flag.Int("pcap-ips", 0, "The number of IP addresses for which to capture packets")
+	pcapsPerIP  = flag.Int("pcaps-per-ip", 0, "The number of packets to capture for each IP address")
+	pcapSnapLen = flag.Int("pcap-snap-len", 1600, "The maximum size packet to capture")
+	pcapTimeout = flag.Duration("pcap-timeout", 30*time.Millisecond, "Timeout for capturing packets")
+
 	requireSessionTickets      = flag.Bool("require-session-tickets", true, "Specifies whether or not to require TLS session tickets in ClientHellos")
 	missingTicketReaction      = flag.String("missing-session-ticket-reaction", "", "Specifies the reaction when seeing ClientHellos without TLS session tickets. Apply only if require-session-tickets is set")
 	missingTicketReactionDelay = flag.Duration("missing-session-ticket-reaction-delay", 0, "Specifies the delay before reaction to ClientHellos without TLS session tickets. Apply only if require-session-tickets is set.")
 	missingTicketReflectSite   = flag.String("missing-session-ticket-reflect-site", "", "Specifies the site to mirror when seeing no TLS session ticket in ClientHellos. Useful only if missing-session-ticket-reaction is ReflectToSite.")
-	tlsmasqAddr                = flag.String("tlsmasq-addr", "", "Address at which to listen for tlsmasq connections.")
-	tlsmasqOriginAddr          = flag.String("tlsmasq-origin-addr", "", "Address of tlsmasq origin with port.")
-	tlsmasqSecret              = flag.String("tlsmasq-secret", "", "Hex encoded 52 byte tlsmasq shared secret.")
+
+	tlsmasqAddr       = flag.String("tlsmasq-addr", "", "Address at which to listen for tlsmasq connections.")
+	tlsmasqOriginAddr = flag.String("tlsmasq-origin-addr", "", "Address of tlsmasq origin with port.")
+	tlsmasqSecret     = flag.String("tlsmasq-secret", "", "Hex encoded 52 byte tlsmasq shared secret.")
 )
 
 func main() {
@@ -203,23 +207,6 @@ func main() {
 
 	if *tlsmasqAddr != "" && (*tlsmasqSecret == "" || *tlsmasqOriginAddr == "") {
 		log.Fatalf("tlsmasq requires tlsmasq-secret and tlsmasq-origin-addr")
-	}
-
-	var inst instrument.Instrument = instrument.NoInstrument{}
-	if *promExporterAddr != "" {
-		prom := instrument.NewPrometheus(instrument.CommonLabels{
-			Protocol:              *proxyProtocol,
-			SupportTLSResumption:  *sessionTicketKeyFile != "",
-			RequireTLSResumption:  *requireSessionTickets,
-			MissingTicketReaction: reaction.Action(),
-		})
-		go func() {
-			log.Debugf("Running Prometheus exporter at http://%s/metrics", *promExporterAddr)
-			if err := prom.Run(*promExporterAddr); err != nil {
-				log.Error(err)
-			}
-		}()
-		inst = prom
 	}
 
 	go periodicallyForceGC()
@@ -286,6 +273,7 @@ func main() {
 		BlacklistAllowedFailures:           *blacklistAllowedFailures,
 		BlacklistExpiration:                *blacklistExpiration,
 		ProxyName:                          *proxyName,
+		ProxyProtocol:                      *proxyProtocol,
 		BBRUpstreamProbeURL:                *bbrUpstreamProbeURL,
 		QUICIETFAddr:                       *quicIETFAddr,
 		QUIC0Addr:                          *quic0Addr,
@@ -302,7 +290,8 @@ func main() {
 		TLSMasqAddr:                        *tlsmasqAddr,
 		TLSMasqOriginAddr:                  *tlsmasqOriginAddr,
 		TLSMasqSecret:                      *tlsmasqSecret,
-		Instrument:                         inst,
+		PromExporterAddr:                   *promExporterAddr,
+		GeoLookup:                          geo.New(*maxmindLicenseKey, *geolite2DBFile),
 	}
 
 	err := p.ListenAndServe()

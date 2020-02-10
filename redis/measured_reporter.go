@@ -2,7 +2,9 @@ package redis
 
 import (
 	"math/rand"
+	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"gopkg.in/redis.v5"
@@ -35,23 +37,17 @@ const script = `
 
 var (
 	log = golog.LoggerFor("redis")
-
-	geoLookup = geo.Default
 )
-
-func init() {
-	go trackGeoStats()
-}
 
 type statsAndContext struct {
 	ctx   map[string]interface{}
 	stats *measured.Stats
 }
 
-func NewMeasuredReporter(rc *redis.Client, reportInterval time.Duration) listeners.MeasuredReportFN {
+func NewMeasuredReporter(geolookup geo.Lookup, rc *redis.Client, reportInterval time.Duration) listeners.MeasuredReportFN {
 	// Provide some buffering so that we don't lose data while submitting to Redis
 	statsCh := make(chan *statsAndContext, 10000)
-	go reportPeriodically(rc, reportInterval, statsCh)
+	go reportPeriodically(geolookup, rc, reportInterval, statsCh)
 	return func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 		select {
 		case statsCh <- &statsAndContext{ctx, deltaStats}:
@@ -67,7 +63,7 @@ type statsAndIP struct {
 	ip string
 }
 
-func reportPeriodically(rc *redis.Client, reportInterval time.Duration, statsCh chan (*statsAndContext)) {
+func reportPeriodically(geolookup geo.Lookup, rc *redis.Client, reportInterval time.Duration, statsCh chan (*statsAndContext)) {
 	// randomize the interval to evenly distribute traffic to reporting Redis.
 	randomized := time.Duration(reportInterval.Nanoseconds()/2 + rand.Int63n(reportInterval.Nanoseconds()))
 	log.Debugf("Will report data usage to Redis every %v", randomized)
@@ -113,7 +109,7 @@ func reportPeriodically(rc *redis.Client, reportInterval time.Duration, statsCh 
 				}
 			}
 
-			err := submit(rc, scriptSHA, statsByDeviceID)
+			err := submit(geolookup, rc, scriptSHA, statsByDeviceID)
 			if err != nil {
 				log.Errorf("Unable to submit stats: %v", err)
 			}
@@ -123,7 +119,7 @@ func reportPeriodically(rc *redis.Client, reportInterval time.Duration, statsCh 
 	}
 }
 
-func submit(rc *redis.Client, scriptSHA string, statsByDeviceID map[string]*statsAndIP) error {
+func submit(geolookup geo.Lookup, rc *redis.Client, scriptSHA string, statsByDeviceID map[string]*statsAndIP) error {
 	now := time.Now()
 	nextMonth := now.Month() + 1
 	nextYear := now.Year()
@@ -135,11 +131,11 @@ func submit(rc *redis.Client, scriptSHA string, statsByDeviceID map[string]*stat
 	endOfThisMonth := strconv.Itoa(int(beginningOfNextMonth.Add(-1 * time.Nanosecond).Unix()))
 	for deviceID, stats := range statsByDeviceID {
 		clientKey := "_client:" + deviceID
-		countryCode := geoLookup.CountryCode(stats.ip)
+		countryCode := geolookup.CountryCode(net.ParseIP(stats.ip))
 		_result, err := rc.EvalSha(scriptSHA, []string{clientKey},
 			strconv.Itoa(stats.RecvTotal),
 			strconv.Itoa(stats.SentTotal),
-			countryCode,
+			strings.ToLower(countryCode),
 			stats.ip,
 			endOfThisMonth).Result()
 		if err != nil {
@@ -158,15 +154,4 @@ func submit(rc *redis.Client, scriptSHA string, statsByDeviceID map[string]*stat
 		usage.Set(deviceID, countryCode, bytesIn+bytesOut, now)
 	}
 	return nil
-}
-
-func trackGeoStats() {
-	for {
-		time.Sleep(1 * time.Minute)
-		log.Debugf("Geo - Cache Size: %d   Cache Hits: %d   Network Lookups: %d   Network Lookup Errors: %d",
-			geoLookup.CacheSize(),
-			geoLookup.CacheHits(),
-			geoLookup.NetworkLookups(),
-			geoLookup.NetworkLookupErrors())
-	}
 }
