@@ -182,6 +182,9 @@ type addresses struct {
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
+	if p.GeoLookup == nil {
+		p.GeoLookup = geo.NoLookup{}
+	}
 	p.instrument = instrument.NoInstrument{}
 	if p.PromExporterAddr != "" {
 		prom := instrument.NewPrometheus(

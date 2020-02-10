@@ -26,6 +26,11 @@ type Lookup interface {
 	CountryCode(ip net.IP) string
 }
 
+// NoLookup is a Lookup implementation which always return empty country code.
+type NoLookup struct{}
+
+func (l NoLookup) CountryCode(ip net.IP) string { return "" }
+
 type lookup struct {
 	runner *keepcurrent.Runner
 	db     atomic.Value
