@@ -15,8 +15,8 @@ func TestLookup(t *testing.T) {
 		t.Skip("require envvar MAXMIND_LICENSE_KEY")
 	}
 	filePath := "GeoLite2-Country.mmdb"
-	l := New(licenseKey, filePath)
 	defer os.Remove(filePath)
+	l := New(licenseKey, filePath)
 	time.Sleep(20 * time.Second) // wait long enough to load database remotely
 	_, err := os.Stat(filePath)
 	assert.NoError(t, err, "should have cached the database locally")
@@ -29,6 +29,11 @@ func TestLookup(t *testing.T) {
 	doTestLookup(t, l, "188.166.36.215", "NL")
 	doTestLookup(t, l, "adsfs423afsd234:2343", "")
 	doTestLookup(t, l, "adsfs423afsd234:2343", "")
+
+	// Make sure that when the local file exists, lookup works immediately.
+	l2 := New(licenseKey, filePath)
+	time.Sleep(100 * time.Millisecond)
+	doTestLookup(t, l2, "188.166.36.215", "NL")
 }
 
 func doTestLookup(t *testing.T, l Lookup, ip string, expectedCountry string) {
