@@ -21,14 +21,13 @@ require (
 	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
-	github.com/getlantern/fronted v0.0.0-20190606212108-e7744195eded // indirect
-	github.com/getlantern/geolookup v0.0.0-20200121184643-02217082e50f
 	github.com/getlantern/golog v0.0.0-20190830074920-4ef2e798c2d7
 	github.com/getlantern/gonat v0.0.0-20190809093358-98412e37c429
 	github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55
 	github.com/getlantern/http-proxy v0.0.3-0.20190809090746-b2f0d5c04754
 	github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c // indirect
 	github.com/getlantern/kcpwrapper v0.0.0-20171114192627-a35c895f6de7
+	github.com/getlantern/keepcurrent v0.0.0-20200210090806-afb79b07e6aa
 	github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a
 	github.com/getlantern/lampshade v0.0.0-20200206173010-2361428efb87
 	github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198
@@ -45,7 +44,6 @@ require (
 	github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
-	github.com/getlantern/tlsdialer v0.0.0-20190606180931-1ac26445d532 // indirect
 	github.com/getlantern/tlsmasq v0.1.0
 	github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836
 	github.com/getlantern/utls v0.0.0-20191119185840-3db8c755b682
@@ -60,12 +58,12 @@ require (
 	github.com/gonum/matrix v0.0.0-20180124231301-a41cc49d4c29 // indirect
 	github.com/gonum/stat v0.0.0-20180125090729-ec9c8a1062f4
 	github.com/googleapis/gax-go v2.0.0+incompatible // indirect
-	github.com/hashicorp/golang-lru v0.5.3
 	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/juju/ratelimit v1.0.1
 	github.com/mikioh/tcp v0.0.0-20180707144002-02a37043a4f7 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20180831101334-131b59fef27f // indirect
 	github.com/mikioh/tcpopt v0.0.0-20180707144150-7178f18b4ea8 // indirect
+	github.com/oschwald/geoip2-golang v1.2.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/refraction-networking/utls v0.0.0-20190415193640-32987941ebd3 // indirect
 	github.com/stretchr/testify v1.4.0
