@@ -16,7 +16,9 @@ import (
 var (
 	log = golog.LoggerFor("http-proxy-lantern.geo")
 
-	geolite2_url = "https://download.maxmind.com/app/geoip_download?license_key=%s&edition_id=GeoLite2-Country&suffix=tar.gz"
+	// Use our own CDN distribution which fetches the origin at most once per
+	// day to avoid hitting the 2000 downloads/day limit imposed by MaxMind.
+	geolite2_url = "https://d254wvfcgkka1d.cloudfront.net/app/geoip_download?license_key=%s&edition_id=GeoLite2-Country&suffix=tar.gz"
 )
 
 // Lookup allows looking up the country for an IP address
@@ -47,11 +49,6 @@ func New(licenseKey string, filePath string) Lookup {
 			"GeoLite2-Country.mmdb"),
 		keepcurrent.ToFile(filePath),
 		keepcurrent.ToChannel(chDB))
-	runner.InitFrom(keepcurrent.FromFile(filePath))
-	runner.OnSourceError = func(err error) {
-		log.Errorf("Error fetching geo database: %v", err)
-	}
-	runner.Start(24 * time.Hour)
 	v := &lookup{runner: runner}
 	go func() {
 		for data := range chDB {
@@ -63,6 +60,11 @@ func New(licenseKey string, filePath string) Lookup {
 			}
 		}
 	}()
+	runner.InitFrom(keepcurrent.FromFile(filePath))
+	runner.OnSourceError = func(err error) {
+		log.Errorf("Error fetching geo database: %v", err)
+	}
+	runner.Start(24 * time.Hour)
 	return v
 }
 
