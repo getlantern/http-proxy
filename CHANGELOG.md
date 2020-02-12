@@ -1,5 +1,12 @@
 # Change Log
 
+## [2.4.7](https://github.com/getlantern/http-proxy-lantern/tree/2.4.7) (2020-02-11)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.4.6...2.4.7)
+
+**Merged pull requests:**
+
+- use our own CDN distribution to overcome rate limit [\#374](https://github.com/getlantern/http-proxy-lantern/pull/374) ([joesis](https://github.com/joesis))
+
 ## [2.4.6](https://github.com/getlantern/http-proxy-lantern/tree/2.4.6) (2020-02-11)
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.4.5...2.4.6)
 
