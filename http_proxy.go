@@ -160,6 +160,8 @@ type Proxy struct {
 	TLSMasqAddr                        string
 	TLSMasqOriginAddr                  string
 	TLSMasqSecret                      string
+	TLSMasqTLSMinVersion               uint16
+	TLSMasqTLSCipherSuites             []uint16
 	PromExporterAddr                   string
 	GeoLookup                          geo.Lookup
 
@@ -749,7 +751,9 @@ func (p *Proxy) listenTLSMasq(baseListen func(string, bool) (net.Listener, error
 			log.Debugf("non-fatal error from tlsmasq: %v", err)
 		}
 
-		wrapped, wrapErr := tlsmasq.Wrap(l, p.CertFile, p.KeyFile, p.TLSMasqOriginAddr, p.TLSMasqSecret, nonFatalErrorsHandler)
+		wrapped, wrapErr := tlsmasq.Wrap(
+			l, p.CertFile, p.KeyFile, p.TLSMasqOriginAddr, p.TLSMasqSecret,
+			p.TLSMasqTLSMinVersion, p.TLSMasqTLSCipherSuites, nonFatalErrorsHandler)
 		if wrapErr != nil {
 			log.Fatalf("unable to wrap listener with tlsmasq: %v", wrapErr)
 		}
