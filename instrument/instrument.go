@@ -26,6 +26,7 @@ type Instrument interface {
 	XBQHeaderSent()
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
+	ProxiedBytes(sent, recv int)
 }
 
 // NoInstrument is an implementation of Instrument which does nothing
@@ -43,6 +44,7 @@ func (i NoInstrument) Throttle(m bool, reason string) {}
 func (i NoInstrument) XBQHeaderSent()                                    {}
 func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
 func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
+func (i NoInstrument) ProxiedBytes(sent, recv int)                       {}
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
@@ -89,7 +91,7 @@ type PromInstrument struct {
 	filters          map[string]*instrumentedFilter
 	errorHandlers    map[string]func(conn net.Conn, err error)
 
-	blacklist_checked, blacklisted, mimicry_checked, mimicked, xbqSent, throttling_checked prometheus.Counter
+	blacklistChecked, blacklisted, bytesSent, bytesRecv, mimicryChecked, mimicked, xbqSent, throttlingChecked prometheus.Counter
 
 	throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
 }
@@ -108,13 +110,19 @@ func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 		commonLabelNames: commonLabelNames,
 		filters:          make(map[string]*instrumentedFilter),
 		errorHandlers:    make(map[string]func(conn net.Conn, err error)),
-		blacklist_checked: promauto.NewCounterVec(prometheus.CounterOpts{
+		blacklistChecked: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "blacklist_checked_requests_total",
 		}, commonLabelNames).With(commonLabels),
 		blacklisted: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "blacklist_blacklisted_requests_total",
 		}, commonLabelNames).With(commonLabels),
-		mimicry_checked: promauto.NewCounterVec(prometheus.CounterOpts{
+		bytesSent: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "sent_bytes_total",
+		}, commonLabelNames).With(commonLabels),
+		bytesRecv: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "received_bytes_total",
+		}, commonLabelNames).With(commonLabels),
+		mimicryChecked: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "apache_mimicry_checked_total",
 		}, commonLabelNames).With(commonLabels),
 		mimicked: promauto.NewCounterVec(prometheus.CounterOpts{
@@ -125,7 +133,7 @@ func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 			Name: "xbq_header_sent_total",
 		}, commonLabelNames).With(commonLabels),
 
-		throttling_checked: promauto.NewCounterVec(prometheus.CounterOpts{
+		throttlingChecked: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "device_throttling_checked_total",
 		}, commonLabelNames).With(commonLabels),
 		throttled: promauto.NewCounterVec(prometheus.CounterOpts{
@@ -221,7 +229,7 @@ func (p *PromInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Con
 
 // Blacklist instruments the blacklist checking.
 func (p *PromInstrument) Blacklist(b bool) {
-	p.blacklist_checked.Inc()
+	p.blacklistChecked.Inc()
 	if b {
 		p.blacklisted.Inc()
 	}
@@ -229,7 +237,7 @@ func (p *PromInstrument) Blacklist(b bool) {
 
 // Mimic instruments the Apache mimicry.
 func (p *PromInstrument) Mimic(m bool) {
-	p.mimicry_checked.Inc()
+	p.mimicryChecked.Inc()
 	if m {
 		p.mimicked.Inc()
 	}
@@ -237,7 +245,7 @@ func (p *PromInstrument) Mimic(m bool) {
 
 // Throttle instruments the device based throttling.
 func (p *PromInstrument) Throttle(m bool, reason string) {
-	p.throttling_checked.Inc()
+	p.throttlingChecked.Inc()
 	if m {
 		p.throttled.With(prometheus.Labels{"reason": reason}).Inc()
 	} else {
@@ -263,4 +271,9 @@ func (p *PromInstrument) SuspectedProbing(fromIP net.IP, reason string) {
 func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 	labels := prometheus.Labels{"method": method, "redirected": strconv.FormatBool(redirect), "reason": reason}
 	p.versionCheck.With(labels).Inc()
+}
+
+func (p *PromInstrument) ProxiedBytes(sent, recv int) {
+	p.bytesSent.Add(float64(sent))
+	p.bytesSent.Add(float64(recv))
 }

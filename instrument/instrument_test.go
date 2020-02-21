@@ -11,11 +11,13 @@ import (
 	"github.com/getlantern/mockconn"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/getlantern/http-proxy-lantern/geo"
 )
 
 func TestWrapConnErrorHandler(t *testing.T) {
 	var wg sync.WaitGroup
-	f := NewPrometheus(CommonLabels{}).WrapConnErrorHandler("test", func(conn net.Conn, err error) {
+	f := NewPrometheus(geo.NoLookup{}, CommonLabels{}).WrapConnErrorHandler("test", func(conn net.Conn, err error) {
 		time.Sleep(100 * time.Millisecond)
 		wg.Done()
 	})

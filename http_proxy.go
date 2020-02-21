@@ -621,7 +621,7 @@ func (p *Proxy) configureBandwidthReporting() (*reportingConfig, listeners.Measu
 	if p.BordaReportInterval > 0 {
 		bordaReporter = borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
 	}
-	return newReportingConfig(p.GeoLookup, p.rc, p.EnableReports, bordaReporter), bordaReporter
+	return newReportingConfig(p.GeoLookup, p.rc, p.EnableReports, bordaReporter, p.instrument), bordaReporter
 }
 
 func (p *Proxy) loadThrottleConfig() {
