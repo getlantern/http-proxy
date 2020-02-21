@@ -59,7 +59,7 @@ func NewMeasuredReporter(geolookup geo.Lookup, rc *redis.Client, reportInterval 
 }
 
 type statsAndIP struct {
-	*measured.Stats
+	measured.Stats
 	ip string
 }
 
@@ -88,7 +88,7 @@ func reportPeriodically(geolookup geo.Lookup, rc *redis.Client, reportInterval t
 				}
 				clientIP := _clientIP.(string)
 				existing = &statsAndIP{
-					Stats: sac.stats,
+					Stats: *sac.stats,
 					ip:    clientIP,
 				}
 				statsByDeviceID[deviceID] = existing
