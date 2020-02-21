@@ -29,7 +29,7 @@ func newReportingConfig(geolookup geo.Lookup, rc *rclient.Client, enabled bool, 
 		return noReport
 	}
 	proxiedBytesReporter := func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
-		instrument.ProxiedBytes(stats.SentTotal, stats.RecvTotal)
+		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal)
 	}
 	reporter := redis.NewMeasuredReporter(geolookup, rc, measuredReportingInterval)
 	if bordaReporter != nil {
