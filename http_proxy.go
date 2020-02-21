@@ -270,21 +270,19 @@ func (p *Proxy) ListenAndServe() error {
 	}
 	filterChain = filterChain.Prepend(opsfilter.New(p.bm))
 
-	bwReporting, bordaReporter := p.configureBandwidthReporting()
-
 	srv := server.New(&server.Opts{
 		IdleTimeout:              p.IdleTimeout,
 		Dial:                     dial,
 		Filter:                   p.instrument.WrapFilter("proxy", filterChain),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  p.instrument.WrapConnErrorHandler("proxy_serve", onServerError),
+		// Although we include blacklist functionality, it's currently only used to
+		// track potential blacklisting ad doesn't actually blacklist anyone.
+		Allow: blacklist.OnConnect,
 	})
-	// Although we include blacklist functionality, it's currently only used to
-	// track potential blacklisting ad doesn't actually blacklist anyone.
-	srv.Allow = blacklist.OnConnect
+	bwReporting, bordaReporter := p.configureBandwidthReporting()
 	// Throttle connections when signaled
-	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener)
-	srv.AddListenerWrappers(bwReporting.wrapper)
+	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
 
 	allListeners := make([]net.Listener, 0)
 	addListenerIfNecessary := func(addr string, fn listenerBuilderFN) error {
