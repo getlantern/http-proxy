@@ -277,5 +277,5 @@ func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 
 func (p *PromInstrument) ProxiedBytes(sent, recv int) {
 	p.bytesSent.Add(float64(sent))
-	p.bytesSent.Add(float64(recv))
+	p.bytesRecv.Add(float64(recv))
 }
