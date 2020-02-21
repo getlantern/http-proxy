@@ -282,7 +282,8 @@ func (p *Proxy) ListenAndServe() error {
 	// Although we include blacklist functionality, it's currently only used to
 	// track potential blacklisting ad doesn't actually blacklist anyone.
 	srv.Allow = blacklist.OnConnect
-	p.applyThrottling(srv)
+	// Throttle connections when signaled
+	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener)
 	srv.AddListenerWrappers(bwReporting.wrapper)
 
 	allListeners := make([]net.Listener, 0)
@@ -636,20 +637,6 @@ func (p *Proxy) loadThrottleConfig() {
 		log.Debug("Not loading throttle config")
 		return
 	}
-}
-
-func (p *Proxy) applyThrottling(srv *server.Server) {
-	if p.throttleConfig == nil {
-		log.Debug("Throttling is disabled")
-	}
-
-	// Add net.Listener wrappers for inbound connections
-	srv.AddListenerWrappers(
-		// Throttle connections when signaled
-		func(ls net.Listener) net.Listener {
-			return lanternlisteners.NewBitrateListener(ls)
-		},
-	)
 }
 
 func (p *Proxy) allowedTunnelPorts() []int {
