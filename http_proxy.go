@@ -276,10 +276,10 @@ func (p *Proxy) ListenAndServe() error {
 		Filter:                   p.instrument.WrapFilter("proxy", filterChain),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  p.instrument.WrapConnErrorHandler("proxy_serve", onServerError),
-		// Although we include blacklist functionality, it's currently only used to
-		// track potential blacklisting ad doesn't actually blacklist anyone.
-		Allow: blacklist.OnConnect,
 	})
+	// Although we include blacklist functionality, it's currently only used to
+	// track potential blacklisting ad doesn't actually blacklist anyone.
+	srv.Allow = blacklist.OnConnect
 	bwReporting, bordaReporter := p.configureBandwidthReporting()
 	// Throttle connections when signaled
 	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
