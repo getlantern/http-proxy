@@ -111,44 +111,46 @@ func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 		filters:          make(map[string]*instrumentedFilter),
 		errorHandlers:    make(map[string]func(conn net.Conn, err error)),
 		blacklistChecked: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "blacklist_checked_requests_total",
+			Name: "proxy_blacklist_checked_requests_total",
 		}, commonLabelNames).With(commonLabels),
 		blacklisted: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "blacklist_blacklisted_requests_total",
+			Name: "proxy_blacklist_blacklisted_requests_total",
 		}, commonLabelNames).With(commonLabels),
 		bytesSent: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "sent_bytes_total",
+			Name: "proxy_downstream_sent_bytes_total",
+			Help: "Bytes sent to the client connections. Pluggable transport overhead excluded",
 		}, commonLabelNames).With(commonLabels),
 		bytesRecv: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "received_bytes_total",
+			Name: "proxy_downstream_received_bytes_total",
+			Help: "Bytes received from the client connections. Pluggable transport overhead excluded",
 		}, commonLabelNames).With(commonLabels),
 		mimicryChecked: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "apache_mimicry_checked_total",
+			Name: "proxy_apache_mimicry_checked_total",
 		}, commonLabelNames).With(commonLabels),
 		mimicked: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "apache_mimicry_mimicked_total",
+			Name: "proxy_apache_mimicry_mimicked_total",
 		}, commonLabelNames).With(commonLabels),
 
 		xbqSent: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "xbq_header_sent_total",
+			Name: "proxy_xbq_header_sent_total",
 		}, commonLabelNames).With(commonLabels),
 
 		throttlingChecked: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "device_throttling_checked_total",
+			Name: "proxy_device_throttling_checked_total",
 		}, commonLabelNames).With(commonLabels),
 		throttled: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "device_throttling_throttled_total",
+			Name: "proxy_device_throttling_throttled_total",
 		}, append(commonLabelNames, "reason")).MustCurryWith(commonLabels),
 		notThrottled: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "device_throttling_not_throttled_total",
+			Name: "proxy_device_throttling_not_throttled_total",
 		}, append(commonLabelNames, "reason")).MustCurryWith(commonLabels),
 
 		suspectedProbing: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "suspected_probing_total",
+			Name: "proxy_suspected_probing_total",
 		}, append(commonLabelNames, "country", "reason")).MustCurryWith(commonLabels),
 
 		versionCheck: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "version_check_total",
+			Name: "proxy_version_check_total",
 		}, append(commonLabelNames, "method", "redirected", "reason")).MustCurryWith(commonLabels),
 	}
 }
