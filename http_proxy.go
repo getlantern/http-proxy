@@ -270,8 +270,6 @@ func (p *Proxy) ListenAndServe() error {
 	}
 	filterChain = filterChain.Prepend(opsfilter.New(p.bm))
 
-	bwReporting, bordaReporter := p.configureBandwidthReporting()
-
 	srv := server.New(&server.Opts{
 		IdleTimeout:              p.IdleTimeout,
 		Dial:                     dial,
@@ -282,8 +280,9 @@ func (p *Proxy) ListenAndServe() error {
 	// Although we include blacklist functionality, it's currently only used to
 	// track potential blacklisting ad doesn't actually blacklist anyone.
 	srv.Allow = blacklist.OnConnect
-	p.applyThrottling(srv, bwReporting)
-	srv.AddListenerWrappers(bwReporting.wrapper)
+	bwReporting, bordaReporter := p.configureBandwidthReporting()
+	// Throttle connections when signaled
+	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
 
 	allListeners := make([]net.Listener, 0)
 	addListenerIfNecessary := func(addr string, fn listenerBuilderFN) error {
@@ -383,7 +382,7 @@ func (p *Proxy) ListenAndServeENHTTP() error {
 		return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
 	}
 	log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
-	filterChain := filters.Join(tokenfilter.New(p.Token, p.instrument), p.instrument.WrapFilter("http_ping", ping.New(0)))
+	filterChain := filters.Join(tokenfilter.New(p.Token, p.instrument), p.instrument.WrapFilter("proxy_http_ping", ping.New(0)))
 	enhttpHandler := enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL)
 	server := &http.Server{
 		Handler: filters.Intercept(enhttpHandler, p.instrument.WrapFilter("proxy", filterChain)),
@@ -538,7 +537,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		}
 		filterChain = filterChain.Append(proxyfilters.BlockLocal(allowedLocalAddrs))
 	}
-	filterChain = filterChain.Append(p.instrument.WrapFilter("http_ping", ping.New(0)))
+	filterChain = filterChain.Append(p.instrument.WrapFilter("proxy_http_ping", ping.New(0)))
 
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97
@@ -621,7 +620,7 @@ func (p *Proxy) configureBandwidthReporting() (*reportingConfig, listeners.Measu
 	if p.BordaReportInterval > 0 {
 		bordaReporter = borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
 	}
-	return newReportingConfig(p.GeoLookup, p.rc, p.EnableReports, bordaReporter), bordaReporter
+	return newReportingConfig(p.GeoLookup, p.rc, p.EnableReports, bordaReporter, p.instrument), bordaReporter
 }
 
 func (p *Proxy) loadThrottleConfig() {
@@ -636,20 +635,6 @@ func (p *Proxy) loadThrottleConfig() {
 		log.Debug("Not loading throttle config")
 		return
 	}
-}
-
-func (p *Proxy) applyThrottling(srv *server.Server, rc *reportingConfig) {
-	if p.throttleConfig == nil {
-		log.Debug("Throttling is disabled")
-	}
-
-	// Add net.Listener wrappers for inbound connections
-	srv.AddListenerWrappers(
-		// Throttle connections when signaled
-		func(ls net.Listener) net.Listener {
-			return lanternlisteners.NewBitrateListener(ls)
-		},
-	)
 }
 
 func (p *Proxy) allowedTunnelPorts() []int {

@@ -26,6 +26,7 @@ type Instrument interface {
 	XBQHeaderSent()
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
+	ProxiedBytes(sent, recv int)
 }
 
 // NoInstrument is an implementation of Instrument which does nothing
@@ -43,6 +44,7 @@ func (i NoInstrument) Throttle(m bool, reason string) {}
 func (i NoInstrument) XBQHeaderSent()                                    {}
 func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
 func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
+func (i NoInstrument) ProxiedBytes(sent, recv int)                       {}
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
@@ -89,7 +91,7 @@ type PromInstrument struct {
 	filters          map[string]*instrumentedFilter
 	errorHandlers    map[string]func(conn net.Conn, err error)
 
-	blacklist_checked, blacklisted, mimicry_checked, mimicked, xbqSent, throttling_checked prometheus.Counter
+	blacklistChecked, blacklisted, bytesSent, bytesRecv, mimicryChecked, mimicked, xbqSent, throttlingChecked prometheus.Counter
 
 	throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
 }
@@ -108,39 +110,47 @@ func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 		commonLabelNames: commonLabelNames,
 		filters:          make(map[string]*instrumentedFilter),
 		errorHandlers:    make(map[string]func(conn net.Conn, err error)),
-		blacklist_checked: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "blacklist_checked_requests_total",
+		blacklistChecked: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_blacklist_checked_requests_total",
 		}, commonLabelNames).With(commonLabels),
 		blacklisted: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "blacklist_blacklisted_requests_total",
+			Name: "proxy_blacklist_blacklisted_requests_total",
 		}, commonLabelNames).With(commonLabels),
-		mimicry_checked: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "apache_mimicry_checked_total",
+		bytesSent: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_downstream_sent_bytes_total",
+			Help: "Bytes sent to the client connections. Pluggable transport overhead excluded",
+		}, commonLabelNames).With(commonLabels),
+		bytesRecv: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_downstream_received_bytes_total",
+			Help: "Bytes received from the client connections. Pluggable transport overhead excluded",
+		}, commonLabelNames).With(commonLabels),
+		mimicryChecked: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_apache_mimicry_checked_total",
 		}, commonLabelNames).With(commonLabels),
 		mimicked: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "apache_mimicry_mimicked_total",
+			Name: "proxy_apache_mimicry_mimicked_total",
 		}, commonLabelNames).With(commonLabels),
 
 		xbqSent: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "xbq_header_sent_total",
+			Name: "proxy_xbq_header_sent_total",
 		}, commonLabelNames).With(commonLabels),
 
-		throttling_checked: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "device_throttling_checked_total",
+		throttlingChecked: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_device_throttling_checked_total",
 		}, commonLabelNames).With(commonLabels),
 		throttled: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "device_throttling_throttled_total",
+			Name: "proxy_device_throttling_throttled_total",
 		}, append(commonLabelNames, "reason")).MustCurryWith(commonLabels),
 		notThrottled: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "device_throttling_not_throttled_total",
+			Name: "proxy_device_throttling_not_throttled_total",
 		}, append(commonLabelNames, "reason")).MustCurryWith(commonLabels),
 
 		suspectedProbing: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "suspected_probing_total",
+			Name: "proxy_suspected_probing_total",
 		}, append(commonLabelNames, "country", "reason")).MustCurryWith(commonLabels),
 
 		versionCheck: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "version_check_total",
+			Name: "proxy_version_check_total",
 		}, append(commonLabelNames, "method", "redirected", "reason")).MustCurryWith(commonLabels),
 	}
 }
@@ -221,7 +231,7 @@ func (p *PromInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Con
 
 // Blacklist instruments the blacklist checking.
 func (p *PromInstrument) Blacklist(b bool) {
-	p.blacklist_checked.Inc()
+	p.blacklistChecked.Inc()
 	if b {
 		p.blacklisted.Inc()
 	}
@@ -229,7 +239,7 @@ func (p *PromInstrument) Blacklist(b bool) {
 
 // Mimic instruments the Apache mimicry.
 func (p *PromInstrument) Mimic(m bool) {
-	p.mimicry_checked.Inc()
+	p.mimicryChecked.Inc()
 	if m {
 		p.mimicked.Inc()
 	}
@@ -237,7 +247,7 @@ func (p *PromInstrument) Mimic(m bool) {
 
 // Throttle instruments the device based throttling.
 func (p *PromInstrument) Throttle(m bool, reason string) {
-	p.throttling_checked.Inc()
+	p.throttlingChecked.Inc()
 	if m {
 		p.throttled.With(prometheus.Labels{"reason": reason}).Inc()
 	} else {
@@ -263,4 +273,9 @@ func (p *PromInstrument) SuspectedProbing(fromIP net.IP, reason string) {
 func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 	labels := prometheus.Labels{"method": method, "redirected": strconv.FormatBool(redirect), "reason": reason}
 	p.versionCheck.With(labels).Inc()
+}
+
+func (p *PromInstrument) ProxiedBytes(sent, recv int) {
+	p.bytesSent.Add(float64(sent))
+	p.bytesRecv.Add(float64(recv))
 }
