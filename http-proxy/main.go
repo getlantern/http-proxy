@@ -2,12 +2,15 @@ package main
 
 import (
 	"context"
+	"encoding/binary"
+	"encoding/hex"
 	"flag"
 	"fmt"
 	"net/http"
 	"os"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"time"
 
 	"github.com/vharitonsky/iniflags"
@@ -141,9 +144,11 @@ var (
 	missingTicketReactionDelay = flag.Duration("missing-session-ticket-reaction-delay", 0, "Specifies the delay before reaction to ClientHellos without TLS session tickets. Apply only if require-session-tickets is set.")
 	missingTicketReflectSite   = flag.String("missing-session-ticket-reflect-site", "", "Specifies the site to mirror when seeing no TLS session ticket in ClientHellos. Useful only if missing-session-ticket-reaction is ReflectToSite.")
 
-	tlsmasqAddr       = flag.String("tlsmasq-addr", "", "Address at which to listen for tlsmasq connections.")
-	tlsmasqOriginAddr = flag.String("tlsmasq-origin-addr", "", "Address of tlsmasq origin with port.")
-	tlsmasqSecret     = flag.String("tlsmasq-secret", "", "Hex encoded 52 byte tlsmasq shared secret.")
+	tlsmasqAddr          = flag.String("tlsmasq-addr", "", "Address at which to listen for tlsmasq connections.")
+	tlsmasqOriginAddr    = flag.String("tlsmasq-origin-addr", "", "Address of tlsmasq origin with port.")
+	tlsmasqSecret        = flag.String("tlsmasq-secret", "", "Hex encoded 52 byte tlsmasq shared secret.")
+	tlsmasqMinVersionStr = flag.String("tlsmasq-tls-min-version", "0x0303", "hex-encoded TLS version")
+	tlsmasqSuitesStr     = flag.String("tlsmasq-tls-cipher-suites", "0x1301,0x1302,0x1303,0xcca8,0xcca9,0xc02b,0xc030,0xc02c", "hex-encoded TLS cipher suites")
 )
 
 func main() {
@@ -205,8 +210,29 @@ func main() {
 		reaction = tlslistener.Delayed(*missingTicketReactionDelay, reaction)
 	}
 
+	var (
+		tlsmasqTLSMinVersion uint16
+		tlsmasqTLSSuites     []uint16
+		err                  error
+	)
 	if *tlsmasqAddr != "" && (*tlsmasqSecret == "" || *tlsmasqOriginAddr == "") {
 		log.Fatalf("tlsmasq requires tlsmasq-secret and tlsmasq-origin-addr")
+	}
+	if *tlsmasqMinVersionStr != "" {
+		tlsmasqTLSMinVersion, err = decodeUint16(*tlsmasqMinVersionStr)
+		if err != nil {
+			log.Fatal(fmt.Sprintln("failed to decode tlsmasq-tls-min-version:", err))
+		}
+	}
+	if *tlsmasqSuitesStr != "" {
+		tlsmasqTLSSuites = []uint16{}
+		for _, s := range strings.Split(*tlsmasqSuitesStr, ",") {
+			suite, err := decodeUint16(s)
+			if err != nil {
+				log.Fatal(fmt.Sprintln("failed to decode tlsmasq-tls-cipher-suites:", err))
+			}
+			tlsmasqTLSSuites = append(tlsmasqTLSSuites, suite)
+		}
 	}
 
 	go periodicallyForceGC()
@@ -290,14 +316,13 @@ func main() {
 		TLSMasqAddr:                        *tlsmasqAddr,
 		TLSMasqOriginAddr:                  *tlsmasqOriginAddr,
 		TLSMasqSecret:                      *tlsmasqSecret,
+		TLSMasqTLSMinVersion:               tlsmasqTLSMinVersion,
+		TLSMasqTLSCipherSuites:             tlsmasqTLSSuites,
 		PromExporterAddr:                   *promExporterAddr,
 		GeoLookup:                          geo.New(*maxmindLicenseKey, *geolite2DBFile),
 	}
 
-	err := p.ListenAndServe()
-	if err != nil {
-		log.Fatal(err)
-	}
+	log.Fatal(p.ListenAndServe())
 }
 
 func periodicallyForceGC() {
@@ -305,4 +330,12 @@ func periodicallyForceGC() {
 		time.Sleep(1 * time.Minute)
 		debug.FreeOSMemory()
 	}
+}
+
+func decodeUint16(s string) (uint16, error) {
+	b, err := hex.DecodeString(strings.TrimPrefix(s, "0x"))
+	if err != nil {
+		return 0, err
+	}
+	return binary.BigEndian.Uint16(b), nil
 }
