@@ -29,7 +29,7 @@ require (
 	github.com/getlantern/kcpwrapper v0.0.0-20171114192627-a35c895f6de7
 	github.com/getlantern/keepcurrent v0.0.0-20200210090806-afb79b07e6aa
 	github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a
-	github.com/getlantern/lampshade v0.0.0-20200206173010-2361428efb87
+	github.com/getlantern/lampshade v0.0.0-20200226123243-a70433e8d0a5
 	github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198
 	github.com/getlantern/mockconn v0.0.0-20191023022503-481dbcceeb58
 	github.com/getlantern/mtime v0.0.0-20170117193331-ba114e4a82b0
