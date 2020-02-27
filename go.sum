@@ -179,8 +179,8 @@ github.com/getlantern/keepcurrent v0.0.0-20200210090806-afb79b07e6aa/go.mod h1:C
 github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a h1:SBw2c296eaLrrnydtLhcjgvNB1mDaXF1SSfW4DGt0kk=
 github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a/go.mod h1:FMf0g72BHs14jVcD8i8ubEk4sMB6JdidBn67d44i3ws=
 github.com/getlantern/lampshade v0.0.0-20171122120757-b10a301ad56e/go.mod h1:h0JxtfSix7rXr+2dnLTmUV2rApjQH364hfM5YLAFXYc=
-github.com/getlantern/lampshade v0.0.0-20200206173010-2361428efb87 h1:eEWrDt1ruqWMUO4pV63dR1aVFXNgBNkkOBiD3FlME7Y=
-github.com/getlantern/lampshade v0.0.0-20200206173010-2361428efb87/go.mod h1:Th6kZksUiI0PcZPAYDcAJngvL7P1gnn7mPKXkxXLqHc=
+github.com/getlantern/lampshade v0.0.0-20200226123243-a70433e8d0a5 h1:5hTWfXcW7ll2BnzZ4ao/CcsR/dfyI5lRcr18PGU37IA=
+github.com/getlantern/lampshade v0.0.0-20200226123243-a70433e8d0a5/go.mod h1:Th6kZksUiI0PcZPAYDcAJngvL7P1gnn7mPKXkxXLqHc=
 github.com/getlantern/measured v0.0.0-20170302221919-0582bf799783/go.mod h1:5OW2WJitCKExpSw2bploW2fM7PjOd6QnLqyp+IqToqU=
 github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198 h1:J0CxRQc8J4iDyMTeSqXa338ZLDpAFf4jLZHBzw+iCMs=
 github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198/go.mod h1:5OW2WJitCKExpSw2bploW2fM7PjOd6QnLqyp+IqToqU=
