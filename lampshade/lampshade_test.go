@@ -9,7 +9,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlantern/http-proxy/buffers"
 	"github.com/getlantern/keyman"
 	"github.com/getlantern/lampshade"
 	"github.com/stretchr/testify/assert"
@@ -66,7 +65,7 @@ func TestRoundTrip(t *testing.T) {
 	dialer := lampshade.NewDialer(&lampshade.DialerOpts{
 		WindowSize:      50,
 		MaxPadding:      32,
-		Pool:            buffers.Pool(),
+		Pool:            lampshade.NewBufferPool(maxBufferBytes),
 		Cipher:          lampshade.AES128GCM,
 		ServerPublicKey: certRT.X509().PublicKey.(*rsa.PublicKey)})
 

@@ -273,7 +273,9 @@ func (p *Proxy) ListenAndServe() error {
 	filterChain = filterChain.Prepend(opsfilter.New(p.bm))
 
 	srv := server.New(&server.Opts{
-		IdleTimeout:              p.IdleTimeout,
+		IdleTimeout: p.IdleTimeout,
+		// Use the same buffer pool as lampshade for now but need to optimize later.
+		BufferSource:             lampshade.BufferPool,
 		Dial:                     dial,
 		Filter:                   p.instrument.WrapFilter("proxy", filterChain),
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
