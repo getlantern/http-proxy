@@ -24,7 +24,7 @@ require (
 	github.com/getlantern/golog v0.0.0-20190830074920-4ef2e798c2d7
 	github.com/getlantern/gonat v0.0.0-20190809093358-98412e37c429
 	github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55
-	github.com/getlantern/http-proxy v0.0.3-0.20190809090746-b2f0d5c04754
+	github.com/getlantern/http-proxy v0.0.3-0.20200302081804-5834088532f4
 	github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c // indirect
 	github.com/getlantern/kcpwrapper v0.0.0-20171114192627-a35c895f6de7
 	github.com/getlantern/keepcurrent v0.0.0-20200210090806-afb79b07e6aa
@@ -32,12 +32,12 @@ require (
 	github.com/getlantern/lampshade v0.0.0-20200226123243-a70433e8d0a5
 	github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198
 	github.com/getlantern/mockconn v0.0.0-20191023022503-481dbcceeb58
-	github.com/getlantern/mtime v0.0.0-20170117193331-ba114e4a82b0
+	github.com/getlantern/mtime v0.0.0-20200228202836-084e1d8282b0
 	github.com/getlantern/netx v0.0.0-20190110220209-9912de6f94fd
 	github.com/getlantern/ops v0.0.0-20190325191751-d70cb0d6f85f
 	github.com/getlantern/packetforward v0.0.0-20190809094443-386cbcc0d498
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
-	github.com/getlantern/proxy v0.0.0-20191025190912-b5f45407d9f2
+	github.com/getlantern/proxy v0.0.0-20200302081518-0bb851d75e72
 	github.com/getlantern/quic0 v0.0.0-20200121154153-8b18c2ba09f9
 	github.com/getlantern/quicwrapper v0.0.0-20200129232925-8ef70253fcae
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
@@ -66,7 +66,7 @@ require (
 	github.com/oschwald/geoip2-golang v1.2.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/refraction-networking/utls v0.0.0-20190415193640-32987941ebd3 // indirect
-	github.com/stretchr/testify v1.4.0
+	github.com/stretchr/testify v1.5.1
 	github.com/templexxx/reedsolomon v0.0.0-20170927015403-7092926d7d05 // indirect
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	go.opencensus.io v0.17.0 // indirect

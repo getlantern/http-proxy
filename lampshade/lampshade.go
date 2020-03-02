@@ -7,8 +7,15 @@ import (
 	"net"
 	"time"
 
-	"github.com/getlantern/http-proxy/buffers"
 	"github.com/getlantern/lampshade"
+)
+
+const (
+	maxBufferBytes = 100 * 1024 * 1024
+)
+
+var (
+	BufferPool = lampshade.NewBufferPool(maxBufferBytes)
 )
 
 func Wrap(ll net.Listener, certFile string, keyFile string, keyCacheSize int, maxClientInitAge time.Duration, onListenerError func(net.Conn, error)) (net.Listener, error) {
@@ -18,7 +25,7 @@ func Wrap(ll net.Listener, certFile string, keyFile string, keyCacheSize int, ma
 	}
 	return lampshade.WrapListener(
 		ll,
-		buffers.Pool(),
+		BufferPool,
 		cert.PrivateKey.(*rsa.PrivateKey),
 		&lampshade.ListenerOpts{
 			AckOnFirst:       true,
