@@ -723,6 +723,9 @@ func (p *Proxy) listenLampshade(trackBBR bool, onListenerError func(net.Conn, er
 			wrapped = p.bm.Wrap(wrapped)
 		}
 
+		// Wrap lampshade streams with idletiming as well
+		wrapped = listeners.NewIdleConnListener(wrapped, p.IdleTimeout)
+
 		return wrapped, nil
 	}
 }
