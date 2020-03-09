@@ -38,21 +38,27 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 	if originHost == "" && !strings.Contains(req.Host, ":") {
 		originHost = req.Host
 	}
+	platform := req.Header.Get(common.PlatformHeader)
+	version := req.Header.Get(common.VersionHeader)
 
 	op := ops.Begin("proxy").
 		Set("device_id", deviceID).
 		Set("origin", req.Host).
 		Set("origin_host", originHost).
 		Set("origin_port", originPort).
-		Set("proxy_dial_timeout", req.Header.Get(proxy.DialTimeoutHeader))
+		Set("proxy_dial_timeout", req.Header.Get(proxy.DialTimeoutHeader)).
+		Set("app_platform", platform).
+		Set("app_version", version)
 	log.Tracef("Starting op")
 	defer op.End()
 
 	opsCtx := map[string]interface{}{
-		"deviceid":    deviceID,
-		"origin":      req.Host,
-		"origin_host": originHost,
-		"origin_port": originPort,
+		"deviceid":     deviceID,
+		"origin":       req.Host,
+		"origin_host":  originHost,
+		"origin_port":  originPort,
+		"app_version":  version,
+		"app_platform": platform,
 	}
 
 	clientIP, _, err := net.SplitHostPort(req.RemoteAddr)

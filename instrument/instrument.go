@@ -26,7 +26,7 @@ type Instrument interface {
 	XBQHeaderSent()
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
-	ProxiedBytes(sent, recv int)
+	ProxiedBytes(sent, recv int, platform, version string)
 }
 
 // NoInstrument is an implementation of Instrument which does nothing
@@ -41,10 +41,10 @@ func (i NoInstrument) Blacklist(b bool)               {}
 func (i NoInstrument) Mimic(m bool)                   {}
 func (i NoInstrument) Throttle(m bool, reason string) {}
 
-func (i NoInstrument) XBQHeaderSent()                                    {}
-func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
-func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
-func (i NoInstrument) ProxiedBytes(sent, recv int)                       {}
+func (i NoInstrument) XBQHeaderSent()                                        {}
+func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)         {}
+func (i NoInstrument) VersionCheck(redirect bool, method, reason string)     {}
+func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version string) {}
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
@@ -91,9 +91,9 @@ type PromInstrument struct {
 	filters          map[string]*instrumentedFilter
 	errorHandlers    map[string]func(conn net.Conn, err error)
 
-	blacklistChecked, blacklisted, bytesSent, bytesRecv, mimicryChecked, mimicked, xbqSent, throttlingChecked prometheus.Counter
+	blacklistChecked, blacklisted, mimicryChecked, mimicked, xbqSent, throttlingChecked prometheus.Counter
 
-	throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
+	bytesSent, bytesRecv, throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
 }
 
 func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
@@ -119,11 +119,11 @@ func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 		bytesSent: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_sent_bytes_total",
 			Help: "Bytes sent to the client connections. Pluggable transport overhead excluded",
-		}, commonLabelNames).With(commonLabels),
+		}, commonLabelNames).MustCurryWith(commonLabels),
 		bytesRecv: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_received_bytes_total",
 			Help: "Bytes received from the client connections. Pluggable transport overhead excluded",
-		}, commonLabelNames).With(commonLabels),
+		}, commonLabelNames).MustCurryWith(commonLabels),
 		mimicryChecked: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_apache_mimicry_checked_total",
 		}, commonLabelNames).With(commonLabels),
@@ -275,7 +275,8 @@ func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 	p.versionCheck.With(labels).Inc()
 }
 
-func (p *PromInstrument) ProxiedBytes(sent, recv int) {
-	p.bytesSent.Add(float64(sent))
-	p.bytesRecv.Add(float64(recv))
+func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version string) {
+	labels := prometheus.Labels{"app_platform": platform, "app_version": version}
+	p.bytesSent.With(labels).Add(float64(sent))
+	p.bytesRecv.With(labels).Add(float64(recv))
 }

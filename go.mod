@@ -75,7 +75,7 @@ require (
 	go.opencensus.io v0.17.0 // indirect
 	golang.org/x/crypto v0.0.0-20200115085410-6d4e4cb37c7d // indirect
 	golang.org/x/net v0.0.0-20190912160710-24e19bdeb0f2
-	golang.org/x/sys v0.0.0-20200116001909-b77594299b42 // indirect
+	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae // indirect
 	google.golang.org/api v0.0.0-20180921000521-920bb1beccf7
 	google.golang.org/genproto v0.0.0-20180918203901-c3f76f3b92d1 // indirect
 	google.golang.org/grpc v1.23.1 // indirect
