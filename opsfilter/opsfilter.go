@@ -61,15 +61,9 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 	// On persistent HTTP connections, some or all of the below may be missing on requests after the first. By only setting
 	// the values when they're available, the measured listener will preserve any values that were already included in the
 	// first request on the connection.
-	if deviceID != "" {
-		measuredCtx["deviceid"] = deviceID
-	}
-	if version != "" {
-		measuredCtx["app_version"] = version
-	}
-	if version != "" {
-		measuredCtx["app_platform"] = platform
-	}
+	f.addHeaderToContext(measuredCtx, "deviceid", deviceID)
+	f.addHeaderToContext(measuredCtx, "app_version", version)
+	f.addHeaderToContext(measuredCtx, "app_platform", platform)
 
 	clientIP, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err == nil {
@@ -85,4 +79,10 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 	op.FailIf(nextErr)
 
 	return resp, nextCtx, nextErr
+}
+
+func (f *opsfilter) addHeaderToContext(ctx map[string]interface{}, key, headerValue string) {
+	if headerValue != "" {
+		ctx[key] = headerValue
+	}
 }
