@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.5.3](https://github.com/getlantern/http-proxy-lantern/tree/2.5.3) (2020-03-10)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.5.2...2.5.3)
+
+**Merged pull requests:**
+
+- HOTFIX: add missing labels for bytesSent and bytesRecv [\#382](https://github.com/getlantern/http-proxy-lantern/pull/382) ([oxtoacart](https://github.com/oxtoacart))
+
 ## [2.5.2](https://github.com/getlantern/http-proxy-lantern/tree/2.5.2) (2020-03-10)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.5.1...2.5.2)
@@ -232,6 +240,7 @@
 
 **Merged pull requests:**
 
+- oquic v0 [\#326](https://github.com/getlantern/http-proxy-lantern/pull/326) ([forkner](https://github.com/forkner))
 - update tlsdialer to the correct latest master [\#325](https://github.com/getlantern/http-proxy-lantern/pull/325) ([joesis](https://github.com/joesis))
 - update code and dependencies to use latest version of golog [\#324](https://github.com/getlantern/http-proxy-lantern/pull/324) ([joesis](https://github.com/joesis))
 - Update anacrolix/missinggo to v1.1.1 [\#323](https://github.com/getlantern/http-proxy-lantern/pull/323) ([anacrolix](https://github.com/anacrolix))
@@ -250,7 +259,6 @@
 
 **Merged pull requests:**
 
-- oquic v0 [\#326](https://github.com/getlantern/http-proxy-lantern/pull/326) ([forkner](https://github.com/forkner))
 - Update dependencies to use xtaci/smux v1.3.4 [\#321](https://github.com/getlantern/http-proxy-lantern/pull/321) ([joesis](https://github.com/joesis))
 - update smux to fork, bring in memory fix for smux\#52 [\#320](https://github.com/getlantern/http-proxy-lantern/pull/320) ([forkner](https://github.com/forkner))
 - update tinywss,smux,cmux to fix wss bbr estimate [\#319](https://github.com/getlantern/http-proxy-lantern/pull/319) ([forkner](https://github.com/forkner))
@@ -332,6 +340,7 @@
 
 - Export basic metrics to Prometheus [\#296](https://github.com/getlantern/http-proxy-lantern/pull/296) ([joesis](https://github.com/joesis))
 - Add support packet forwarding [\#291](https://github.com/getlantern/http-proxy-lantern/pull/291) ([oxtoacart](https://github.com/oxtoacart))
+- Fixed rewriting of https [\#289](https://github.com/getlantern/http-proxy-lantern/pull/289) ([oxtoacart](https://github.com/oxtoacart))
 
 ## [0.2.13](https://github.com/getlantern/http-proxy-lantern/tree/0.2.13) (2019-03-27)
 
@@ -381,7 +390,6 @@
 
 **Merged pull requests:**
 
-- Fixed rewriting of https [\#289](https://github.com/getlantern/http-proxy-lantern/pull/289) ([oxtoacart](https://github.com/oxtoacart))
 - Update packages to fix missing commit in qtls dependency [\#288](https://github.com/getlantern/http-proxy-lantern/pull/288) ([forkner](https://github.com/forkner))
 
 ## [0.2.7](https://github.com/getlantern/http-proxy-lantern/tree/0.2.7) (2019-02-06)
@@ -670,7 +678,6 @@
 - Updated to latest http-proxy [\#187](https://github.com/getlantern/http-proxy-lantern/pull/187) ([oxtoacart](https://github.com/oxtoacart))
 - Making sure that resp.Header is not nil [\#186](https://github.com/getlantern/http-proxy-lantern/pull/186) ([oxtoacart](https://github.com/oxtoacart))
 - Using new filters API [\#185](https://github.com/getlantern/http-proxy-lantern/pull/185) ([oxtoacart](https://github.com/oxtoacart))
-- Switched to using shared tlsredis and testredis [\#184](https://github.com/getlantern/http-proxy-lantern/pull/184) ([oxtoacart](https://github.com/oxtoacart))
 - fasttrack domains matches subdomains, closes getlantern/lantern-inter… [\#183](https://github.com/getlantern/http-proxy-lantern/pull/183) ([oxtoacart](https://github.com/oxtoacart))
 - fix \#181 [\#182](https://github.com/getlantern/http-proxy-lantern/pull/182) ([joesis](https://github.com/joesis))
 - add flag to show binary version [\#180](https://github.com/getlantern/http-proxy-lantern/pull/180) ([joesis](https://github.com/joesis))
