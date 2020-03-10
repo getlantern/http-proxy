@@ -119,11 +119,11 @@ func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 		bytesSent: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_sent_bytes_total",
 			Help: "Bytes sent to the client connections. Pluggable transport overhead excluded",
-		}, commonLabelNames).MustCurryWith(commonLabels),
+		}, append(commonLabelNames, "app_platform", "app_version")).MustCurryWith(commonLabels),
 		bytesRecv: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_received_bytes_total",
 			Help: "Bytes received from the client connections. Pluggable transport overhead excluded",
-		}, commonLabelNames).MustCurryWith(commonLabels),
+		}, append(commonLabelNames, "app_platform", "app_version")).MustCurryWith(commonLabels),
 		mimicryChecked: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_apache_mimicry_checked_total",
 		}, commonLabelNames).With(commonLabels),
