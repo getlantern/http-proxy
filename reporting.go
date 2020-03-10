@@ -29,7 +29,22 @@ func newReportingConfig(geolookup geo.Lookup, rc *rclient.Client, enabled bool, 
 		return noReport
 	}
 	proxiedBytesReporter := func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
-		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal)
+		if deltaStats.SentTotal == 0 && deltaStats.RecvTotal == 0 {
+			// nothing to report
+			return
+		}
+		platform := ""
+		_platform := ctx["app_platform"]
+		if _platform != nil {
+			platform = _platform.(string)
+		}
+		version := ""
+		_version := ctx["app_version"]
+		if _platform != nil {
+			version = _version.(string)
+		}
+		// Note - sometimes we're missing the platform and version
+		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version)
 	}
 	reporter := redis.NewMeasuredReporter(geolookup, rc, measuredReportingInterval)
 	if bordaReporter != nil {
