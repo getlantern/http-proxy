@@ -52,27 +52,37 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 	log.Tracef("Starting op")
 	defer op.End()
 
-	opsCtx := map[string]interface{}{
-		"deviceid":     deviceID,
-		"origin":       req.Host,
-		"origin_host":  originHost,
-		"origin_port":  originPort,
-		"app_version":  version,
-		"app_platform": platform,
+	measuredCtx := map[string]interface{}{
+		"origin":      req.Host,
+		"origin_host": originHost,
+		"origin_port": originPort,
 	}
+
+	// On persistent HTTP connections, some or all of the below may be missing on requests after the first. By only setting
+	// the values when they're available, the measured listener will preserve any values that were already included in the
+	// first request on the connection.
+	f.addHeaderToContext(measuredCtx, "deviceid", deviceID)
+	f.addHeaderToContext(measuredCtx, "app_version", version)
+	f.addHeaderToContext(measuredCtx, "app_platform", platform)
 
 	clientIP, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err == nil {
 		op.Set("client_ip", clientIP)
-		opsCtx["client_ip"] = clientIP
+		measuredCtx["client_ip"] = clientIP
 	}
 
 	// Send the same context data to measured as well
 	wc := ctx.DownstreamConn().(listeners.WrapConn)
-	wc.ControlMessage("measured", opsCtx)
+	wc.ControlMessage("measured", measuredCtx)
 
 	resp, nextCtx, nextErr := next(ctx, req)
 	op.FailIf(nextErr)
 
 	return resp, nextCtx, nextErr
+}
+
+func (f *opsfilter) addHeaderToContext(ctx map[string]interface{}, key, headerValue string) {
+	if headerValue != "" {
+		ctx[key] = headerValue
+	}
 }
