@@ -123,6 +123,8 @@ github.com/getlantern/filepersist v0.0.0-20160317154340-c5f0cd24e799 h1:FhkPUYCQ
 github.com/getlantern/filepersist v0.0.0-20160317154340-c5f0cd24e799/go.mod h1:8DGAx0LNUfXNnEH+fXI0s3OCBA/351kZCiz/8YSK3i8=
 github.com/getlantern/framed v0.0.0-20190601192238-ceb6431eeede h1:yrU6Px3ZkvCsDLPryPGi6FN+2iqFPq+JeCb7EFoDBhw=
 github.com/getlantern/framed v0.0.0-20190601192238-ceb6431eeede/go.mod h1:nhnoiS6DE6zfe+BaCMU4YI01UpsuiXnDqM5S8jxHuuI=
+github.com/getlantern/geo v0.0.0-20200421144247-0ae32b959ddd h1:A9ar3ZCcKVUIwHxBr3WkhJPHZksbYlRPSEIoUgSaNu8=
+github.com/getlantern/geo v0.0.0-20200421144247-0ae32b959ddd/go.mod h1:1h30vCi6dFhdEGCQr8zeiHS2xfmTLVsNL0WgQaR2Bt0=
 github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467 h1:10ez8C+7zyHzmnIiYybx9Qji/zO2tAAde69DfJMbUKY=
 github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467/go.mod h1:IQND0fl/mdTYNICpN/eDYKX+j90TqQYXdpNFWkJpCPs=
 github.com/getlantern/go-libutp v1.0.3 h1:ESmde7HKb1LaB+6G0eWUuWcjN4DmqOvTRqm49De33sI=
@@ -155,8 +157,8 @@ github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c h1:RRKKa+o6Yqb0s
 github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c/go.mod h1:AZHOQRIy6GnSLBR4EUUNj7tw635t43+FOxZMzj8FSok=
 github.com/getlantern/kcpwrapper v0.0.0-20171114192627-a35c895f6de7 h1:0uglM96WZ137+gN+/qipUmjAif/cpTCD0vRkBPrElkM=
 github.com/getlantern/kcpwrapper v0.0.0-20171114192627-a35c895f6de7/go.mod h1:SALXqG7is/dZR1Guc/mWdPp4/LSop9f5NAy+o5yMfWQ=
-github.com/getlantern/keepcurrent v0.0.0-20200210090806-afb79b07e6aa h1:8JG6ELfLsqOinCFl5433dFJkdXd0H3L+TD5L7XHcpRA=
-github.com/getlantern/keepcurrent v0.0.0-20200210090806-afb79b07e6aa/go.mod h1:C9e6r1QaHifmpNCoMX48D/Ed9jXY9FEMsyQ/n4qplcI=
+github.com/getlantern/keepcurrent v0.0.0-20200421142816-37a59b235a29 h1:/cZVdmpwOSnQjzQXHzqHuiPqND4WGHWPBwGkN580rYU=
+github.com/getlantern/keepcurrent v0.0.0-20200421142816-37a59b235a29/go.mod h1:C9e6r1QaHifmpNCoMX48D/Ed9jXY9FEMsyQ/n4qplcI=
 github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a h1:SBw2c296eaLrrnydtLhcjgvNB1mDaXF1SSfW4DGt0kk=
 github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a/go.mod h1:FMf0g72BHs14jVcD8i8ubEk4sMB6JdidBn67d44i3ws=
 github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9 h1:n2t63QvweEs53Kpy7QbXv6JRSfXpDTTgPMT4cNTOt8g=
@@ -389,8 +391,12 @@ github.com/onsi/gomega v1.8.1/go.mod h1:Ho0h+IUsWyvy1OpqCwxlQ/21gkhVunqlU8fDGcoT
 github.com/openzipkin/zipkin-go v0.1.1/go.mod h1:NtoC/o8u3JlF1lSlyPNswIbeQH9bJTmOf0Erfk+hxe8=
 github.com/oschwald/geoip2-golang v1.2.1 h1:3iz+jmeJc6fuCyWeKgtXSXu7+zvkxJbHFXkMT5FVebU=
 github.com/oschwald/geoip2-golang v1.2.1/go.mod h1:0LTTzix/Ao1uMvOhAV4iLU0Lz7eCrP94qZWBTDKf0iE=
+github.com/oschwald/geoip2-golang v1.4.0 h1:5RlrjCgRyIGDz/mBmPfnAF4h8k0IAcRv9PvrpOfz+Ug=
+github.com/oschwald/geoip2-golang v1.4.0/go.mod h1:8QwxJvRImBH+Zl6Aa6MaIcs5YdlZSTKtzmPGzQqi9ng=
 github.com/oschwald/maxminddb-golang v1.3.0 h1:oTh8IBSj10S5JNlUDg5WjJ1QdBMdeaZIkPEVfESSWgE=
 github.com/oschwald/maxminddb-golang v1.3.0/go.mod h1:3jhIUymTJ5VREKyIhWm66LJiQt04F0UCDdodShpjWsY=
+github.com/oschwald/maxminddb-golang v1.6.0 h1:KAJSjdHQ8Kv45nFIbtoLGrGWqHFajOIm7skTyz/+Dls=
+github.com/oschwald/maxminddb-golang v1.6.0/go.mod h1:DUJFucBg2cvqx42YmDa/+xHvb0elJtOm3o4aFQ/nb/w=
 github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c h1:rp5dCmg/yLR3mgFuSOe4oEnDDmGLROTvMragMUXpTQw=
 github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c/go.mod h1:X07ZCGwUbLaax7L0S3Tw4hpejzu63ZrrQiUe6W0hcy0=
 github.com/oxtoacart/emsort v0.0.0-20160911032127-e467347e3354 h1:2ZHSDQaQXiKRIFXKVCRZtddQl1/XM4oI3vKkb3xYi/8=
@@ -551,6 +557,7 @@ golang.org/x/sys v0.0.0-20190904154756-749cb33beabd/go.mod h1:h1NjWce9XRLGQEsW7w
 golang.org/x/sys v0.0.0-20190912141932-bc967efca4b8 h1:41hwlulw1prEMBxLQSlMSux1zxJf07B3WPsdjJlKZxE=
 golang.org/x/sys v0.0.0-20190912141932-bc967efca4b8/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20191008105621-543471e840be/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
+golang.org/x/sys v0.0.0-20191224085550-c709ea063b76/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200202164722-d101bd2416d5/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200323222414-85ca7c5b95cd/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200331124033-c3d80250170d h1:nc5K6ox/4lTFbMVSL9WRR81ixkcwXThoiF6yf+R9scA=

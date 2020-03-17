@@ -22,13 +22,13 @@ require (
 	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
+	github.com/getlantern/geo v0.0.0-20200421144247-0ae32b959ddd
 	github.com/getlantern/golog v0.0.0-20190830074920-4ef2e798c2d7
 	github.com/getlantern/gonat v0.0.0-20200420153910-d0d331e11ce4
 	github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55
 	github.com/getlantern/http-proxy v0.0.3-0.20200407205042-2382946d79e7
 	github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c // indirect
 	github.com/getlantern/kcpwrapper v0.0.0-20171114192627-a35c895f6de7
-	github.com/getlantern/keepcurrent v0.0.0-20200210090806-afb79b07e6aa
 	github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a
 	github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9
 	github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198
@@ -64,7 +64,6 @@ require (
 	github.com/mikioh/tcp v0.0.0-20180707144002-02a37043a4f7 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20180831101334-131b59fef27f // indirect
 	github.com/mikioh/tcpopt v0.0.0-20180707144150-7178f18b4ea8 // indirect
-	github.com/oschwald/geoip2-golang v1.2.1
 	github.com/prometheus/client_golang v1.1.0
 	github.com/refraction-networking/utls v0.0.0-20190415193640-32987941ebd3 // indirect
 	github.com/stretchr/testify v1.5.1
