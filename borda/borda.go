@@ -6,6 +6,7 @@ import (
 
 	borda "github.com/getlantern/borda/client"
 	"github.com/getlantern/borda/client/rpcclient"
+	"github.com/getlantern/context"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/hidden"
 	"github.com/getlantern/http-proxy/listeners"
@@ -101,13 +102,13 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 		}
 
 		// Copy the context before modifying it
-		ctx := make(map[string]interface{}, len(_ctx))
+		ctx := make(context.Map, len(_ctx))
 		for key, value := range _ctx {
 			ctx[key] = value
 		}
 		ctx["op"] = "xfer"
 
-		reportErr := reportToBorda(vals, ctx)
+		reportErr := reportToBorda(vals, ops.AsMap(ctx, true))
 		if reportErr != nil {
 			log.Errorf("Error reporting error to borda: %v", reportErr)
 		}
