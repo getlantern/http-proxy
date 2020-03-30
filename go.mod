@@ -18,6 +18,7 @@ require (
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
 	github.com/getlantern/borda v0.0.0-20190809122504-668025f4c2b9
 	github.com/getlantern/cmux v0.0.0-20200120072431-136083c8edb8
+	github.com/getlantern/context v0.0.0-20190109183933-c447772a6520
 	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
