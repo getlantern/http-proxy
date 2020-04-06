@@ -202,12 +202,19 @@ func main() {
 			log.Fatal("missing-session-ticket-reflect-site should not be empty")
 		}
 		reaction = tlslistener.ReflectToSite(*missingTicketReflectSite)
+		log.Debugf("Reflecting missing session tickets to site %v", *missingTicketReflectSite)
 	default:
 		reaction = tlslistener.AlertInternalError
 		log.Errorf("unrecognized missing-session-ticket-reaction %s, fallback to %s", *missingTicketReaction, reaction.Action())
 	}
 	if *missingTicketReactionDelay != 0 {
 		reaction = tlslistener.Delayed(*missingTicketReactionDelay, reaction)
+	}
+
+	if reaction.Action() == "" {
+		log.Debug("Not using missing-session-ticket-reaction")
+	} else {
+		log.Debugf("Using missing-session-ticket-reaction %v", reaction.Action())
 	}
 
 	var (
