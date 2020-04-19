@@ -23,7 +23,7 @@ require (
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
 	github.com/getlantern/golog v0.0.0-20190830074920-4ef2e798c2d7
-	github.com/getlantern/gonat v0.0.0-20190809093358-98412e37c429
+	github.com/getlantern/gonat v0.0.0-20200420153910-d0d331e11ce4
 	github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55
 	github.com/getlantern/http-proxy v0.0.3-0.20200407205042-2382946d79e7
 	github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c // indirect
@@ -33,10 +33,10 @@ require (
 	github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9
 	github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198
 	github.com/getlantern/mockconn v0.0.0-20191023022503-481dbcceeb58
-	github.com/getlantern/mtime v0.0.0-20200228202836-084e1d8282b0
+	github.com/getlantern/mtime v0.0.0-20200417132445-23682092d1f7
 	github.com/getlantern/netx v0.0.0-20190110220209-9912de6f94fd
-	github.com/getlantern/ops v0.0.0-20190325191751-d70cb0d6f85f
-	github.com/getlantern/packetforward v0.0.0-20190809094443-386cbcc0d498
+	github.com/getlantern/ops v0.0.0-20200403153110-8476b16edcd6
+	github.com/getlantern/packetforward v0.0.0-20200420154332-ac9456c222ca
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/proxy v0.0.0-20200302183216-36afa00d0126
 	github.com/getlantern/quic0 v0.0.0-20200121154153-8b18c2ba09f9
@@ -75,8 +75,7 @@ require (
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	go.opencensus.io v0.17.0 // indirect
 	golang.org/x/crypto v0.0.0-20200115085410-6d4e4cb37c7d // indirect
-	golang.org/x/net v0.0.0-20190912160710-24e19bdeb0f2
-	golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae // indirect
+	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
 	google.golang.org/api v0.0.0-20180921000521-920bb1beccf7
 	google.golang.org/genproto v0.0.0-20180918203901-c3f76f3b92d1 // indirect
 	google.golang.org/grpc v1.23.1 // indirect
