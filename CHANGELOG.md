@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.6.0](https://github.com/getlantern/http-proxy-lantern/tree/2.6.0) (2020-04-21)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.5.8...2.6.0)
+
+**Merged pull requests:**
+
+- Updated to latest packetforward with performance/cpu usage improvements [\#391](https://github.com/getlantern/http-proxy-lantern/pull/391) ([oxtoacart](https://github.com/oxtoacart))
+
 ## [2.5.8](https://github.com/getlantern/http-proxy-lantern/tree/2.5.8) (2020-04-20)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.5.7...2.5.8)
@@ -73,6 +81,7 @@
 **Merged pull requests:**
 
 - Updated to latest lampshade and proxy packages [\#379](https://github.com/getlantern/http-proxy-lantern/pull/379) ([oxtoacart](https://github.com/oxtoacart))
+- use the latest lampshade package [\#378](https://github.com/getlantern/http-proxy-lantern/pull/378) ([joesis](https://github.com/joesis))
 
 ## [2.4.8](https://github.com/getlantern/http-proxy-lantern/tree/2.4.8) (2020-02-27)
 
@@ -90,7 +99,6 @@
 
 **Merged pull requests:**
 
-- use the latest lampshade package [\#378](https://github.com/getlantern/http-proxy-lantern/pull/378) ([joesis](https://github.com/joesis))
 - use our own CDN distribution to overcome rate limit [\#374](https://github.com/getlantern/http-proxy-lantern/pull/374) ([joesis](https://github.com/joesis))
 
 ## [2.4.6](https://github.com/getlantern/http-proxy-lantern/tree/2.4.6) (2020-02-11)
@@ -160,6 +168,7 @@
 **Merged pull requests:**
 
 - Not redirect if the request has no version header [\#359](https://github.com/getlantern/http-proxy-lantern/pull/359) ([joesis](https://github.com/joesis))
+- Allow configuring reaction to unexpected ClientHellos [\#353](https://github.com/getlantern/http-proxy-lantern/pull/353) ([joesis](https://github.com/joesis))
 
 ## [2.3.11](https://github.com/getlantern/http-proxy-lantern/tree/2.3.11) (2019-12-16)
 
@@ -178,7 +187,6 @@
 
 - measure version checks and redirects [\#356](https://github.com/getlantern/http-proxy-lantern/pull/356) ([joesis](https://github.com/joesis))
 - export tls resumption configs as Prometheus labels [\#354](https://github.com/getlantern/http-proxy-lantern/pull/354) ([joesis](https://github.com/joesis))
-- Allow configuring reaction to unexpected ClientHellos [\#353](https://github.com/getlantern/http-proxy-lantern/pull/353) ([joesis](https://github.com/joesis))
 
 ## [2.3.9](https://github.com/getlantern/http-proxy-lantern/tree/2.3.9) (2019-12-05)
 
