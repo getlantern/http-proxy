@@ -123,8 +123,8 @@ github.com/getlantern/filepersist v0.0.0-20160317154340-c5f0cd24e799 h1:FhkPUYCQ
 github.com/getlantern/filepersist v0.0.0-20160317154340-c5f0cd24e799/go.mod h1:8DGAx0LNUfXNnEH+fXI0s3OCBA/351kZCiz/8YSK3i8=
 github.com/getlantern/framed v0.0.0-20190601192238-ceb6431eeede h1:yrU6Px3ZkvCsDLPryPGi6FN+2iqFPq+JeCb7EFoDBhw=
 github.com/getlantern/framed v0.0.0-20190601192238-ceb6431eeede/go.mod h1:nhnoiS6DE6zfe+BaCMU4YI01UpsuiXnDqM5S8jxHuuI=
-github.com/getlantern/geo v0.0.0-20200421144247-0ae32b959ddd h1:A9ar3ZCcKVUIwHxBr3WkhJPHZksbYlRPSEIoUgSaNu8=
-github.com/getlantern/geo v0.0.0-20200421144247-0ae32b959ddd/go.mod h1:1h30vCi6dFhdEGCQr8zeiHS2xfmTLVsNL0WgQaR2Bt0=
+github.com/getlantern/geo v0.0.0-20200423004723-045cc9bbd328 h1:oguQpXWPSSw3iUnTKxLN2enqeb+x0HClLzjt/jdb2/g=
+github.com/getlantern/geo v0.0.0-20200423004723-045cc9bbd328/go.mod h1:ul0vx2453iL3abtagTRgTipWjK0p3hU98uHQl0e+EhE=
 github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467 h1:10ez8C+7zyHzmnIiYybx9Qji/zO2tAAde69DfJMbUKY=
 github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467/go.mod h1:IQND0fl/mdTYNICpN/eDYKX+j90TqQYXdpNFWkJpCPs=
 github.com/getlantern/go-libutp v1.0.3 h1:ESmde7HKb1LaB+6G0eWUuWcjN4DmqOvTRqm49De33sI=
@@ -157,8 +157,8 @@ github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c h1:RRKKa+o6Yqb0s
 github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c/go.mod h1:AZHOQRIy6GnSLBR4EUUNj7tw635t43+FOxZMzj8FSok=
 github.com/getlantern/kcpwrapper v0.0.0-20171114192627-a35c895f6de7 h1:0uglM96WZ137+gN+/qipUmjAif/cpTCD0vRkBPrElkM=
 github.com/getlantern/kcpwrapper v0.0.0-20171114192627-a35c895f6de7/go.mod h1:SALXqG7is/dZR1Guc/mWdPp4/LSop9f5NAy+o5yMfWQ=
-github.com/getlantern/keepcurrent v0.0.0-20200421142816-37a59b235a29 h1:/cZVdmpwOSnQjzQXHzqHuiPqND4WGHWPBwGkN580rYU=
-github.com/getlantern/keepcurrent v0.0.0-20200421142816-37a59b235a29/go.mod h1:C9e6r1QaHifmpNCoMX48D/Ed9jXY9FEMsyQ/n4qplcI=
+github.com/getlantern/keepcurrent v0.0.0-20200423004215-ae47ac1bedd2 h1:AvdXaDunyD4p4lvHmzQWBzDnDz9f7F1q3IOmpZmBymo=
+github.com/getlantern/keepcurrent v0.0.0-20200423004215-ae47ac1bedd2/go.mod h1:C9e6r1QaHifmpNCoMX48D/Ed9jXY9FEMsyQ/n4qplcI=
 github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a h1:SBw2c296eaLrrnydtLhcjgvNB1mDaXF1SSfW4DGt0kk=
 github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a/go.mod h1:FMf0g72BHs14jVcD8i8ubEk4sMB6JdidBn67d44i3ws=
 github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9 h1:n2t63QvweEs53Kpy7QbXv6JRSfXpDTTgPMT4cNTOt8g=

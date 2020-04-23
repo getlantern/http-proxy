@@ -22,7 +22,7 @@ require (
 	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
-	github.com/getlantern/geo v0.0.0-20200421144247-0ae32b959ddd
+	github.com/getlantern/geo v0.0.0-20200423004723-045cc9bbd328
 	github.com/getlantern/golog v0.0.0-20190830074920-4ef2e798c2d7
 	github.com/getlantern/gonat v0.0.0-20200420153910-d0d331e11ce4
 	github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55
