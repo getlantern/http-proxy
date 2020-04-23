@@ -8,11 +8,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getlantern/geo"
 	"github.com/getlantern/mockconn"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
-
-	"github.com/getlantern/http-proxy-lantern/geo"
 )
 
 func TestWrapConnErrorHandler(t *testing.T) {

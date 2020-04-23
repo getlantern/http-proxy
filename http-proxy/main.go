@@ -15,11 +15,11 @@ import (
 
 	"github.com/vharitonsky/iniflags"
 
+	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
 
 	proxy "github.com/getlantern/http-proxy-lantern"
 	"github.com/getlantern/http-proxy-lantern/blacklist"
-	"github.com/getlantern/http-proxy-lantern/geo"
 	"github.com/getlantern/http-proxy-lantern/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/stackdrivererror"
@@ -31,6 +31,9 @@ import (
 var (
 	log      = golog.LoggerFor("lantern-proxy")
 	revision = "unknown" // overridden by Makefile
+	// Use our own CDN distribution which fetches the origin at most once per
+	// day to avoid hitting the 2000 downloads/day limit imposed by MaxMind.
+	geolite2_url = "https://d254wvfcgkka1d.cloudfront.net/app/geoip_download?license_key=%s&edition_id=GeoLite2-Country&suffix=tar.gz"
 
 	hostname, _ = os.Hostname()
 
@@ -241,6 +244,11 @@ func main() {
 			tlsmasqTLSSuites = append(tlsmasqTLSSuites, suite)
 		}
 	}
+	var geoLookup geo.Lookup
+	if *maxmindLicenseKey == "" {
+		log.Fatal("maxmindlicensekey should not be empty")
+	}
+	geoLookup = geo.New(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), 24*time.Hour, *geolite2DBFile)
 
 	go periodicallyForceGC()
 
@@ -326,7 +334,7 @@ func main() {
 		TLSMasqTLSMinVersion:               tlsmasqTLSMinVersion,
 		TLSMasqTLSCipherSuites:             tlsmasqTLSSuites,
 		PromExporterAddr:                   *promExporterAddr,
-		GeoLookup:                          geo.New(*maxmindLicenseKey, *geolite2DBFile),
+		GeoLookup:                          geoLookup,
 	}
 
 	log.Fatal(p.ListenAndServe())

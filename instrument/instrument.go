@@ -11,9 +11,8 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
+	"github.com/getlantern/geo"
 	"github.com/getlantern/proxy/filters"
-
-	"github.com/getlantern/http-proxy-lantern/geo"
 )
 
 // Instrument is the common interface about what can be instrumented.

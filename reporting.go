@@ -4,11 +4,11 @@ import (
 	"net"
 	"time"
 
+	"github.com/getlantern/geo"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/measured"
 	rclient "gopkg.in/redis.v5"
 
-	"github.com/getlantern/http-proxy-lantern/geo"
 	"github.com/getlantern/http-proxy-lantern/instrument"
 	"github.com/getlantern/http-proxy-lantern/redis"
 )

@@ -9,8 +9,8 @@ import (
 
 	"gopkg.in/redis.v5"
 
+	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy-lantern/geo"
 	"github.com/getlantern/http-proxy-lantern/usage"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/measured"
