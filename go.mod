@@ -16,7 +16,7 @@ require (
 	github.com/dchest/siphash v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
-	github.com/getlantern/borda v0.0.0-20190809122504-668025f4c2b9
+	github.com/getlantern/borda v0.0.0-20200427033127-b36d009c6252
 	github.com/getlantern/cmux v0.0.0-20200120072431-136083c8edb8
 	github.com/getlantern/context v0.0.0-20190109183933-c447772a6520
 	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
