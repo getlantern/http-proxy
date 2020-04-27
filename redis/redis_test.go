@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/getlantern/measured"
+	"github.com/getlantern/testredis"
 	"github.com/stretchr/testify/assert"
 	rclient "gopkg.in/redis.v5"
 
@@ -15,8 +16,10 @@ import (
 )
 
 func TestReportPeriodically(t *testing.T) {
-	rc, err := newTestRedis()
+	tr, err := testredis.Open()
 	assert.NoError(t, err)
+	defer tr.Close()
+	rc := tr.Client()
 	deviceID := "device12"
 	clientIP := "1.1.1.1"
 	fetcher := NewDeviceFetcher(rc)
@@ -66,20 +69,4 @@ type fakeLookup struct{ countryCode string }
 
 func (l *fakeLookup) CountryCode(ip net.IP) string {
 	return l.countryCode
-}
-
-func newTestRedis() (*rclient.Client, error) {
-	url := os.Getenv("REDIS_PORT") // If in Wercker
-	if url == "" {
-		url = "redis://localhost:6379"
-	} else {
-		url = strings.Replace(url, "tcp", "redis", 1)
-	}
-	opts, err := rclient.ParseURL(url)
-	if err != nil {
-		return nil, err
-	}
-	client := rclient.NewClient(opts)
-	client.FlushAll()
-	return client, nil
 }

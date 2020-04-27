@@ -155,8 +155,6 @@ var (
 )
 
 func main() {
-	ctx := context.Background()
-
 	iniflags.SetAllowUnknownFlags(true)
 	iniflags.Parse()
 	if *version {
@@ -186,7 +184,7 @@ func main() {
 	}
 
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
-		close := stackdrivererror.Enable(ctx, *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *externalIP)
+		close := stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *externalIP)
 		defer close()
 	}
 

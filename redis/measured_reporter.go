@@ -23,10 +23,10 @@ const script = `
 	local bytesOut = redis.call("hincrby", clientKey, "bytesOut", ARGV[2])
 	local countryCode = redis.call("hget", clientKey, "countryCode")
 	if not countryCode or countryCode == "" then
-		redis.call("hset", clientKey, "countryCode", ARGV[3])
+		countryCode = ARGV[3]
+		redis.call("hset", clientKey, "countryCode", countryCode)
 		-- record the IP on which we based the countryCode for auditing
 		redis.call("hset", clientKey, "clientIP", ARGV[4])
-		countryCode = ARGV[3]
 		redis.call("expireat", clientKey, ARGV[5])
 	end
 
@@ -143,7 +143,14 @@ func submit(geolookup geo.Lookup, rc *redis.Client, scriptSHA string, statsByDev
 		result := _result.([]interface{})
 		bytesIn, _ := result[0].(int64)
 		bytesOut, _ := result[1].(int64)
-		countryCode = result[2].(string)
+		_countryCode := result[2]
+		// In production it should never be nil but LedisDB (for unit testing)
+		// has a bug which treats empty string as nil when `EvalSha`.
+		if _countryCode == nil {
+			countryCode = ""
+		} else {
+			countryCode = _countryCode.(string)
+		}
 		usage.Set(deviceID, countryCode, bytesIn+bytesOut, now)
 	}
 	return nil
