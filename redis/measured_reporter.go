@@ -22,9 +22,7 @@ const script = `
 	local bytesIn = redis.call("hincrby", clientKey, "bytesIn", ARGV[1])
 	local bytesOut = redis.call("hincrby", clientKey, "bytesOut", ARGV[2])
 	local countryCode = redis.call("hget", clientKey, "countryCode")
-	-- note that we use an if instead of just calling hsetnx because LedisDB (unit
-	-- testing) doesn't support hsetnx
-	if not countryCode then
+	if not countryCode or countryCode == "" then
 		redis.call("hset", clientKey, "countryCode", ARGV[3])
 		-- record the IP on which we based the countryCode for auditing
 		redis.call("hset", clientKey, "clientIP", ARGV[4])
@@ -145,12 +143,7 @@ func submit(geolookup geo.Lookup, rc *redis.Client, scriptSHA string, statsByDev
 		result := _result.([]interface{})
 		bytesIn, _ := result[0].(int64)
 		bytesOut, _ := result[1].(int64)
-		_countryCode := result[2]
-		if _countryCode == nil {
-			countryCode = ""
-		} else {
-			countryCode = _countryCode.(string)
-		}
+		countryCode = result[2].(string)
 		usage.Set(deviceID, countryCode, bytesIn+bytesOut, now)
 	}
 	return nil
