@@ -1,5 +1,21 @@
 # Changelog
 
+## [2.6.2](https://github.com/getlantern/http-proxy-lantern/tree/2.6.2) (2020-04-27)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.6.1...2.6.2)
+
+**Merged pull requests:**
+
+- update to latest borda package [\#392](https://github.com/getlantern/http-proxy-lantern/pull/392) ([joesis](https://github.com/joesis))
+
+## [2.6.1](https://github.com/getlantern/http-proxy-lantern/tree/2.6.1) (2020-04-23)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.6.0...2.6.1)
+
+**Merged pull requests:**
+
+- extracted geo to a reusable package [\#385](https://github.com/getlantern/http-proxy-lantern/pull/385) ([joesis](https://github.com/joesis))
+
 ## [2.6.0](https://github.com/getlantern/http-proxy-lantern/tree/2.6.0) (2020-04-21)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.5.8...2.6.0)
@@ -168,7 +184,6 @@
 **Merged pull requests:**
 
 - Not redirect if the request has no version header [\#359](https://github.com/getlantern/http-proxy-lantern/pull/359) ([joesis](https://github.com/joesis))
-- Allow configuring reaction to unexpected ClientHellos [\#353](https://github.com/getlantern/http-proxy-lantern/pull/353) ([joesis](https://github.com/joesis))
 
 ## [2.3.11](https://github.com/getlantern/http-proxy-lantern/tree/2.3.11) (2019-12-16)
 
@@ -187,6 +202,7 @@
 
 - measure version checks and redirects [\#356](https://github.com/getlantern/http-proxy-lantern/pull/356) ([joesis](https://github.com/joesis))
 - export tls resumption configs as Prometheus labels [\#354](https://github.com/getlantern/http-proxy-lantern/pull/354) ([joesis](https://github.com/joesis))
+- Allow configuring reaction to unexpected ClientHellos [\#353](https://github.com/getlantern/http-proxy-lantern/pull/353) ([joesis](https://github.com/joesis))
 
 ## [2.3.9](https://github.com/getlantern/http-proxy-lantern/tree/2.3.9) (2019-12-05)
 
