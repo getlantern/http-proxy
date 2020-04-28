@@ -11,8 +11,10 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strings"
+	"syscall"
 	"time"
 
+	"github.com/mitchellh/panicwrap"
 	"github.com/vharitonsky/iniflags"
 
 	"github.com/getlantern/geo"
@@ -189,6 +191,32 @@ func main() {
 		close := stackdrivererror.Enable(ctx, *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *externalIP)
 		defer close()
 	}
+
+	// panicwrap works by re-executing the running program (retaining arguments,
+	// environmental variables, etc.) and monitoring the stderr of the program.
+	exitStatus, panicWrapErr := panicwrap.Wrap(
+		&panicwrap.WrapConfig{
+			DetectDuration: time.Second,
+			Handler: func(msg string) {
+				log.Fatal(msg)
+			},
+			// Just forward signals to the child process
+			ForwardSignals: []os.Signal{
+				syscall.SIGHUP,
+				syscall.SIGTERM,
+				syscall.SIGQUIT,
+				os.Interrupt,
+			},
+		})
+	if panicWrapErr != nil {
+		log.Fatalf("Error setting up panic wrapper: %v", panicWrapErr)
+	} else {
+		// If exitStatus >= 0, then we're the parent process.
+		if exitStatus >= 0 {
+			os.Exit(exitStatus)
+		}
+	}
+	// We're in the child (wrapped) process now
 
 	var reaction tlslistener.HandshakeReaction
 	switch *missingTicketReaction {
