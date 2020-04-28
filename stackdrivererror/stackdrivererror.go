@@ -33,10 +33,12 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string,
 
 	var reporter = func(err error, severity golog.Severity, ctx map[string]interface{}) {
 		if severity == golog.ERROR || severity == golog.FATAL {
-			r := rand.Float64()
-			if r > samplePercentage {
-				log.Debugf("Not in sample. %v less than %v", r, samplePercentage)
-				return
+			if severity == golog.ERROR {
+				r := rand.Float64()
+				if r > samplePercentage {
+					log.Debugf("Not in sample. %v less than %v", r, samplePercentage)
+					return
+				}
 			}
 			log.Debugf("Reporting error to stackdriver")
 
@@ -44,6 +46,10 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string,
 			errorClient.Report(errorreporting.Entry{
 				Error: errWithIP,
 			})
+
+			if severity == golog.FATAL {
+				errorClient.Close()
+			}
 		}
 	}
 
