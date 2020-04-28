@@ -1,5 +1,13 @@
 # Changelog
 
+## [2.6.5](https://github.com/getlantern/http-proxy-lantern/tree/2.6.5) (2020-04-28)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.6.4...2.6.5)
+
+**Merged pull requests:**
+
+- Fix panicwrap pprof bind conflict [\#395](https://github.com/getlantern/http-proxy-lantern/pull/395) ([max-b](https://github.com/max-b))
+
 ## [2.6.4](https://github.com/getlantern/http-proxy-lantern/tree/2.6.4) (2020-04-28)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.6.3...2.6.4)
