@@ -186,7 +186,8 @@ func main() {
 				syscall.SIGHUP,
 				syscall.SIGTERM,
 				syscall.SIGQUIT,
-				os.Interrupt,
+				syscall.SIGINT,
+				syscall.SIGUSR1,
 			},
 		})
 	if panicWrapErr != nil {
