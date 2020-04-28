@@ -131,7 +131,6 @@ func doTestThrottling(t *testing.T, pro, forceThrottling bool, serverAddr string
 	}
 
 	makeRequest := func(u string, testSize int) (*http.Response, int, error) {
-
 		var conn *ReadSizeConn
 		client := &http.Client{
 			Transport: &http.Transport{

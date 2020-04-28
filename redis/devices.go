@@ -77,7 +77,8 @@ func (df *DeviceFetcher) retrieveDeviceUsage(device string) error {
 		return err
 	}
 	if vals[0] == nil || vals[1] == nil || vals[2] == nil {
-		// No entry found or partially stored, nothing to be done
+		// No entry found or partially stored, means no usage data so far.
+		usage.Set(device, "", 0, time.Now())
 		return nil
 	}
 
@@ -90,7 +91,6 @@ func (df *DeviceFetcher) retrieveDeviceUsage(device string) error {
 		return err
 	}
 	countryCode := vals[2].(string)
-
 	usage.Set(device, countryCode, bytesIn+bytesOut, time.Now())
 	df.ongoing.del(device)
 	return nil
