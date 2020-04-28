@@ -168,23 +168,6 @@ func main() {
 		return
 	}
 
-	if (*lampshadeAddr != "" || *lampshadeUTPAddr != "") && !*https {
-		log.Fatal("Use of lampshade requires https flag to be true")
-	}
-
-	if *pprofAddr != "" {
-		go func() {
-			log.Debugf("Starting pprof page at http://%s/debug/pprof", *pprofAddr)
-			if err := http.ListenAndServe(*pprofAddr, nil); err != nil {
-				log.Error(err)
-			}
-		}()
-	}
-
-	if *versionCheck != "" && *versionCheckRedirectURL == "" {
-		log.Fatal("version check redirect URL should not be empty")
-	}
-
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
 		close := stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *externalIP)
 		defer close()
@@ -215,6 +198,23 @@ func main() {
 		}
 	}
 	// We're in the child (wrapped) process now
+
+	if (*lampshadeAddr != "" || *lampshadeUTPAddr != "") && !*https {
+		log.Fatal("Use of lampshade requires https flag to be true")
+	}
+
+	if *pprofAddr != "" {
+		go func() {
+			log.Debugf("Starting pprof page at http://%s/debug/pprof", *pprofAddr)
+			if err := http.ListenAndServe(*pprofAddr, nil); err != nil {
+				log.Error(err)
+			}
+		}()
+	}
+
+	if *versionCheck != "" && *versionCheckRedirectURL == "" {
+		log.Fatal("version check redirect URL should not be empty")
+	}
 
 	var reaction tlslistener.HandshakeReaction
 	switch *missingTicketReaction {
