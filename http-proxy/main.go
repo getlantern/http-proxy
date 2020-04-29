@@ -169,7 +169,7 @@ func main() {
 	}
 
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
-		close := stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *externalIP)
+		close := stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *proxyName, *externalIP)
 		defer close()
 	}
 
