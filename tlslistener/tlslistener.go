@@ -21,9 +21,6 @@ func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKe
 	if err != nil {
 		return nil, err
 	}
-	// This is a bit of a hack to make pre-shared TLS sessions work with uTLS. Ideally we'll make this
-	// work with TLS 1.3, see https://github.com/getlantern/lantern-internal/issues/3057.
-	cfg.MaxVersion = tls.VersionTLS12
 
 	log := golog.LoggerFor("lantern-proxy-tlslistener")
 
@@ -33,6 +30,9 @@ func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKe
 	}
 	expectTickets := sessionTicketKeyFile != ""
 	if expectTickets {
+		// This is a bit of a hack to make pre-shared TLS sessions work with uTLS. Ideally we'll make this
+		// work with TLS 1.3, see https://github.com/getlantern/lantern-internal/issues/3057.
+		cfg.MaxVersion = tls.VersionTLS12
 		log.Debugf("Will rotate session ticket key and store in %v", sessionTicketKeyFile)
 		maintainSessionTicketKey(cfg, sessionTicketKeyFile, onKeys)
 	}
