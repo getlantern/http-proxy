@@ -10,6 +10,7 @@ import (
 	"os"
 	"os/signal"
 	"regexp"
+	"runtime"
 	"strconv"
 	"strings"
 	"syscall"
@@ -909,6 +910,10 @@ func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN)
 }
 
 func (p *Proxy) setupPacketForward() error {
+	if runtime.GOOS != "linux" {
+		log.Debugf("Ignoring packet forward on %v", runtime.GOOS)
+		return nil
+	}
 	if p.PacketForwardAddr == "" {
 		return nil
 	}
