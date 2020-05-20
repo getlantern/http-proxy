@@ -211,7 +211,6 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 func (rrc *clientHelloRecordingConn) helloError(errStr string) (*tls.Config, error) {
 	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
 	rrc.instrument.SuspectedProbing(sourceIP, errStr)
-	rrc.log.Error(errStr)
 	if rrc.missingTicketReaction.handleConn != nil {
 		rrc.missingTicketReaction.handleConn(rrc)
 		// at this point the connection has already been closed, returning
