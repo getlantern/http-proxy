@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"strings"
 
 	"google.golang.org/api/option"
 
@@ -30,12 +31,17 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string,
 		log.Debugf("Error setting up stackdriver error reporting? %v", err)
 		return func() {}
 	}
+	close := func() {
+		errorClient.Close()
+		errorClient.Flush()
+	}
 
-	var reporter = func(err error, severity golog.Severity, ctx map[string]interface{}) {
+	reporter := func(err error, severity golog.Severity, ctx map[string]interface{}) {
 		if severity < golog.ERROR {
 			return
 		}
-		if severity == golog.ERROR {
+		fatal := severity > golog.ERROR || strings.Contains(err.Error(), "panic")
+		if !fatal {
 			r := rand.Float64()
 			if r > samplePercentage {
 				log.Debugf("Not in sample. %v less than %v", r, samplePercentage)
@@ -49,14 +55,11 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string,
 			Error: errWithIP,
 		})
 
-		if severity == golog.FATAL {
-			errorClient.Close()
+		if fatal {
+			close()
 		}
 	}
 
 	golog.RegisterReporter(reporter)
-	return func() {
-		errorClient.Close()
-		errorClient.Flush()
-	}
+	return close
 }
