@@ -324,7 +324,7 @@ func (p *Proxy) ListenAndServe() error {
 			return err
 		}
 
-		if err := addListenerIfNecessary(addrs.tlsmasq, p.listenTLSMasq(baseListen)); err != nil {
+		if err := addListenerIfNecessary(addrs.tlsmasq, p.wrapMultiplexing(p.listenTLSMasq(baseListen))); err != nil {
 			return err
 		}
 
