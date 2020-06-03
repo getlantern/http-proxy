@@ -1,7 +1,6 @@
 package instrument
 
 import (
-	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -96,6 +95,8 @@ type PromInstrument struct {
 	blacklistChecked, blacklisted, mimicryChecked, mimicked, xbqSent, throttlingChecked prometheus.Counter
 
 	bytesSent, bytesRecv, throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
+
+	retransmissionRate prometheus.Observer
 }
 
 func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
@@ -131,6 +132,10 @@ func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 		}, commonLabelNames).With(commonLabels),
 		mimicked: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_apache_mimicry_mimicked_total",
+		}, commonLabelNames).With(commonLabels),
+		retransmissionRate: promauto.NewHistogramVec(prometheus.HistogramOpts{
+			Name:    "proxy_tcp_retransmission_rate",
+			Buckets: []float64{0.01, 0.1, 0.5},
 		}, commonLabelNames).With(commonLabels),
 
 		xbqSent: promauto.NewCounterVec(prometheus.CounterOpts{
@@ -284,5 +289,5 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version string) 
 }
 
 func (p *PromInstrument) TCPPackets(clientAddr string, packets, retransmissions int) {
-	fmt.Printf("Connection from %v terminated: total packets %v, retransmissions %v", clientAddr, packets, retransmissions)
+	p.retransmissionRate.Observe(float64(retransmissions) / float64(packets))
 }
