@@ -26,7 +26,7 @@ type Instrument interface {
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
 	ProxiedBytes(sent, recv int, platform, version string)
-	TCPPackets(clientAddr string, packets, retransmissions int)
+	TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int)
 }
 
 // NoInstrument is an implementation of Instrument which does nothing
@@ -41,11 +41,12 @@ func (i NoInstrument) Blacklist(b bool)               {}
 func (i NoInstrument) Mimic(m bool)                   {}
 func (i NoInstrument) Throttle(m bool, reason string) {}
 
-func (i NoInstrument) XBQHeaderSent()                                             {}
-func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)              {}
-func (i NoInstrument) VersionCheck(redirect bool, method, reason string)          {}
-func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version string)      {}
-func (i NoInstrument) TCPPackets(clientAddr string, packets, retransmissions int) {}
+func (i NoInstrument) XBQHeaderSent()                                        {}
+func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)         {}
+func (i NoInstrument) VersionCheck(redirect bool, method, reason string)     {}
+func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version string) {}
+func (i NoInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int) {
+}
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
@@ -92,7 +93,7 @@ type PromInstrument struct {
 	filters          map[string]*instrumentedFilter
 	errorHandlers    map[string]func(conn net.Conn, err error)
 
-	blacklistChecked, blacklisted, mimicryChecked, mimicked, xbqSent, throttlingChecked prometheus.Counter
+	blacklistChecked, blacklisted, consecRetransmissions, mimicryChecked, mimicked, sentDataPackets, throttlingChecked, xbqSent prometheus.Counter
 
 	bytesSent, bytesRecv, throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
 
@@ -127,6 +128,11 @@ func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 			Name: "proxy_downstream_received_bytes_total",
 			Help: "Bytes received from the client connections. Pluggable transport overhead excluded",
 		}, append(commonLabelNames, "app_platform", "app_version")).MustCurryWith(commonLabels),
+		consecRetransmissions: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_downstream_tcp_consec_retransmissions_before_terminates_total",
+			Help: "Number of TCP retransmissions happen before the connection gets terminated, as a measure of blocking in the form of continuously dropped packets.",
+		}, commonLabelNames).With(commonLabels),
+
 		mimicryChecked: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_apache_mimicry_checked_total",
 		}, commonLabelNames).With(commonLabels),
@@ -136,6 +142,11 @@ func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 		retransmissionRate: promauto.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "proxy_tcp_retransmission_rate",
 			Buckets: []float64{0.01, 0.1, 0.5},
+		}, commonLabelNames).With(commonLabels),
+
+		sentDataPackets: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_downstream_tcp_sent_data_packets_total",
+			Help: "Number of TCP data packets (packets with non-zero data length) sent to the client connections.",
 		}, commonLabelNames).With(commonLabels),
 
 		xbqSent: promauto.NewCounterVec(prometheus.CounterOpts{
@@ -282,12 +293,18 @@ func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 	p.versionCheck.With(labels).Inc()
 }
 
+// ProxiedBytes records the volume of application data clients sent and
+// received via the proxy.
 func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version string) {
 	labels := prometheus.Labels{"app_platform": platform, "app_version": version}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
 }
 
-func (p *PromInstrument) TCPPackets(clientAddr string, packets, retransmissions int) {
-	p.retransmissionRate.Observe(float64(retransmissions) / float64(packets))
+// TCPPackets records the number/rate of TCP data packets and retransmissions
+// mainly for block detection.
+func (p *PromInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int) {
+	p.retransmissionRate.Observe(float64(retransmissions) / float64(sentDataPackets))
+	p.sentDataPackets.Add(float64(sentDataPackets))
+	p.consecRetransmissions.Add(float64(consecRetransmissions))
 }
