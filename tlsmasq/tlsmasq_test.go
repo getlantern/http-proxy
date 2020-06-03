@@ -6,6 +6,7 @@ import (
 	"encoding/hex"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -79,7 +80,9 @@ func TestWrap(t *testing.T) {
 		assert.NoError(t, err)
 	}
 
-	tlsmasqListener, err := Wrap(l, proxyCertFile, proxyKeyFile, proxiedListener.Addr().String(), secretString, nonFatalErrorsHandler)
+	tlsmasqListener, err := Wrap(
+		l, proxyCertFile, proxyKeyFile, proxiedListener.Addr().String(), secretString,
+		tls.VersionTLS12, []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA}, nonFatalErrorsHandler)
 	if !assert.NoError(t, err) {
 		return
 	}
@@ -89,6 +92,9 @@ func TestWrap(t *testing.T) {
 		for {
 			conn, acceptErr := tlsmasqListener.Accept()
 			if acceptErr != nil {
+				if !strings.Contains(acceptErr.Error(), "use of closed network connection") {
+					t.Log("accept error:", acceptErr)
+				}
 				return
 			}
 			go io.Copy(conn, conn)
@@ -98,8 +104,10 @@ func TestWrap(t *testing.T) {
 	insecureTLSConfig := &tls.Config{InsecureSkipVerify: true, Certificates: []tls.Certificate{originCert}}
 	dialerCfg := tlsmasq.DialerConfig{
 		ProxiedHandshakeConfig: ptlshs.DialerConfig{
-			TLSConfig: insecureTLSConfig,
-			Secret:    secretBytes,
+			Handshaker: ptlshs.StdLibHandshaker{
+				Config: insecureTLSConfig,
+			},
+			Secret: secretBytes,
 		},
 		TLSConfig: insecureTLSConfig,
 	}
@@ -107,8 +115,8 @@ func TestWrap(t *testing.T) {
 	timeout := time.Second
 	maxDataLen := 100
 
-	wg.Add(100)
-	for i := 0; i < 100; i++ {
+	wg.Add(50)
+	for i := 0; i < 50; i++ {
 		go func() {
 			defer wg.Done()
 			conn, err := tlsmasq.DialTimeout("tcp", l.Addr().String(), dialerCfg, timeout)

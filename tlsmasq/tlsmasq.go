@@ -14,12 +14,12 @@ func Wrap(ll net.Listener, certFile string, keyFile string, originAddr string, s
 	tlsMinVersion uint16, tlsCipherSuites []uint16, onNonFatalErrors func(error)) (net.Listener, error) {
 
 	var secretBytes ptlshs.Secret
-	if _secretBytes, decodeErr := hex.DecodeString(secret); decodeErr != nil {
+	_secretBytes, decodeErr := hex.DecodeString(secret)
+	if decodeErr != nil {
 		return nil, fmt.Errorf(`unable to decode secret string "%v": %v`, secret, decodeErr)
-	} else {
-		if copy(secretBytes[:], _secretBytes) != 52 {
-			return nil, fmt.Errorf(`secret string did not parse to 52 bytes: "%v"`, secret)
-		}
+	}
+	if copy(secretBytes[:], _secretBytes) != 52 {
+		return nil, fmt.Errorf(`secret string did not parse to 52 bytes: "%v"`, secret)
 	}
 
 	cert, keyErr := tls.LoadX509KeyPair(certFile, keyFile)
