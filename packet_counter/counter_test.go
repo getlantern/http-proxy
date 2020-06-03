@@ -24,12 +24,12 @@ func TestComposeBPF(t *testing.T) {
 	for _, tc := range testCases {
 		tc := tc
 		t.Run(tc.name, func(t *testing.T) {
-			var addrs []net.Addr
+			var addrs []net.IP
 			if tc.addrs == nil {
 				addrs = nil
 			} else {
 				for _, addr := range tc.addrs {
-					addrs = append(addrs, &net.IPAddr{IP: net.ParseIP(addr)})
+					addrs = append(addrs, net.ParseIP(addr))
 				}
 			}
 			result, err := composeBPF(addrs, "443")

@@ -27,12 +27,12 @@ type ReportFN func(clientAddr string, packets, retransmissions int)
 // Track keeps capturing all TCP replies from the listening port on the
 // interface, and reports when the connection terminates.
 func Track(interfaceName, listenPort string, report ReportFN) {
-	addrs, err := interfaceAddrs(interfaceName)
+	ips, err := interfaceAddrs(interfaceName)
 	if err != nil {
-		log.Errorf("Unable to open %v for packet capture: %v", interfaceName, err)
+		log.Errorf("Unable to get IPs bound to %v: %v", interfaceName, err)
 		return
 	}
-	filter, err := composeBPF(addrs, listenPort)
+	filter, err := composeBPF(ips, listenPort)
 	if err != nil {
 		log.Errorf("Unable to compose BPF %v for packet capture: %v", interfaceName, err)
 		return
@@ -117,29 +117,45 @@ func Track(interfaceName, listenPort string, report ReportFN) {
 	}
 }
 
-func interfaceAddrs(interfaceName string) ([]net.Addr, error) {
+func interfaceAddrs(interfaceName string) ([]net.IP, error) {
 	interfaces, err := net.Interfaces()
 	if err != nil {
 		return nil, err
 	}
 	for _, i := range interfaces {
 		if i.Name == interfaceName {
-			return i.Addrs()
+			addrs, err := i.Addrs()
+			if err != nil {
+				return nil, err
+			}
+			var ips []net.IP
+			for _, addr := range addrs {
+				switch v := addr.(type) {
+				case *net.IPNet:
+					ips = append(ips, v.IP)
+				// below are unlikely to happen, but just to be safe
+				case *net.IPAddr:
+					ips = append(ips, v.IP)
+				default:
+					return nil, fmt.Errorf("unrecognized address type %T on interface %s", v, i.Name)
+				}
+			}
+			return ips, nil
 		}
 	}
 	return nil, errors.New("interface not found")
 }
 
-func composeBPF(addrs []net.Addr, listenPort string) (string, error) {
-	switch len(addrs) {
+func composeBPF(ips []net.IP, listenPort string) (string, error) {
+	switch len(ips) {
 	case 0:
 		return "", errors.New("no address is configured on interface")
 	case 1:
-		return fmt.Sprintf("tcp and src port %s and src host %s", listenPort, addrs[0].String()), nil
+		return fmt.Sprintf("tcp and src port %s and src host %s", listenPort, ips[0].String()), nil
 	default:
-		str := fmt.Sprintf("tcp and src port %s and (src host %s", listenPort, addrs[0].String())
-		for _, addr := range addrs[1:] {
-			str += " or src host " + addr.String()
+		str := fmt.Sprintf("tcp and src port %s and (src host %s", listenPort, ips[0].String())
+		for _, ip := range ips[1:] {
+			str += " or src host " + ip.String()
 		}
 		str += ")"
 		return str, nil
