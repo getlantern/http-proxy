@@ -1,6 +1,7 @@
 package instrument
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"strconv"
@@ -26,6 +27,7 @@ type Instrument interface {
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
 	ProxiedBytes(sent, recv int, platform, version string)
+	TCPPackets(clientAddr string, packets, retransmissions int)
 }
 
 // NoInstrument is an implementation of Instrument which does nothing
@@ -40,10 +42,11 @@ func (i NoInstrument) Blacklist(b bool)               {}
 func (i NoInstrument) Mimic(m bool)                   {}
 func (i NoInstrument) Throttle(m bool, reason string) {}
 
-func (i NoInstrument) XBQHeaderSent()                                        {}
-func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)         {}
-func (i NoInstrument) VersionCheck(redirect bool, method, reason string)     {}
-func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version string) {}
+func (i NoInstrument) XBQHeaderSent()                                             {}
+func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)              {}
+func (i NoInstrument) VersionCheck(redirect bool, method, reason string)          {}
+func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version string)      {}
+func (i NoInstrument) TCPPackets(clientAddr string, packets, retransmissions int) {}
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
@@ -278,4 +281,8 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version string) 
 	labels := prometheus.Labels{"app_platform": platform, "app_version": version}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
+}
+
+func (p *PromInstrument) TCPPackets(clientAddr string, packets, retransmissions int) {
+	fmt.Printf("Connection from %v terminated: total packets %v, retransmissions %v", clientAddr, packets, retransmissions)
 }
