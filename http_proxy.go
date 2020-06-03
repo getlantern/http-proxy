@@ -755,12 +755,8 @@ func (p *Proxy) listenTLSMasq(baseListen func(string, bool) (net.Listener, error
 }
 
 func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
-	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
+	l, err := net.Listen("tcp", addr)
 	if err != nil {
-		return nil, err
-	}
-	var l net.Listener
-	if l, err = net.ListenTCP("tcp", tcpAddr); err != nil {
 		return nil, err
 	}
 	if p.IdleTimeout > 0 {
@@ -777,7 +773,12 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 	if wrapBBR {
 		l = p.bm.Wrap(l)
 	}
-	go packet_counter.Track(p.ExternalIntf, tcpAddr, p.instrument.TCPPackets)
+	_, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		log.Errorf("Error extracting port from addr %v, skip counting TCP packets: %v", addr, err)
+	} else {
+		go packet_counter.Track(p.ExternalIntf, port, p.instrument.TCPPackets)
+	}
 	return l, nil
 }
 

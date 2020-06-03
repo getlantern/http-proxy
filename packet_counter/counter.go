@@ -1,6 +1,7 @@
 package packet_counter
 
 import (
+	"errors"
 	"fmt"
 	"net"
 
@@ -23,15 +24,24 @@ var (
 // retransmissions. It gets called when the connection terminates.
 type ReportFN func(clientAddr string, packets, retransmissions int)
 
-// Track keeps capturing all TCP replies from the listen address on the
+// Track keeps capturing all TCP replies from the listening port on the
 // interface, and reports when the connection terminates.
-func Track(interfaceName string, listenAddr *net.TCPAddr, report ReportFN) {
+func Track(interfaceName, listenPort string, report ReportFN) {
+	addrs, err := interfaceAddrs(interfaceName)
+	if err != nil {
+		log.Errorf("Unable to open %v for packet capture: %v", interfaceName, err)
+		return
+	}
+	filter, err := composeBPF(addrs, listenPort)
+	if err != nil {
+		log.Errorf("Unable to compose BPF %v for packet capture: %v", interfaceName, err)
+		return
+	}
 	handle, err := pcap.OpenLive(interfaceName, snaplen, false /*promisc*/, pcap.BlockForever)
 	if err != nil {
 		log.Errorf("Unable to open %v for packet capture: %v", interfaceName, err)
 		return
 	}
-	filter := fmt.Sprintf("tcp and src host %s and src port %d", listenAddr.IP.String(), listenAddr.Port)
 	if err := handle.SetBPFFilter(filter); err != nil {
 		log.Errorf("Unable to set BPF filter '%v': %v", filter, err)
 		return
@@ -104,5 +114,34 @@ func Track(interfaceName string, listenAddr *net.TCPAddr, report ReportFN) {
 			flow.retransmissions++
 		}
 		flows[key] = flow
+	}
+}
+
+func interfaceAddrs(interfaceName string) ([]net.Addr, error) {
+	interfaces, err := net.Interfaces()
+	if err != nil {
+		return nil, err
+	}
+	for _, i := range interfaces {
+		if i.Name == interfaceName {
+			return i.Addrs()
+		}
+	}
+	return nil, errors.New("interface not found")
+}
+
+func composeBPF(addrs []net.Addr, listenPort string) (string, error) {
+	switch len(addrs) {
+	case 0:
+		return "", errors.New("no address is configured on interface")
+	case 1:
+		return fmt.Sprintf("tcp and src port %s and src host %s", listenPort, addrs[0].String()), nil
+	default:
+		str := fmt.Sprintf("tcp and src port %s and (src host %s", listenPort, addrs[0].String())
+		for _, addr := range addrs[1:] {
+			str += " or src host " + addr.String()
+		}
+		str += ")"
+		return str, nil
 	}
 }
