@@ -25,14 +25,16 @@ type ReportFN func(clientAddr string, packets, retransmissions int)
 
 // Track keeps capturing all TCP replies from the listen address on the
 // interface, and reports when the connection terminates.
-func Track(interfaceName string, listenAddr *net.TCPAddr, report ReportFN) error {
+func Track(interfaceName string, listenAddr *net.TCPAddr, report ReportFN) {
 	handle, err := pcap.OpenLive(interfaceName, snaplen, false /*promisc*/, pcap.BlockForever)
 	if err != nil {
-		return err
+		log.Errorf("Unable to open %v for packet capture: %v", interfaceName, err)
+		return
 	}
 	filter := fmt.Sprintf("tcp and src host %s and src port %d", listenAddr.IP.String(), listenAddr.Port)
 	if err := handle.SetBPFFilter(filter); err != nil {
-		return err
+		log.Errorf("Unable to set BPF filter '%v': %v", filter, err)
+		return
 	}
 
 	// Map of the string form of the TCPAddr to the counters
