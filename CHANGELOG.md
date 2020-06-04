@@ -1,5 +1,24 @@
 # Changelog
 
+## [2.6.7](https://github.com/getlantern/http-proxy-lantern/tree/2.6.7) (2020-06-03)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.6.6...2.6.7)
+
+**Merged pull requests:**
+
+- Multiplex tlsmasq connections [\#400](https://github.com/getlantern/http-proxy-lantern/pull/400) ([hwh33](https://github.com/hwh33))
+- Do not report suspected probes as errors [\#399](https://github.com/getlantern/http-proxy-lantern/pull/399) ([hwh33](https://github.com/hwh33))
+- Use the default TLS version, now 1.3, when not using sessions [\#398](https://github.com/getlantern/http-proxy-lantern/pull/398) ([myleshorton](https://github.com/myleshorton))
+
+## [2.6.6](https://github.com/getlantern/http-proxy-lantern/tree/2.6.6) (2020-04-30)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.6.5...2.6.6)
+
+**Merged pull requests:**
+
+- Do not complain about absent reaction if ticket is not required [\#397](https://github.com/getlantern/http-proxy-lantern/pull/397) ([joesis](https://github.com/joesis))
+- also report proxy name to stack driver [\#396](https://github.com/getlantern/http-proxy-lantern/pull/396) ([joesis](https://github.com/joesis))
+
 ## [2.6.5](https://github.com/getlantern/http-proxy-lantern/tree/2.6.5) (2020-04-28)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.6.4...2.6.5)
@@ -63,14 +82,11 @@
 **Merged pull requests:**
 
 - Updated to latest http-proxy with tiny log fix [\#389](https://github.com/getlantern/http-proxy-lantern/pull/389) ([myleshorton](https://github.com/myleshorton))
+- Added debug logging of missing ticket reactions [\#388](https://github.com/getlantern/http-proxy-lantern/pull/388) ([oxtoacart](https://github.com/oxtoacart))
 
 ## [2.5.6](https://github.com/getlantern/http-proxy-lantern/tree/2.5.6) (2020-04-06)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.5.5...2.5.6)
-
-**Merged pull requests:**
-
-- Added debug logging of missing ticket reactions [\#388](https://github.com/getlantern/http-proxy-lantern/pull/388) ([oxtoacart](https://github.com/oxtoacart))
 
 ## [2.5.5](https://github.com/getlantern/http-proxy-lantern/tree/2.5.5) (2020-03-30)
 
@@ -602,7 +618,6 @@
 - Changed header name to always set True-Client-IP for config server [\#259](https://github.com/getlantern/http-proxy-lantern/pull/259) ([myleshorton](https://github.com/myleshorton))
 - Suggested changes to \#256 [\#257](https://github.com/getlantern/http-proxy-lantern/pull/257) ([joesis](https://github.com/joesis))
 - Allow turning the data cap off by setting the threshold [\#256](https://github.com/getlantern/http-proxy-lantern/pull/256) ([myleshorton](https://github.com/myleshorton))
-- don't fail if unable to load throttle config in the first time [\#246](https://github.com/getlantern/http-proxy-lantern/pull/246) ([joesis](https://github.com/joesis))
 
 ## [0.1.12](https://github.com/getlantern/http-proxy-lantern/tree/0.1.12) (2018-07-14)
 
@@ -633,6 +648,7 @@
 
 - Add client IP to Lampshade init message error logging [\#248](https://github.com/getlantern/http-proxy-lantern/pull/248) ([myleshorton](https://github.com/myleshorton))
 - Updated TLS error logging in proxy repository [\#247](https://github.com/getlantern/http-proxy-lantern/pull/247) ([myleshorton](https://github.com/myleshorton))
+- don't fail if unable to load throttle config in the first time [\#246](https://github.com/getlantern/http-proxy-lantern/pull/246) ([joesis](https://github.com/joesis))
 
 ## [0.1.7](https://github.com/getlantern/http-proxy-lantern/tree/0.1.7) (2018-06-26)
 
