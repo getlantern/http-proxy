@@ -58,6 +58,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/opsfilter"
+	"github.com/getlantern/http-proxy-lantern/packetcounter"
 	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/quic"
 	"github.com/getlantern/http-proxy-lantern/redis"
@@ -154,7 +155,7 @@ type Proxy struct {
 	PCAPSnapLen                        int
 	PCAPTimeout                        time.Duration
 	PacketForwardAddr                  string
-	PacketForwardIntf                  string
+	ExternalIntf                       string
 	SessionTicketKeyFile               string
 	RequireSessionTickets              bool
 	MissingTicketReaction              tlslistener.HandshakeReaction
@@ -211,7 +212,7 @@ func (p *Proxy) ListenAndServe() error {
 	var onListenerError func(conn net.Conn, err error)
 	if p.PCAPDir != "" && p.PCAPIPs > 0 && p.PCAPSPerIP > 0 {
 		log.Debugf("Enabling packet capture, capturing the %d packets for each of the %d most recent IPs into %v", p.PCAPSPerIP, p.PCAPIPs, p.PCAPDir)
-		pcapper.StartCapturing("http-proxy", "eth0", "/tmp", p.PCAPIPs, p.PCAPSPerIP, p.PCAPSnapLen, p.PCAPTimeout)
+		pcapper.StartCapturing("http-proxy", p.ExternalIntf, "/tmp", p.PCAPIPs, p.PCAPSPerIP, p.PCAPSnapLen, p.PCAPTimeout)
 		onServerError = func(conn net.Conn, err error) {
 			ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
 			pcapper.Dump(ip, log.Errorf("Unexpected error handling traffic from %v: %v", ip, err).Error())
@@ -773,6 +774,12 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 	if wrapBBR {
 		l = p.bm.Wrap(l)
 	}
+	_, port, err := net.SplitHostPort(addr)
+	if err != nil {
+		log.Errorf("Error extracting port from addr %v, skip counting TCP packets: %v", addr, err)
+	} else {
+		go packetcounter.Track(p.ExternalIntf, port, p.instrument.TCPPackets)
+	}
 	return l, nil
 }
 
@@ -924,7 +931,7 @@ func (p *Proxy) setupPacketForward() error {
 	s, err := packetforward.NewServer(&packetforward.Opts{
 		Opts: gonat.Opts{
 			StatsInterval: 15 * time.Second,
-			IFName:        p.PacketForwardIntf,
+			IFName:        p.ExternalIntf,
 			IdleTimeout:   90 * time.Second,
 			BufferDepth:   1000,
 		},

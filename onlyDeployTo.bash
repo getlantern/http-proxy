@@ -33,6 +33,6 @@ ssh lantern@$ip -t "sudo cp /home/lantern/http-proxy.tmp /home/lantern/http-prox
 
 # This is necessary for http-proxy to run on restricted ports.
 echo "Calling setcap on http-proxy"
-ssh lantern@$ip -t "sudo setcap 'cap_net_bind_service=+ep' /home/lantern/http-proxy" || cleanup "Error calling setcap on http-proxy"
+ssh lantern@$ip -t "sudo setcap 'cap_net_raw+eip cap_net_admin+eip cap_net_bind_service+ep' /home/lantern/http-proxy" || cleanup "Error calling setcap on http-proxy"
 
 cleanup

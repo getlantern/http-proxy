@@ -70,7 +70,8 @@ var (
 	enhttpReapIdleTime = flag.Duration("enhttp-reapidletime", time.Duration(*idleClose)*time.Second, "configure how long enhttp connections are allowed to remain idle before being forcibly closed")
 
 	packetForwardAddr = flag.String("pforward-addr", "", "Address at which to listen for packet forwarding connections")
-	packetForwardIntf = flag.String("pforward-intf", "eth0", "The name of the interface to use for upstream packet forwarding connections")
+	packetForwardIntf = flag.String("pforward-intf", "", "The name of the interface to use for upstream packet forwarding connections. Deprecated by external-intf")
+	externalIntf      = flag.String("external-intf", "eth0", "The name of the external interface on the host")
 
 	keyfile              = flag.String("key", "", "Private key file name")
 	certfile             = flag.String("cert", "", "Certificate file name")
@@ -273,6 +274,10 @@ func main() {
 			tlsmasqTLSSuites = append(tlsmasqTLSSuites, suite)
 		}
 	}
+
+	if *packetForwardIntf != "" {
+		*externalIntf = *packetForwardIntf
+	}
 	var geoLookup geo.Lookup
 	if *maxmindLicenseKey == "" {
 		log.Fatal("maxmindlicensekey should not be empty")
@@ -354,7 +359,7 @@ func main() {
 		PCAPSnapLen:                        *pcapSnapLen,
 		PCAPTimeout:                        *pcapTimeout,
 		PacketForwardAddr:                  *packetForwardAddr,
-		PacketForwardIntf:                  *packetForwardIntf,
+		ExternalIntf:                       *externalIntf,
 		RequireSessionTickets:              *requireSessionTickets,
 		MissingTicketReaction:              reaction,
 		TLSMasqAddr:                        *tlsmasqAddr,
