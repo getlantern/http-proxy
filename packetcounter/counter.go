@@ -1,4 +1,4 @@
-package packet_counter
+package packetcounter
 
 import (
 	"errors"
@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("packet_counter")
+	log = golog.LoggerFor("packetcounter")
 )
 
 // ReportFN is a callback to report how many sentDataPackets have been sent over a TCP
@@ -76,7 +76,7 @@ func Track(interfaceName, listenPort string, report ReportFN) {
 			continue
 		}
 		// error is expected because we don't decode TLS. Ranging over decoded
-		// would get correct result.
+		// will get the correct result.
 		_ = parser.DecodeLayers(data, &decoded)
 		var dst net.TCPAddr
 		var payloadLen uint16
@@ -110,7 +110,7 @@ func Track(interfaceName, listenPort string, report ReportFN) {
 				report(key, flow.sentDataPackets, flow.retransmissions, flow.consecRetransmissions)
 			}
 			// Delay removing the flow to prevent retransmissions of previous
-			// packets from creating dangling entries when never gets removed.
+			// packets from creating dangling entries which never get removed.
 			time.AfterFunc(10*time.Minute, func() {
 				chDeleteFlow <- key
 			})
@@ -122,8 +122,6 @@ func Track(interfaceName, listenPort string, report ReportFN) {
 			flow.sentDataPackets++
 			flow.consecRetransmissions = 0
 		} else {
-			// Note that ACKs to SYNs and FINs are miscounted as
-			// retransmissions but is acceptable in this case.
 			flow.retransmissions++
 			flow.consecRetransmissions++
 		}

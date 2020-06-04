@@ -1,4 +1,4 @@
-package packet_counter
+package packetcounter
 
 import (
 	"net"

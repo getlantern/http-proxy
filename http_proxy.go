@@ -57,7 +57,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/mimic"
 	"github.com/getlantern/http-proxy-lantern/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/opsfilter"
-	"github.com/getlantern/http-proxy-lantern/packet_counter"
+	"github.com/getlantern/http-proxy-lantern/packetcounter"
 	"github.com/getlantern/http-proxy-lantern/ping"
 	"github.com/getlantern/http-proxy-lantern/quic"
 	"github.com/getlantern/http-proxy-lantern/redis"
@@ -777,7 +777,7 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 	if err != nil {
 		log.Errorf("Error extracting port from addr %v, skip counting TCP packets: %v", addr, err)
 	} else {
-		go packet_counter.Track(p.ExternalIntf, port, p.instrument.TCPPackets)
+		go packetcounter.Track(p.ExternalIntf, port, p.instrument.TCPPackets)
 	}
 	return l, nil
 }
