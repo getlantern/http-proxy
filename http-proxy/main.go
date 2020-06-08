@@ -182,14 +182,8 @@ func main() {
 			Handler: func(msg string) {
 				log.Fatal(msg)
 			},
-			// Just forward signals to the child process
-			ForwardSignals: []os.Signal{
-				syscall.SIGHUP,
-				syscall.SIGTERM,
-				syscall.SIGQUIT,
-				syscall.SIGINT,
-				syscall.SIGUSR1,
-			},
+			// This needs to be handled by the child process
+			ForwardSignals: []os.Signal{syscall.SIGUSR1},
 		})
 	if panicWrapErr != nil {
 		log.Fatalf("Error setting up panic wrapper: %v", panicWrapErr)
