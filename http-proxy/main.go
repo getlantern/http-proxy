@@ -182,8 +182,14 @@ func main() {
 			Handler: func(msg string) {
 				log.Fatal(msg)
 			},
-			// This needs to be handled by the child process
-			ForwardSignals: []os.Signal{syscall.SIGUSR1},
+			// Just forward signals to the child process
+			ForwardSignals: []os.Signal{
+				syscall.SIGHUP,
+				syscall.SIGTERM,
+				syscall.SIGQUIT,
+				syscall.SIGINT,
+				syscall.SIGUSR1,
+			},
 		})
 	if panicWrapErr != nil {
 		log.Fatalf("Error setting up panic wrapper: %v", panicWrapErr)
@@ -194,6 +200,22 @@ func main() {
 		}
 	}
 	// We're in the child (wrapped) process now
+
+	// Capture signals and exit normally because when relying on the default
+	// behavior, exit status -1 would confuse the parent process into thinking
+	// it's the child process and keeps running.
+	c := make(chan os.Signal, 1)
+	signal.Notify(c,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+	go func() {
+		for range c {
+			log.Debug("Stopping server")
+			os.Exit(0)
+		}
+	}()
 
 	if (*lampshadeAddr != "" || *lampshadeUTPAddr != "") && !*https {
 		log.Fatal("Use of lampshade requires https flag to be true")
