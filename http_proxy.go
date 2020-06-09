@@ -222,23 +222,11 @@ func (p *Proxy) ListenAndServe() error {
 			pcapper.Dump(ip, log.Errorf("Unexpected error handling new connection from %v: %v", ip, err).Error())
 		}
 
-		// Handle signals
 		c := make(chan os.Signal, 1)
-		signal.Notify(c,
-			syscall.SIGHUP,
-			syscall.SIGINT,
-			syscall.SIGTERM,
-			syscall.SIGQUIT,
-			syscall.SIGUSR1)
+		signal.Notify(c, syscall.SIGUSR1)
 		go func() {
-			for {
-				s := <-c
-				if s == syscall.SIGUSR1 {
-					pcapper.DumpAll("Full Dump")
-				} else {
-					log.Debug("Stopping server")
-					os.Exit(0)
-				}
+			for range c {
+				pcapper.DumpAll("Full Dump")
 			}
 		}()
 	}

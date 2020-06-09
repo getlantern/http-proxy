@@ -145,7 +145,6 @@ github.com/getlantern/hex v0.0.0-20190417191902-c6586a6fe0b7 h1:micT5vkcr9tOVk1F
 github.com/getlantern/hex v0.0.0-20190417191902-c6586a6fe0b7/go.mod h1:dD3CgOrwlzca8ed61CsZouQS5h5jIzkK9ZWrTcf0s+o=
 github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55 h1:XYzSdCbkzOC0FDNrgJqGRo8PCMFOBFL9py72DRs7bmc=
 github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55/go.mod h1:6mmzY2kW1TOOrVy+r41Za2MxXM+hhqTtY3oBKd2AgFA=
-github.com/getlantern/http-proxy v0.0.2 h1:hht4j1r7ZtLBDzCoZSTgg2LzwmwJWjUaONBhQgi4VDA=
 github.com/getlantern/http-proxy v0.0.3-0.20200407205042-2382946d79e7 h1:pMuvepvgSHvTbC1xhcHIP5/EKu0NR+cpdCdnqTOJMEU=
 github.com/getlantern/http-proxy v0.0.3-0.20200407205042-2382946d79e7/go.mod h1:w1u+Y1H2eEhJrUARfzPxVKMEHvvW96PcYujowufGV1s=
 github.com/getlantern/idletiming v0.0.0-20190529182719-d2fbc83372a5 h1:laM1s/bxUH8xbbC9TBGWsOc7A0KCAPZMa4pdwO5e6Vw=

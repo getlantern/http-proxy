@@ -201,6 +201,22 @@ func main() {
 	}
 	// We're in the child (wrapped) process now
 
+	// Capture signals and exit normally because when relying on the default
+	// behavior, exit status -1 would confuse the parent process into thinking
+	// it's the child process and keeps running.
+	c := make(chan os.Signal, 1)
+	signal.Notify(c,
+		syscall.SIGHUP,
+		syscall.SIGINT,
+		syscall.SIGTERM,
+		syscall.SIGQUIT)
+	go func() {
+		for range c {
+			log.Debug("Stopping server")
+			os.Exit(0)
+		}
+	}()
+
 	if (*lampshadeAddr != "" || *lampshadeUTPAddr != "") && !*https {
 		log.Fatal("Use of lampshade requires https flag to be true")
 	}
