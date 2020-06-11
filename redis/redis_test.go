@@ -2,15 +2,12 @@ package redis
 
 import (
 	"net"
-	"os"
-	"strings"
 	"testing"
 	"time"
 
 	"github.com/getlantern/measured"
 	"github.com/getlantern/testredis"
 	"github.com/stretchr/testify/assert"
-	rclient "gopkg.in/redis.v5"
 
 	"github.com/getlantern/http-proxy-lantern/usage"
 )
