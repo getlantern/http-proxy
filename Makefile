@@ -31,6 +31,10 @@ guard-%:
 	 @ if [ -z '${${*}}' ]; then echo 'Environment variable $* not set' && exit 1; fi
 
 require-version: guard-VERSION
+	@if ! [[ "$$VERSION" =~ v[0-9]+[.][0-9]+[.][0-9]+ ]]; then \
+		echo "VERSION must be a semantic version like 'v1.2.10'"; \
+		exit 1; \
+	fi
 
 require-upx:
 	@if [ "$(UPX_BIN)" = "" ]; then \
