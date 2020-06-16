@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy-lantern/domains"
+	"github.com/getlantern/http-proxy-lantern/v2/domains"
 	"github.com/getlantern/netx"
 	"github.com/getlantern/proxy/filters"
 	"github.com/getlantern/tinywss"

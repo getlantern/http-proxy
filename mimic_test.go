@@ -16,9 +16,9 @@ import (
 
 	"github.com/getlantern/http-proxy/server"
 
-	"github.com/getlantern/http-proxy-lantern/instrument"
-	"github.com/getlantern/http-proxy-lantern/mimic"
-	"github.com/getlantern/http-proxy-lantern/tokenfilter"
+	"github.com/getlantern/http-proxy-lantern/v2/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/mimic"
+	"github.com/getlantern/http-proxy-lantern/v2/tokenfilter"
 )
 
 const target = "test/data/apache-2.4.7-ubuntu14.04.raw"

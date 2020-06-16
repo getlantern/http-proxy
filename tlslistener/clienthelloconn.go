@@ -14,7 +14,7 @@ import (
 	"github.com/getlantern/netx"
 	utls "github.com/getlantern/utls"
 
-	"github.com/getlantern/http-proxy-lantern/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 )
 
 var (

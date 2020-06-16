@@ -11,7 +11,7 @@ import (
 
 	utls "github.com/getlantern/utls"
 
-	"github.com/getlantern/http-proxy-lantern/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 )
 
 // Wrap wraps the specified listener in our default TLS listener.

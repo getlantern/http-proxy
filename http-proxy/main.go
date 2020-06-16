@@ -21,13 +21,13 @@ import (
 	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
 
-	proxy "github.com/getlantern/http-proxy-lantern"
-	"github.com/getlantern/http-proxy-lantern/blacklist"
-	"github.com/getlantern/http-proxy-lantern/googlefilter"
-	"github.com/getlantern/http-proxy-lantern/obfs4listener"
-	"github.com/getlantern/http-proxy-lantern/stackdrivererror"
-	"github.com/getlantern/http-proxy-lantern/throttle"
-	"github.com/getlantern/http-proxy-lantern/tlslistener"
+	proxy "github.com/getlantern/http-proxy-lantern/v2"
+	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
+	"github.com/getlantern/http-proxy-lantern/v2/googlefilter"
+	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
+	"github.com/getlantern/http-proxy-lantern/v2/stackdrivererror"
+	"github.com/getlantern/http-proxy-lantern/v2/throttle"
+	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
 	"github.com/getlantern/quicwrapper"
 )
 

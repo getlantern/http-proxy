@@ -9,8 +9,8 @@ import (
 	"github.com/getlantern/measured"
 	rclient "gopkg.in/redis.v5"
 
-	"github.com/getlantern/http-proxy-lantern/instrument"
-	"github.com/getlantern/http-proxy-lantern/redis"
+	"github.com/getlantern/http-proxy-lantern/v2/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/redis"
 )
 
 var (

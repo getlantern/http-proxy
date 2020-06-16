@@ -5,7 +5,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlantern/http-proxy-lantern/usage"
+	"github.com/getlantern/http-proxy-lantern/v2/usage"
 	"gopkg.in/redis.v5"
 )
 

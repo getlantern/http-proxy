@@ -15,7 +15,7 @@ import (
 	"github.com/getlantern/proxy"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/getlantern/http-proxy-lantern/v2/common"
 )
 
 const (

@@ -13,7 +13,7 @@ import (
 
 	"github.com/getlantern/golog"
 
-	"github.com/getlantern/http-proxy-lantern/common"
+	"github.com/getlantern/http-proxy-lantern/v2/common"
 )
 
 var (

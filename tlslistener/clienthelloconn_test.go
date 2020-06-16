@@ -12,7 +12,7 @@ import (
 	utls "github.com/getlantern/utls"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/getlantern/http-proxy-lantern/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 )
 
 func TestAbortOnHello(t *testing.T) {

@@ -23,8 +23,8 @@ import (
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/http-proxy/server"
 
-	"github.com/getlantern/http-proxy-lantern/instrument"
-	"github.com/getlantern/http-proxy-lantern/tokenfilter"
+	"github.com/getlantern/http-proxy-lantern/v2/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/tokenfilter"
 )
 
 const (
