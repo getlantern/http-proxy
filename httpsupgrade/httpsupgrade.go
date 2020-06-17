@@ -21,8 +21,8 @@ import (
 	"time"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy-lantern/domains"
+	"github.com/getlantern/http-proxy-lantern/v2/common"
+	"github.com/getlantern/http-proxy-lantern/v2/domains"
 	"github.com/getlantern/proxy/filters"
 )
 

@@ -14,14 +14,14 @@ import (
 
 	"github.com/getlantern/http-proxy/listeners"
 
-	"github.com/getlantern/http-proxy-lantern/blacklist"
-	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy-lantern/domains"
-	"github.com/getlantern/http-proxy-lantern/instrument"
-	lanternlisteners "github.com/getlantern/http-proxy-lantern/listeners"
-	"github.com/getlantern/http-proxy-lantern/redis"
-	"github.com/getlantern/http-proxy-lantern/throttle"
-	"github.com/getlantern/http-proxy-lantern/usage"
+	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
+	"github.com/getlantern/http-proxy-lantern/v2/common"
+	"github.com/getlantern/http-proxy-lantern/v2/domains"
+	"github.com/getlantern/http-proxy-lantern/v2/instrument"
+	lanternlisteners "github.com/getlantern/http-proxy-lantern/v2/listeners"
+	"github.com/getlantern/http-proxy-lantern/v2/redis"
+	"github.com/getlantern/http-proxy-lantern/v2/throttle"
+	"github.com/getlantern/http-proxy-lantern/v2/usage"
 )
 
 var (

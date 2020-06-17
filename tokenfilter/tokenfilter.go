@@ -10,9 +10,9 @@ import (
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy/filters"
 
-	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy-lantern/instrument"
-	"github.com/getlantern/http-proxy-lantern/mimic"
+	"github.com/getlantern/http-proxy-lantern/v2/common"
+	"github.com/getlantern/http-proxy-lantern/v2/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/mimic"
 )
 
 var log = golog.LoggerFor("tokenfilter")

@@ -9,7 +9,7 @@ import (
 	"github.com/getlantern/testredis"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/getlantern/http-proxy-lantern/usage"
+	"github.com/getlantern/http-proxy-lantern/v2/usage"
 )
 
 func TestReportPeriodically(t *testing.T) {

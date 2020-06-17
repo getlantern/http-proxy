@@ -12,7 +12,7 @@ import (
 	"github.com/getlantern/ops"
 	"github.com/getlantern/pcapper"
 
-	"github.com/getlantern/http-proxy-lantern/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 )
 
 const (

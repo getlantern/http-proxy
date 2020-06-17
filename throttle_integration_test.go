@@ -21,8 +21,8 @@ import (
 	. "github.com/getlantern/waitforserver"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/getlantern/http-proxy-lantern/common"
-	"github.com/getlantern/http-proxy-lantern/throttle"
+	"github.com/getlantern/http-proxy-lantern/v2/common"
+	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 )
 
 func TestThrottling(t *testing.T) {
