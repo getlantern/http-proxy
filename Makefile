@@ -1,8 +1,14 @@
 SHELL := /bin/bash
 UPX_BIN      ?= $(shell which upx)
-BUILD_DIR    ?= bin
 GIT_REVISION := $(shell git rev-parse --short HEAD)
 CHANGE_BIN   := $(shell which github_changelog_generator)
+
+# Binaries compiled for the host OS will be output to BUILD_DIR.
+# Binaries compiles for distribution will be output to DIST_DIR.
+BUILD_DIR   := bin
+DIST_DIR    := dist-bin
+
+SRCS := $(shell find . -name "*.go" -not -path "*_test.go" -not -path "./vendor/*") go.mod go.sum
 
 GO_VERSION := 1.14.4
 
@@ -14,7 +20,17 @@ get-command = $(shell which="$$(which $(1) 2> /dev/null)" && if [[ ! -z "$$which
 DOCKER    := $(call get-command,docker)
 GO        := $(call get-command,go)
 
-.PHONY: dist build test
+# We can only build natively on Linux. This is because we cross-compile for Linux and some
+# dependencies rely on C libraries like libpcap-dev.
+BUILD_WITH_DOCKER = false
+
+ifeq ($(OS),Windows)
+	BUILD_WITH_DOCKER = true
+else ifeq ($(shell uname -s),Darwin)
+	BUILD_WITH_DOCKER = true
+endif
+
+.PHONY: build dist distnochange dist-on-linux dist-on-docker clean test system-checks
 
 # This tags the current version and creates a CHANGELOG for the current directory.
 define tag-changelog
@@ -46,30 +62,52 @@ require-change:
 		echo 'Missing "github_changelog_generator" command. See https://github.com/github-changelog-generator/github-changelog-generator or just [sudo] gem install github_changelog_generator' && exit 1; \
 	fi
 
-build:
-	mkdir -p $(BUILD_DIR) && \
-	GO111MODULE=on GOPRIVATE="github.com/getlantern" go build -o $(BUILD_DIR)/http-proxy \
+$(BUILD_DIR):
+	mkdir -p $(BUILD_DIR)
+
+$(DIST_DIR):
+	mkdir -p $(DIST_DIR)
+
+$(BUILD_DIR)/http-proxy: $(SRCS) | $(BUILD_DIR)
+	GOPRIVATE="github.com/getlantern" go build -o $(BUILD_DIR) ./http-proxy
+
+build: $(BUILD_DIR)/http-proxy
+
+dist-on-linux: $(DIST_DIR)
+	GOOS=linux GOARCH=amd64 GO111MODULE=on GOPRIVATE="github.com/getlantern" \
+	go build -o $(DIST_DIR)/http-proxy \
 	-ldflags="-X main.revision=$(GIT_REVISION)" \
-	github.com/getlantern/http-proxy-lantern/http-proxy && \
-	file $(BUILD_DIR)/http-proxy
+	./http-proxy
 
-distnochange: require-upx
-	GOOS=linux GOARCH=amd64 BUILD_DIR=dist $(MAKE) build -o http-proxy && \
-	upx dist/http-proxy
+dist-on-docker: $(DIST_DIR) docker-builder
+	GO111MODULE=on go mod vendor && \
+	docker run -e GIT_REVISION='$(GIT_REVISION)' \
+	-v $$PWD:/src -t $(DOCKER_IMAGE_TAG) /bin/bash -c \
+	'cd /src && go build -o $(DIST_DIR)/http-proxy -ldflags="-X main.revision=$$GIT_REVISION" -mod=vendor ./http-proxy'
 
-dist: require-upx require-version require-change distnochange
+$(DIST_DIR)/http-proxy: $(SRCS) | require-upx
+	@if [ "$(BUILD_WITH_DOCKER)" = "true" ]; then \
+		$(MAKE) dist-on-docker; \
+	else \
+		$(MAKE) dist-on-linux; \
+	fi
+	upx $(DIST_DIR)/http-proxy
+
+distnochange: $(DIST_DIR)/http-proxy
+
+dist: require-version require-change $(DIST_DIR)/http-proxy
 	$(call tag-changelog)
 
-deploy: dist/http-proxy
-	s3cmd put dist/http-proxy s3://http-proxy/http-proxy && \
+deploy: $(DIST_DIR)/http-proxy
+	s3cmd put $(DIST_DIR)/http-proxy s3://http-proxy/http-proxy && \
 	s3cmd setacl --acl-grant read:f87080f71ec0be3b9a933cbb244a6c24d4aca584ac32b3220f56d59071043747 s3://http-proxy/http-proxy
 
-deploy-staging: dist/http-proxy
-	s3cmd put dist/http-proxy s3://http-proxy/http-proxy-staging && \
+deploy-staging: $(DIST_DIR)/http-proxy
+	s3cmd put $(DIST_DIR)/http-proxy s3://http-proxy/http-proxy-staging && \
 	s3cmd setacl --acl-grant read:f87080f71ec0be3b9a933cbb244a6c24d4aca584ac32b3220f56d59071043747 s3://http-proxy/http-proxy-staging
 
 clean:
-	rm -rf dist bin
+	rm -rf $(BUILD_DIR) $(DIST_DIR)
 
 system-checks:
 	@if [[ -z "$(DOCKER)" ]]; then echo 'Missing "docker" command.'; exit 1; fi && \
@@ -80,18 +118,6 @@ docker-builder: system-checks
 	mkdir -p $$DOCKER_CONTEXT && \
 	cp Dockerfile $$DOCKER_CONTEXT && \
 	docker build -t $(DOCKER_IMAGE_TAG) --build-arg go_version=go$(GO_VERSION) $$DOCKER_CONTEXT
-
-# workaround to build Ubuntu binary on non-Ubuntu platforms.
-docker-distnochange: docker-builder
-	mkdir -p dist && \
-	GO111MODULE=on go mod vendor && \
-	docker run -e GIT_REVISION='$(GIT_REVISION)' \
-	-v $$PWD:/src -t $(DOCKER_IMAGE_TAG) /bin/bash -c \
-	'cd /src && go build -o dist/http-proxy -ldflags="-X main.revision=$$GIT_REVISION" -mod=vendor ./http-proxy' && \
-	upx dist/http-proxy
-
-docker-dist: require-upx require-version require-change docker-distnochange
-	$(call tag-changelog)
 
 test:
 	GO111MODULE=on go test -race $(go list ./...)
