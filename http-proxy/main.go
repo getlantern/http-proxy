@@ -251,6 +251,8 @@ func main() {
 		}
 		reaction = tlslistener.ReflectToSite(*missingTicketReflectSite)
 		log.Debugf("Reflecting missing session tickets to site %v", *missingTicketReflectSite)
+	case "None":
+		log.Debug("Not reacting to missing session tickets")
 	default:
 		reaction = tlslistener.AlertInternalError
 		if *requireSessionTickets {
