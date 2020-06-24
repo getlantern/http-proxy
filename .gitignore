@@ -41,7 +41,7 @@ obfs4_state.json
 vendor
 .vendor-new
 bin
-dist
+dist-bin
 *.sw?
 
 reflector
