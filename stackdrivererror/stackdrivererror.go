@@ -38,11 +38,11 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string,
 		if severity == golog.ERROR {
 			r := rand.Float64()
 			if r > samplePercentage {
-				log.Debugf("Not in sample. %v less than %v", r, samplePercentage)
+				log.Tracef("Not in sample. %v less than %v", r, samplePercentage)
 				return
 			}
 		}
-		log.Debugf("Reporting error to stackdriver")
+		log.Tracef("Reporting error to stackdriver")
 
 		errWithIP := fmt.Errorf("%s: %s on %s(%s)", severity.String(), err.Error(), proxyName, externalIP)
 		errorClient.Report(errorreporting.Entry{

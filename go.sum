@@ -198,8 +198,8 @@ github.com/getlantern/probednet v0.0.0-20190725133252-1cfdb2354b4d h1:9PBhNNIc3C
 github.com/getlantern/probednet v0.0.0-20190725133252-1cfdb2354b4d/go.mod h1:7sl7hPjPDAqXyxVx7mhrKfvb4oCX/ROhcs16w2EhWX8=
 github.com/getlantern/proxy v0.0.0-20200302081518-0bb851d75e72 h1:w7o+V3f0ZybU3AtI7zrIGzKaDLROgdToBpEJiYlxsPE=
 github.com/getlantern/proxy v0.0.0-20200302081518-0bb851d75e72/go.mod h1:40zgzXJCOqbq4JVe1geITEbgVJsPUgOIsQmaMoQsN2I=
-github.com/getlantern/proxy v0.0.0-20200302183216-36afa00d0126 h1:1vQsmvWO75QO9VMAGH8kcrDC+7Eno8qHYzVNUFnS/F4=
-github.com/getlantern/proxy v0.0.0-20200302183216-36afa00d0126/go.mod h1:40zgzXJCOqbq4JVe1geITEbgVJsPUgOIsQmaMoQsN2I=
+github.com/getlantern/proxy v0.0.0-20200626230213-73a415fc7320 h1:uQLzIB6YO5hEKLkOmkEnLUmiBx/QljsTIOy7rh6qZ6Q=
+github.com/getlantern/proxy v0.0.0-20200626230213-73a415fc7320/go.mod h1:40zgzXJCOqbq4JVe1geITEbgVJsPUgOIsQmaMoQsN2I=
 github.com/getlantern/quic-go v0.0.0-20200129225515-f0142adfc7dd h1:4k+iwU6wUjbB81693LVTf3UGoHcT4fWShJfJHX3vfKo=
 github.com/getlantern/quic-go v0.0.0-20200129225515-f0142adfc7dd/go.mod h1:eQYBSwPmn3RPkQFvquHn6a0mFowpyfauR/UnGpEgn+w=
 github.com/getlantern/quic0 v0.0.0-20200121154153-8b18c2ba09f9 h1:2mUoAxwY496WRXnj0R5xce0tq1xuKDeREhgp62fEzig=
