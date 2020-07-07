@@ -91,3 +91,6 @@ replace github.com/getlantern/testredis => github.com/getlantern/testredis v0.0.
 
 // git.apache.org isn't working at the moment, use mirror (should probably switch back once we can)
 replace git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999
+
+// Waiting on https://github.com/mitchellh/panicwrap/pull/27 to be merged upstream
+replace github.com/mitchellh/panicwrap v1.0.0 => github.com/getlantern/panicwrap v0.0.0-20200707191944-9ba45baf8e51

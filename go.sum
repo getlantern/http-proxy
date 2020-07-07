@@ -186,6 +186,7 @@ github.com/getlantern/ops v0.0.0-20200403153110-8476b16edcd6 h1:QthAQCekS1YOeYWS
 github.com/getlantern/ops v0.0.0-20200403153110-8476b16edcd6/go.mod h1:D5ao98qkA6pxftxoqzibIBBrLSUli+kYnJqrgBf9cIA=
 github.com/getlantern/packetforward v0.0.0-20200421081927-11933f311913 h1:vr2enHsnaSAOhl1hL+2AwGgBKMyShWThkO4AZLs1+Ss=
 github.com/getlantern/packetforward v0.0.0-20200421081927-11933f311913/go.mod h1:ANMsrBesBIzf0y86X8p+dyesat/fM8NEY5W/JKvsNmI=
+github.com/getlantern/panicwrap v0.0.0-20200707191944-9ba45baf8e51/go.mod h1:pKvZHwWrZowLUzftuFq7coarnxbBXU4aQh3N0BJOeeA=
 github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde h1:AOVE4+PXPV/DCUtXSqWkz3GEeaUzxlHROoruiaB/qqA=
 github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde/go.mod h1:x9UkLzamASuFKTLV0iSoeJs0IKZawGO1PDhx+7hC2OE=
 github.com/getlantern/preconn v0.0.0-20180328114929-0b5766010efe h1:6KgbumDfWYBJFgySAvSTBhDiBZCJ6r03PVdfWrkBZa4=
