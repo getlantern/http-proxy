@@ -73,7 +73,8 @@ func (h *httpsUpgrade) addConfigServerHeaders(req *http.Request) {
 	}
 }
 
-func (h *httpsUpgrade) rewrite(ctx filters.Context, host string, req *http.Request) (*http.Response, filters.Context, error) {
+func (h *httpsUpgrade) rewrite(ctx filters.Context, host string, r *http.Request) (*http.Response, filters.Context, error) {
+	req := r.Clone(ctx)
 	req.Host = host + ":443"
 	req.URL.Host = req.Host
 	req.URL.Scheme = "https"
