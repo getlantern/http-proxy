@@ -137,6 +137,8 @@ github.com/getlantern/golog v0.0.0-20190830074920-4ef2e798c2d7 h1:guBYzEaLz0Vfc/
 github.com/getlantern/golog v0.0.0-20190830074920-4ef2e798c2d7/go.mod h1:zx/1xUUeYPy3Pcmet8OSXLbF47l+3y6hIPpyLWoR9oc=
 github.com/getlantern/gonat v0.0.0-20200420153910-d0d331e11ce4 h1:k7B3IjsAUFzVN5nBi5du847iUOJXLaOZlO4bWQfNPUk=
 github.com/getlantern/gonat v0.0.0-20200420153910-d0d331e11ce4/go.mod h1:WPIIQ92vvQ7WvKc8Q6xvekg2JV+ayD5YaUyRuj8QRqs=
+github.com/getlantern/gonat v0.0.0-20200709180430-97f0eb3d96b3 h1:KFemZKOPMjAoogOlWNv79IGBrEjHg1LwHJnDfjOO6SY=
+github.com/getlantern/gonat v0.0.0-20200709180430-97f0eb3d96b3/go.mod h1:WPIIQ92vvQ7WvKc8Q6xvekg2JV+ayD5YaUyRuj8QRqs=
 github.com/getlantern/gotun v0.0.0-20190809092752-6d35bb1397ee h1:wB9pX2HWLXeVMtxS/mWyF1UJZghEL4+YSSIj1mcBJfI=
 github.com/getlantern/gotun v0.0.0-20190809092752-6d35bb1397ee/go.mod h1:zvsZQrsl7Yrmi+ENk5WZFT7dQaYtihAcI0H/9+LacqQ=
 github.com/getlantern/grtrack v0.0.0-20160824195228-cbf67d3fa0fd h1:GPrx88jy222gMuRHXxBSViT/3zdNO210nRAaXn+lL6s=

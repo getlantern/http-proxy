@@ -24,7 +24,7 @@ require (
 	github.com/getlantern/errors v0.0.0-20190325191628-abdb3e3e36f7
 	github.com/getlantern/geo v0.0.0-20200423004723-045cc9bbd328
 	github.com/getlantern/golog v0.0.0-20190830074920-4ef2e798c2d7
-	github.com/getlantern/gonat v0.0.0-20200420153910-d0d331e11ce4
+	github.com/getlantern/gonat v0.0.0-20200709180430-97f0eb3d96b3
 	github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55
 	github.com/getlantern/http-proxy v0.0.3-0.20200407205042-2382946d79e7
 	github.com/getlantern/kcp-go v0.0.0-20171025115649-19559e0e938c // indirect
