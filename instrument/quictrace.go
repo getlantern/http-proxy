@@ -15,8 +15,8 @@ const (
 // lost packets and exports the data to Prometheus.
 type QuicTracer struct {
 	connStats map[string]*connStat
-	inst      Instrument
 	ch        chan idAndEvent
+	inst      Instrument
 }
 
 type connStat struct {
@@ -34,6 +34,7 @@ func NewQuicTracer(inst Instrument) *QuicTracer {
 	tracer := &QuicTracer{
 		connStats: make(map[string]*connStat),
 		ch:        make(chan idAndEvent, 100),
+		inst:      inst,
 	}
 	go tracer.run()
 	return tracer
