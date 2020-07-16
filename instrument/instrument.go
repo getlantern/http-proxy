@@ -27,7 +27,8 @@ type Instrument interface {
 	VersionCheck(redirect bool, method, reason string)
 	ProxiedBytes(sent, recv int, platform, version string)
 	TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int)
-	quicPackets(int, int)
+	quicSentPacket()
+	quicLostPacket()
 }
 
 // NoInstrument is an implementation of Instrument which does nothing
@@ -48,7 +49,8 @@ func (i NoInstrument) VersionCheck(redirect bool, method, reason string)     {}
 func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version string) {}
 func (i NoInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int) {
 }
-func (i NoInstrument) quicPackets(int, int) {}
+func (i NoInstrument) quicSentPacket() {}
+func (i NoInstrument) quicLostPacket() {}
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
@@ -99,8 +101,7 @@ type PromInstrument struct {
 
 	bytesSent, bytesRecv, throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
 
-	tcpRetransmissionRate  prometheus.Observer
-	quicRetransmissionRate prometheus.Observer
+	tcpRetransmissionRate prometheus.Observer
 }
 
 func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
@@ -132,10 +133,6 @@ func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 			Help: "Bytes received from the client connections. Pluggable transport overhead excluded",
 		}, append(commonLabelNames, "app_platform", "app_version")).MustCurryWith(commonLabels),
 
-		quicRetransmissionRate: promauto.NewHistogramVec(prometheus.HistogramOpts{
-			Name:    "proxy_quic_retransmission_rate",
-			Buckets: []float64{0.01, 0.1, 0.5},
-		}, commonLabelNames).With(commonLabels),
 		quicLostPackets: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_quic_lost_packets_total",
 			Help: "Number of QUIC packets lost and effectively resent to the client connections.",
@@ -326,8 +323,9 @@ func (p *PromInstrument) TCPPackets(clientAddr string, sentDataPackets, retransm
 }
 
 // quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.
-func (p *PromInstrument) quicPackets(sent, lost int) {
-	p.quicLostPackets.Add(float64(lost))
-	p.quicSentPackets.Add(float64(sent))
-	p.quicRetransmissionRate.Observe(float64(lost) / float64(sent))
+func (p *PromInstrument) quicSentPacket() {
+	p.quicSentPackets.Inc()
+}
+func (p *PromInstrument) quicLostPacket() {
+	p.quicLostPackets.Inc()
 }
