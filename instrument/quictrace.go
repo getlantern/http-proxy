@@ -6,7 +6,10 @@ import (
 	"github.com/lucas-clemente/quic-go/quictrace"
 )
 
-const reportPeriod = time.Minute
+const (
+	idleClose    = 10 * time.Minute
+	reportPeriod = time.Minute
+)
 
 // QuicTracer is a quictrace.Tracker implementation which counts the sent and
 // lost packets and exports the data to Prometheus.
@@ -57,7 +60,7 @@ func (t *QuicTracer) run() {
 				stats.lostPackets++
 			}
 		case now := <-tk.C:
-			cutoff := now.Add(-reportPeriod)
+			cutoff := now.Add(-idleClose)
 			for connID, stats := range t.connStats {
 				if stats.lastActive.Before(cutoff) {
 					t.inst.quicPackets(stats.sentPackets, stats.lostPackets)
