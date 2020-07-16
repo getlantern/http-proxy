@@ -102,7 +102,7 @@ var (
 	pprofAddr         = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
 	promExporterAddr  = flag.String("promexporteraddr", "", "Prometheus exporter address to listen on, not activate exporter if empty")
 	maxmindLicenseKey = flag.String("maxmindlicensekey", "", "MaxMind license key to load the GeoLite2 Country database")
-	geolite2DBFile    = flag.String("geolite2dbfile", "GeoLite2-Country.mmdb", "The local copy of the GeoLite2 Country database for bandwidth conservation and faster initialization")
+	geoip2ISPDBFile   = flag.String("geoip2ispdbfile", "", "The local copy of the GeoIP2 ISP database")
 
 	pro = flag.Bool("pro", false, "Set to true to make this a pro proxy (no bandwidth limiting unless forced throttling)")
 
@@ -297,11 +297,15 @@ func main() {
 	if *packetForwardIntf != "" {
 		*externalIntf = *packetForwardIntf
 	}
-	var geoLookup geo.Lookup
 	if *maxmindLicenseKey == "" {
 		log.Fatal("maxmindlicensekey should not be empty")
 	}
-	geoLookup = geo.New(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), 24*time.Hour, *geolite2DBFile)
+	countryLookup := geo.FromWeb(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), "GeoLite2-Country.mmdb", 24*time.Hour, "GeoLite2-Country.mmdb")
+	ispLookup, err := geo.FromFile(*geoip2ISPDBFile)
+	if err != nil {
+		log.Errorf("Error loading ISP database file: %v", err)
+		// a nil ispLookup doesn't crash things
+	}
 
 	go periodicallyForceGC()
 
@@ -387,7 +391,8 @@ func main() {
 		TLSMasqTLSMinVersion:               tlsmasqTLSMinVersion,
 		TLSMasqTLSCipherSuites:             tlsmasqTLSSuites,
 		PromExporterAddr:                   *promExporterAddr,
-		GeoLookup:                          geoLookup,
+		CountryLookup:                      countryLookup,
+		ISPLookup:                          ispLookup,
 	}
 
 	log.Fatal(p.ListenAndServe())

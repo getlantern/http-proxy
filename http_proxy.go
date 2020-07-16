@@ -165,7 +165,8 @@ type Proxy struct {
 	TLSMasqTLSMinVersion               uint16
 	TLSMasqTLSCipherSuites             []uint16
 	PromExporterAddr                   string
-	GeoLookup                          geo.Lookup
+	CountryLookup                      geo.CountryLookup
+	ISPLookup                          geo.ISPLookup
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -186,13 +187,17 @@ type addresses struct {
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
-	if p.GeoLookup == nil {
-		p.GeoLookup = geo.NoLookup{}
+	if p.CountryLookup == nil {
+		p.CountryLookup = geo.NoLookup{}
+	}
+	if p.ISPLookup == nil {
+		p.ISPLookup = geo.NoLookup{}
 	}
 	p.instrument = instrument.NoInstrument{}
 	if p.PromExporterAddr != "" {
 		prom := instrument.NewPrometheus(
-			p.GeoLookup,
+			p.CountryLookup,
+			p.ISPLookup,
 			instrument.CommonLabels{
 				Protocol:              p.ProxyProtocol,
 				SupportTLSResumption:  p.SessionTicketKeyFile != "",
@@ -614,7 +619,7 @@ func (p *Proxy) configureBandwidthReporting() (*reportingConfig, listeners.Measu
 	if p.BordaReportInterval > 0 {
 		bordaReporter = borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
 	}
-	return newReportingConfig(p.GeoLookup, p.rc, p.EnableReports, bordaReporter, p.instrument), bordaReporter
+	return newReportingConfig(p.CountryLookup, p.rc, p.EnableReports, bordaReporter, p.instrument), bordaReporter
 }
 
 func (p *Proxy) loadThrottleConfig() {

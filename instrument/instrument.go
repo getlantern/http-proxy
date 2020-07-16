@@ -25,7 +25,7 @@ type Instrument interface {
 	XBQHeaderSent()
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
-	ProxiedBytes(sent, recv int, platform, version string)
+	ProxiedBytes(sent, recv int, platform, version string, clientIP net.IP)
 	TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int)
 }
 
@@ -41,10 +41,10 @@ func (i NoInstrument) Blacklist(b bool)               {}
 func (i NoInstrument) Mimic(m bool)                   {}
 func (i NoInstrument) Throttle(m bool, reason string) {}
 
-func (i NoInstrument) XBQHeaderSent()                                        {}
-func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)         {}
-func (i NoInstrument) VersionCheck(redirect bool, method, reason string)     {}
-func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version string) {}
+func (i NoInstrument) XBQHeaderSent()                                                         {}
+func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)                          {}
+func (i NoInstrument) VersionCheck(redirect bool, method, reason string)                      {}
+func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version string, clientIP net.IP) {}
 func (i NoInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int) {
 }
 
@@ -87,7 +87,8 @@ func (f *instrumentedFilter) Apply(ctx filters.Context, req *http.Request, next 
 // PromInstrument is an implementation of Instrument which exports Prometheus
 // metrics.
 type PromInstrument struct {
-	geolookup        geo.Lookup
+	countryLookup    geo.CountryLookup
+	ispLookup        geo.ISPLookup
 	commonLabels     prometheus.Labels
 	commonLabelNames []string
 	filters          map[string]*instrumentedFilter
@@ -95,12 +96,12 @@ type PromInstrument struct {
 
 	blacklistChecked, blacklisted, consecRetransmissions, mimicryChecked, mimicked, sentDataPackets, throttlingChecked, xbqSent prometheus.Counter
 
-	bytesSent, bytesRecv, throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
+	bytesSent, bytesRecv, bytesSentByISP, bytesRecvByISP, throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
 
 	retransmissionRate prometheus.Observer
 }
 
-func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
+func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c CommonLabels) *PromInstrument {
 	commonLabels := c.PromLabels()
 	commonLabelNames := make([]string, len(commonLabels))
 	i := 0
@@ -109,7 +110,8 @@ func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 		i++
 	}
 	return &PromInstrument{
-		geolookup:        geolookup,
+		countryLookup:    countryLookup,
+		ispLookup:        ispLookup,
 		commonLabels:     commonLabels,
 		commonLabelNames: commonLabelNames,
 		filters:          make(map[string]*instrumentedFilter),
@@ -128,6 +130,14 @@ func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 			Name: "proxy_downstream_received_bytes_total",
 			Help: "Bytes received from the client connections. Pluggable transport overhead excluded",
 		}, append(commonLabelNames, "app_platform", "app_version")).MustCurryWith(commonLabels),
+		bytesSentByISP: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_downstream_by_isp_sent_bytes_total",
+			Help: "Bytes sent to the client connections, by country and isp. Pluggable transport overhead excluded",
+		}, append(commonLabelNames, "country", "isp")).MustCurryWith(commonLabels),
+		bytesRecvByISP: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_downstream_by_isp_received_bytes_total",
+			Help: "Bytes received from the client connections, by country and isp. Pluggable transport overhead excluded",
+		}, append(commonLabelNames, "country", "isp")).MustCurryWith(commonLabels),
 		consecRetransmissions: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_tcp_consec_retransmissions_before_terminates_total",
 			Help: "Number of TCP retransmissions happen before the connection gets terminated, as a measure of blocking in the form of continuously dropped packets.",
@@ -282,7 +292,7 @@ func (p *PromInstrument) XBQHeaderSent() {
 // SuspectedProbing records the number of visits which looks like active
 // probing.
 func (p *PromInstrument) SuspectedProbing(fromIP net.IP, reason string) {
-	fromCountry := p.geolookup.CountryCode(fromIP)
+	fromCountry := p.countryLookup.CountryCode(fromIP)
 	p.suspectedProbing.With(prometheus.Labels{"country": fromCountry, "reason": reason}).Inc()
 }
 
@@ -295,10 +305,13 @@ func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version string) {
+func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version string, clientIP net.IP) {
 	labels := prometheus.Labels{"app_platform": platform, "app_version": version}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
+	by_isp := prometheus.Labels{"country": p.countryLookup.CountryCode(clientIP), "isp": p.ispLookup.ISP(clientIP)}
+	p.bytesSentByISP.With(by_isp).Add(float64(sent))
+	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
 }
 
 // TCPPackets records the number/rate of TCP data packets and retransmissions

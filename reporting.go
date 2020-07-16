@@ -24,7 +24,7 @@ type reportingConfig struct {
 	wrapper func(ls net.Listener) net.Listener
 }
 
-func newReportingConfig(geolookup geo.Lookup, rc *rclient.Client, enabled bool, bordaReporter listeners.MeasuredReportFN, instrument instrument.Instrument) *reportingConfig {
+func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, enabled bool, bordaReporter listeners.MeasuredReportFN, instrument instrument.Instrument) *reportingConfig {
 	if !enabled || rc == nil {
 		return noReport
 	}
@@ -33,6 +33,7 @@ func newReportingConfig(geolookup geo.Lookup, rc *rclient.Client, enabled bool, 
 			// nothing to report
 			return
 		}
+		// Note - sometimes we're missing the platform and version
 		platform := ""
 		_platform := ctx["app_platform"]
 		if _platform != nil {
@@ -40,13 +41,17 @@ func newReportingConfig(geolookup geo.Lookup, rc *rclient.Client, enabled bool, 
 		}
 		version := ""
 		_version := ctx["app_version"]
-		if _platform != nil {
+		if _version != nil {
 			version = _version.(string)
 		}
-		// Note - sometimes we're missing the platform and version
-		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version)
+		var client_ip net.IP
+		_client_ip := ctx["client_ip"]
+		if _client_ip != nil {
+			client_ip = net.ParseIP(_client_ip.(string))
+		}
+		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, client_ip)
 	}
-	reporter := redis.NewMeasuredReporter(geolookup, rc, measuredReportingInterval)
+	reporter := redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval)
 	if bordaReporter != nil {
 		reporter = combineReporter(reporter, bordaReporter, proxiedBytesReporter)
 	} else {
