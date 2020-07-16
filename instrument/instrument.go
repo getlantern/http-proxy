@@ -309,7 +309,12 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version string, 
 	labels := prometheus.Labels{"app_platform": platform, "app_version": version}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
-	by_isp := prometheus.Labels{"country": p.countryLookup.CountryCode(clientIP), "isp": p.ispLookup.ISP(clientIP)}
+	country := p.countryLookup.CountryCode(clientIP)
+	by_isp := prometheus.Labels{"country": country, "isp": "omitted"}
+	// We care about ISPs within these countries only, to reduce cardinality of the metrics
+	if country == "CN" || country == "IR" || country == "AE" || country == "TK" {
+		by_isp["isp"] = p.ispLookup.ISP(clientIP)
+	}
 	p.bytesSentByISP.With(by_isp).Add(float64(sent))
 	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
 }
