@@ -835,6 +835,7 @@ func (p *Proxy) listenQUICIETF(addr string, bordaReporter listeners.MeasuredRepo
 
 	config := &quicwrapper.Config{
 		MaxIncomingStreams: 1000,
+		QuicTracer:         instrument.NewQuicTracer(p.instrument),
 	}
 
 	l, err := quicwrapper.ListenAddr(p.QUICIETFAddr, tlsConf, config)
