@@ -19,6 +19,7 @@ import (
 	rclient "gopkg.in/redis.v5"
 
 	utp "github.com/anacrolix/go-libutp"
+
 	bordaClient "github.com/getlantern/borda/client"
 	"github.com/getlantern/cmux"
 	"github.com/getlantern/enhttp"
@@ -50,6 +51,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/v2/diffserv"
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
+	"github.com/getlantern/http-proxy-lantern/v2/geph"
 	"github.com/getlantern/http-proxy-lantern/v2/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/v2/httpsupgrade"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
@@ -159,6 +161,8 @@ type Proxy struct {
 	SessionTicketKeyFile               string
 	RequireSessionTickets              bool
 	MissingTicketReaction              tlslistener.HandshakeReaction
+	GephAddr                           string
+	GephKeyFile                        string
 	TLSMasqAddr                        string
 	TLSMasqOriginAddr                  string
 	TLSMasqSecret                      string
@@ -182,6 +186,7 @@ type addresses struct {
 	httpMultiplex  string
 	lampshade      string
 	tlsmasq        string
+	geph           string
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -317,6 +322,10 @@ func (p *Proxy) ListenAndServe() error {
 			return err
 		}
 
+		if err := addListenerIfNecessary(addrs.geph, p.listenGeph(baseListen)); err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -343,6 +352,7 @@ func (p *Proxy) ListenAndServe() error {
 		http:           p.HTTPAddr,
 		httpMultiplex:  p.HTTPMultiplexAddr,
 		tlsmasq:        p.TLSMasqAddr,
+		geph:           p.GephAddr,
 	}); err != nil {
 		return err
 	}
@@ -717,6 +727,16 @@ func (p *Proxy) listenLampshade(trackBBR bool, onListenerError func(net.Conn, er
 		wrapped = listeners.NewIdleConnListener(wrapped, p.IdleTimeout)
 
 		return wrapped, nil
+	}
+}
+
+func (p *Proxy) listenGeph(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
+	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+		l, err := baseListen(addr, false)
+		if err != nil {
+			return nil, err
+		}
+		return geph.Wrap(l, p.GephKeyFile), nil
 	}
 }
 

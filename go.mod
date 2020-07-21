@@ -15,6 +15,8 @@ require (
 	github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c // indirect
 	github.com/dchest/siphash v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.0
+	github.com/ethereum/go-ethereum v1.9.9
+	github.com/geph-official/geph2 v0.22.0
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
 	github.com/getlantern/borda v0.0.0-20200427033127-b36d009c6252
 	github.com/getlantern/cmux v0.0.0-20200120072431-136083c8edb8
@@ -60,6 +62,8 @@ require (
 	github.com/gonum/stat v0.0.0-20180125090729-ec9c8a1062f4
 	github.com/google/gopacket v1.1.17
 	github.com/googleapis/gax-go v2.0.0+incompatible // indirect
+	github.com/hashicorp/golang-lru v0.5.4
+	github.com/hashicorp/yamux v0.0.0-20181012175058-2f1d1f20f75d
 	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/juju/ratelimit v1.0.1
 	github.com/lucas-clemente/quic-go v0.7.1-0.20190207125157-7dc4be2ce994
@@ -67,17 +71,17 @@ require (
 	github.com/mikioh/tcpinfo v0.0.0-20180831101334-131b59fef27f // indirect
 	github.com/mikioh/tcpopt v0.0.0-20180707144150-7178f18b4ea8 // indirect
 	github.com/mitchellh/panicwrap v1.0.0
+	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.1.0
 	github.com/refraction-networking/utls v0.0.0-20190415193640-32987941ebd3 // indirect
 	github.com/stretchr/testify v1.5.1
-	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
 	github.com/templexxx/reedsolomon v0.0.0-20170927015403-7092926d7d05 // indirect
-	github.com/templexxx/xor v0.0.0-20181023030647-4e92f724b73b // indirect
-	github.com/tjfoc/gmsm v1.0.1 // indirect
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
+	github.com/xtaci/smux v1.5.10
 	go.opencensus.io v0.17.0 // indirect
-	golang.org/x/crypto v0.0.0-20200115085410-6d4e4cb37c7d // indirect
+	golang.org/x/crypto v0.0.0-20200115085410-6d4e4cb37c7d
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
+	golang.org/x/time v0.0.0-20190921001708-c4c64cad1fd0
 	google.golang.org/api v0.0.0-20180921000521-920bb1beccf7
 	google.golang.org/genproto v0.0.0-20180918203901-c3f76f3b92d1 // indirect
 	google.golang.org/grpc v1.23.1 // indirect

@@ -151,6 +151,9 @@ var (
 	missingTicketReactionDelay = flag.Duration("missing-session-ticket-reaction-delay", 0, "Specifies the delay before reaction to ClientHellos without TLS session tickets. Apply only if require-session-tickets is set.")
 	missingTicketReflectSite   = flag.String("missing-session-ticket-reflect-site", "", "Specifies the site to mirror when seeing no TLS session ticket in ClientHellos. Useful only if missing-session-ticket-reaction is ReflectToSite.")
 
+	gephAddr    = flag.String("geph-addr", "", "Address at which to listen for geph connections.")
+	gephKeyfile = flag.String("geph-keyfile", "geph.key", "path of the geph key file")
+
 	tlsmasqAddr          = flag.String("tlsmasq-addr", "", "Address at which to listen for tlsmasq connections.")
 	tlsmasqOriginAddr    = flag.String("tlsmasq-origin-addr", "", "Address of tlsmasq origin with port.")
 	tlsmasqSecret        = flag.String("tlsmasq-secret", "", "Hex encoded 52 byte tlsmasq shared secret.")
@@ -386,8 +389,11 @@ func main() {
 		TLSMasqSecret:                      *tlsmasqSecret,
 		TLSMasqTLSMinVersion:               tlsmasqTLSMinVersion,
 		TLSMasqTLSCipherSuites:             tlsmasqTLSSuites,
-		PromExporterAddr:                   *promExporterAddr,
-		GeoLookup:                          geoLookup,
+		GephAddr:                           *gephAddr,
+		GephKeyFile:                        *gephKeyfile,
+
+		PromExporterAddr: *promExporterAddr,
+		GeoLookup:        geoLookup,
 	}
 
 	log.Fatal(p.ListenAndServe())
