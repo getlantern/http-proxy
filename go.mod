@@ -62,6 +62,7 @@ require (
 	github.com/googleapis/gax-go v2.0.0+incompatible // indirect
 	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/juju/ratelimit v1.0.1
+	github.com/lucas-clemente/quic-go v0.7.1-0.20190207125157-7dc4be2ce994
 	github.com/mikioh/tcp v0.0.0-20180707144002-02a37043a4f7 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20180831101334-131b59fef27f // indirect
 	github.com/mikioh/tcpopt v0.0.0-20180707144150-7178f18b4ea8 // indirect
@@ -83,7 +84,7 @@ require (
 	gopkg.in/redis.v5 v5.2.9
 )
 
-replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.0.0-20200129225515-f0142adfc7dd
+replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20200720170941-b1abc08ed4ee
 
 replace github.com/anacrolix/go-libutp => github.com/getlantern/go-libutp v1.0.3
 

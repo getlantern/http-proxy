@@ -27,6 +27,8 @@ type Instrument interface {
 	VersionCheck(redirect bool, method, reason string)
 	ProxiedBytes(sent, recv int, platform, version string)
 	TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int)
+	quicSentPacket()
+	quicLostPacket()
 }
 
 // NoInstrument is an implementation of Instrument which does nothing
@@ -47,6 +49,8 @@ func (i NoInstrument) VersionCheck(redirect bool, method, reason string)     {}
 func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version string) {}
 func (i NoInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int) {
 }
+func (i NoInstrument) quicSentPacket() {}
+func (i NoInstrument) quicLostPacket() {}
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
@@ -93,11 +97,11 @@ type PromInstrument struct {
 	filters          map[string]*instrumentedFilter
 	errorHandlers    map[string]func(conn net.Conn, err error)
 
-	blacklistChecked, blacklisted, consecRetransmissions, mimicryChecked, mimicked, sentDataPackets, throttlingChecked, xbqSent prometheus.Counter
+	blacklistChecked, blacklisted, mimicryChecked, mimicked, quicLostPackets, quicSentPackets, tcpConsecRetransmissions, tcpSentDataPackets, throttlingChecked, xbqSent prometheus.Counter
 
 	bytesSent, bytesRecv, throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
 
-	retransmissionRate prometheus.Observer
+	tcpRetransmissionRate prometheus.Observer
 }
 
 func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
@@ -128,9 +132,14 @@ func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 			Name: "proxy_downstream_received_bytes_total",
 			Help: "Bytes received from the client connections. Pluggable transport overhead excluded",
 		}, append(commonLabelNames, "app_platform", "app_version")).MustCurryWith(commonLabels),
-		consecRetransmissions: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "proxy_downstream_tcp_consec_retransmissions_before_terminates_total",
-			Help: "Number of TCP retransmissions happen before the connection gets terminated, as a measure of blocking in the form of continuously dropped packets.",
+
+		quicLostPackets: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_downstream_quic_lost_packets_total",
+			Help: "Number of QUIC packets lost and effectively resent to the client connections.",
+		}, commonLabelNames).With(commonLabels),
+		quicSentPackets: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_downstream_quic_sent_packets_total",
+			Help: "Number of QUIC packets sent to the client connections.",
 		}, commonLabelNames).With(commonLabels),
 
 		mimicryChecked: promauto.NewCounterVec(prometheus.CounterOpts{
@@ -139,12 +148,16 @@ func NewPrometheus(geolookup geo.Lookup, c CommonLabels) *PromInstrument {
 		mimicked: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_apache_mimicry_mimicked_total",
 		}, commonLabelNames).With(commonLabels),
-		retransmissionRate: promauto.NewHistogramVec(prometheus.HistogramOpts{
+
+		tcpConsecRetransmissions: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_downstream_tcp_consec_retransmissions_before_terminates_total",
+			Help: "Number of TCP retransmissions happen before the connection gets terminated, as a measure of blocking in the form of continuously dropped packets.",
+		}, commonLabelNames).With(commonLabels),
+		tcpRetransmissionRate: promauto.NewHistogramVec(prometheus.HistogramOpts{
 			Name:    "proxy_tcp_retransmission_rate",
 			Buckets: []float64{0.01, 0.1, 0.5},
 		}, commonLabelNames).With(commonLabels),
-
-		sentDataPackets: promauto.NewCounterVec(prometheus.CounterOpts{
+		tcpSentDataPackets: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_tcp_sent_data_packets_total",
 			Help: "Number of TCP data packets (packets with non-zero data length) sent to the client connections.",
 		}, commonLabelNames).With(commonLabels),
@@ -304,7 +317,15 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version string) 
 // TCPPackets records the number/rate of TCP data packets and retransmissions
 // mainly for block detection.
 func (p *PromInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int) {
-	p.retransmissionRate.Observe(float64(retransmissions) / float64(sentDataPackets))
-	p.sentDataPackets.Add(float64(sentDataPackets))
-	p.consecRetransmissions.Add(float64(consecRetransmissions))
+	p.tcpRetransmissionRate.Observe(float64(retransmissions) / float64(sentDataPackets))
+	p.tcpSentDataPackets.Add(float64(sentDataPackets))
+	p.tcpConsecRetransmissions.Add(float64(consecRetransmissions))
+}
+
+// quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.
+func (p *PromInstrument) quicSentPacket() {
+	p.quicSentPackets.Inc()
+}
+func (p *PromInstrument) quicLostPacket() {
+	p.quicLostPackets.Inc()
 }
