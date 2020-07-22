@@ -2,14 +2,17 @@
 package geph
 
 import (
+	"encoding/hex"
 	"io/ioutil"
 	"net"
 	"time"
 
+	"github.com/ethereum/go-ethereum/rlp"
 	"github.com/getlantern/golog"
 	"golang.org/x/crypto/ed25519"
 
 	"github.com/geph-official/geph2/libs/cshirt2"
+	"github.com/geph-official/geph2/libs/tinyss"
 )
 
 var (
@@ -35,17 +38,26 @@ func (l *gephListener) Accept() (net.Conn, error) {
 		return nil, err
 	}
 	log.Debugf("Accepted from client at %v", rawClient.RemoteAddr())
-	go func() {
-		rawClient.SetDeadline(time.Now().Add(time.Second * 10))
-		client, err := cshirt2.Server(pubkey, false, rawClient)
-		if err != nil {
-			rawClient.Close()
-			return
-		}
-		rawClient.SetDeadline(time.Now().Add(time.Hour * 24))
-		handle(client)
-	}()
-	return rawClient, nil
+	rawClient.SetDeadline(time.Now().Add(time.Second * 10))
+	client, err := cshirt2.Server(pubkey, false, rawClient)
+	if err != nil {
+		rawClient.Close()
+		return nil, err
+	}
+	rawClient.SetDeadline(time.Now().Add(time.Hour * 24))
+	client.SetDeadline(time.Now().Add(time.Second * 30))
+	tssClient, err := tinyss.Handshake(client, 0 /*nextProt*/)
+	if err != nil {
+		client.Close()
+		return nil, err
+	}
+	// HACK: it's bridged if the remote address has a dot in it
+	//isBridged := strings.Contains(client.RemoteAddr().String(), ".")
+	// sign the shared secret
+	ssSignature := ed25519.Sign(seckey, tssClient.SharedSec())
+	rlp.Encode(tssClient, &ssSignature)
+	client.SetDeadline(time.Now().Add(time.Hour * 24))
+	return tssClient, nil
 }
 
 func (l *gephListener) Addr() net.Addr {
@@ -61,11 +73,11 @@ retry:
 	bts, err := ioutil.ReadFile(keyfile)
 	if err != nil {
 		// genkey
-		pubkey, key, _ := ed25519.GenerateKey(nil)
+		_, key, _ := ed25519.GenerateKey(nil)
 		ioutil.WriteFile(keyfile, key, 0600)
-		ioutil.WriteFile(keyfile+".pub", pubkey, 0600)
 		goto retry
 	}
 	seckey = bts
 	pubkey = seckey.Public().(ed25519.PublicKey)
+	ioutil.WriteFile(keyfile+".pub", []byte(hex.EncodeToString(pubkey)), 0600)
 }
