@@ -300,13 +300,6 @@ func main() {
 	if *maxmindLicenseKey == "" {
 		log.Fatal("maxmindlicensekey should not be empty")
 	}
-	countryLookup := geo.FromWeb(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), "GeoLite2-Country.mmdb", 24*time.Hour, "GeoLite2-Country.mmdb")
-	ispLookup, err := geo.FromFile(*geoip2ISPDBFile)
-	if err != nil {
-		log.Errorf("Error loading ISP database file: %v", err)
-		// a nil ispLookup doesn't crash things
-	}
-
 	go periodicallyForceGC()
 
 	p := &proxy.Proxy{
@@ -391,8 +384,13 @@ func main() {
 		TLSMasqTLSMinVersion:               tlsmasqTLSMinVersion,
 		TLSMasqTLSCipherSuites:             tlsmasqTLSSuites,
 		PromExporterAddr:                   *promExporterAddr,
-		CountryLookup:                      countryLookup,
-		ISPLookup:                          ispLookup,
+	}
+	p.CountryLookup = geo.FromWeb(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), "GeoLite2-Country.mmdb", 24*time.Hour, "GeoLite2-Country.mmdb")
+	ispLookup, err := geo.FromFile(*geoip2ISPDBFile)
+	if err != nil {
+		log.Errorf("Error loading ISP database file: %v", err)
+	} else {
+		p.ISPLookup = ispLookup
 	}
 
 	log.Fatal(p.ListenAndServe())
