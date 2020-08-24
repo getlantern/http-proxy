@@ -90,6 +90,7 @@ var (
 	throttleThreshold       = flag.Int64("throttlethreshold", 0, "Set to a positive value to force a specific throttle threshold in bytes (rather than using one from Redis)")
 	throttleRate            = flag.Int64("throttlerate", 0, "Set to a positive value to force a specific throttle rate in bytes/second (rather than using one from Redis)")
 
+	enableMultipath       = flag.Bool("enablemultipath", false, "Enable multipath. Only clients support multipath can communicate with it.")
 	enableReports         = flag.Bool("enablereports", false, "Enable stats reporting")
 	bordaReportInterval   = flag.Duration("borda-report-interval", 0*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
 	bordaSamplePercentage = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
@@ -349,6 +350,7 @@ func main() {
 		CfgSvrAuthToken:                    *cfgSvrAuthToken,
 		ConnectOKWaitsForUpstream:          *connectOKWaitsForUpstream,
 		EnableReports:                      *enableReports,
+		EnableMultipath:                    *enableMultipath,
 		ThrottleRefreshInterval:            *throttleRefreshInterval,
 		ThrottleThreshold:                  *throttleThreshold,
 		ThrottleRate:                       *throttleRate,

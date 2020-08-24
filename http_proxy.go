@@ -28,6 +28,7 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
+	"github.com/getlantern/multipath"
 	"github.com/getlantern/ops"
 	packetforward "github.com/getlantern/packetforward/server"
 	"github.com/getlantern/pcapper"
@@ -100,6 +101,7 @@ type Proxy struct {
 	ENHTTPAddr                         string
 	ENHTTPServerURL                    string
 	ENHTTPReapIdleTime                 time.Duration
+	EnableMultipath                    bool
 	EnableReports                      bool
 	HTTPS                              bool
 	IdleTimeout                        time.Duration
@@ -383,16 +385,25 @@ func (p *Proxy) ListenAndServe() error {
 		return err
 	}
 
-	errCh := make(chan error, len(allListeners))
-	for _, _l := range allListeners {
-		l := _l
-		go func() {
-			log.Debugf("Serving at: %v", l.Addr())
-			errCh <- srv.Serve(l, mimic.SetServerAddr)
-		}()
+	if p.EnableMultipath {
+		mpl := multipath.MPListener(allListeners...)
+		addrs := make([]net.Addr, 0, len(allListeners))
+		for _, l := range allListeners {
+			addrs = append(addrs, l.Addr())
+		}
+		log.Debugf("Serving multipath at: %v", addrs)
+		return srv.Serve(mpl, nil)
+	} else {
+		errCh := make(chan error, len(allListeners))
+		for _, _l := range allListeners {
+			l := _l
+			go func() {
+				log.Debugf("Serving at: %v", l.Addr())
+				errCh <- srv.Serve(l, mimic.SetServerAddr)
+			}()
+		}
+		return <-errCh
 	}
-
-	return <-errCh
 }
 
 func (p *Proxy) ListenAndServeENHTTP() error {
