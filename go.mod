@@ -17,7 +17,9 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
 	github.com/getlantern/borda v0.0.0-20200427033127-b36d009c6252
-	github.com/getlantern/cmux v0.0.0-20200120072431-136083c8edb8
+	github.com/getlantern/cmux v0.0.0-20200120072431-136083c8edb8 // indirect
+	github.com/getlantern/cmux/v2 v2.0.0-20200723153654-f1f4014b42e2
+	github.com/getlantern/cmuxprivate v0.0.0-20200724171700-eadeb0495ca7
 	github.com/getlantern/context v0.0.0-20190109183933-c447772a6520
 	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
@@ -38,7 +40,8 @@ require (
 	github.com/getlantern/ops v0.0.0-20200403153110-8476b16edcd6
 	github.com/getlantern/packetforward v0.0.0-20200421081927-11933f311913
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
-	github.com/getlantern/proxy v0.0.0-20200626230213-73a415fc7320
+	github.com/getlantern/proxy v0.0.0-20200828020017-9c052c8ea590
+	github.com/getlantern/psmux v1.5.15-0.20200829020804-fbef5fb6a105
 	github.com/getlantern/quic0 v0.0.0-20200121154153-8b18c2ba09f9
 	github.com/getlantern/quicwrapper v0.0.0-20200902185207-c4742ad7448c
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
@@ -75,6 +78,7 @@ require (
 	github.com/templexxx/xor v0.0.0-20181023030647-4e92f724b73b // indirect
 	github.com/tjfoc/gmsm v1.0.1 // indirect
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
+	github.com/xtaci/smux v1.5.15-0.20200704123958-f7188026ba01
 	go.opencensus.io v0.17.0 // indirect
 	golang.org/x/crypto v0.0.0-20200115085410-6d4e4cb37c7d // indirect
 	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
