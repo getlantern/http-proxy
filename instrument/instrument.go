@@ -249,11 +249,11 @@ func (p *PromInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Con
 			errors.Inc()
 			addr := conn.RemoteAddr()
 			if addr == nil {
-				panic("nil RemoteAddr")
+				return
 			}
 			host, _, err := net.SplitHostPort(addr.String())
 			if err != nil {
-				panic("Unexpected RemoteAddr " + addr.String())
+				return
 			}
 			mu.Lock()
 			if lastRemoteIP != host {
