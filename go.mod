@@ -40,7 +40,7 @@ require (
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/proxy v0.0.0-20200626230213-73a415fc7320
 	github.com/getlantern/quic0 v0.0.0-20200121154153-8b18c2ba09f9
-	github.com/getlantern/quicwrapper v0.0.0-20200129232925-8ef70253fcae
+	github.com/getlantern/quicwrapper v0.0.0-20200902185207-c4742ad7448c
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
 	github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
