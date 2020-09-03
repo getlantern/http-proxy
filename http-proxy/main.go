@@ -156,6 +156,21 @@ var (
 	tlsmasqSecret        = flag.String("tlsmasq-secret", "", "Hex encoded 52 byte tlsmasq shared secret.")
 	tlsmasqMinVersionStr = flag.String("tlsmasq-tls-min-version", "0x0303", "hex-encoded TLS version")
 	tlsmasqSuitesStr     = flag.String("tlsmasq-tls-cipher-suites", "0x1301,0x1302,0x1303,0xcca8,0xcca9,0xc02b,0xc030,0xc02c", "hex-encoded TLS cipher suites")
+
+	multiplexProtocol    = flag.String("multiplexprotocol", "smux", "multiplexing protocol to use")
+	smuxVersion          = flag.Int("smux-version", 0, "smux protocol version")
+	smuxMaxFrameSize     = flag.Int("smux-max-frame-size", 0, "smux maximum frame size")
+	smuxMaxReceiveBuffer = flag.Int("smux-max-receive-buffer", 0, "smux max receive buffer")
+	smuxMaxStreamBuffer  = flag.Int("smux-max-stream-buffer", 0, "smux max stream buffer")
+
+	psmuxVersion                = flag.Int("psmux-version", 0, "psmux protocol version")
+	psmuxMaxFrameSize           = flag.Int("psmux-max-frame-size", 0, "psmux maximum frame size")
+	psmuxMaxReceiveBuffer       = flag.Int("psmux-max-receive-buffer", 0, "psmux max receive buffer")
+	psmuxMaxStreamBuffer        = flag.Int("psmux-max-stream-buffer", 0, "psmux max stream buffer")
+	psmuxMaxPaddingRatio        = flag.Float64("psmux-max-padding-ratio", -1.0, "psmux max padding ratio")
+	psmuxMaxPaddedSize          = flag.Int("psmux-max-padded-size", -1, "psmux max padded size")
+	psmuxAggressivePadding      = flag.Int("psmux-aggressive-padding", -1, "psmux aggressive padding")
+	psmuxAggressivePaddingRatio = flag.Float64("psmux-aggressive-padding-ratio", -1, "psmux aggressive padding ratio")
 )
 
 func main() {
@@ -300,6 +315,10 @@ func main() {
 	if *maxmindLicenseKey == "" {
 		log.Fatal("maxmindlicensekey should not be empty")
 	}
+	mux := *multiplexProtocol
+	if mux != "smux" && mux != "psmux" {
+		log.Fatalf("unsupported multiplex protocol %v", mux)
+	}
 	go periodicallyForceGC()
 
 	p := &proxy.Proxy{
@@ -384,6 +403,19 @@ func main() {
 		TLSMasqTLSMinVersion:               tlsmasqTLSMinVersion,
 		TLSMasqTLSCipherSuites:             tlsmasqTLSSuites,
 		PromExporterAddr:                   *promExporterAddr,
+		MultiplexProtocol:                  *multiplexProtocol,
+		SmuxVersion:                        *smuxVersion,
+		SmuxMaxFrameSize:                   *smuxMaxFrameSize,
+		SmuxMaxReceiveBuffer:               *smuxMaxReceiveBuffer,
+		SmuxMaxStreamBuffer:                *smuxMaxStreamBuffer,
+		PsmuxVersion:                       *psmuxVersion,
+		PsmuxMaxFrameSize:                  *psmuxMaxFrameSize,
+		PsmuxMaxReceiveBuffer:              *psmuxMaxReceiveBuffer,
+		PsmuxMaxStreamBuffer:               *psmuxMaxStreamBuffer,
+		PsmuxMaxPaddingRatio:               *psmuxMaxPaddingRatio,
+		PsmuxMaxPaddedSize:                 *psmuxMaxPaddedSize,
+		PsmuxAggressivePadding:             *psmuxAggressivePadding,
+		PsmuxAggressivePaddingRatio:        *psmuxAggressivePaddingRatio,
 	}
 	p.CountryLookup = geo.FromWeb(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), "GeoLite2-Country.mmdb", 24*time.Hour, "GeoLite2-Country.mmdb")
 	ispLookup, err := geo.FromFile(*geoip2ISPDBFile)

@@ -20,7 +20,8 @@ import (
 
 	utp "github.com/anacrolix/go-libutp"
 	bordaClient "github.com/getlantern/borda/client"
-	"github.com/getlantern/cmux"
+	"github.com/getlantern/cmux/v2"
+	"github.com/getlantern/cmuxprivate"
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
 	"github.com/getlantern/geo"
@@ -32,11 +33,13 @@ import (
 	"github.com/getlantern/pcapper"
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/psmux"
 	"github.com/getlantern/quic0"
 	"github.com/getlantern/quicwrapper"
 	"github.com/getlantern/tinywss"
 	"github.com/getlantern/tlsdefaults"
 	"github.com/getlantern/tlsredis"
+	"github.com/xtaci/smux"
 
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/http-proxy/proxyfilters"
@@ -167,6 +170,20 @@ type Proxy struct {
 	PromExporterAddr                   string
 	CountryLookup                      geo.CountryLookup
 	ISPLookup                          geo.ISPLookup
+
+	MultiplexProtocol           string
+	SmuxVersion                 int
+	SmuxMaxFrameSize            int
+	SmuxMaxReceiveBuffer        int
+	SmuxMaxStreamBuffer         int
+	PsmuxVersion                int
+	PsmuxMaxFrameSize           int
+	PsmuxMaxReceiveBuffer       int
+	PsmuxMaxStreamBuffer        int
+	PsmuxMaxPaddingRatio        float64
+	PsmuxMaxPaddedSize          int
+	PsmuxAggressivePadding      int
+	PsmuxAggressivePaddingRatio float64
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -416,13 +433,73 @@ func (p *Proxy) wrapMultiplexing(fn listenerBuilderFN) listenerBuilderFN {
 			return nil, err
 		}
 
+		var proto cmux.Protocol
+		if p.MultiplexProtocol == "smux" {
+			proto, err = p.buildSmuxProtocol()
+		} else if p.MultiplexProtocol == "psmux" {
+			proto, err = p.buildPsmuxProtocol()
+		} else {
+			err = errors.New("unknown multiplex protocol: %v", p.MultiplexProtocol)
+		}
+		if err != nil {
+			return nil, err
+		}
+
 		l = cmux.Listen(&cmux.ListenOpts{
 			Listener: l,
+			Protocol: proto,
 		})
 
 		log.Debugf("Multiplexing on %v", l.Addr())
 		return l, nil
 	}
+}
+
+func (p *Proxy) buildSmuxProtocol() (cmux.Protocol, error) {
+	config := smux.DefaultConfig()
+	if p.SmuxVersion > 0 {
+		config.Version = p.SmuxVersion
+	}
+	if p.SmuxMaxFrameSize > 0 {
+		config.MaxFrameSize = p.SmuxMaxFrameSize
+	}
+	if p.SmuxMaxReceiveBuffer > 0 {
+		config.MaxReceiveBuffer = p.SmuxMaxReceiveBuffer
+	}
+	if p.SmuxMaxStreamBuffer > 0 {
+		config.MaxStreamBuffer = p.SmuxMaxStreamBuffer
+	}
+	return cmux.NewSmuxProtocol(config), nil
+}
+
+func (p *Proxy) buildPsmuxProtocol() (cmux.Protocol, error) {
+	config := psmux.DefaultConfig()
+	if p.PsmuxVersion > 0 {
+		config.Version = p.PsmuxVersion
+	}
+	if p.PsmuxMaxFrameSize > 0 {
+		config.MaxFrameSize = p.PsmuxMaxFrameSize
+	}
+	if p.PsmuxMaxReceiveBuffer > 0 {
+		config.MaxReceiveBuffer = p.PsmuxMaxReceiveBuffer
+	}
+	if p.PsmuxMaxStreamBuffer > 0 {
+		config.MaxStreamBuffer = p.PsmuxMaxStreamBuffer
+	}
+	if p.PsmuxMaxPaddingRatio >= 0.0 {
+		config.MaxPaddingRatio = p.PsmuxMaxPaddingRatio
+	}
+	if p.PsmuxMaxPaddedSize >= 0 {
+		config.MaxPaddedSize = p.PsmuxMaxPaddedSize
+	}
+	if p.PsmuxAggressivePadding >= 0 {
+		config.AggressivePadding = p.PsmuxAggressivePadding
+	}
+	if p.PsmuxAggressivePaddingRatio >= 0.0 {
+		config.AggressivePaddingRatio = p.PsmuxAggressivePaddingRatio
+	}
+
+	return cmuxprivate.NewPsmuxProtocol(config), nil
 }
 
 func (p *Proxy) setupOpsContext() {
