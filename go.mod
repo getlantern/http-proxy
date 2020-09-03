@@ -41,7 +41,7 @@ require (
 	github.com/getlantern/packetforward v0.0.0-20200421081927-11933f311913
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/proxy v0.0.0-20200828020017-9c052c8ea590
-	github.com/getlantern/psmux v1.5.15-0.20200829020804-fbef5fb6a105
+	github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683
 	github.com/getlantern/quic0 v0.0.0-20200121154153-8b18c2ba09f9
 	github.com/getlantern/quicwrapper v0.0.0-20200902185207-c4742ad7448c
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
