@@ -167,10 +167,10 @@ var (
 	psmuxMaxFrameSize           = flag.Int("psmux-max-frame-size", 0, "psmux maximum frame size")
 	psmuxMaxReceiveBuffer       = flag.Int("psmux-max-receive-buffer", 0, "psmux max receive buffer")
 	psmuxMaxStreamBuffer        = flag.Int("psmux-max-stream-buffer", 0, "psmux max stream buffer")
-	psmuxMaxPaddingRatio        = flag.Float64("psmux-max-padding-ratio", 0.0, "psmux max padding ratio, -1 to disable")
-	psmuxMaxPaddedSize          = flag.Int("psmux-max-padded-size", 0, "psmux max padded size")
-	psmuxAggressivePadding      = flag.Int("psmux-aggressive-padding", 0, "psmux aggressive padding, -1 to disable")
-	psmuxAggressivePaddingRatio = flag.Float64("psmux-aggressive-padding-ratio", 0, "psmux aggressive padding ratio")
+	psmuxMaxPaddingRatio        = flag.Float64("psmux-max-padding-ratio", -1.0, "psmux max padding ratio")
+	psmuxMaxPaddedSize          = flag.Int("psmux-max-padded-size", -1, "psmux max padded size")
+	psmuxAggressivePadding      = flag.Int("psmux-aggressive-padding", -1, "psmux aggressive padding")
+	psmuxAggressivePaddingRatio = flag.Float64("psmux-aggressive-padding-ratio", -1, "psmux aggressive padding ratio")
 )
 
 func main() {

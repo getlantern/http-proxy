@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -440,7 +439,7 @@ func (p *Proxy) wrapMultiplexing(fn listenerBuilderFN) listenerBuilderFN {
 		} else if p.MultiplexProtocol == "psmux" {
 			proto, err = p.buildPsmuxProtocol()
 		} else {
-			err = fmt.Errorf("unknown multiplex protocol: %v", p.MultiplexProtocol)
+			err = errors.New("unknown multiplex protocol: %v", p.MultiplexProtocol)
 		}
 		if err != nil {
 			return nil, err
@@ -487,33 +486,17 @@ func (p *Proxy) buildPsmuxProtocol() (cmux.Protocol, error) {
 	if p.PsmuxMaxStreamBuffer > 0 {
 		config.MaxStreamBuffer = p.PsmuxMaxStreamBuffer
 	}
-	if p.PsmuxMaxPaddingRatio != 0 {
-		if p.PsmuxMaxPaddingRatio < 0 { // explicit disable
-			config.MaxPaddingRatio = 0.0
-		} else {
-			config.MaxPaddingRatio = p.PsmuxMaxPaddingRatio
-		}
+	if p.PsmuxMaxPaddingRatio >= 0.0 {
+		config.MaxPaddingRatio = p.PsmuxMaxPaddingRatio
 	}
-	if p.PsmuxMaxPaddedSize != 0 {
-		if p.PsmuxMaxPaddedSize < 0 { // explicit disable
-			config.MaxPaddedSize = 0
-		} else {
-			config.MaxPaddedSize = p.PsmuxMaxPaddedSize
-		}
+	if p.PsmuxMaxPaddedSize >= 0 {
+		config.MaxPaddedSize = p.PsmuxMaxPaddedSize
 	}
-	if p.PsmuxAggressivePadding != 0 {
-		if p.PsmuxAggressivePadding < 0 { // explicit disable
-			config.AggressivePadding = 0
-		} else {
-			config.AggressivePadding = p.PsmuxAggressivePadding
-		}
+	if p.PsmuxAggressivePadding >= 0 {
+		config.AggressivePadding = p.PsmuxAggressivePadding
 	}
-	if p.PsmuxAggressivePaddingRatio != 0 {
-		if p.PsmuxAggressivePadding < 0 { // explicit disable
-			config.AggressivePaddingRatio = 0.0
-		} else {
-			config.AggressivePaddingRatio = p.PsmuxAggressivePaddingRatio
-		}
+	if p.PsmuxAggressivePaddingRatio >= 0.0 {
+		config.AggressivePaddingRatio = p.PsmuxAggressivePaddingRatio
 	}
 
 	return cmuxprivate.NewPsmuxProtocol(config), nil
