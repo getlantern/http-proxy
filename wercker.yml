@@ -36,3 +36,8 @@ build:
       name: test
       code: |
         make test
+    # Test that it builds
+    - script:
+      name: build
+      code: |
+        make dist-on-linux
