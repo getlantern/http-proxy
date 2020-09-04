@@ -16,7 +16,7 @@ import (
 
 // Wrap wraps the specified listener in our default TLS listener.
 func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKeyFile string,
-	requireSessionTickets bool, missingTicketReaction HandshakeReaction, instrument instrument.Instrument) (net.Listener, error) {
+	requireSessionTickets bool, missingTicketReaction HandshakeReaction, allowTLS13 bool, instrument instrument.Instrument) (net.Listener, error) {
 	cfg, err := tlsdefaults.BuildListenerConfig(wrapped.Addr().String(), keyFile, certFile)
 	if err != nil {
 		return nil, err
@@ -28,11 +28,19 @@ func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKe
 	onKeys := func(keys [][32]byte) {
 		utlsConfig.SetSessionTicketKeys(keys)
 	}
+
+	// Depending on the ClientHello generated, we use session tickets both for normal
+	// session ticket resumption as well as pre-negotiated session tickets as obfuscation.
+	// Ideally we'll make this work with TLS 1.3, see:
+	// https://github.com/getlantern/lantern-internal/issues/3057
+	// https://github.com/getlantern/lantern-internal/issues/3850
+	// https://github.com/getlantern/lantern-internal/issues/4111
+	if !allowTLS13 {
+		cfg.MaxVersion = tls.VersionTLS12
+	}
+
 	expectTickets := sessionTicketKeyFile != ""
 	if expectTickets {
-		// This is a bit of a hack to make pre-shared TLS sessions work with uTLS. Ideally we'll make this
-		// work with TLS 1.3, see https://github.com/getlantern/lantern-internal/issues/3057.
-		cfg.MaxVersion = tls.VersionTLS12
 		log.Debugf("Will rotate session ticket key and store in %v", sessionTicketKeyFile)
 		maintainSessionTicketKey(cfg, sessionTicketKeyFile, onKeys)
 	}

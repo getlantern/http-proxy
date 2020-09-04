@@ -151,6 +151,8 @@ var (
 	missingTicketReactionDelay = flag.Duration("missing-session-ticket-reaction-delay", 0, "Specifies the delay before reaction to ClientHellos without TLS session tickets. Apply only if require-session-tickets is set.")
 	missingTicketReflectSite   = flag.String("missing-session-ticket-reflect-site", "", "Specifies the site to mirror when seeing no TLS session ticket in ClientHellos. Useful only if missing-session-ticket-reaction is ReflectToSite.")
 
+	tlsListenerAllowTLS13 = flag.Bool("tlslistener-allow-tls13", false, "Allow tlslistener to offer tls13. Because of session ticket issues, this is likely experimental until they can be worked out")
+
 	tlsmasqAddr          = flag.String("tlsmasq-addr", "", "Address at which to listen for tlsmasq connections.")
 	tlsmasqOriginAddr    = flag.String("tlsmasq-origin-addr", "", "Address of tlsmasq origin with port.")
 	tlsmasqSecret        = flag.String("tlsmasq-secret", "", "Hex encoded 52 byte tlsmasq shared secret.")
@@ -399,6 +401,7 @@ func main() {
 		ExternalIntf:                       *externalIntf,
 		RequireSessionTickets:              *requireSessionTickets,
 		MissingTicketReaction:              reaction,
+		TLSListenerAllowTLS13:              *tlsListenerAllowTLS13,
 		TLSMasqAddr:                        *tlsmasqAddr,
 		TLSMasqOriginAddr:                  *tlsmasqOriginAddr,
 		TLSMasqSecret:                      *tlsmasqSecret,
