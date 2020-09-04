@@ -436,7 +436,8 @@ func (p *Proxy) wrapMultiplexing(fn listenerBuilderFN) listenerBuilderFN {
 		}
 
 		var proto cmux.Protocol
-		if p.MultiplexProtocol == "smux" {
+		// smux is the default, but can be explicitly specified also
+		if p.MultiplexProtocol == "" || p.MultiplexProtocol == "smux" {
 			proto, err = p.buildSmuxProtocol()
 		} else if p.MultiplexProtocol == "psmux" {
 			proto, err = p.buildPsmuxProtocol()
