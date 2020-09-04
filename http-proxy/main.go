@@ -163,14 +163,16 @@ var (
 	smuxMaxReceiveBuffer = flag.Int("smux-max-receive-buffer", 0, "smux max receive buffer")
 	smuxMaxStreamBuffer  = flag.Int("smux-max-stream-buffer", 0, "smux max stream buffer")
 
-	psmuxVersion                = flag.Int("psmux-version", 0, "psmux protocol version")
-	psmuxMaxFrameSize           = flag.Int("psmux-max-frame-size", 0, "psmux maximum frame size")
-	psmuxMaxReceiveBuffer       = flag.Int("psmux-max-receive-buffer", 0, "psmux max receive buffer")
-	psmuxMaxStreamBuffer        = flag.Int("psmux-max-stream-buffer", 0, "psmux max stream buffer")
-	psmuxMaxPaddingRatio        = flag.Float64("psmux-max-padding-ratio", -1.0, "psmux max padding ratio")
-	psmuxMaxPaddedSize          = flag.Int("psmux-max-padded-size", -1, "psmux max padded size")
-	psmuxAggressivePadding      = flag.Int("psmux-aggressive-padding", -1, "psmux aggressive padding")
-	psmuxAggressivePaddingRatio = flag.Float64("psmux-aggressive-padding-ratio", -1, "psmux aggressive padding ratio")
+	psmuxVersion                  = flag.Int("psmux-version", 0, "psmux protocol version")
+	psmuxMaxFrameSize             = flag.Int("psmux-max-frame-size", 0, "psmux maximum frame size")
+	psmuxMaxReceiveBuffer         = flag.Int("psmux-max-receive-buffer", 0, "psmux max receive buffer")
+	psmuxMaxStreamBuffer          = flag.Int("psmux-max-stream-buffer", 0, "psmux max stream buffer")
+	psmuxMaxPaddingRatio          = flag.Float64("psmux-max-padding-ratio", 0.0, "psmux max padding ratio")
+	psmuxMaxPaddedSize            = flag.Int("psmux-max-padded-size", 0, "psmux max padded size")
+	psmuxAggressivePadding        = flag.Int("psmux-aggressive-padding", 0, "psmux aggressive padding count")
+	psmuxAggressivePaddingRatio   = flag.Float64("psmux-aggressive-padding-ratio", 0, "psmux aggressive padding ratio")
+	psmuxDisablePadding           = flag.Bool("psmux-disable-padding", false, "disable all padding")
+	psmuxDisableAggressivePadding = flag.Bool("psmux-disable-aggressive-padding", false, "disable aggressive padding only")
 )
 
 func main() {
@@ -412,8 +414,10 @@ func main() {
 		PsmuxMaxFrameSize:                  *psmuxMaxFrameSize,
 		PsmuxMaxReceiveBuffer:              *psmuxMaxReceiveBuffer,
 		PsmuxMaxStreamBuffer:               *psmuxMaxStreamBuffer,
+		PsmuxDisablePadding:                *psmuxDisablePadding,
 		PsmuxMaxPaddingRatio:               *psmuxMaxPaddingRatio,
 		PsmuxMaxPaddedSize:                 *psmuxMaxPaddedSize,
+		PsmuxDisableAggressivePadding:      *psmuxDisableAggressivePadding,
 		PsmuxAggressivePadding:             *psmuxAggressivePadding,
 		PsmuxAggressivePaddingRatio:        *psmuxAggressivePaddingRatio,
 	}

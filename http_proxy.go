@@ -171,19 +171,21 @@ type Proxy struct {
 	CountryLookup                      geo.CountryLookup
 	ISPLookup                          geo.ISPLookup
 
-	MultiplexProtocol           string
-	SmuxVersion                 int
-	SmuxMaxFrameSize            int
-	SmuxMaxReceiveBuffer        int
-	SmuxMaxStreamBuffer         int
-	PsmuxVersion                int
-	PsmuxMaxFrameSize           int
-	PsmuxMaxReceiveBuffer       int
-	PsmuxMaxStreamBuffer        int
-	PsmuxMaxPaddingRatio        float64
-	PsmuxMaxPaddedSize          int
-	PsmuxAggressivePadding      int
-	PsmuxAggressivePaddingRatio float64
+	MultiplexProtocol             string
+	SmuxVersion                   int
+	SmuxMaxFrameSize              int
+	SmuxMaxReceiveBuffer          int
+	SmuxMaxStreamBuffer           int
+	PsmuxVersion                  int
+	PsmuxMaxFrameSize             int
+	PsmuxMaxReceiveBuffer         int
+	PsmuxMaxStreamBuffer          int
+	PsmuxDisablePadding           bool
+	PsmuxMaxPaddingRatio          float64
+	PsmuxMaxPaddedSize            int
+	PsmuxDisableAggressivePadding bool
+	PsmuxAggressivePadding        int
+	PsmuxAggressivePaddingRatio   float64
 
 	bm             bbr.Middleware
 	rc             *rclient.Client
@@ -434,7 +436,8 @@ func (p *Proxy) wrapMultiplexing(fn listenerBuilderFN) listenerBuilderFN {
 		}
 
 		var proto cmux.Protocol
-		if p.MultiplexProtocol == "smux" {
+		// smux is the default, but can be explicitly specified also
+		if p.MultiplexProtocol == "" || p.MultiplexProtocol == "smux" {
 			proto, err = p.buildSmuxProtocol()
 		} else if p.MultiplexProtocol == "psmux" {
 			proto, err = p.buildPsmuxProtocol()
@@ -486,19 +489,30 @@ func (p *Proxy) buildPsmuxProtocol() (cmux.Protocol, error) {
 	if p.PsmuxMaxStreamBuffer > 0 {
 		config.MaxStreamBuffer = p.PsmuxMaxStreamBuffer
 	}
-	if p.PsmuxMaxPaddingRatio >= 0.0 {
-		config.MaxPaddingRatio = p.PsmuxMaxPaddingRatio
+	if p.PsmuxDisablePadding {
+		config.MaxPaddingRatio = 0.0
+		config.MaxPaddedSize = 0
+		config.AggressivePadding = 0
+		config.AggressivePaddingRatio = 0.0
+	} else {
+		if p.PsmuxMaxPaddingRatio > 0.0 {
+			config.MaxPaddingRatio = p.PsmuxMaxPaddingRatio
+		}
+		if p.PsmuxMaxPaddedSize > 0 {
+			config.MaxPaddedSize = p.PsmuxMaxPaddedSize
+		}
+		if p.PsmuxDisableAggressivePadding {
+			config.AggressivePadding = 0
+			config.AggressivePaddingRatio = 0.0
+		} else {
+			if p.PsmuxAggressivePadding > 0 {
+				config.AggressivePadding = p.PsmuxAggressivePadding
+			}
+			if p.PsmuxAggressivePaddingRatio > 0.0 {
+				config.AggressivePaddingRatio = p.PsmuxAggressivePaddingRatio
+			}
+		}
 	}
-	if p.PsmuxMaxPaddedSize >= 0 {
-		config.MaxPaddedSize = p.PsmuxMaxPaddedSize
-	}
-	if p.PsmuxAggressivePadding >= 0 {
-		config.AggressivePadding = p.PsmuxAggressivePadding
-	}
-	if p.PsmuxAggressivePaddingRatio >= 0.0 {
-		config.AggressivePaddingRatio = p.PsmuxAggressivePaddingRatio
-	}
-
 	return cmuxprivate.NewPsmuxProtocol(config), nil
 }
 
