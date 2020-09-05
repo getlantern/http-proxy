@@ -17,9 +17,9 @@ require (
 	github.com/dustin/go-humanize v1.0.0
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
 	github.com/getlantern/borda v0.0.0-20200427033127-b36d009c6252
-	github.com/getlantern/cmux v0.0.0-20200120072431-136083c8edb8 // indirect
-	github.com/getlantern/cmux/v2 v2.0.0-20200723153654-f1f4014b42e2
-	github.com/getlantern/cmuxprivate v0.0.0-20200724171700-eadeb0495ca7
+	github.com/getlantern/cmux v0.0.0-20200905031936-c55b16ee8462 // indirect
+	github.com/getlantern/cmux/v2 v2.0.0-20200905031936-c55b16ee8462
+	github.com/getlantern/cmuxprivate v0.0.0-20200905032931-afb63438e40b
 	github.com/getlantern/context v0.0.0-20190109183933-c447772a6520
 	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
