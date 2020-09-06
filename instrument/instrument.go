@@ -12,6 +12,7 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/getlantern/geo"
+	"github.com/getlantern/multipath"
 	"github.com/getlantern/proxy/filters"
 )
 
@@ -21,6 +22,7 @@ type Instrument interface {
 	WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error)
 	Blacklist(b bool)
 	Mimic(m bool)
+	MultipathStats([]string) []multipath.StatsTracker
 	Throttle(m bool, reason string)
 	XBQHeaderSent()
 	SuspectedProbing(fromIP net.IP, reason string)
@@ -39,8 +41,14 @@ func (i NoInstrument) WrapFilter(prefix string, f filters.Filter) filters.Filter
 func (i NoInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error) {
 	return f
 }
-func (i NoInstrument) Blacklist(b bool)               {}
-func (i NoInstrument) Mimic(m bool)                   {}
+func (i NoInstrument) Blacklist(b bool) {}
+func (i NoInstrument) Mimic(m bool)     {}
+func (i NoInstrument) MultipathStats(protocols []string) (trackers []multipath.StatsTracker) {
+	for _, _ = range protocols {
+		trackers = append(trackers, multipath.NullTracker{})
+	}
+	return
+}
 func (i NoInstrument) Throttle(m bool, reason string) {}
 
 func (i NoInstrument) XBQHeaderSent()                                                         {}
@@ -102,6 +110,8 @@ type PromInstrument struct {
 
 	bytesSent, bytesRecv, bytesSentByISP, bytesRecvByISP, throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
 
+	mpFramesSent, mpBytesSent, mpFramesReceived, mpBytesReceived, mpFramesRetransmitted, mpBytesRetransmitted *prometheus.CounterVec
+
 	tcpRetransmissionRate prometheus.Observer
 }
 
@@ -158,6 +168,25 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		mimicked: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_apache_mimicry_mimicked_total",
 		}, commonLabelNames).With(commonLabels),
+
+		mpFramesSent: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_multipath_sent_frames_total",
+		}, append(commonLabelNames, "path_protocol")).MustCurryWith(commonLabels),
+		mpBytesSent: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_multipath_sent_bytes_total",
+		}, append(commonLabelNames, "path_protocol")).MustCurryWith(commonLabels),
+		mpFramesReceived: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_multipath_received_frames_total",
+		}, append(commonLabelNames, "path_protocol")).MustCurryWith(commonLabels),
+		mpBytesReceived: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_multipath_received_bytes_total",
+		}, append(commonLabelNames, "path_protocol")).MustCurryWith(commonLabels),
+		mpFramesRetransmitted: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_multipath_retransmissions_total",
+		}, append(commonLabelNames, "path_protocol")).MustCurryWith(commonLabels),
+		mpBytesRetransmitted: promauto.NewCounterVec(prometheus.CounterOpts{
+			Name: "proxy_multipath_retransmission_bytes_total",
+		}, append(commonLabelNames, "path_protocol")).MustCurryWith(commonLabels),
 
 		tcpConsecRetransmissions: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_tcp_consec_retransmissions_before_terminates_total",
@@ -346,4 +375,44 @@ func (p *PromInstrument) quicSentPacket() {
 }
 func (p *PromInstrument) quicLostPacket() {
 	p.quicLostPackets.Inc()
+}
+
+type stats struct {
+	framesSent          prometheus.Counter
+	bytesSent           prometheus.Counter
+	framesRetransmitted prometheus.Counter
+	bytesRetransmitted  prometheus.Counter
+	framesReceived      prometheus.Counter
+	bytesReceived       prometheus.Counter
+}
+
+func (s *stats) OnRecv(n uint64) {
+	s.framesReceived.Inc()
+	s.bytesReceived.Add(float64(n))
+}
+func (s *stats) OnSent(n uint64) {
+	s.framesSent.Inc()
+	s.bytesSent.Add(float64(n))
+}
+func (s *stats) OnRetransmit(n uint64) {
+	s.framesRetransmitted.Inc()
+	s.bytesRetransmitted.Add(float64(n))
+}
+func (s *stats) UpdateRTT(time.Duration) {
+	// do nothing as the RTT from different clients can vary significantly
+}
+
+func (prom *PromInstrument) MultipathStats(protocols []string) (trackers []multipath.StatsTracker) {
+	for _, p := range protocols {
+		path_protocol := prometheus.Labels{"path_protocol": p}
+		trackers = append(trackers, &stats{
+			framesSent:          prom.mpFramesSent.With(path_protocol),
+			bytesSent:           prom.mpBytesSent.With(path_protocol),
+			framesReceived:      prom.mpFramesReceived.With(path_protocol),
+			bytesReceived:       prom.mpBytesReceived.With(path_protocol),
+			framesRetransmitted: prom.mpFramesRetransmitted.With(path_protocol),
+			bytesRetransmitted:  prom.mpBytesRetransmitted.With(path_protocol),
+		})
+	}
+	return
 }

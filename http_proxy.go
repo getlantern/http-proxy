@@ -303,7 +303,8 @@ func (p *Proxy) ListenAndServe() error {
 	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
 
 	allListeners := make([]net.Listener, 0)
-	addListenerIfNecessary := func(addr string, fn listenerBuilderFN) error {
+	listenerProtocols := make([]string, 0)
+	addListenerIfNecessary := func(proto, addr string, fn listenerBuilderFN) error {
 		if addr == "" {
 			return nil
 		}
@@ -311,6 +312,7 @@ func (p *Proxy) ListenAndServe() error {
 		if err != nil {
 			return err
 		}
+		listenerProtocols = append(listenerProtocols, proto)
 		// Although we include blacklist functionality, it's currently only used to
 		// track potential blacklisting ad doesn't actually blacklist anyone.
 		allListeners = append(allListeners, lanternlisteners.NewAllowingListener(l, blacklist.OnConnect))
@@ -318,47 +320,47 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	addListenersForBaseTransport := func(baseListen func(string, bool) (net.Listener, error), addrs *addresses) error {
-		if err := addListenerIfNecessary(addrs.obfs4, p.listenOBFS4(baseListen)); err != nil {
+		if err := addListenerIfNecessary("obfs4", addrs.obfs4, p.listenOBFS4(baseListen)); err != nil {
 			return err
 		}
-		if err := addListenerIfNecessary(addrs.obfs4Multiplex, p.wrapMultiplexing(p.listenOBFS4(baseListen))); err != nil {
+		if err := addListenerIfNecessary("obfs4_multiplex", addrs.obfs4Multiplex, p.wrapMultiplexing(p.listenOBFS4(baseListen))); err != nil {
 			return err
 		}
 
 		// We pass onListenerError to lampshade so that we can count errors in its
 		// internal connection handling and dump pcaps in response to them.
 		onListenerError = p.instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
-		if err := addListenerIfNecessary(addrs.lampshade, p.listenLampshade(true, onListenerError, baseListen)); err != nil {
+		if err := addListenerIfNecessary("lampshade", addrs.lampshade, p.listenLampshade(true, onListenerError, baseListen)); err != nil {
 			return err
 		}
 
-		if err := addListenerIfNecessary(addrs.http, p.wrapTLSIfNecessary(p.listenHTTP(baseListen))); err != nil {
+		if err := addListenerIfNecessary("https", addrs.http, p.wrapTLSIfNecessary(p.listenHTTP(baseListen))); err != nil {
 			return err
 		}
-		if err := addListenerIfNecessary(addrs.httpMultiplex, p.wrapMultiplexing(p.wrapTLSIfNecessary(p.listenHTTP(baseListen)))); err != nil {
+		if err := addListenerIfNecessary("https_multiplex", addrs.httpMultiplex, p.wrapMultiplexing(p.wrapTLSIfNecessary(p.listenHTTP(baseListen)))); err != nil {
 			return err
 		}
 
-		if err := addListenerIfNecessary(addrs.tlsmasq, p.wrapMultiplexing(p.listenTLSMasq(baseListen))); err != nil {
+		if err := addListenerIfNecessary("tlsmasq", addrs.tlsmasq, p.wrapMultiplexing(p.listenTLSMasq(baseListen))); err != nil {
 			return err
 		}
 
 		return nil
 	}
 
-	if err := addListenerIfNecessary(p.KCPConf, p.wrapTLSIfNecessary(p.listenKCP)); err != nil {
+	if err := addListenerIfNecessary("kcp", p.KCPConf, p.wrapTLSIfNecessary(p.listenKCP)); err != nil {
 		return err
 	}
-	if err := addListenerIfNecessary(p.QUICIETFAddr, p.listenQUICIETF); err != nil {
+	if err := addListenerIfNecessary("quic_ietf", p.QUICIETFAddr, p.listenQUICIETF); err != nil {
 		return err
 	}
-	if err := addListenerIfNecessary(p.QUIC0Addr, p.listenQUIC0); err != nil {
+	if err := addListenerIfNecessary("quic", p.QUIC0Addr, p.listenQUIC0); err != nil {
 		return err
 	}
-	if err := addListenerIfNecessary(p.OQUICAddr, p.listenOQUIC); err != nil {
+	if err := addListenerIfNecessary("oquic", p.OQUICAddr, p.listenOQUIC); err != nil {
 		return err
 	}
-	if err := addListenerIfNecessary(p.WSSAddr, p.listenWSS); err != nil {
+	if err := addListenerIfNecessary("wss", p.WSSAddr, p.listenWSS); err != nil {
 		return err
 	}
 
@@ -385,12 +387,11 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if p.EnableMultipath {
-		mpl := multipath.MPListener(allListeners...)
-		addrs := make([]net.Addr, 0, len(allListeners))
-		for _, l := range allListeners {
-			addrs = append(addrs, l.Addr())
+		mpl := multipath.MPListener(allListeners, p.instrument.MultipathStats(listenerProtocols))
+		log.Debug("Serving multipath at:")
+		for i, l := range allListeners {
+			log.Debugf("  %-20s:  %v", listenerProtocols[i], l.Addr())
 		}
-		log.Debugf("Serving multipath at: %v", addrs)
 		return srv.Serve(mpl, nil)
 	} else {
 		errCh := make(chan error, len(allListeners))
