@@ -12,12 +12,34 @@ import (
 	"cloud.google.com/go/errorreporting"
 )
 
-// Close is a function to close the client.
-type Close func()
+// Reporter is a thin wrapper of Google errorreporting client
+type Reporter struct {
+	errorClient *errorreporting.Client
+	log         golog.Logger
+	proxyName   string
+	externalIP  string
+}
 
-// Enable enables reporting errors to stackdriver.
+func (r *Reporter) Close() {
+	r.errorClient.Close()
+	r.errorClient.Flush()
+}
+
+func (r *Reporter) Report(severity golog.Severity, err error, stack []byte) {
+	errWithIP := fmt.Errorf("%s: %s on %s(%s)", severity.String(), err.Error(), r.proxyName, r.externalIP)
+	r.log.Tracef("Reporting error to stackdriver: %s", errWithIP)
+	r.errorClient.Report(errorreporting.Entry{
+		Error: errWithIP,
+		Stack: stack,
+	})
+	if severity == golog.FATAL {
+		r.Close()
+	}
+}
+
+// Enable enables golog to report errors to stackdriver and returns the reporter.
 func Enable(ctx context.Context, projectID, stackdriverCreds string,
-	samplePercentage float64, proxyName, externalIP string) Close {
+	samplePercentage float64, proxyName, externalIP string) *Reporter {
 	log := golog.LoggerFor("proxy-stackdriver")
 	log.Debugf("Enabling stackdriver error reporting for project %v", projectID)
 	errorClient, err := errorreporting.NewClient(ctx, projectID, errorreporting.Config{
@@ -28,10 +50,12 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string,
 	}, option.WithCredentialsFile(stackdriverCreds))
 	if err != nil {
 		log.Debugf("Error setting up stackdriver error reporting? %v", err)
-		return func() {}
+		return nil
 	}
 
-	var reporter = func(err error, severity golog.Severity, ctx map[string]interface{}) {
+	reporter := &Reporter{errorClient, log, proxyName, externalIP}
+
+	gologReporter := func(err error, severity golog.Severity, ctx map[string]interface{}) {
 		if severity < golog.ERROR {
 			return
 		}
@@ -42,21 +66,10 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string,
 				return
 			}
 		}
-		log.Tracef("Reporting error to stackdriver")
 
-		errWithIP := fmt.Errorf("%s: %s on %s(%s)", severity.String(), err.Error(), proxyName, externalIP)
-		errorClient.Report(errorreporting.Entry{
-			Error: errWithIP,
-		})
-
-		if severity == golog.FATAL {
-			errorClient.Close()
-		}
+		reporter.Report(severity, err, nil)
 	}
+	golog.RegisterReporter(gologReporter)
 
-	golog.RegisterReporter(reporter)
-	return func() {
-		errorClient.Close()
-		errorClient.Flush()
-	}
+	return reporter
 }

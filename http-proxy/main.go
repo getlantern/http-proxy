@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
+	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -189,9 +190,10 @@ func main() {
 		return
 	}
 
+	var reporter *stackdrivererror.Reporter
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
-		close := stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *proxyName, *externalIP)
-		defer close()
+		reporter = stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *proxyName, *externalIP)
+		defer reporter.Close()
 	}
 
 	// panicwrap works by re-executing the running program (retaining arguments,
@@ -200,7 +202,18 @@ func main() {
 		&panicwrap.WrapConfig{
 			DetectDuration: time.Second,
 			Handler: func(msg string) {
-				log.Fatal(msg)
+				if reporter != nil {
+					// heuristically separate the error message from the stack trace
+					separator := "\ngoroutine "
+					splitted := strings.SplitN(msg, separator, 2)
+					err := errors.New(splitted[0])
+					var maybeStack []byte
+					if len(splitted) > 1 {
+						maybeStack = []byte(separator + splitted[1])
+					}
+					reporter.Report(golog.FATAL, err, maybeStack)
+				}
+				os.Exit(1)
 			},
 			// Just forward signals to the child process
 			ForwardSignals: []os.Signal{
@@ -219,6 +232,7 @@ func main() {
 			os.Exit(exitStatus)
 		}
 	}
+
 	// We're in the child (wrapped) process now
 
 	// Capture signals and exit normally because when relying on the default
