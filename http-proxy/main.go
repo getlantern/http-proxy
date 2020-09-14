@@ -193,7 +193,9 @@ func main() {
 	var reporter *stackdrivererror.Reporter
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
 		reporter = stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *proxyName, *externalIP)
-		defer reporter.Close()
+		if reporter != nil {
+			defer reporter.Close()
+		}
 	}
 
 	// panicwrap works by re-executing the running program (retaining arguments,
