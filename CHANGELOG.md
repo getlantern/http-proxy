@@ -1,6 +1,6 @@
 # Changelog
 
-## [v2.6.20](https://github.com/getlantern/http-proxy-lantern/tree/v2.6.20) (2020-09-05)
+## [v2.6.20](https://github.com/getlantern/http-proxy-lantern/tree/v2.6.20) (2020-09-14)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.19...v2.6.20)
 
@@ -17,7 +17,6 @@
 - Add build step to CI [\#420](https://github.com/getlantern/http-proxy-lantern/pull/420) ([max-b](https://github.com/max-b))
 - Update psmux [\#419](https://github.com/getlantern/http-proxy-lantern/pull/419) ([forkner](https://github.com/forkner))
 - Always set tls MaxVersion to VersionTLS12 to prevent utls+tls1.3+session ticket bugs [\#418](https://github.com/getlantern/http-proxy-lantern/pull/418) ([max-b](https://github.com/max-b))
-- Update to latest quicwrapper with panic fix [\#417](https://github.com/getlantern/http-proxy-lantern/pull/417) ([myleshorton](https://github.com/myleshorton))
 - add options for configuring psmux multiplexing, additional smux options [\#416](https://github.com/getlantern/http-proxy-lantern/pull/416) ([forkner](https://github.com/forkner))
 
 ## [v2.6.18](https://github.com/getlantern/http-proxy-lantern/tree/v2.6.18) (2020-08-21)
@@ -26,6 +25,7 @@
 
 **Merged pull requests:**
 
+- Update to latest quicwrapper with panic fix [\#417](https://github.com/getlantern/http-proxy-lantern/pull/417) ([myleshorton](https://github.com/myleshorton))
 - avoid assigning nil pointer to interface [\#415](https://github.com/getlantern/http-proxy-lantern/pull/415) ([joesis](https://github.com/joesis))
 
 ## [v2.6.17](https://github.com/getlantern/http-proxy-lantern/tree/v2.6.17) (2020-08-18)
@@ -968,6 +968,7 @@
 **Merged pull requests:**
 
 - Added password authentication to Redis client config and flags [\#59](https://github.com/getlantern/http-proxy-lantern/pull/59) ([uaalto](https://github.com/uaalto))
+- Correct data transfer measurement [\#56](https://github.com/getlantern/http-proxy-lantern/pull/56) ([uaalto](https://github.com/uaalto))
 
 ## [reporting-test](https://github.com/getlantern/http-proxy-lantern/tree/reporting-test) (2016-04-18)
 
@@ -1023,7 +1024,6 @@
 
 **Merged pull requests:**
 
-- Correct data transfer measurement [\#56](https://github.com/getlantern/http-proxy-lantern/pull/56) ([uaalto](https://github.com/uaalto))
 - Checking for empty domain closes getlantern/lantern\#3753 [\#41](https://github.com/getlantern/http-proxy-lantern/pull/41) ([oxtoacart](https://github.com/oxtoacart))
 
 ## [v0.0.11](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.11) (2016-03-07)
