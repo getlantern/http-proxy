@@ -98,7 +98,7 @@ and that the resulting binary is compressed with
 You can use the following command to do all this automatically. Note that `make dist` requires $VERSION. It will tag the repo with that version and will also generate a new changelog:
 
 ```
-VERSION=0.1.3 make dist
+VERSION=v0.1.3 make dist
 ```
 
 To build for distribution but not tagging or generating new changelog:
@@ -120,6 +120,21 @@ Sometimes it's useful to deploy a preview binary to a single server. This can
 be done using either `deployTo.bash` or `onlyDeployTo.bash`. They do the same
 thing but `deployTo.bash` first runs `make dist` whereas `onlyDeployTo.bash`
 copies the existing binary at dist/http-proxy.
+
+### ssh config
+Most of our proxies have `servermasq` enabled on them.
+This means that you cannot ssh directly into them. Instead you have to use a cloudmaster as a bastion jump host.
+You can do this relatively straightforwardly by adding this to your `~/.ssh/config` file:
+```
+Host bastion
+  HostName CM_IP
+  ProxyCommand none
+Host *
+  User lantern
+  ProxyJump bastion
+```
+where you'd replace CM_IP with an actual cloudmaster ip (probably the one closest to you).
+
 
 ### Deploy Preview
 ```
