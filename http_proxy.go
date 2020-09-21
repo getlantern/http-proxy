@@ -387,7 +387,7 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if p.EnableMultipath {
-		mpl := multipath.MPListener(allListeners, p.instrument.MultipathStats(listenerProtocols))
+		mpl := multipath.NewListener(allListeners, p.instrument.MultipathStats(listenerProtocols))
 		log.Debug("Serving multipath at:")
 		for i, l := range allListeners {
 			log.Debugf("  %-20s:  %v", listenerProtocols[i], l.Addr())
