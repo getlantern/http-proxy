@@ -47,3 +47,5 @@ dist-bin
 reflector
 .http-proxy-builder-context
 .vscode
+
+*.mmdb

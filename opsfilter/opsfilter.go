@@ -72,10 +72,11 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 	addMeasuredHeader("app_platform", platform)
 
 	clientIP, _, err := net.SplitHostPort(req.RemoteAddr)
-	if err == nil {
-		op.Set("client_ip", clientIP)
-		measuredCtx["client_ip"] = clientIP
+	if err != nil {
+		clientIP = req.RemoteAddr
 	}
+	op.Set("client_ip", clientIP)
+	measuredCtx["client_ip"] = clientIP
 
 	// Send the same context data to measured as well
 	wc := ctx.DownstreamConn().(listeners.WrapConn)
