@@ -120,4 +120,4 @@ docker-builder: system-checks
 	docker build -t $(DOCKER_IMAGE_TAG) --build-arg go_version=go$(GO_VERSION) $$DOCKER_CONTEXT
 
 test:
-	GO111MODULE=on go test -race $(go list ./...)
+	GO111MODULE=on go test -race $$(go list ./...)
