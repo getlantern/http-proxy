@@ -9,30 +9,43 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-type CaptureReq struct {
-	rt  http.RoundTripper
-	req *http.Request
+type CaptureTx struct {
+	rt    http.RoundTripper
+	req   *http.Request
+	proto string
 }
 
-func (c *CaptureReq) RoundTrip(req *http.Request) (*http.Response, error) {
+func (c *CaptureTx) RoundTrip(req *http.Request) (*http.Response, error) {
 	c.req = req.Clone(context.Background())
-	return c.rt.RoundTrip(req)
+
+	res, err := c.rt.RoundTrip(req)
+	if res != nil {
+		c.proto = res.Proto
+	}
+
+	return res, err
 }
 
-func (c *CaptureReq) takeRequest() *http.Request {
+func (c *CaptureTx) takeRequest() *http.Request {
 	r := c.req
 	c.req = nil
 	return r
 }
 
-func (c *CaptureReq) next(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
+func (c *CaptureTx) takeProto() string {
+	p := c.proto
+	c.proto = ""
+	return p
+}
+
+func (c *CaptureTx) next(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
 	c.req = req.Clone(ctx)
 	return nil, ctx, nil
 }
 
-func captureRequest(f filters.Filter) *CaptureReq {
+func captureRoundTripInfo(f filters.Filter) *CaptureTx {
 	if up, ok := f.(*httpsUpgrade); ok {
-		cap := &CaptureReq{up.httpClient.Transport, nil}
+		cap := &CaptureTx{up.httpClient.Transport, nil, ""}
 		up.httpClient.Transport = cap
 		return cap
 	}
@@ -41,7 +54,7 @@ func captureRequest(f filters.Filter) *CaptureReq {
 
 func TestRedirect(t *testing.T) {
 	up := NewHTTPSUpgrade("xyz")
-	cap := captureRequest(up)
+	cap := captureRoundTripInfo(up)
 	chain := filters.Join(up)
 
 	req, _ := http.NewRequest("GET", "http://config.getiantem.org:80/abc.gz", nil)
@@ -75,7 +88,10 @@ func TestRedirect(t *testing.T) {
 }
 
 func TestHTTPS2(t *testing.T) {
-	chain := filters.Join(NewHTTPSUpgrade("xyz"))
+	up := NewHTTPSUpgrade("xyz")
+	cap := captureRoundTripInfo(up)
+	chain := filters.Join(up)
+
 	req, _ := http.NewRequest("GET", "http://config.getiantem.org/abc.gz", nil)
 	next := func(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
 		return nil, ctx, nil
@@ -86,7 +102,7 @@ func TestHTTPS2(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
 
-	assert.Equal(t, "HTTP/2.0", res.Proto)
+	assert.Equal(t, "HTTP/2.0", cap.takeProto())
 
 	r, _ := http.NewRequest("GET", "http://api.getiantem.org/abc.gz", nil)
 
@@ -99,5 +115,5 @@ func TestHTTPS2(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
 
-	assert.Equal(t, "HTTP/2.0", res.Proto)
+	assert.Equal(t, "HTTP/2.0", cap.takeProto())
 }
