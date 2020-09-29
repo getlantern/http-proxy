@@ -36,7 +36,7 @@ func TestAbortOnHello(t *testing.T) {
 		t.Run(tc.response.action, func(t *testing.T) {
 			l, _ := net.Listen("tcp", ":0")
 			defer l.Close()
-			hl, err := Wrap(l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", true, tc.response, instrument.NoInstrument{})
+			hl, err := Wrap(l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", true, tc.response, true, instrument.NoInstrument{})
 			assert.NoError(t, err)
 			defer hl.Close()
 
