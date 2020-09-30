@@ -28,7 +28,7 @@ func TestReportPeriodically(t *testing.T) {
 	go reportPeriodically(lookup, rc, time.Millisecond, statsCh)
 
 	fetcher.RequestNewDeviceUsage(deviceID)
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	localCopy := usage.Get(deviceID)
 	assert.Equal(t, "", localCopy.CountryCode)
 	assert.EqualValues(t, 0, localCopy.Bytes)
