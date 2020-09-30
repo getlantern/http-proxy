@@ -9,7 +9,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/netx"
 	"github.com/getlantern/proxy/filters"
-	"github.com/getlantern/quic0"
 	"github.com/getlantern/quicwrapper"
 )
 
@@ -47,12 +46,8 @@ func (m *middleware) apply(ctx filters.Context, req *http.Request, resp *http.Re
 
 	var estABE float64
 	netx.WalkWrapped(conn, func(conn net.Conn) bool {
-		switch t := conn.(type) {
-		case *quicwrapper.Conn:
+		if t, ok := conn.(*quicwrapper.Conn); ok {
 			estABE = float64(t.BandwidthEstimate()) / quicwrapper.Mib
-			return false
-		case *quic0.Conn:
-			estABE = float64(t.BandwidthEstimate()) / quic0.Mib
 			return false
 		}
 		// Keep looking
