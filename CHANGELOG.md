@@ -1,5 +1,22 @@
 # Changelog
 
+## [v2.6.23](https://github.com/getlantern/http-proxy-lantern/tree/v2.6.23) (2020-10-08)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.22...v2.6.23)
+
+**Merged pull requests:**
+
+- Add domains for hitting config server via beam [\#428](https://github.com/getlantern/http-proxy-lantern/pull/428) ([myleshorton](https://github.com/myleshorton))
+- Run all submodule tests [\#425](https://github.com/getlantern/http-proxy-lantern/pull/425) ([forkner](https://github.com/forkner))
+
+## [v2.6.22](https://github.com/getlantern/http-proxy-lantern/tree/v2.6.22) (2020-09-24)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.21...v2.6.22)
+
+**Merged pull requests:**
+
+- Support multipath [\#423](https://github.com/getlantern/http-proxy-lantern/pull/423) ([joesis](https://github.com/joesis))
+
 ## [v2.6.21](https://github.com/getlantern/http-proxy-lantern/tree/v2.6.21) (2020-09-14)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.20...v2.6.21)
@@ -91,7 +108,7 @@
 
 ## [v2.6.10](https://github.com/getlantern/http-proxy-lantern/tree/v2.6.10) (2020-06-25)
 
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.6.9...v2.6.10)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.9...v2.6.10)
 
 **Merged pull requests:**
 
@@ -101,13 +118,13 @@
 - Bump module to v2 [\#406](https://github.com/getlantern/http-proxy-lantern/pull/406) ([hwh33](https://github.com/hwh33))
 - Require properly-formatted semantic version [\#405](https://github.com/getlantern/http-proxy-lantern/pull/405) ([hwh33](https://github.com/hwh33))
 
-## [2.6.9](https://github.com/getlantern/http-proxy-lantern/tree/2.6.9) (2020-06-11)
-
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.9...2.6.9)
-
 ## [v2.6.9](https://github.com/getlantern/http-proxy-lantern/tree/v2.6.9) (2020-06-11)
 
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.6.8...v2.6.9)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.6.9...v2.6.9)
+
+## [2.6.9](https://github.com/getlantern/http-proxy-lantern/tree/2.6.9) (2020-06-11)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.6.8...2.6.9)
 
 **Merged pull requests:**
 
@@ -211,16 +228,13 @@
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.5.5...2.5.6)
 
-**Merged pull requests:**
-
-- Include general server info like name, dc, etc with xfer stats [\#387](https://github.com/getlantern/http-proxy-lantern/pull/387) ([oxtoacart](https://github.com/oxtoacart))
-
-## [2.5.5](https://github.com/getlantern/http-proxy-lantern/tree/2.5.5) (2020-03-18)
+## [2.5.5](https://github.com/getlantern/http-proxy-lantern/tree/2.5.5) (2020-03-30)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.5.4...2.5.5)
 
 **Merged pull requests:**
 
+- Include general server info like name, dc, etc with xfer stats [\#387](https://github.com/getlantern/http-proxy-lantern/pull/387) ([oxtoacart](https://github.com/oxtoacart))
 - Update tlsmasq to include bug fix [\#386](https://github.com/getlantern/http-proxy-lantern/pull/386) ([hwh33](https://github.com/hwh33))
 
 ## [2.5.4](https://github.com/getlantern/http-proxy-lantern/tree/2.5.4) (2020-03-10)
@@ -287,6 +301,10 @@
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.4.5...2.4.6)
 
+**Merged pull requests:**
+
+- Switch to lookup GeoLite2 Country database locally [\#373](https://github.com/getlantern/http-proxy-lantern/pull/373) ([joesis](https://github.com/joesis))
+
 ## [2.4.5](https://github.com/getlantern/http-proxy-lantern/tree/2.4.5) (2020-02-06)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.4.4...2.4.5)
@@ -305,7 +323,6 @@
 
 **Merged pull requests:**
 
-- Switch to lookup GeoLite2 Country database locally [\#373](https://github.com/getlantern/http-proxy-lantern/pull/373) ([joesis](https://github.com/joesis))
 - Updated to latest lampshade with latest probing mitigation [\#371](https://github.com/getlantern/http-proxy-lantern/pull/371) ([oxtoacart](https://github.com/oxtoacart))
 - do not crash if missing-session-ticket-reaction parameter is invalid [\#370](https://github.com/getlantern/http-proxy-lantern/pull/370) ([joesis](https://github.com/joesis))
 - Quic ietf draft 24 [\#369](https://github.com/getlantern/http-proxy-lantern/pull/369) ([forkner](https://github.com/forkner))
@@ -317,6 +334,7 @@
 **Merged pull requests:**
 
 - Integrated latest flashlight with unlimited client init read timeout [\#368](https://github.com/getlantern/http-proxy-lantern/pull/368) ([oxtoacart](https://github.com/oxtoacart))
+- Integrate tlsmasq protocol [\#363](https://github.com/getlantern/http-proxy-lantern/pull/363) ([max-b](https://github.com/max-b))
 
 ## [2.4.1](https://github.com/getlantern/http-proxy-lantern/tree/2.4.1) (2020-01-21)
 
@@ -360,7 +378,6 @@
 
 **Merged pull requests:**
 
-- Integrate tlsmasq protocol [\#363](https://github.com/getlantern/http-proxy-lantern/pull/363) ([max-b](https://github.com/max-b))
 - update lampshade to be compatible with old clients [\#358](https://github.com/getlantern/http-proxy-lantern/pull/358) ([joesis](https://github.com/joesis))
 - defer correctly to measure version checks [\#357](https://github.com/getlantern/http-proxy-lantern/pull/357) ([joesis](https://github.com/joesis))
 - measure version checks and redirects [\#356](https://github.com/getlantern/http-proxy-lantern/pull/356) ([joesis](https://github.com/joesis))
@@ -379,28 +396,28 @@
 
 - Integrated latest lampshade with support for mitigating replay attacks [\#355](https://github.com/getlantern/http-proxy-lantern/pull/355) ([oxtoacart](https://github.com/oxtoacart))
 - stop collecting active probe source ip [\#352](https://github.com/getlantern/http-proxy-lantern/pull/352) ([joesis](https://github.com/joesis))
-- handle the case of zero byte session ticket separately [\#351](https://github.com/getlantern/http-proxy-lantern/pull/351) ([joesis](https://github.com/joesis))
-- more standard naming [\#350](https://github.com/getlantern/http-proxy-lantern/pull/350) ([myleshorton](https://github.com/myleshorton))
-- Decrypt session tickets to see if they're ours [\#349](https://github.com/getlantern/http-proxy-lantern/pull/349) ([myleshorton](https://github.com/myleshorton))
-- Support Apache mimicry when multiplexing [\#342](https://github.com/getlantern/http-proxy-lantern/pull/342) ([hwh33](https://github.com/hwh33))
 
-## [2.3.7](https://github.com/getlantern/http-proxy-lantern/tree/2.3.7) (2019-11-18)
+## [2.3.7](https://github.com/getlantern/http-proxy-lantern/tree/2.3.7) (2019-11-20)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.3.6...2.3.7)
 
 **Merged pull requests:**
 
-- allow connections from localhost to have no session ticket [\#346](https://github.com/getlantern/http-proxy-lantern/pull/346) ([joesis](https://github.com/joesis))
-- report unexpected client hello as suspected probing [\#345](https://github.com/getlantern/http-proxy-lantern/pull/345) ([joesis](https://github.com/joesis))
-- Specify go minor version for Docker [\#344](https://github.com/getlantern/http-proxy-lantern/pull/344) ([myleshorton](https://github.com/myleshorton))
-- Added test for aborting on ClientHello with no session tickets [\#343](https://github.com/getlantern/http-proxy-lantern/pull/343) ([myleshorton](https://github.com/myleshorton))
+- handle the case of zero byte session ticket separately [\#351](https://github.com/getlantern/http-proxy-lantern/pull/351) ([joesis](https://github.com/joesis))
 
-## [2.3.6](https://github.com/getlantern/http-proxy-lantern/tree/2.3.6) (2019-11-17)
+## [2.3.6](https://github.com/getlantern/http-proxy-lantern/tree/2.3.6) (2019-11-19)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/2.3.5...2.3.6)
 
 **Merged pull requests:**
 
+- more standard naming [\#350](https://github.com/getlantern/http-proxy-lantern/pull/350) ([myleshorton](https://github.com/myleshorton))
+- Decrypt session tickets to see if they're ours [\#349](https://github.com/getlantern/http-proxy-lantern/pull/349) ([myleshorton](https://github.com/myleshorton))
+- allow connections from localhost to have no session ticket [\#346](https://github.com/getlantern/http-proxy-lantern/pull/346) ([joesis](https://github.com/joesis))
+- report unexpected client hello as suspected probing [\#345](https://github.com/getlantern/http-proxy-lantern/pull/345) ([joesis](https://github.com/joesis))
+- Specify go minor version for Docker [\#344](https://github.com/getlantern/http-proxy-lantern/pull/344) ([myleshorton](https://github.com/myleshorton))
+- Added test for aborting on ClientHello with no session tickets [\#343](https://github.com/getlantern/http-proxy-lantern/pull/343) ([myleshorton](https://github.com/myleshorton))
+- Support Apache mimicry when multiplexing [\#342](https://github.com/getlantern/http-proxy-lantern/pull/342) ([hwh33](https://github.com/hwh33))
 - Read hellos if we require tickets and kill clients w/o 'em [\#341](https://github.com/getlantern/http-proxy-lantern/pull/341) ([myleshorton](https://github.com/myleshorton))
 - Require Go 1.13.x [\#340](https://github.com/getlantern/http-proxy-lantern/pull/340) ([hwh33](https://github.com/hwh33))
 
@@ -567,6 +584,7 @@
 
 **Merged pull requests:**
 
+- Export basic metrics to Prometheus [\#296](https://github.com/getlantern/http-proxy-lantern/pull/296) ([joesis](https://github.com/joesis))
 - Add support packet forwarding [\#291](https://github.com/getlantern/http-proxy-lantern/pull/291) ([oxtoacart](https://github.com/oxtoacart))
 
 ## [0.2.13](https://github.com/getlantern/http-proxy-lantern/tree/0.2.13) (2019-03-27)
@@ -576,11 +594,14 @@
 **Merged pull requests:**
 
 - Applying reporting on dial metrics at a lower level [\#299](https://github.com/getlantern/http-proxy-lantern/pull/299) ([oxtoacart](https://github.com/oxtoacart))
-- Ending dial op [\#295](https://github.com/getlantern/http-proxy-lantern/pull/295) ([oxtoacart](https://github.com/oxtoacart))
 
 ## [0.2.12](https://github.com/getlantern/http-proxy-lantern/tree/0.2.12) (2019-03-21)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.11...0.2.12)
+
+**Merged pull requests:**
+
+- Ending dial op [\#295](https://github.com/getlantern/http-proxy-lantern/pull/295) ([oxtoacart](https://github.com/oxtoacart))
 
 ## [0.2.11](https://github.com/getlantern/http-proxy-lantern/tree/0.2.11) (2019-03-18)
 
@@ -617,7 +638,6 @@
 
 **Merged pull requests:**
 
-- Export basic metrics to Prometheus [\#296](https://github.com/getlantern/http-proxy-lantern/pull/296) ([joesis](https://github.com/joesis))
 - Fixed rewriting of https [\#289](https://github.com/getlantern/http-proxy-lantern/pull/289) ([oxtoacart](https://github.com/oxtoacart))
 - Update packages to fix missing commit in qtls dependency [\#288](https://github.com/getlantern/http-proxy-lantern/pull/288) ([forkner](https://github.com/forkner))
 
@@ -652,6 +672,7 @@
 **Merged pull requests:**
 
 - Tracking apache mimicry and connects without request in borda [\#277](https://github.com/getlantern/http-proxy-lantern/pull/277) ([oxtoacart](https://github.com/oxtoacart))
+- http-proxy captures packets and dumps them under unusual circumstances [\#273](https://github.com/getlantern/http-proxy-lantern/pull/273) ([oxtoacart](https://github.com/oxtoacart))
 
 ## [0.2.4](https://github.com/getlantern/http-proxy-lantern/tree/0.2.4) (2018-12-15)
 
@@ -676,15 +697,14 @@
 **Merged pull requests:**
 
 - Updated to latest lampshade to fix hanging in lampshade when closing … [\#274](https://github.com/getlantern/http-proxy-lantern/pull/274) ([oxtoacart](https://github.com/oxtoacart))
+- add x-forwarded-for to pro server [\#272](https://github.com/getlantern/http-proxy-lantern/pull/272) ([myleshorton](https://github.com/myleshorton))
 
-## [0.2.1](https://github.com/getlantern/http-proxy-lantern/tree/0.2.1) (2018-12-04)
+## [0.2.1](https://github.com/getlantern/http-proxy-lantern/tree/0.2.1) (2018-10-23)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.2.0...0.2.1)
 
 **Merged pull requests:**
 
-- http-proxy captures packets and dumps them under unusual circumstances [\#273](https://github.com/getlantern/http-proxy-lantern/pull/273) ([oxtoacart](https://github.com/oxtoacart))
-- add x-forwarded-for to pro server [\#272](https://github.com/getlantern/http-proxy-lantern/pull/272) ([myleshorton](https://github.com/myleshorton))
 - Made dist option without creating changelog [\#271](https://github.com/getlantern/http-proxy-lantern/pull/271) ([myleshorton](https://github.com/myleshorton))
 - Added support for multiplexing http\(s\) and obfs4 [\#269](https://github.com/getlantern/http-proxy-lantern/pull/269) ([oxtoacart](https://github.com/oxtoacart))
 
@@ -714,26 +734,18 @@
 
 ## [0.1.13](https://github.com/getlantern/http-proxy-lantern/tree/0.1.13) (2018-09-30)
 
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.11...0.1.13)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.10...0.1.13)
 
 **Merged pull requests:**
 
 - Upgraded to go 1.11 [\#265](https://github.com/getlantern/http-proxy-lantern/pull/265) ([oxtoacart](https://github.com/oxtoacart))
 - Updated dependencies [\#264](https://github.com/getlantern/http-proxy-lantern/pull/264) ([oxtoacart](https://github.com/oxtoacart))
-- wip quic support [\#258](https://github.com/getlantern/http-proxy-lantern/pull/258) ([forkner](https://github.com/forkner))
-
-## [0.1.11](https://github.com/getlantern/http-proxy-lantern/tree/0.1.11) (2018-08-23)
-
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.10...0.1.11)
-
-**Merged pull requests:**
-
 - Fix a few bugs to show the upgrade notice [\#262](https://github.com/getlantern/http-proxy-lantern/pull/262) ([joesis](https://github.com/joesis))
 - read full request before sending 302 response [\#261](https://github.com/getlantern/http-proxy-lantern/pull/261) ([joesis](https://github.com/joesis))
 - Revert "Changed header name to always set True-Client-IP for config server" [\#260](https://github.com/getlantern/http-proxy-lantern/pull/260) ([joesis](https://github.com/joesis))
-- Changed header name to always set True-Client-IP for config server [\#259](https://github.com/getlantern/http-proxy-lantern/pull/259) ([myleshorton](https://github.com/myleshorton))
+- wip quic support [\#258](https://github.com/getlantern/http-proxy-lantern/pull/258) ([forkner](https://github.com/forkner))
 
-## [0.1.10](https://github.com/getlantern/http-proxy-lantern/tree/0.1.10) (2018-08-03)
+## [0.1.10](https://github.com/getlantern/http-proxy-lantern/tree/0.1.10) (2018-08-10)
 
 [Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.12...0.1.10)
 
@@ -743,13 +755,18 @@
 
 **Merged pull requests:**
 
+- Changed header name to always set True-Client-IP for config server [\#259](https://github.com/getlantern/http-proxy-lantern/pull/259) ([myleshorton](https://github.com/myleshorton))
 - Suggested changes to \#256 [\#257](https://github.com/getlantern/http-proxy-lantern/pull/257) ([joesis](https://github.com/joesis))
 - Allow turning the data cap off by setting the threshold [\#256](https://github.com/getlantern/http-proxy-lantern/pull/256) ([myleshorton](https://github.com/myleshorton))
 - don't fail if unable to load throttle config in the first time [\#246](https://github.com/getlantern/http-proxy-lantern/pull/246) ([joesis](https://github.com/joesis))
 
 ## [0.1.12](https://github.com/getlantern/http-proxy-lantern/tree/0.1.12) (2018-07-14)
 
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.9...0.1.12)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.11...0.1.12)
+
+## [0.1.11](https://github.com/getlantern/http-proxy-lantern/tree/0.1.11) (2018-07-13)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.1.9...0.1.11)
 
 **Merged pull requests:**
 
@@ -835,7 +852,6 @@
 - Don't log when the user reports standard mobile cipher suites [\#234](https://github.com/getlantern/http-proxy-lantern/pull/234) ([myleshorton](https://github.com/myleshorton))
 - Automatic changelog generation and version tagging [\#232](https://github.com/getlantern/http-proxy-lantern/pull/232) ([myleshorton](https://github.com/myleshorton))
 - more debugging for tls connections [\#231](https://github.com/getlantern/http-proxy-lantern/pull/231) ([myleshorton](https://github.com/myleshorton))
-- Switched to mikioh/tcpinfo now that it supports BBR and fixed race condition [\#230](https://github.com/getlantern/http-proxy-lantern/pull/230) ([oxtoacart](https://github.com/oxtoacart))
 - Add a sample rate for sending errors to Stackdriver [\#224](https://github.com/getlantern/http-proxy-lantern/pull/224) ([myleshorton](https://github.com/myleshorton))
 
 ## [v0.1.0](https://github.com/getlantern/http-proxy-lantern/tree/v0.1.0) (2018-06-19)
@@ -872,6 +888,7 @@
 
 **Merged pull requests:**
 
+- Switched to mikioh/tcpinfo now that it supports BBR and fixed race condition [\#230](https://github.com/getlantern/http-proxy-lantern/pull/230) ([oxtoacart](https://github.com/oxtoacart))
 - Fixed data race in reporting xfer stats [\#229](https://github.com/getlantern/http-proxy-lantern/pull/229) ([oxtoacart](https://github.com/oxtoacart))
 - Only including x-forwarded-for for our fasttrack domains [\#228](https://github.com/getlantern/http-proxy-lantern/pull/228) ([oxtoacart](https://github.com/oxtoacart))
 - Updated deps [\#227](https://github.com/getlantern/http-proxy-lantern/pull/227) ([myleshorton](https://github.com/myleshorton))
@@ -920,7 +937,7 @@
 
 ## [v0.0.20](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.20) (2016-05-20)
 
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.19...v0.0.20)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.18...v0.0.20)
 
 **Closed issues:**
 
@@ -934,13 +951,13 @@
 - Updated test to work with patched Go 1.6.2 [\#66](https://github.com/getlantern/http-proxy-lantern/pull/66) ([oxtoacart](https://github.com/oxtoacart))
 - Smooth reporting [\#63](https://github.com/getlantern/http-proxy-lantern/pull/63) ([uaalto](https://github.com/uaalto))
 
-## [v0.0.19](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.19) (2016-05-03)
-
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.18...v0.0.19)
-
 ## [v0.0.18](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.18) (2016-05-03)
 
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.17...v0.0.18)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.19...v0.0.18)
+
+## [v0.0.19](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.19) (2016-05-03)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.17...v0.0.19)
 
 **Closed issues:**
 
@@ -1002,23 +1019,23 @@
 
 ## [obfs4test](https://github.com/getlantern/http-proxy-lantern/tree/obfs4test) (2016-03-28)
 
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.14...obfs4test)
-
-## [v0.0.14](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.14) (2016-03-10)
-
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.13...v0.0.14)
-
-## [v0.0.13](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.13) (2016-03-10)
-
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.15...v0.0.13)
-
-## [v0.0.15](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.15) (2016-03-10)
-
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.12...v0.0.15)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.13...obfs4test)
 
 **Closed issues:**
 
 - Remove port from X-Lantern-Config-Client-IP header [\#42](https://github.com/getlantern/http-proxy-lantern/issues/42)
+
+## [v0.0.13](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.13) (2016-03-10)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.14...v0.0.13)
+
+## [v0.0.14](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.14) (2016-03-10)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.15...v0.0.14)
+
+## [v0.0.15](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.15) (2016-03-10)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.12...v0.0.15)
 
 **Merged pull requests:**
 
@@ -1071,7 +1088,7 @@
 
 ## [v0.0.8](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.8) (2016-02-04)
 
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.7...v0.0.8)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.0.7...v0.0.8)
 
 **Merged pull requests:**
 
@@ -1079,13 +1096,13 @@
 - Supporting multiple auth token headers [\#28](https://github.com/getlantern/http-proxy-lantern/pull/28) ([oxtoacart](https://github.com/oxtoacart))
 - Adding user agent to Google Analytics [\#27](https://github.com/getlantern/http-proxy-lantern/pull/27) ([oxtoacart](https://github.com/oxtoacart))
 
-## [v0.0.7](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.7) (2016-01-29)
-
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/0.0.7...v0.0.7)
-
 ## [0.0.7](https://github.com/getlantern/http-proxy-lantern/tree/0.0.7) (2016-01-29)
 
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.6...0.0.7)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.7...0.0.7)
+
+## [v0.0.7](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.7) (2016-01-29)
+
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.6...v0.0.7)
 
 **Closed issues:**
 
@@ -1098,23 +1115,23 @@
 
 ## [v0.0.6](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.6) (2016-01-26)
 
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.4...v0.0.6)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.5-go.1.5.3...v0.0.6)
 
 **Merged pull requests:**
 
 - getlantern/lantern\#3409 Added tracking of popular sites statistic via… [\#22](https://github.com/getlantern/http-proxy-lantern/pull/22) ([oxtoacart](https://github.com/oxtoacart))
 
-## [v0.0.4](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.4) (2015-11-24)
+## [v0.0.5-go.1.5.3](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.5-go.1.5.3) (2015-11-24)
 
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.5...v0.0.4)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.5...v0.0.5-go.1.5.3)
 
 ## [v0.0.5](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.5) (2015-11-24)
 
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.5-go.1.5.3...v0.0.5)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.4...v0.0.5)
 
-## [v0.0.5-go.1.5.3](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.5-go.1.5.3) (2015-11-24)
+## [v0.0.4](https://github.com/getlantern/http-proxy-lantern/tree/v0.0.4) (2015-11-24)
 
-[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.3...v0.0.5-go.1.5.3)
+[Full Changelog](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.3...v0.0.4)
 
 **Closed issues:**
 
