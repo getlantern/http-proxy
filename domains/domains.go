@@ -63,6 +63,8 @@ var configs = configure(
 	map[string]*Config{
 		"config.getiantem.org":                     internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
 		"config-staging.getiantem.org":             internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
+		"config.ss7hc6jm.io":                       internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
+		"config-staging.ss7hc6jm.io":               internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
 		"api.getiantem.org":                        internal.withRewriteToHTTPS(),
 		"api-staging.getiantem.org":                internal.withRewriteToHTTPS(),
 		"replica-search.lantern.io":                internal.withRewriteToHTTPS(),
