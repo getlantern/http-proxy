@@ -19,81 +19,78 @@ import (
 )
 
 func TestWrap(t *testing.T) {
+	listenerGroup := new(sync.WaitGroup)
+	defer listenerGroup.Wait()
+
 	var secretBytes [52]byte
 	rand.Read(secretBytes[:])
 
 	secretString := hex.EncodeToString(secretBytes[:])
 
 	proxyPrivateKey, err := keyman.GeneratePK(2048)
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
 
 	proxyCert, err := proxyPrivateKey.TLSCertificateFor(time.Now().Add(10*time.Hour), false, nil, "org", "name")
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
 
 	proxyCertFile := "proxy-cert.pem"
 	proxyKeyFile := "proxy-key.pem"
 	err = proxyCert.WriteToFile(proxyCertFile)
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
 
 	err = proxyPrivateKey.WriteToFile(proxyKeyFile)
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
 
 	originPrivateKey, err := keyman.GeneratePK(2048)
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
 
 	originCertKeyman, err := originPrivateKey.TLSCertificateFor(time.Now().Add(10*time.Hour), false, nil, "org", "name")
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
 
 	originCert, err := tls.X509KeyPair(originCertKeyman.PEMEncoded(), originPrivateKey.PEMEncoded())
+	require.NoError(t, err)
 
-	wg := new(sync.WaitGroup)
 	proxiedListener, err := tls.Listen("tcp", "localhost:0", &tls.Config{Certificates: []tls.Certificate{originCert}})
+	require.NoError(t, err)
 	defer proxiedListener.Close()
 
+	listenerGroup.Add(1)
 	go func() {
+		defer listenerGroup.Done()
 		for {
 			conn, err := proxiedListener.Accept()
+			if err != nil {
+				if !strings.Contains(err.Error(), "use of closed network connection") {
+					t.Log("accept error:", err)
+				}
+				return
+			}
 			defer conn.Close()
-			require.NoError(t, err)
-			require.NoError(t, conn.(*tls.Conn).Handshake())
+			assert.NoError(t, conn.(*tls.Conn).Handshake())
 		}
 	}()
 
 	l, err := net.Listen("tcp", "localhost:0")
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
 
 	nonFatalErrorsHandler := func(err error) {
-		assert.NoError(t, err)
+		assert.NoError(t, err, "got error from nonFatalErrorsHandler")
 	}
 
 	tlsmasqListener, err := Wrap(
 		l, proxyCertFile, proxyKeyFile, proxiedListener.Addr().String(), secretString,
 		tls.VersionTLS12, []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA}, nonFatalErrorsHandler)
-	if !assert.NoError(t, err) {
-		return
-	}
+	require.NoError(t, err)
 	defer tlsmasqListener.Close()
 
+	listenerGroup.Add(1)
 	go func() {
+		defer listenerGroup.Done()
 		for {
-			conn, acceptErr := tlsmasqListener.Accept()
-			if acceptErr != nil {
-				if !strings.Contains(acceptErr.Error(), "use of closed network connection") {
-					t.Log("accept error:", acceptErr)
+			conn, err := tlsmasqListener.Accept()
+			if err != nil {
+				if !strings.Contains(err.Error(), "use of closed network connection") {
+					t.Log("accept error:", err)
 				}
 				return
 			}
@@ -115,19 +112,20 @@ func TestWrap(t *testing.T) {
 	timeout := time.Second
 	maxDataLen := 100
 
-	wg.Add(50)
+	dialerGroup := new(sync.WaitGroup)
+	dialerGroup.Add(50)
 	for i := 0; i < 50; i++ {
 		go func() {
-			defer wg.Done()
-			conn, err := tlsmasq.DialTimeout("tcp", l.Addr().String(), dialerCfg, timeout)
+			defer dialerGroup.Done()
 
+			conn, err := tlsmasq.DialTimeout("tcp", l.Addr().String(), dialerCfg, timeout)
 			require.NoError(t, err)
 			conn.SetDeadline(time.Now().Add(timeout))
 			defer conn.Close()
 
 			b := make([]byte, maxDataLen)
-
 			rand.Read(b)
+
 			_, err = conn.Write(b[:1])
 			if !assert.NoError(t, err) {
 				return
@@ -153,6 +151,5 @@ func TestWrap(t *testing.T) {
 			assert.EqualValues(t, b, b3)
 		}()
 	}
-
-	wg.Wait()
+	dialerGroup.Wait()
 }
