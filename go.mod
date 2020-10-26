@@ -3,8 +3,7 @@ module github.com/getlantern/http-proxy-lantern/v2
 go 1.12
 
 require (
-	cloud.google.com/go v0.28.0
-	contrib.go.opencensus.io/exporter/stackdriver v0.6.0 // indirect
+	cloud.google.com/go v0.65.0
 	git.torproject.org/pluggable-transports/goptlib.git v0.0.0-20180321061416-7d56ec4f381e
 	git.torproject.org/pluggable-transports/obfs4.git v0.0.0-20180421031126-89c21805c212
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
@@ -42,8 +41,7 @@ require (
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/proxy v0.0.0-20201001032732-eefd72879266
 	github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683
-	github.com/getlantern/quic0 v0.0.0-20200121154153-8b18c2ba09f9
-	github.com/getlantern/quicwrapper v0.0.0-20200902185207-c4742ad7448c
+	github.com/getlantern/quicwrapper v0.0.0-20201013170341-d27d67101f2d
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
 	github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
@@ -53,7 +51,7 @@ require (
 	github.com/getlantern/utls v0.0.0-20191119185840-3db8c755b682
 	github.com/getlantern/waitforserver v1.0.1
 	github.com/getlantern/withtimeout v0.0.0-20160829163843-511f017cd913
-	github.com/golang/groupcache v0.0.0-20180513044358-24b0969c4cb7
+	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 	github.com/gonum/blas v0.0.0-20180125090452-e7c5890b24cf // indirect
 	github.com/gonum/floats v0.0.0-20180125090339-7de1f4ea7ab5 // indirect
 	github.com/gonum/integrate v0.0.0-20181209220457-a422b5c0fdf2 // indirect
@@ -62,7 +60,6 @@ require (
 	github.com/gonum/matrix v0.0.0-20180124231301-a41cc49d4c29 // indirect
 	github.com/gonum/stat v0.0.0-20180125090729-ec9c8a1062f4
 	github.com/google/gopacket v1.1.17
-	github.com/googleapis/gax-go v2.0.0+incompatible // indirect
 	github.com/huandu/xstrings v1.2.0 // indirect
 	github.com/juju/ratelimit v1.0.1
 	github.com/lucas-clemente/quic-go v0.7.1-0.20190207125157-7dc4be2ce994
@@ -75,15 +72,12 @@ require (
 	github.com/stretchr/testify v1.6.1
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	github.com/xtaci/smux v1.5.15-0.20200704123958-f7188026ba01
-	go.opencensus.io v0.17.0 // indirect
-	golang.org/x/net v0.0.0-20200324143707-d3edc9973b7e
-	google.golang.org/api v0.0.0-20180921000521-920bb1beccf7
-	google.golang.org/genproto v0.0.0-20180918203901-c3f76f3b92d1 // indirect
-	google.golang.org/grpc v1.23.1 // indirect
+	golang.org/x/net v0.0.0-20200822124328-c89045814202
+	google.golang.org/api v0.32.0
 	gopkg.in/redis.v5 v5.2.9
 )
 
-replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20200720170941-b1abc08ed4ee
+replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.0.0-20201013165432-d264463d99fd
 
 replace github.com/anacrolix/go-libutp => github.com/getlantern/go-libutp v1.0.3
 

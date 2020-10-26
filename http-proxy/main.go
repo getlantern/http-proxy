@@ -46,7 +46,6 @@ var (
 	utpAddr          = flag.String("utpaddr", "", "Address at which to listen with HTTP(S) over utp")
 	lampshadeAddr    = flag.String("lampshade-addr", "", "Address at which to listen for lampshade connections with tcp. Requires https to be true.")
 	lampshadeUTPAddr = flag.String("lampshade-utpaddr", "", "Address at which to listen for lampshade connections with utp. Requires https to be true.")
-	quic0Addr        = flag.String("quic-addr", "", "Address at which to listen for legacy QUIC connections. (deprecated)")
 	quicIETFAddr     = flag.String("quic-ietf-addr", "", "Address at which to listen for IETF QUIC connections.")
 	wssAddr          = flag.String("wss-addr", "", "Address at which to listen for WSS connections.")
 	kcpConf          = flag.String("kcpconf", "", "Path to file configuring kcp")
@@ -408,7 +407,6 @@ func main() {
 		ProxyProtocol:                      *proxyProtocol,
 		BBRUpstreamProbeURL:                *bbrUpstreamProbeURL,
 		QUICIETFAddr:                       *quicIETFAddr,
-		QUIC0Addr:                          *quic0Addr,
 		WSSAddr:                            *wssAddr,
 		PCAPDir:                            *pcapDir,
 		PCAPIPs:                            *pcapIPs,
