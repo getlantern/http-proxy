@@ -71,6 +71,8 @@ var configs = configure(
 		"api-staging.getiantem.org":                internal.withRewriteToHTTPS(),
 		"replica-search.lantern.io":                internal.withRewriteToHTTPS(),
 		"replica-search-staging.lantern.io":        internal.withRewriteToHTTPS(),
+		"replica-thumbnailer.lantern.io":           internal.withRewriteToHTTPS(),
+		"replica-thumbnailer-staging.lantern.io":   internal.withRewriteToHTTPS(),
 		"getlantern.org":                           internal,
 		"lantern.io":                               internal,
 		"innovatelabs.io":                          internal,
