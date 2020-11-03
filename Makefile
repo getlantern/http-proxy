@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 UPX_BIN      ?= $(shell which upx)
 GIT_REVISION := $(shell git rev-parse --short HEAD)
-CHANGE_BIN   := $(shell which github_changelog_generator)
+CHANGE_BIN   := $(shell which git-chglog)
 
 # Binaries compiled for the host OS will be output to BUILD_DIR.
 # Binaries compiles for distribution will be output to DIST_DIR.
@@ -37,7 +37,7 @@ define tag-changelog
 	echo "Tagging..." && \
 	git tag -a "$$VERSION" -f --annotate -m"Tagged $$VERSION" && \
 	git push --tags -f && \
-	$(CHANGE_BIN) --max-issues 1000 --token "afe579f9925431b3490208b7cacd455d7deb7a71" --user getlantern --project http-proxy-lantern && \
+	$(CHANGE_BIN) --output $(CHANGELOG_NAME) && \ 
 	git add CHANGELOG.md && \
 	git commit -m "Updated changelog for $$VERSION" && \
 	git push origin HEAD
