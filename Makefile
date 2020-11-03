@@ -59,7 +59,7 @@ require-upx:
 
 require-change:
 	@ if [ "$(CHANGE_BIN)" = "" ]; then \
-		echo 'Missing "github_changelog_generator" command. See https://github.com/github-changelog-generator/github-changelog-generator or just [sudo] gem install github_changelog_generator' && exit 1; \
+		echo 'Missing "git-chglog" command. See https://github.com/git-chglog/git-chglog'; exit 1; \
 	fi
 
 $(BUILD_DIR):
