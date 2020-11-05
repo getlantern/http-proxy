@@ -1,6 +1,7 @@
 package common
 
 const (
+	AppHeader                           = "X-Lantern-App"
 	PlatformHeader                      = "X-Lantern-Platform"
 	VersionHeader                       = "X-Lantern-Version"
 	DeviceIdHeader                      = "X-Lantern-Device-Id"

@@ -59,6 +59,10 @@ func TestRedirectRules(t *testing.T) {
 	assert.False(t, shouldRedirect(), "should not redirect if version is above the min version")
 	req.Header.Set("X-Lantern-Version", "3.0.1")
 	assert.True(t, shouldRedirect(), "should redirect if version is below the min version")
+	req.Header.Set("X-Lantern-App", "not-lantern")
+	assert.False(t, shouldRedirect(), "should not redirect if the request is not from Lantern")
+	req.Header.Set("X-Lantern-App", "Lantern")
+	assert.True(t, shouldRedirect(), "should check app name case-insensitively")
 }
 
 func TestPercentage(t *testing.T) {
