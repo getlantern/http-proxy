@@ -117,18 +117,18 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 		f.instrument.Throttle(false, "no-usage-data")
 		return next(ctx, req)
 	}
-	threshold, rate, capOn := f.throttleConfig.ThresholdAndRateFor(lanternDeviceID, u.CountryCode)
+	settings, capOn := f.throttleConfig.SettingsFor(lanternDeviceID, u.CountryCode, req.Header.Get(common.PlatformHeader), req.Header.Get(common.TimeZoneHeader))
 	// To turn the data cap off in Redis we simply set the threshold to 0 or
 	// below. This will also turn off the cap in the UI on desktop and in newer
 	// versions on mobile.
 	if capOn {
-		capOn = threshold > 0
+		capOn = settings.Threshold > 0
 	}
-	if capOn && u.Bytes > threshold {
+	if capOn && u.Bytes > settings.Threshold {
 		// per connection limiter
-		limiter := lanternlisteners.NewRateLimiter(rate)
+		limiter := lanternlisteners.NewRateLimiter(settings.Rate)
 		log.Tracef("Throttling connection from device %s to %v per second", lanternDeviceID,
-			humanize.Bytes(uint64(rate)))
+			humanize.Bytes(uint64(settings.Rate)))
 		f.instrument.Throttle(true, "datacap")
 		wc.ControlMessage("throttle", limiter)
 	} else {
@@ -146,8 +146,10 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 		resp.Header = make(http.Header, 1)
 	}
 	uMiB := u.Bytes / (1024 * 1024)
-	xbq := fmt.Sprintf("%d/%d/%d", uMiB, threshold/(1024*1024), int64(u.AsOf.Sub(epoch).Seconds()))
-	resp.Header.Set(common.XBQHeader, xbq)
+	xbq := fmt.Sprintf("%d/%d/%d", uMiB, settings.Threshold/(1024*1024), int64(u.AsOf.Sub(epoch).Seconds()))
+	xbqv2 := fmt.Sprintf("%s/%d", xbq, u.TTLSeconds)
+	resp.Header.Set(common.XBQHeader, xbq)     // for backward compatibility with older clients
+	resp.Header.Set(common.XBQHeaderv2, xbqv2) // for new clients that support different bandwidth cap expirations
 	f.instrument.XBQHeaderSent()
 	return resp, nextCtx, err
 }

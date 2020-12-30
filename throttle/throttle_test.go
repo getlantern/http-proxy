@@ -1,28 +1,61 @@
 package throttle
 
 import (
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/getlantern/golog/testlog"
 	"github.com/getlantern/testredis"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 const (
 	refreshInterval = 10 * time.Millisecond
 
-	desktopDeviceID = "12345678"
-	mobileDeviceID  = "123456789"
+	deviceIDInSegment1    = "74" // this falls in segment 0.300786
+	deviceIDInSegment2    = "78" // this falls in segment 0.914739
+	deviceIDWithNoSegment = "55" // this falls in segment 0.016255
+
+	goodSettings = `
+{
+	"default": {
+		"default": [
+			{"deviceFloor": 0.1, "deviceCeil": 0.5, "threshold": 1000, "rate": 100, "capResets": "weekly"},
+			{"deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 1100, "rate": 110, "capResets": "monthly"}
+		],
+		"windows": [
+			{"deviceFloor": 0.1, "deviceCeil": 0.5, "threshold": 2000, "rate": 200, "capResets": "weekly"},
+			{"deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 2100, "rate": 210, "capResets": "monthly"}
+		]
+	},
+	"cn": {
+		"default": [
+			{"deviceFloor": 0.1, "deviceCeil": 0.5, "threshold": 3000, "rate": 300, "capResets": "weekly"},
+			{"deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 3100, "rate": 310, "capResets": "monthly"}
+		],
+		"windows": [
+			{"deviceFloor": 0.1, "deviceCeil": 0.5, "threshold": 4000, "rate": 400, "capResets": "weekly"},
+			{"deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 4100, "rate": 410, "capResets": "monthly"}
+		]
+	}
+}`
 )
 
-func doTest(t *testing.T, cfg Config, deviceID string, countryCode string, expectedThreshold int64, expectedRate int64, validConfig bool) {
-	threshold, rate, ok := cfg.ThresholdAndRateFor(deviceID, countryCode)
-	assert.EqualValues(t, expectedThreshold, threshold)
-	assert.EqualValues(t, expectedRate, rate)
-	assert.Equal(t, ok, validConfig)
+func doTest(t *testing.T, cfg Config, deviceID string, countryCode string, platform string, timeZone string, expectedThreshold int64, expectedRate int64, expectedCapResets CapInterval, testCase string) {
+	settings, ok := cfg.SettingsFor(deviceID, countryCode, platform, timeZone)
+	require.True(t, ok, "valid config for "+testCase)
+	require.NotNil(t, settings, "non-nil settings for "+testCase)
+	require.Equal(t, expectedThreshold, settings.Threshold, "correct threshold for "+testCase)
+	require.Equal(t, expectedRate, settings.Rate, testCase, "correct rate for "+testCase)
+	require.Equal(t, expectedCapResets, settings.CapResets, testCase, "correct ttl for "+testCase)
 }
 
 func TestThrottleConfig(t *testing.T) {
+	stopCapture := testlog.Capture(t)
+	defer stopCapture()
+
 	r, err := testredis.Open()
 	if !assert.NoError(t, err) {
 		return
@@ -32,82 +65,52 @@ func TestThrottleConfig(t *testing.T) {
 	rc := r.Client()
 	defer rc.Close()
 
-	if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{
-		DefaultCountryCode: "60|6",
-		"cn":               "50|5"}).Err()) {
-		return
-	}
-	if !assert.NoError(t, rc.HMSet("_throttle:mobile", map[string]string{
-		DefaultCountryCode: "40|4",
-		"cn":               "30|3"}).Err()) {
-		return
-	}
-
+	// try a bad config first
+	require.NoError(t, rc.Set("_throttle", "blah I'm bad settings blah", 0).Err())
 	cfg := NewRedisConfig(rc, refreshInterval)
+	_, ok := cfg.SettingsFor(deviceIDInSegment1, "cn", "windows", "Asia/Shanghai")
+	require.False(t, ok, "Loading throttle settings from bad config should fail")
 
-	doTest(t, cfg, desktopDeviceID, "cn", 50, 5, true)
-	doTest(t, cfg, desktopDeviceID, "us", 60, 6, true)
-	doTest(t, cfg, desktopDeviceID, "", 60, 6, true)
+	// now do a good config
+	require.NoError(t, rc.Set("_throttle", goodSettings, 0).Err())
+	cfg = NewRedisConfig(rc, refreshInterval)
 
-	doTest(t, cfg, mobileDeviceID, "cn", 30, 3, true)
-	doTest(t, cfg, mobileDeviceID, "us", 40, 4, true)
-	doTest(t, cfg, mobileDeviceID, "", 40, 4, true)
+	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", "Asia/Shanghai", 4000, 400, "weekly", "known country, known platform, segment 1")
+	doTest(t, cfg, deviceIDInSegment2, "cn", "windows", "Asia/Shanghai", 4100, 410, "monthly", "known country, known platform, segment 2")
+	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", "Asia/Shanghai", 4000, 400, "weekly", "known country, known platform, unknown segment")
+	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", "", 4100, 410, "monthly", "known country, known platform, segment 1, unknown time zone")
+
+	doTest(t, cfg, deviceIDInSegment1, "cn", "", "Asia/Shanghai", 3000, 300, "weekly", "known country, unknown platform, segment 1")
+	doTest(t, cfg, deviceIDInSegment2, "cn", "", "Asia/Shanghai", 3100, 310, "monthly", "known country, unknown platform, segment 2")
+	doTest(t, cfg, deviceIDInSegment1, "cn", "", "Asia/Shanghai", 3000, 300, "weekly", "known country, unknown platform, unknown segment")
+
+	doTest(t, cfg, deviceIDInSegment1, "de", "windows", "Asia/Shanghai", 2000, 200, "weekly", "unknown country, known platform, segment 1")
+	doTest(t, cfg, deviceIDInSegment2, "de", "windows", "Asia/Shanghai", 2100, 210, "monthly", "unknown country, known platform, segment 2")
+	doTest(t, cfg, deviceIDInSegment1, "de", "windows", "Asia/Shanghai", 2000, 200, "weekly", "unknown country, known platform, unknown segment")
+
+	doTest(t, cfg, deviceIDInSegment1, "de", "", "Asia/Shanghai", 1000, 100, "weekly", "unknown country, unknown platform, segment 1")
+	doTest(t, cfg, deviceIDInSegment2, "de", "", "Asia/Shanghai", 1100, 110, "monthly", "unknown country, unknown platform, segment 2")
+	doTest(t, cfg, deviceIDInSegment1, "de", "", "Asia/Shanghai", 1000, 100, "weekly", "unknown country, unknown platform, unknown segment")
 
 	// update settings
-	if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{
-		DefaultCountryCode: "600|60",
-		"cn":               "500|50",
-		"bl":               "asdfadsf",
-		"bt":               "adsfadsfd|10",
-		"br":               "1000000|asdfd"}).Err()) {
-		return
-	}
-	if !assert.NoError(t, rc.HMSet("_throttle:mobile", map[string]string{
-		DefaultCountryCode: "400|40",
-		"cn":               "300|30"}).Err()) {
-		return
-	}
+	require.NoError(t, rc.Set("_throttle", strings.ReplaceAll(goodSettings, "4", "5"), 0).Err())
 	time.Sleep(refreshInterval * 2)
 
-	doTest(t, cfg, desktopDeviceID, "cn", 500, 50, true)
-	doTest(t, cfg, desktopDeviceID, "us", 600, 60, true)
-	doTest(t, cfg, desktopDeviceID, "bl", 600, 60, true)
-	doTest(t, cfg, desktopDeviceID, "bt", 600, 60, true)
-	doTest(t, cfg, desktopDeviceID, "br", 600, 60, true)
-	doTest(t, cfg, desktopDeviceID, "", 600, 60, true)
-
-	doTest(t, cfg, mobileDeviceID, "cn", 300, 30, true)
-	doTest(t, cfg, mobileDeviceID, "us", 400, 40, true)
-	doTest(t, cfg, mobileDeviceID, "bl", 400, 40, true)
-	doTest(t, cfg, mobileDeviceID, "bt", 400, 40, true)
-	doTest(t, cfg, mobileDeviceID, "br", 400, 40, true)
-	doTest(t, cfg, mobileDeviceID, "", 400, 40, true)
-
-	if !assert.NoError(t, rc.HDel("_throttle:desktop", "us", "__").Err()) {
-		return
-	}
-	time.Sleep(refreshInterval * 2)
-
-	doTest(t, cfg, desktopDeviceID, "cn", 500, 50, true)
-	doTest(t, cfg, desktopDeviceID, "us", 0, 0, false)
-	doTest(t, cfg, desktopDeviceID, "", 0, 0, false)
-
-	doTest(t, cfg, mobileDeviceID, "cn", 300, 30, true)
-	doTest(t, cfg, mobileDeviceID, "us", 400, 40, true)
-	doTest(t, cfg, mobileDeviceID, "", 400, 40, true)
+	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", "Asia/Shanghai", 5000, 500, "weekly", "known country, known platform, segment 1, after update")
 }
 
 func TestForcedConfig(t *testing.T) {
-	cfg := NewForcedConfig(1024, 512)
-	doTest(t, cfg, mobileDeviceID, "", 1024, 512, true)
-	doTest(t, cfg, desktopDeviceID, "", 1024, 512, true)
-	doTest(t, cfg, mobileDeviceID, "cn", 1024, 512, true)
-	doTest(t, cfg, desktopDeviceID, "cn", 1024, 512, true)
-	doTest(t, cfg, mobileDeviceID, "bl", 1024, 512, true)
-	doTest(t, cfg, desktopDeviceID, "bl", 1024, 512, true)
+	stopCapture := testlog.Capture(t)
+	defer stopCapture()
+
+	cfg := NewForcedConfig(1024, 512, "weekly")
+	doTest(t, cfg, deviceIDInSegment1, "", "", "Asia/Shanghai", 1024, 512, "weekly", "forced config")
 }
 
 func TestFailToConnectRedis(t *testing.T) {
+	stopCapture := testlog.Capture(t)
+	defer stopCapture()
+
 	r, err := testredis.OpenUnstarted()
 	if !assert.NoError(t, err) {
 		return
@@ -118,20 +121,13 @@ func TestFailToConnectRedis(t *testing.T) {
 	defer rc.Close()
 
 	cfg := NewRedisConfig(rc, refreshInterval)
-
-	doTest(t, cfg, desktopDeviceID, "cn", 0, 0, false)
-	doTest(t, cfg, desktopDeviceID, "us", 0, 0, false)
-	doTest(t, cfg, desktopDeviceID, "", 0, 0, false)
+	_, ok := cfg.SettingsFor(deviceIDInSegment1, "cn", "windows", "Asia/Shanghai")
+	require.False(t, ok, "Loading throttle settings when unable to contact redis should fail")
 
 	r.Start()
-
-	if !assert.NoError(t, rc.HMSet("_throttle:desktop", map[string]string{
-		DefaultCountryCode: "60|6",
-	}).Err()) {
-		return
-	}
+	require.NoError(t, rc.Set("_throttle", goodSettings, 0).Err())
 
 	time.Sleep(refreshInterval * 2)
 	// Should load the config when Redis is back up online
-	doTest(t, cfg, desktopDeviceID, "any", 60, 6, true)
+	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", "Asia/Shanghai", 4000, 400, "weekly", "known country, known platform, segment 1, redis back online")
 }

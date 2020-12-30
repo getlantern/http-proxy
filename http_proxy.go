@@ -113,8 +113,6 @@ type Proxy struct {
 	ReportingRedisClientPK             string
 	ReportingRedisClientCert           string
 	ThrottleRefreshInterval            time.Duration
-	ThrottleThreshold                  int64
-	ThrottleRate                       int64
 	Token                              string
 	TunnelPorts                        string
 	Obfs4Addr                          string
@@ -714,16 +712,11 @@ func (p *Proxy) configureBandwidthReporting() (*reportingConfig, listeners.Measu
 	if p.BordaReportInterval > 0 {
 		bordaReporter = borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
 	}
-	return newReportingConfig(p.CountryLookup, p.rc, p.EnableReports, bordaReporter, p.instrument), bordaReporter
+	return newReportingConfig(p.CountryLookup, p.rc, p.EnableReports, bordaReporter, p.instrument, p.throttleConfig), bordaReporter
 }
 
 func (p *Proxy) loadThrottleConfig() {
-	if p.ThrottleThreshold > 0 && p.ThrottleRate > 0 {
-		log.Debugf("Forcing throttling threshold and rate to %d : %d",
-			p.ThrottleThreshold,
-			p.ThrottleRate)
-		p.throttleConfig = throttle.NewForcedConfig(p.ThrottleThreshold, p.ThrottleRate)
-	} else if !p.Pro && p.ThrottleRefreshInterval > 0 && p.rc != nil {
+	if !p.Pro && p.ThrottleRefreshInterval > 0 && p.rc != nil {
 		p.throttleConfig = throttle.NewRedisConfig(p.rc, p.ThrottleRefreshInterval)
 	} else {
 		log.Debug("Not loading throttle config")

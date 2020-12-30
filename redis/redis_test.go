@@ -8,7 +8,9 @@ import (
 	"github.com/getlantern/measured"
 	"github.com/getlantern/testredis"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
+	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/usage"
 )
 
@@ -22,10 +24,10 @@ func TestReportPeriodically(t *testing.T) {
 	fetcher := NewDeviceFetcher(rc)
 	statsCh := make(chan *statsAndContext, 10000)
 	newStats := func() {
-		statsCh <- &statsAndContext{map[string]interface{}{"deviceid": deviceID, "client_ip": clientIP}, &measured.Stats{RecvTotal: 2, SentTotal: 1}}
+		statsCh <- &statsAndContext{map[string]interface{}{"deviceid": deviceID, "client_ip": clientIP, "app_platform": "windows"}, &measured.Stats{RecvTotal: 2, SentTotal: 1}}
 	}
 	lookup := &fakeLookup{}
-	go reportPeriodically(lookup, rc, time.Millisecond, statsCh)
+	go reportPeriodically(lookup, rc, time.Millisecond, throttle.NewForcedConfig(5000, 500, throttle.Monthly), statsCh)
 
 	fetcher.RequestNewDeviceUsage(deviceID)
 	time.Sleep(100 * time.Millisecond)
@@ -71,4 +73,18 @@ type fakeLookup struct{ countryCode string }
 
 func (l *fakeLookup) CountryCode(ip net.IP) string {
 	return l.countryCode
+}
+
+func TestExpirationFor(t *testing.T) {
+	timeZone := "Asia/Shanghai"
+	tz, err := time.LoadLocation(timeZone)
+	require.NoError(t, err)
+
+	now := time.Date(2000, 12, 31, 23, 0, 0, 0, tz).In(time.UTC)
+	tomorrow := time.Date(2001, 1, 1, 0, 0, 0, 0, tz).Add(-1 * time.Nanosecond)
+
+	require.Equal(t, tomorrow.Unix(), expirationFor(now, throttle.Daily, timeZone), 0)
+	require.Equal(t, tomorrow.Unix(), expirationFor(now.Add(5*time.Minute), throttle.Daily, timeZone), 0)
+	require.Equal(t, tomorrow.Unix(), expirationFor(now, throttle.Monthly, timeZone), 0)
+	require.Equal(t, tomorrow.Unix(), expirationFor(now.Add(5*time.Minute), throttle.Monthly, timeZone), 0)
 }

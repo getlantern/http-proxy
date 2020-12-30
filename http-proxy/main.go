@@ -86,8 +86,6 @@ var (
 	connectOKWaitsForUpstream = flag.Bool("connect-ok-waits-for-upstream", false, "Set to true to wait for upstream connection before responding OK to CONNECT requests")
 
 	throttleRefreshInterval = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
-	throttleThreshold       = flag.Int64("throttlethreshold", 0, "Set to a positive value to force a specific throttle threshold in bytes (rather than using one from Redis)")
-	throttleRate            = flag.Int64("throttlerate", 0, "Set to a positive value to force a specific throttle rate in bytes/second (rather than using one from Redis)")
 
 	enableMultipath       = flag.Bool("enablemultipath", false, "Enable multipath. Only clients support multipath can communicate with it.")
 	enableReports         = flag.Bool("enablereports", false, "Enable stats reporting")
@@ -351,8 +349,6 @@ func main() {
 		EnableReports:                      *enableReports,
 		EnableMultipath:                    *enableMultipath,
 		ThrottleRefreshInterval:            *throttleRefreshInterval,
-		ThrottleThreshold:                  *throttleThreshold,
-		ThrottleRate:                       *throttleRate,
 		BordaReportInterval:                *bordaReportInterval,
 		BordaSamplePercentage:              *bordaSamplePercentage,
 		BordaBufferSize:                    *bordaBufferSize,

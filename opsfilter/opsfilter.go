@@ -40,6 +40,7 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 	}
 	platform := req.Header.Get(common.PlatformHeader)
 	version := req.Header.Get(common.VersionHeader)
+	timeZone := req.Header.Get(common.TimeZoneHeader)
 
 	op := ops.Begin("proxy").
 		Set("device_id", deviceID).
@@ -70,6 +71,7 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 	addMeasuredHeader("deviceid", deviceID)
 	addMeasuredHeader("app_version", version)
 	addMeasuredHeader("app_platform", platform)
+	addMeasuredHeader("timeZone", timeZone)
 
 	clientIP, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {

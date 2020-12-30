@@ -11,6 +11,7 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
+	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 )
 
 var (
@@ -24,7 +25,7 @@ type reportingConfig struct {
 	wrapper func(ls net.Listener) net.Listener
 }
 
-func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, enabled bool, bordaReporter listeners.MeasuredReportFN, instrument instrument.Instrument) *reportingConfig {
+func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, enabled bool, bordaReporter listeners.MeasuredReportFN, instrument instrument.Instrument, throttleConfig throttle.Config) *reportingConfig {
 	if !enabled || rc == nil {
 		return noReport
 	}
@@ -51,7 +52,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 		}
 		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, client_ip)
 	}
-	reporter := redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval)
+	reporter := redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval, throttleConfig)
 	if bordaReporter != nil {
 		reporter = combineReporter(reporter, bordaReporter, proxiedBytesReporter)
 	} else {
