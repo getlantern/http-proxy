@@ -44,6 +44,15 @@ type statsAndContext struct {
 	stats *measured.Stats
 }
 
+func (sac *statsAndContext) add(other *statsAndContext) *statsAndContext {
+	newStats := *other.stats
+	if sac != nil {
+		newStats.SentTotal += sac.stats.SentTotal
+		newStats.RecvTotal += sac.stats.RecvTotal
+	}
+	return &statsAndContext{other.ctx, &newStats}
+}
+
 func NewMeasuredReporter(countryLookup geo.CountryLookup, rc *redis.Client, reportInterval time.Duration, throttleConfig throttle.Config) listeners.MeasuredReportFN {
 	// Provide some buffering so that we don't lose data while submitting to Redis
 	statsCh := make(chan *statsAndContext, 10000)
@@ -74,13 +83,7 @@ func reportPeriodically(countryLookup geo.CountryLookup, rc *redis.Client, repor
 				continue
 			}
 			deviceID := _deviceID.(string)
-			existing := statsByDeviceID[deviceID]
-			if existing == nil {
-				statsByDeviceID[deviceID] = sac
-			} else {
-				existing.stats.SentTotal += sac.stats.SentTotal
-				existing.stats.RecvTotal += sac.stats.RecvTotal
-			}
+			statsByDeviceID[deviceID] = statsByDeviceID[deviceID].add(sac)
 		case <-ticker.C:
 			if log.IsTraceEnabled() {
 				log.Tracef("Submitting %d stats", len(statsByDeviceID))
@@ -116,6 +119,7 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 		}
 		clientIP := _clientIP.(string)
 		countryCode := countryLookup.CountryCode(net.ParseIP(clientIP))
+
 		var platform string
 		_platform, ok := sac.ctx["app_platform"]
 		if ok {
@@ -172,6 +176,15 @@ func expirationFor(now time.Time, ttl throttle.CapInterval, timeZoneName string)
 	case throttle.Daily:
 		tomorrow := now.AddDate(0, 0, 1)
 		return time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, now.Location()).Add(-1 * time.Nanosecond).Unix()
+	case throttle.Weekly:
+		daysFromSunday := int(now.Weekday())
+		daysToNextMonday := 8 - daysFromSunday
+		if daysToNextMonday > 7 {
+			// today's Sunday, so next Monday is in just 1 day
+			daysToNextMonday = 1
+		}
+		nextMonday := now.AddDate(0, 0, daysToNextMonday)
+		return time.Date(nextMonday.Year(), nextMonday.Month(), nextMonday.Day(), 0, 0, 0, 0, now.Location()).Add(-1 * time.Nanosecond).Unix()
 	case throttle.Monthly:
 		nextMonth := now.AddDate(0, 1, 0)
 		return time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, now.Location()).Add(-1 * time.Nanosecond).Unix()

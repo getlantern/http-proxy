@@ -71,7 +71,7 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 	addMeasuredHeader("deviceid", deviceID)
 	addMeasuredHeader("app_version", version)
 	addMeasuredHeader("app_platform", platform)
-	addMeasuredHeader("timeZone", timeZone)
+	addMeasuredHeader("time_zone", timeZone)
 
 	clientIP, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {

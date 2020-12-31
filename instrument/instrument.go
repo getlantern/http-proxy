@@ -27,7 +27,7 @@ type Instrument interface {
 	XBQHeaderSent()
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
-	ProxiedBytes(sent, recv int, platform, version string, clientIP net.IP)
+	ProxiedBytes(sent, recv int, platform, version, dataCapCohort string, clientIP net.IP)
 	TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int)
 	quicSentPacket()
 	quicLostPacket()
@@ -51,10 +51,11 @@ func (i NoInstrument) MultipathStats(protocols []string) (trackers []multipath.S
 }
 func (i NoInstrument) Throttle(m bool, reason string) {}
 
-func (i NoInstrument) XBQHeaderSent()                                                         {}
-func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)                          {}
-func (i NoInstrument) VersionCheck(redirect bool, method, reason string)                      {}
-func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version string, clientIP net.IP) {}
+func (i NoInstrument) XBQHeaderSent()                                    {}
+func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
+func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
+func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, dataCapCohort string, clientIP net.IP) {
+}
 func (i NoInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int) {
 }
 func (i NoInstrument) quicSentPacket() {}
@@ -347,8 +348,8 @@ func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version string, clientIP net.IP) {
-	labels := prometheus.Labels{"app_platform": platform, "app_version": version}
+func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, dataCapCohort string, clientIP net.IP) {
+	labels := prometheus.Labels{"app_platform": platform, "app_version": version, "datacap_cohort": dataCapCohort}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
 	country := p.countryLookup.CountryCode(clientIP)

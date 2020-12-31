@@ -22,22 +22,22 @@ const (
 {
 	"default": {
 		"default": [
-			{"deviceFloor": 0.1, "deviceCeil": 0.5, "threshold": 1000, "rate": 100, "capResets": "weekly"},
-			{"deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 1100, "rate": 110, "capResets": "monthly"}
+			{"label": "cohort 1", "deviceFloor": 0.1, "deviceCeil": 0.5, "threshold": 1000, "rate": 100, "capResets": "weekly"},
+			{"label": "cohort 2", "deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 1100, "rate": 110, "capResets": "monthly"}
 		],
 		"windows": [
-			{"deviceFloor": 0.1, "deviceCeil": 0.5, "threshold": 2000, "rate": 200, "capResets": "weekly"},
-			{"deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 2100, "rate": 210, "capResets": "monthly"}
+			{"label": "cohort 3", "deviceFloor": 0.1, "deviceCeil": 0.5, "threshold": 2000, "rate": 200, "capResets": "weekly"},
+			{"label": "cohort 4", "deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 2100, "rate": 210, "capResets": "monthly"}
 		]
 	},
 	"cn": {
 		"default": [
-			{"deviceFloor": 0.1, "deviceCeil": 0.5, "threshold": 3000, "rate": 300, "capResets": "weekly"},
-			{"deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 3100, "rate": 310, "capResets": "monthly"}
+			{"label": "cohort 5", "deviceFloor": 0.1, "deviceCeil": 0.5, "threshold": 3000, "rate": 300, "capResets": "weekly"},
+			{"label": "cohort 6", "deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 3100, "rate": 310, "capResets": "monthly"}
 		],
 		"windows": [
-			{"deviceFloor": 0.1, "deviceCeil": 0.5, "threshold": 4000, "rate": 400, "capResets": "weekly"},
-			{"deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 4100, "rate": 410, "capResets": "monthly"}
+			{"label": "cohort 7", "deviceFloor": 0.1, "deviceCeil": 0.5, "threshold": 4000, "rate": 400, "capResets": "weekly"},
+			{"label": "cohort 8", "deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 4100, "rate": 410, "capResets": "monthly"}
 		]
 	}
 }`

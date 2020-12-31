@@ -19,6 +19,7 @@ import (
 	"github.com/spaolacci/murmur3"
 	"gopkg.in/redis.v5"
 
+	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
 )
 
@@ -38,15 +39,41 @@ const (
 	Monthly = "monthly"
 )
 
-type ThrottleSettings struct {
+type Settings struct {
+	// Label uniquely identifies this set of settings for reporting purposes
+	Label string
+
+	// DeviceFloor is an optional number between 0 and 1 that sets the floor (inclusive) of devices included in the cohort that gets these settings
 	DeviceFloor float64
-	DeviceCeil  float64
+
+	// DeviceCeil is an optional number between 0 and 1 that sets the floor (exclusive) of devices included in the cohort that gets these settings.
+	// If DeviceCeil is 1, the 1 is treated as inclusive.
+	DeviceCeil float64
+
 	// Threshold at which we start throttling (in bytes)
 	Threshold int64
+
 	// Rate to which to throttle (in bytes per second)
 	Rate int64
-	// How frequently the usage cap resets
+
+	// How frequently the usage cap resets, one of "daily", "weekly" or "monthly"
 	CapResets CapInterval
+}
+
+func (settings *Settings) Validate() error {
+	if settings.Label == "" {
+		return errors.New("Missing label")
+	}
+
+	if settings.CapResets != Daily && settings.CapResets != Weekly && settings.CapResets != Monthly {
+		return errors.New("Unknown CapResets interval %v: ", settings.CapResets)
+	}
+
+	if settings.Threshold > 0 && settings.Rate <= 0 {
+		return errors.New("Throttling threshold specified without a rate")
+	}
+
+	return nil
 }
 
 // Config is a per-country throttling config
@@ -54,14 +81,14 @@ type Config interface {
 	// SettingsFor returns the throttling settings for the given deviceID in the given
 	// countryCode on the given platform (windows, darwin, linux, android or ios). At the each level
 	// (country and platform) this should fall back to default values if a specific value isn't provided.
-	// Time zone is used to identify clients that are new enough to support anything other than monthly TTL
-	SettingsFor(deviceID string, countryCode string, platform string, timeZone string) (settings *ThrottleSettings, ok bool)
+	// Time zone is used to identify clients that are new enough to support anything other than monthly TTL.
+	SettingsFor(deviceID string, countryCode string, platform string, timeZone string) (settings *Settings, ok bool)
 }
 
 // NewForcedConfig returns a new Config that uses the forced threshold, rate and TTL
 func NewForcedConfig(threshold int64, rate int64, capResets CapInterval) Config {
 	return &forcedConfig{
-		ThrottleSettings: ThrottleSettings{
+		Settings: Settings{
 			Threshold: threshold,
 			Rate:      rate,
 			CapResets: capResets,
@@ -70,19 +97,33 @@ func NewForcedConfig(threshold int64, rate int64, capResets CapInterval) Config 
 }
 
 type forcedConfig struct {
-	ThrottleSettings
+	Settings
 }
 
-func (cfg *forcedConfig) SettingsFor(deviceID string, countryCode string, platform string, timeZone string) (settings *ThrottleSettings, ok bool) {
-	return &cfg.ThrottleSettings, true
+func (cfg *forcedConfig) SettingsFor(deviceID string, countryCode string, platform string, timeZone string) (settings *Settings, ok bool) {
+	return &cfg.Settings, true
 }
 
-// SavedThrottleSettings organizes slices of ThrottleSettingsWithConstraints by
+// SettingsByCountryAndPlatform organizes slices of SettingsWithConstraints by
 // country -> platform
-type SavedThrottleSettings map[string]map[string][]*ThrottleSettings
+type SettingsByCountryAndPlatform map[string]map[string][]*Settings
 
-func decodeSavedThrottleSettings(encoded []byte) (settings SavedThrottleSettings, err error) {
-	settings = make(SavedThrottleSettings)
+func (sbcap SettingsByCountryAndPlatform) Validate() error {
+	for _, platforms := range sbcap {
+		for _, cohorts := range platforms {
+			for _, settings := range cohorts {
+				err := settings.Validate()
+				if err != nil {
+					return err
+				}
+			}
+		}
+	}
+	return nil
+}
+
+func decodeSettingsByCountryAndPlatform(encoded []byte) (settings SettingsByCountryAndPlatform, err error) {
+	settings = make(SettingsByCountryAndPlatform)
 	err = json.Unmarshal(encoded, &settings)
 	return
 }
@@ -90,7 +131,7 @@ func decodeSavedThrottleSettings(encoded []byte) (settings SavedThrottleSettings
 type redisConfig struct {
 	rc              *redis.Client
 	refreshInterval time.Duration
-	savedSettings   SavedThrottleSettings
+	settings        SettingsByCountryAndPlatform
 	mx              sync.RWMutex
 }
 
@@ -123,10 +164,10 @@ func (cfg *redisConfig) keepCurrent() {
 func (cfg *redisConfig) refreshSettings() {
 	encoded, err := cfg.rc.Get("_throttle").Bytes()
 	if err != nil {
-		log.Errorf("Unable to throttle settings from redis: %v", err)
+		log.Errorf("Unable to load throttle settings from redis: %v", err)
 		return
 	}
-	settings, err := decodeSavedThrottleSettings(encoded)
+	settings, err := decodeSettingsByCountryAndPlatform(encoded)
 	if err != nil {
 		log.Errorf("Unable to decode throttle settings: %v", err)
 		return
@@ -135,19 +176,19 @@ func (cfg *redisConfig) refreshSettings() {
 	log.Debugf("Loaded throttle config: %v", string(encoded))
 
 	cfg.mx.Lock()
-	cfg.savedSettings = settings
+	cfg.settings = settings
 	cfg.mx.Unlock()
 }
 
-func (cfg *redisConfig) SettingsFor(deviceID string, countryCode string, platform string, timeZone string) (settings *ThrottleSettings, ok bool) {
+func (cfg *redisConfig) SettingsFor(deviceID string, countryCode string, platform string, timeZone string) (*Settings, bool) {
 	cfg.mx.RLock()
-	savedSettings := cfg.savedSettings
+	settings := cfg.settings
 	cfg.mx.RUnlock()
 
-	platformSettings, _ := savedSettings[strings.ToLower(countryCode)]
+	platformSettings, _ := settings[strings.ToLower(countryCode)]
 	if platformSettings == nil {
 		log.Tracef("No settings found for country %v, use default", countryCode)
-		platformSettings, _ = savedSettings["default"]
+		platformSettings, _ = settings["default"]
 		if platformSettings == nil {
 			log.Trace("No settings for default country, not throttling")
 			return nil, false
@@ -164,7 +205,7 @@ func (cfg *redisConfig) SettingsFor(deviceID string, countryCode string, platfor
 		}
 	}
 
-	needsMonthly := timeZone == ""
+	needsMonthly := timeZone == "" // This is an old client that's not supplying timezone information. That means it only supports monthly plans.
 	hash := murmur3.New64()
 	hash.Write([]byte(deviceID))
 	hashOfDeviceID := hash.Sum64()

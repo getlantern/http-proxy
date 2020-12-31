@@ -80,11 +80,17 @@ func TestExpirationFor(t *testing.T) {
 	tz, err := time.LoadLocation(timeZone)
 	require.NoError(t, err)
 
-	now := time.Date(2000, 12, 31, 23, 0, 0, 0, tz).In(time.UTC)
-	tomorrow := time.Date(2001, 1, 1, 0, 0, 0, 0, tz).Add(-1 * time.Nanosecond)
+	thursday := time.Date(2020, 12, 31, 23, 0, 0, 0, tz).In(time.UTC)
+	friday := time.Date(2021, 1, 1, 0, 0, 0, 0, tz).Add(-1 * time.Nanosecond)
+	sunday := time.Date(2021, 1, 3, 0, 0, 0, 0, tz).Add(-1 * time.Nanosecond)
+	nextMonday := time.Date(2021, 1, 4, 0, 0, 0, 0, tz).Add(-1 * time.Nanosecond)
 
-	require.Equal(t, tomorrow.Unix(), expirationFor(now, throttle.Daily, timeZone), 0)
-	require.Equal(t, tomorrow.Unix(), expirationFor(now.Add(5*time.Minute), throttle.Daily, timeZone), 0)
-	require.Equal(t, tomorrow.Unix(), expirationFor(now, throttle.Monthly, timeZone), 0)
-	require.Equal(t, tomorrow.Unix(), expirationFor(now.Add(5*time.Minute), throttle.Monthly, timeZone), 0)
+	require.Equal(t, friday.Unix(), expirationFor(thursday, throttle.Daily, timeZone), 0)
+	require.Equal(t, friday.Unix(), expirationFor(thursday.Add(5*time.Minute), throttle.Daily, timeZone), 0)
+	require.Equal(t, friday.Unix(), expirationFor(thursday, throttle.Monthly, timeZone), 0)
+	require.Equal(t, friday.Unix(), expirationFor(thursday.Add(5*time.Minute), throttle.Monthly, timeZone), 0)
+
+	require.Equal(t, nextMonday.Unix(), expirationFor(thursday, throttle.Weekly, timeZone), 0)
+	require.Equal(t, nextMonday.Unix(), expirationFor(thursday.Add(5*time.Minute), throttle.Weekly, timeZone), 0)
+	require.Equal(t, nextMonday.Unix(), expirationFor(sunday, throttle.Weekly, timeZone), 0)
 }

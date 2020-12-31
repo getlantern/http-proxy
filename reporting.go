@@ -50,9 +50,24 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 		if _client_ip != nil {
 			client_ip = net.ParseIP(_client_ip.(string))
 		}
-		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, client_ip)
+		dataCapCohort := ""
+		throttleSettings, hasThrottleSettings := ctx["throttle_settings"]
+		if hasThrottleSettings {
+			dataCapCohort = throttleSettings.(*throttle.Settings).Label
+		}
+		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, dataCapCohort, client_ip)
 	}
-	reporter := redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval, throttleConfig)
+
+	var reporter listeners.MeasuredReportFN
+	if throttleConfig == nil {
+		log.Debug("No throttling configured, don't bother reporting bandwidth usage to Redis")
+		reporter = func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats,
+			final bool) {
+			// noop
+		}
+	} else {
+		reporter = redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval, throttleConfig)
+	}
 	if bordaReporter != nil {
 		reporter = combineReporter(reporter, bordaReporter, proxiedBytesReporter)
 	} else {
