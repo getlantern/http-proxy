@@ -43,8 +43,8 @@ const (
 }`
 )
 
-func doTest(t *testing.T, cfg Config, deviceID string, countryCode string, platform string, timeZone string, expectedThreshold int64, expectedRate int64, expectedCapResets CapInterval, testCase string) {
-	settings, ok := cfg.SettingsFor(deviceID, countryCode, platform, timeZone)
+func doTest(t *testing.T, cfg Config, deviceID string, countryCode string, platform string, supportedDataCaps []string, expectedThreshold int64, expectedRate int64, expectedCapResets CapInterval, testCase string) {
+	settings, ok := cfg.SettingsFor(deviceID, countryCode, platform, supportedDataCaps)
 	require.True(t, ok, "valid config for "+testCase)
 	require.NotNil(t, settings, "non-nil settings for "+testCase)
 	require.Equal(t, expectedThreshold, settings.Threshold, "correct threshold for "+testCase)
@@ -68,35 +68,35 @@ func TestThrottleConfig(t *testing.T) {
 	// try a bad config first
 	require.NoError(t, rc.Set("_throttle", "blah I'm bad settings blah", 0).Err())
 	cfg := NewRedisConfig(rc, refreshInterval)
-	_, ok := cfg.SettingsFor(deviceIDInSegment1, "cn", "windows", "Asia/Shanghai")
+	_, ok := cfg.SettingsFor(deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"})
 	require.False(t, ok, "Loading throttle settings from bad config should fail")
 
 	// now do a good config
 	require.NoError(t, rc.Set("_throttle", goodSettings, 0).Err())
 	cfg = NewRedisConfig(rc, refreshInterval)
 
-	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", "Asia/Shanghai", 4000, 400, "weekly", "known country, known platform, segment 1")
-	doTest(t, cfg, deviceIDInSegment2, "cn", "windows", "Asia/Shanghai", 4100, 410, "monthly", "known country, known platform, segment 2")
-	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", "Asia/Shanghai", 4000, 400, "weekly", "known country, known platform, unknown segment")
-	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", "", 4100, 410, "monthly", "known country, known platform, segment 1, unknown time zone")
+	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"}, 4000, 400, "weekly", "known country, known platform, segment 1")
+	doTest(t, cfg, deviceIDInSegment2, "cn", "windows", []string{"monthly", "weekly"}, 4100, 410, "monthly", "known country, known platform, segment 2")
+	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"}, 4000, 400, "weekly", "known country, known platform, unknown segment")
+	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", nil, 4100, 410, "monthly", "known country, known platform, segment 1, legacy client")
 
-	doTest(t, cfg, deviceIDInSegment1, "cn", "", "Asia/Shanghai", 3000, 300, "weekly", "known country, unknown platform, segment 1")
-	doTest(t, cfg, deviceIDInSegment2, "cn", "", "Asia/Shanghai", 3100, 310, "monthly", "known country, unknown platform, segment 2")
-	doTest(t, cfg, deviceIDInSegment1, "cn", "", "Asia/Shanghai", 3000, 300, "weekly", "known country, unknown platform, unknown segment")
+	doTest(t, cfg, deviceIDInSegment1, "cn", "", []string{"monthly", "weekly"}, 3000, 300, "weekly", "known country, unknown platform, segment 1")
+	doTest(t, cfg, deviceIDInSegment2, "cn", "", []string{"monthly", "weekly"}, 3100, 310, "monthly", "known country, unknown platform, segment 2")
+	doTest(t, cfg, deviceIDInSegment1, "cn", "", []string{"monthly", "weekly"}, 3000, 300, "weekly", "known country, unknown platform, unknown segment")
 
-	doTest(t, cfg, deviceIDInSegment1, "de", "windows", "Asia/Shanghai", 2000, 200, "weekly", "unknown country, known platform, segment 1")
-	doTest(t, cfg, deviceIDInSegment2, "de", "windows", "Asia/Shanghai", 2100, 210, "monthly", "unknown country, known platform, segment 2")
-	doTest(t, cfg, deviceIDInSegment1, "de", "windows", "Asia/Shanghai", 2000, 200, "weekly", "unknown country, known platform, unknown segment")
+	doTest(t, cfg, deviceIDInSegment1, "de", "windows", []string{"monthly", "weekly"}, 2000, 200, "weekly", "unknown country, known platform, segment 1")
+	doTest(t, cfg, deviceIDInSegment2, "de", "windows", []string{"monthly", "weekly"}, 2100, 210, "monthly", "unknown country, known platform, segment 2")
+	doTest(t, cfg, deviceIDInSegment1, "de", "windows", []string{"monthly", "weekly"}, 2000, 200, "weekly", "unknown country, known platform, unknown segment")
 
-	doTest(t, cfg, deviceIDInSegment1, "de", "", "Asia/Shanghai", 1000, 100, "weekly", "unknown country, unknown platform, segment 1")
-	doTest(t, cfg, deviceIDInSegment2, "de", "", "Asia/Shanghai", 1100, 110, "monthly", "unknown country, unknown platform, segment 2")
-	doTest(t, cfg, deviceIDInSegment1, "de", "", "Asia/Shanghai", 1000, 100, "weekly", "unknown country, unknown platform, unknown segment")
+	doTest(t, cfg, deviceIDInSegment1, "de", "", []string{"monthly", "weekly"}, 1000, 100, "weekly", "unknown country, unknown platform, segment 1")
+	doTest(t, cfg, deviceIDInSegment2, "de", "", []string{"monthly", "weekly"}, 1100, 110, "monthly", "unknown country, unknown platform, segment 2")
+	doTest(t, cfg, deviceIDInSegment1, "de", "", []string{"monthly", "weekly"}, 1000, 100, "weekly", "unknown country, unknown platform, unknown segment")
 
 	// update settings
 	require.NoError(t, rc.Set("_throttle", strings.ReplaceAll(goodSettings, "4", "5"), 0).Err())
 	time.Sleep(refreshInterval * 2)
 
-	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", "Asia/Shanghai", 5000, 500, "weekly", "known country, known platform, segment 1, after update")
+	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"}, 5000, 500, "weekly", "known country, known platform, segment 1, after update")
 }
 
 func TestForcedConfig(t *testing.T) {
@@ -104,7 +104,7 @@ func TestForcedConfig(t *testing.T) {
 	defer stopCapture()
 
 	cfg := NewForcedConfig(1024, 512, "weekly")
-	doTest(t, cfg, deviceIDInSegment1, "", "", "Asia/Shanghai", 1024, 512, "weekly", "forced config")
+	doTest(t, cfg, deviceIDInSegment1, "", "", []string{"monthly", "weekly"}, 1024, 512, "weekly", "forced config")
 }
 
 func TestFailToConnectRedis(t *testing.T) {
@@ -121,7 +121,7 @@ func TestFailToConnectRedis(t *testing.T) {
 	defer rc.Close()
 
 	cfg := NewRedisConfig(rc, refreshInterval)
-	_, ok := cfg.SettingsFor(deviceIDInSegment1, "cn", "windows", "Asia/Shanghai")
+	_, ok := cfg.SettingsFor(deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"})
 	require.False(t, ok, "Loading throttle settings when unable to contact redis should fail")
 
 	r.Start()
@@ -129,5 +129,5 @@ func TestFailToConnectRedis(t *testing.T) {
 
 	time.Sleep(refreshInterval * 2)
 	// Should load the config when Redis is back up online
-	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", "Asia/Shanghai", 4000, 400, "weekly", "known country, known platform, segment 1, redis back online")
+	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"}, 4000, 400, "weekly", "known country, known platform, segment 1, redis back online")
 }

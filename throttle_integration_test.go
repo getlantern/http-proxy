@@ -27,6 +27,10 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 )
 
+const (
+	timezone = "Asia/Shanghai"
+)
+
 func TestThrottling(t *testing.T) {
 	stopCapture := testlog.Capture(t)
 	defer stopCapture()
@@ -73,7 +77,7 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string, redisIsUp bool,
 	defer rc.Close()
 
 	if redisIsUp {
-		settings := fmt.Sprintf(`{"default": { "default": [{"capResets": "monthly", "threshold": %d, "rate": %d}] } }`, throttleThreshold, throttleRate)
+		settings := fmt.Sprintf(`{"default": { "default": [{"capResets": "daily", "threshold": %d, "rate": %d}] } }`, throttleThreshold, throttleRate)
 		require.NoError(t, rc.Set("_throttle", settings, 0).Err())
 	}
 
@@ -129,6 +133,8 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string, redisIsUp bool,
 		req, _ := http.NewRequest(http.MethodGet, u, nil)
 		req.Header.Set(common.TokenHeader, validToken)
 		req.Header.Set(common.DeviceIdHeader, deviceId)
+		req.Header.Add(common.SupportedDataCaps, throttle.Daily)
+		req.Header.Set(common.TimeZoneHeader, timezone)
 		req.Header.Set(sizeHeader, strconv.Itoa(testSize))
 
 		resp, err := client.Do(req)
@@ -210,7 +216,6 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string, redisIsUp bool,
 	}
 
 	result, err := rc.HMGet("_client:"+deviceId, "bytesIn", "bytesOut", "countryCode", "clientIP").Result()
-	require.NoError(t, err)
 
 	bytesIn, err := strconv.Atoi(result[0].(string))
 	require.NoError(t, err)
@@ -221,9 +226,15 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string, redisIsUp bool,
 	assert.Equal(t, "", result[2])
 	assert.Equal(t, "127.0.0.1", result[3])
 
-	ttl, err := rc.TTL("_client:" + deviceId).Result()
-	require.NoError(t, err)
-	log.Debug(ttl)
+	// Can't run the below test condition because reading TTL doesn't work with the LedisDB that we use in testing
+	// tz, err := time.LoadLocation(timezone)
+	// require.NoError(t, err)
+	// now := time.Now().In(tz)
+	// tomorrow := now.AddDate(0, 0, 1)
+	// beginningOfTomorrow := time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, now.Location()).Add(-1 * time.Nanosecond)
+	// timeUntilBeginningOfTomorrow := beginningOfTomorrow.Sub(now)
+	// ttl := rc.TTL("_client:" + deviceId).Val()
+	// require.True(t, ttl-time.Minute < timeUntilBeginningOfTomorrow && ttl+time.Minute > timeUntilBeginningOfTomorrow, "ttl of %v should be in the right ballpark of %v until %v", ttl, timeUntilBeginningOfTomorrow, beginningOfTomorrow)
 }
 
 // utility for observing bytes read

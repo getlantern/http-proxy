@@ -81,8 +81,9 @@ type Config interface {
 	// SettingsFor returns the throttling settings for the given deviceID in the given
 	// countryCode on the given platform (windows, darwin, linux, android or ios). At the each level
 	// (country and platform) this should fall back to default values if a specific value isn't provided.
-	// Time zone is used to identify clients that are new enough to support anything other than monthly TTL.
-	SettingsFor(deviceID string, countryCode string, platform string, timeZone string) (settings *Settings, ok bool)
+	// supportedDataCaps identifies which cap intervals the client supports ("daily", "weekly" or "monthly").
+	// If this list is empty, the client is assumed to support "monthly" (legacy clients).
+	SettingsFor(deviceID string, countryCode string, platform string, supportedDataCaps []string) (settings *Settings, ok bool)
 }
 
 // NewForcedConfig returns a new Config that uses the forced threshold, rate and TTL
@@ -100,7 +101,7 @@ type forcedConfig struct {
 	Settings
 }
 
-func (cfg *forcedConfig) SettingsFor(deviceID string, countryCode string, platform string, timeZone string) (settings *Settings, ok bool) {
+func (cfg *forcedConfig) SettingsFor(deviceID string, countryCode string, platform string, supportedDataCaps []string) (settings *Settings, ok bool) {
 	return &cfg.Settings, true
 }
 
@@ -180,7 +181,7 @@ func (cfg *redisConfig) refreshSettings() {
 	cfg.mx.Unlock()
 }
 
-func (cfg *redisConfig) SettingsFor(deviceID string, countryCode string, platform string, timeZone string) (*Settings, bool) {
+func (cfg *redisConfig) SettingsFor(deviceID string, countryCode string, platform string, supportedDataCaps []string) (*Settings, bool) {
 	cfg.mx.RLock()
 	settings := cfg.settings
 	cfg.mx.RUnlock()
@@ -205,31 +206,38 @@ func (cfg *redisConfig) SettingsFor(deviceID string, countryCode string, platfor
 		}
 	}
 
-	needsMonthly := timeZone == "" // This is an old client that's not supplying timezone information. That means it only supports monthly plans.
+	clientSupportsInterval := func(requested CapInterval) bool {
+		if requested == Monthly {
+			return true
+		}
+		for _, supported := range supportedDataCaps {
+			if requested == CapInterval(supported) {
+				return true
+			}
+		}
+		return false
+	}
+
 	hash := murmur3.New64()
 	hash.Write([]byte(deviceID))
 	hashOfDeviceID := hash.Sum64()
 	const scale = 1000000 // do not change this, as it will result in users being segmented differently than they were before
 	segment := float64((hashOfDeviceID % scale)) / float64(scale)
 	for _, candidateSettings := range constrainedSettings {
-		if !needsMonthly || candidateSettings.CapResets == Monthly {
+		if clientSupportsInterval(candidateSettings.CapResets) {
 			if candidateSettings.DeviceFloor <= segment && (candidateSettings.DeviceCeil > segment || (candidateSettings.DeviceCeil == 1 && segment == 1)) {
 				return candidateSettings, true
 			}
 		}
 	}
 
-	if needsMonthly {
-		log.Tracef("No setting for segment %v, using first monthly in list", segment)
-		for _, candidateSettings := range constrainedSettings {
-			if candidateSettings.CapResets == Monthly {
-				return candidateSettings, true
-			}
+	log.Tracef("No setting for segment %v, using first supported in list", segment)
+	for _, candidateSettings := range constrainedSettings {
+		if clientSupportsInterval(candidateSettings.CapResets) {
+			return candidateSettings, true
 		}
-		log.Trace("No monthly cap available, don't throttle")
-		return nil, false
 	}
 
-	log.Tracef("No setting for segment %v, using first in list", segment)
-	return constrainedSettings[0], true
+	log.Trace("No monthly cap available, don't throttle")
+	return nil, false
 }

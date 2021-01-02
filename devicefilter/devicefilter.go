@@ -118,7 +118,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 		return next(ctx, req)
 	}
 
-	settings, capOn := f.throttleConfig.SettingsFor(lanternDeviceID, u.CountryCode, req.Header.Get(common.PlatformHeader), req.Header.Get(common.TimeZoneHeader))
+	settings, capOn := f.throttleConfig.SettingsFor(lanternDeviceID, u.CountryCode, req.Header.Get(common.PlatformHeader), req.Header[common.SupportedDataCaps])
 	// To turn the data cap off in Redis we simply set the threshold to 0 or
 	// below. This will also turn off the cap in the UI on desktop and in newer
 	// versions on mobile.

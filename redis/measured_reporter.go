@@ -125,17 +125,25 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 		if ok {
 			platform = _platform.(string)
 		}
-		var timeZone string
-		_timeZone, ok := sac.ctx["timeZone"]
+
+		var supportedDataCaps []string
+		_supportedDataCaps, ok := sac.ctx["supported_data_caps"]
 		if ok {
-			timeZone = _timeZone.(string)
-		} else {
-			timeZone = now.Location().String()
+			supportedDataCaps = _supportedDataCaps.([]string)
 		}
-		throttleSettings, ok := throttleConfig.SettingsFor(deviceID, countryCode, platform, timeZone)
+		throttleSettings, ok := throttleConfig.SettingsFor(deviceID, countryCode, platform, supportedDataCaps)
 		if !ok {
 			log.Trace("No throttle config, don't bother tracking usage")
 			continue
+		}
+
+		timeZone := ""
+		_timeZone, hasTimeZone := sac.ctx["time_zone"]
+		if hasTimeZone {
+			timeZone = _timeZone.(string)
+		} else {
+			// default timeZone to now
+			timeZone = now.Location().String()
 		}
 
 		clientKey := "_client:" + deviceID
