@@ -35,7 +35,7 @@ func TestReportPeriodically(t *testing.T) {
 	assert.Equal(t, "", localCopy.CountryCode)
 	assert.EqualValues(t, 0, localCopy.Bytes)
 	newStats()
-	time.Sleep(10 * time.Millisecond)
+	time.Sleep(100 * time.Millisecond)
 	result := rc.HGetAll("_client:" + deviceID).Val()
 	assert.Equal(t, "2", result["bytesIn"])
 	assert.Equal(t, "1", result["bytesOut"])
