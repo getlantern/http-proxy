@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"strconv"
 	"sync"
 	"time"
 
@@ -14,7 +15,7 @@ const getUsageScript = `
 	local usage = redis.call("hmget", clientKey, "bytesIn", "bytesOut", "countryCode")
 	local ttl = redis.call("ttl", clientKey)
 	
-	return {usage[0], usage[1], usage[2], ttl}
+	return {usage[1], usage[2], usage[3], ttl}
 `
 
 type ongoingSet struct {
@@ -100,14 +101,24 @@ func (df *DeviceFetcher) retrieveDeviceUsage(scriptSHA string, deviceID string) 
 		return err
 	}
 	vals := _vals.([]interface{})
-	if vals[0] == nil || vals[1] == nil || vals[2] == nil {
+	if vals[0] == nil || vals[1] == nil || vals[2] == nil || vals[3] == nil {
 		// No entry found or partially stored, means no usage data so far.
 		usage.Set(deviceID, "", 0, time.Now(), 0)
 		return nil
 	}
 
-	bytesIn := vals[0].(int64)
-	bytesOut := vals[1].(int64)
+	_bytesIn := vals[0].(string)
+	bytesIn, err := strconv.ParseInt(_bytesIn, 10, 64)
+	if err != nil {
+		log.Debugf("Error parsing bytesIn: %v", err)
+		return nil
+	}
+	_bytesOut := vals[1].(string)
+	bytesOut, err := strconv.ParseInt(_bytesOut, 10, 64)
+	if err != nil {
+		log.Debugf("Error parsing bytesOut: %v", err)
+		return nil
+	}
 	countryCode := vals[2].(string)
 	ttl := vals[3].(int64)
 	usage.Set(deviceID, countryCode, bytesIn+bytesOut, time.Now(), ttl)

@@ -140,11 +140,11 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		bytesSent: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_sent_bytes_total",
 			Help: "Bytes sent to the client connections. Pluggable transport overhead excluded",
-		}, append(commonLabelNames, "app_platform", "app_version")).MustCurryWith(commonLabels),
+		}, append(commonLabelNames, "app_platform", "app_version", "datacap_cohort")).MustCurryWith(commonLabels),
 		bytesRecv: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_received_bytes_total",
 			Help: "Bytes received from the client connections. Pluggable transport overhead excluded",
-		}, append(commonLabelNames, "app_platform", "app_version")).MustCurryWith(commonLabels),
+		}, append(commonLabelNames, "app_platform", "app_version", "datacap_cohort")).MustCurryWith(commonLabels),
 		bytesSentByISP: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_by_isp_sent_bytes_total",
 			Help: "Bytes sent to the client connections, by country and isp. Pluggable transport overhead excluded",
