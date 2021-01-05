@@ -37,7 +37,7 @@ define tag-changelog
 	echo "Tagging..." && \
 	git tag -a "$$VERSION" -f --annotate -m"Tagged $$VERSION" && \
 	git push --tags -f && \
-	$(CHANGE_BIN) --output $(CHANGELOG_NAME) && \ 
+	$(CHANGE_BIN) --output CHANGELOG.md && \ 
 	git add CHANGELOG.md && \
 	git commit -m "Updated changelog for $$VERSION" && \
 	git push origin HEAD
