@@ -5,6 +5,8 @@ const (
 	PlatformHeader                      = "X-Lantern-Platform"
 	VersionHeader                       = "X-Lantern-Version"
 	DeviceIdHeader                      = "X-Lantern-Device-Id"
+	SupportedDataCaps                   = "X-Lantern-Supported-Data-Caps"
+	TimeZoneHeader                      = "X-Lantern-Time-Zone"
 	TokenHeader                         = "X-Lantern-Auth-Token"
 	PingHeader                          = "X-Lantern-Ping"
 	PingURLHeader                       = "X-Lantern-Ping-Url"
@@ -15,4 +17,5 @@ const (
 	BBRRequested                        = "X-BBR"
 	BBRAvailableBandwidthEstimateHeader = "X-BBR-ABE"
 	XBQHeader                           = "XBQ"
+	XBQHeaderv2                         = "XBQv2"
 )

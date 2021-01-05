@@ -58,8 +58,8 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 		"origin_port": originPort,
 	}
 
-	addMeasuredHeader := func(key, headerValue string) {
-		if headerValue != "" {
+	addMeasuredHeader := func(key string, headerValue interface{}) {
+		if headerValue != nil && headerValue != "" {
 			measuredCtx[key] = headerValue
 		}
 	}
@@ -70,6 +70,8 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 	addMeasuredHeader("deviceid", deviceID)
 	addMeasuredHeader("app_version", version)
 	addMeasuredHeader("app_platform", platform)
+	addMeasuredHeader("supported_data_caps", req.Header[common.SupportedDataCaps])
+	addMeasuredHeader("time_zone", req.Header.Get(common.TimeZoneHeader))
 
 	clientIP, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {

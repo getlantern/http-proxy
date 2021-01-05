@@ -11,12 +11,13 @@ import (
 
 	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/usage"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/measured"
 )
 
-const script = `
+const updateUsageScript = `
 	local clientKey = KEYS[1]
 
 	local bytesIn = redis.call("hincrby", clientKey, "bytesIn", ARGV[1])
@@ -30,7 +31,8 @@ const script = `
 		redis.call("expireat", clientKey, ARGV[5])
 	end
 
-	return {bytesIn, bytesOut, countryCode}
+	local ttl = redis.call("ttl", clientKey)
+	return {bytesIn, bytesOut, countryCode, ttl}
 `
 
 var (
@@ -42,10 +44,19 @@ type statsAndContext struct {
 	stats *measured.Stats
 }
 
-func NewMeasuredReporter(countryLookup geo.CountryLookup, rc *redis.Client, reportInterval time.Duration) listeners.MeasuredReportFN {
+func (sac *statsAndContext) add(other *statsAndContext) *statsAndContext {
+	newStats := *other.stats
+	if sac != nil {
+		newStats.SentTotal += sac.stats.SentTotal
+		newStats.RecvTotal += sac.stats.RecvTotal
+	}
+	return &statsAndContext{other.ctx, &newStats}
+}
+
+func NewMeasuredReporter(countryLookup geo.CountryLookup, rc *redis.Client, reportInterval time.Duration, throttleConfig throttle.Config) listeners.MeasuredReportFN {
 	// Provide some buffering so that we don't lose data while submitting to Redis
 	statsCh := make(chan *statsAndContext, 10000)
-	go reportPeriodically(countryLookup, rc, reportInterval, statsCh)
+	go reportPeriodically(countryLookup, rc, reportInterval, throttleConfig, statsCh)
 	return func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 		select {
 		case statsCh <- &statsAndContext{ctx, deltaStats}:
@@ -56,17 +67,12 @@ func NewMeasuredReporter(countryLookup geo.CountryLookup, rc *redis.Client, repo
 	}
 }
 
-type statsAndIP struct {
-	measured.Stats
-	ip string
-}
-
-func reportPeriodically(countryLookup geo.CountryLookup, rc *redis.Client, reportInterval time.Duration, statsCh chan (*statsAndContext)) {
+func reportPeriodically(countryLookup geo.CountryLookup, rc *redis.Client, reportInterval time.Duration, throttleConfig throttle.Config, statsCh chan *statsAndContext) {
 	// randomize the interval to evenly distribute traffic to reporting Redis.
 	randomized := time.Duration(reportInterval.Nanoseconds()/2 + rand.Int63n(reportInterval.Nanoseconds()))
 	log.Debugf("Will report data usage to Redis every %v", randomized)
 	ticker := time.NewTicker(randomized)
-	statsByDeviceID := make(map[string]*statsAndIP)
+	statsByDeviceID := make(map[string]*statsAndContext)
 	var scriptSHA string
 	for {
 		select {
@@ -77,65 +83,76 @@ func reportPeriodically(countryLookup geo.CountryLookup, rc *redis.Client, repor
 				continue
 			}
 			deviceID := _deviceID.(string)
-			existing := statsByDeviceID[deviceID]
-			if existing == nil {
-				_clientIP := sac.ctx["client_ip"]
-				if _clientIP == nil {
-					log.Error("Missing client_ip in context, this shouldn't happen. Ignoring.")
-					continue
-				}
-				clientIP := _clientIP.(string)
-				existing = &statsAndIP{
-					Stats: *sac.stats,
-					ip:    clientIP,
-				}
-				statsByDeviceID[deviceID] = existing
-			} else {
-				existing.SentTotal += sac.stats.SentTotal
-				existing.RecvTotal += sac.stats.RecvTotal
-			}
+			statsByDeviceID[deviceID] = statsByDeviceID[deviceID].add(sac)
 		case <-ticker.C:
 			if log.IsTraceEnabled() {
 				log.Tracef("Submitting %d stats", len(statsByDeviceID))
 			}
 			if scriptSHA == "" {
 				var err error
-				scriptSHA, err = rc.ScriptLoad(script).Result()
+				scriptSHA, err = rc.ScriptLoad(updateUsageScript).Result()
 				if err != nil {
 					log.Errorf("Unable to load script, skip submitting stats: %v", err)
 					continue
 				}
 			}
 
-			err := submit(countryLookup, rc, scriptSHA, statsByDeviceID)
+			err := submit(countryLookup, rc, scriptSHA, statsByDeviceID, throttleConfig)
 			if err != nil {
 				log.Errorf("Unable to submit stats: %v", err)
 			}
 			// Reset stats
-			statsByDeviceID = make(map[string]*statsAndIP)
+			statsByDeviceID = make(map[string]*statsAndContext)
 		}
 	}
 }
 
-func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string, statsByDeviceID map[string]*statsAndIP) error {
-	now := time.Now()
-	nextMonth := now.Month() + 1
-	nextYear := now.Year()
-	if nextMonth > time.December {
-		nextMonth = time.January
-		nextYear++
-	}
-	beginningOfNextMonth := time.Date(nextYear, nextMonth, 1, 0, 0, 0, 0, now.Location())
-	endOfThisMonth := strconv.Itoa(int(beginningOfNextMonth.Add(-1 * time.Nanosecond).Unix()))
-	for deviceID, stats := range statsByDeviceID {
+func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string, statsByDeviceID map[string]*statsAndContext, throttleConfig throttle.Config) error {
+	for deviceID, sac := range statsByDeviceID {
+		now := time.Now()
+		stats := sac.stats
+
+		_clientIP := sac.ctx["client_ip"]
+		if _clientIP == nil {
+			log.Error("Missing client_ip in context, this shouldn't happen. Ignoring.")
+			continue
+		}
+		clientIP := _clientIP.(string)
+		countryCode := countryLookup.CountryCode(net.ParseIP(clientIP))
+
+		var platform string
+		_platform, ok := sac.ctx["app_platform"]
+		if ok {
+			platform = _platform.(string)
+		}
+
+		var supportedDataCaps []string
+		_supportedDataCaps, ok := sac.ctx["supported_data_caps"]
+		if ok {
+			supportedDataCaps = _supportedDataCaps.([]string)
+		}
+		throttleSettings, ok := throttleConfig.SettingsFor(deviceID, countryCode, platform, supportedDataCaps)
+		if !ok {
+			log.Trace("No throttle config, don't bother tracking usage")
+			continue
+		}
+
+		timeZone := ""
+		_timeZone, hasTimeZone := sac.ctx["time_zone"]
+		if hasTimeZone {
+			timeZone = _timeZone.(string)
+		} else {
+			// default timeZone to now
+			timeZone = now.Location().String()
+		}
+
 		clientKey := "_client:" + deviceID
-		countryCode := countryLookup.CountryCode(net.ParseIP(stats.ip))
 		_result, err := rc.EvalSha(scriptSHA, []string{clientKey},
 			strconv.Itoa(stats.RecvTotal),
 			strconv.Itoa(stats.SentTotal),
 			strings.ToLower(countryCode),
-			stats.ip,
-			endOfThisMonth).Result()
+			clientIP,
+			expirationFor(now, throttleSettings.CapResets, timeZone)).Result()
 		if err != nil {
 			return err
 		}
@@ -151,7 +168,34 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 		} else {
 			countryCode = _countryCode.(string)
 		}
-		usage.Set(deviceID, countryCode, bytesIn+bytesOut, now)
+		ttlSeconds := result[3].(int64)
+		usage.Set(deviceID, countryCode, bytesIn+bytesOut, now, ttlSeconds)
 	}
 	return nil
+}
+
+func expirationFor(now time.Time, ttl throttle.CapInterval, timeZoneName string) int64 {
+	tz, err := time.LoadLocation(timeZoneName)
+	if err == nil {
+		// adjust to given timeZone
+		now = now.In(tz)
+	}
+	switch ttl {
+	case throttle.Daily:
+		tomorrow := now.AddDate(0, 0, 1)
+		return time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, now.Location()).Add(-1 * time.Nanosecond).Unix()
+	case throttle.Weekly:
+		daysFromSunday := int(now.Weekday())
+		daysToNextMonday := 8 - daysFromSunday
+		if daysToNextMonday > 7 {
+			// today's Sunday, so next Monday is in just 1 day
+			daysToNextMonday = 1
+		}
+		nextMonday := now.AddDate(0, 0, daysToNextMonday)
+		return time.Date(nextMonday.Year(), nextMonday.Month(), nextMonday.Day(), 0, 0, 0, 0, now.Location()).Add(-1 * time.Nanosecond).Unix()
+	case throttle.Monthly:
+		nextMonth := now.AddDate(0, 1, 0)
+		return time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, now.Location()).Add(-1 * time.Nanosecond).Unix()
+	}
+	return 0
 }

@@ -11,6 +11,7 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
+	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 )
 
 var (
@@ -24,7 +25,7 @@ type reportingConfig struct {
 	wrapper func(ls net.Listener) net.Listener
 }
 
-func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, enabled bool, bordaReporter listeners.MeasuredReportFN, instrument instrument.Instrument) *reportingConfig {
+func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, enabled bool, bordaReporter listeners.MeasuredReportFN, instrument instrument.Instrument, throttleConfig throttle.Config) *reportingConfig {
 	if !enabled || rc == nil {
 		return noReport
 	}
@@ -49,9 +50,24 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 		if _client_ip != nil {
 			client_ip = net.ParseIP(_client_ip.(string))
 		}
-		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, client_ip)
+		dataCapCohort := ""
+		throttleSettings, hasThrottleSettings := ctx["throttle_settings"]
+		if hasThrottleSettings {
+			dataCapCohort = throttleSettings.(*throttle.Settings).Label
+		}
+		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, dataCapCohort, client_ip)
 	}
-	reporter := redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval)
+
+	var reporter listeners.MeasuredReportFN
+	if throttleConfig == nil {
+		log.Debug("No throttling configured, don't bother reporting bandwidth usage to Redis")
+		reporter = func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats,
+			final bool) {
+			// noop
+		}
+	} else {
+		reporter = redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval, throttleConfig)
+	}
 	if bordaReporter != nil {
 		reporter = combineReporter(reporter, bordaReporter, proxiedBytesReporter)
 	} else {

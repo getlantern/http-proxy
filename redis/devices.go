@@ -9,6 +9,15 @@ import (
 	"gopkg.in/redis.v5"
 )
 
+const getUsageScript = `
+	local clientKey = KEYS[1]
+
+	local usage = redis.call("hmget", clientKey, "bytesIn", "bytesOut", "countryCode")
+	local ttl = redis.call("ttl", clientKey)
+	
+	return {usage[1], usage[2], usage[3], ttl}
+`
+
 type ongoingSet struct {
 	set map[string]bool
 	sync.RWMutex
@@ -48,50 +57,71 @@ func NewDeviceFetcher(rc *redis.Client) *DeviceFetcher {
 		queue:   make(chan string, 512),
 	}
 
-	go func() {
-		for dev := range df.queue {
-			df.retrieveDeviceUsage(dev)
-		}
-	}()
+	go df.processDeviceUsageRequests()
 
 	return df
 }
 
 // RequestNewDeviceUsage adds a new request for device usage to the queue
-func (df *DeviceFetcher) RequestNewDeviceUsage(device string) {
-	if df.ongoing.isMember(device) {
+func (df *DeviceFetcher) RequestNewDeviceUsage(deviceID string) {
+	if df.ongoing.isMember(deviceID) {
 		return
 	}
 	select {
-	case df.queue <- device:
-		df.ongoing.add(device)
+	case df.queue <- deviceID:
+		df.ongoing.add(deviceID)
 		// ok
 	default:
 		// queue full, ignore
 	}
 }
 
-func (df *DeviceFetcher) retrieveDeviceUsage(device string) error {
-	vals, err := df.rc.HMGet("_client:"+device, "bytesIn", "bytesOut", "countryCode").Result()
+func (df *DeviceFetcher) processDeviceUsageRequests() {
+	var scriptSHA string
+	for deviceID := range df.queue {
+		if scriptSHA == "" {
+			var err error
+			scriptSHA, err = df.rc.ScriptLoad(getUsageScript).Result()
+			if err != nil {
+				log.Errorf("Unable to load script, skip fetching usage: %v", err)
+				continue
+			}
+		}
+
+		if err := df.retrieveDeviceUsage(scriptSHA, deviceID); err != nil {
+			log.Errorf("Error retrieving device usage: %v", err)
+		}
+	}
+}
+
+func (df *DeviceFetcher) retrieveDeviceUsage(scriptSHA string, deviceID string) error {
+	clientKey := "_client:" + deviceID
+	_vals, err := df.rc.EvalSha(scriptSHA, []string{clientKey}).Result()
 	if err != nil {
 		return err
 	}
-	if vals[0] == nil || vals[1] == nil || vals[2] == nil {
+	vals := _vals.([]interface{})
+	if vals[0] == nil || vals[1] == nil || vals[2] == nil || vals[3] == nil {
 		// No entry found or partially stored, means no usage data so far.
-		usage.Set(device, "", 0, time.Now())
+		usage.Set(deviceID, "", 0, time.Now(), 0)
 		return nil
 	}
 
-	bytesIn, err := strconv.ParseInt(vals[0].(string), 10, 64)
+	_bytesIn := vals[0].(string)
+	bytesIn, err := strconv.ParseInt(_bytesIn, 10, 64)
 	if err != nil {
-		return err
+		log.Debugf("Error parsing bytesIn: %v", err)
+		return nil
 	}
-	bytesOut, err := strconv.ParseInt(vals[1].(string), 10, 64)
+	_bytesOut := vals[1].(string)
+	bytesOut, err := strconv.ParseInt(_bytesOut, 10, 64)
 	if err != nil {
-		return err
+		log.Debugf("Error parsing bytesOut: %v", err)
+		return nil
 	}
 	countryCode := vals[2].(string)
-	usage.Set(device, countryCode, bytesIn+bytesOut, time.Now())
-	df.ongoing.del(device)
+	ttl := vals[3].(int64)
+	usage.Set(deviceID, countryCode, bytesIn+bytesOut, time.Now(), ttl)
+	df.ongoing.del(deviceID)
 	return nil
 }

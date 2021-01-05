@@ -27,7 +27,7 @@ type Instrument interface {
 	XBQHeaderSent()
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
-	ProxiedBytes(sent, recv int, platform, version string, clientIP net.IP)
+	ProxiedBytes(sent, recv int, platform, version, dataCapCohort string, clientIP net.IP)
 	TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int)
 	quicSentPacket()
 	quicLostPacket()
@@ -51,10 +51,11 @@ func (i NoInstrument) MultipathStats(protocols []string) (trackers []multipath.S
 }
 func (i NoInstrument) Throttle(m bool, reason string) {}
 
-func (i NoInstrument) XBQHeaderSent()                                                         {}
-func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)                          {}
-func (i NoInstrument) VersionCheck(redirect bool, method, reason string)                      {}
-func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version string, clientIP net.IP) {}
+func (i NoInstrument) XBQHeaderSent()                                    {}
+func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
+func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
+func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, dataCapCohort string, clientIP net.IP) {
+}
 func (i NoInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int) {
 }
 func (i NoInstrument) quicSentPacket() {}
@@ -139,11 +140,11 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		bytesSent: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_sent_bytes_total",
 			Help: "Bytes sent to the client connections. Pluggable transport overhead excluded",
-		}, append(commonLabelNames, "app_platform", "app_version")).MustCurryWith(commonLabels),
+		}, append(commonLabelNames, "app_platform", "app_version", "datacap_cohort")).MustCurryWith(commonLabels),
 		bytesRecv: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_received_bytes_total",
 			Help: "Bytes received from the client connections. Pluggable transport overhead excluded",
-		}, append(commonLabelNames, "app_platform", "app_version")).MustCurryWith(commonLabels),
+		}, append(commonLabelNames, "app_platform", "app_version", "datacap_cohort")).MustCurryWith(commonLabels),
 		bytesSentByISP: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_by_isp_sent_bytes_total",
 			Help: "Bytes sent to the client connections, by country and isp. Pluggable transport overhead excluded",
@@ -347,8 +348,8 @@ func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version string, clientIP net.IP) {
-	labels := prometheus.Labels{"app_platform": platform, "app_version": version}
+func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, dataCapCohort string, clientIP net.IP) {
+	labels := prometheus.Labels{"app_platform": platform, "app_version": version, "datacap_cohort": dataCapCohort}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
 	country := p.countryLookup.CountryCode(clientIP)
