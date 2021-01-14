@@ -90,6 +90,7 @@ type Config interface {
 func NewForcedConfig(threshold int64, rate int64, capResets CapInterval) Config {
 	return &forcedConfig{
 		Settings: Settings{
+			Label:     "forced",
 			Threshold: threshold,
 			Rate:      rate,
 			CapResets: capResets,

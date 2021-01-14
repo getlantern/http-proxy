@@ -110,7 +110,6 @@ func reportPeriodically(countryLookup geo.CountryLookup, rc *redis.Client, repor
 func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string, statsByDeviceID map[string]*statsAndContext, throttleConfig throttle.Config) error {
 	for deviceID, sac := range statsByDeviceID {
 		now := time.Now()
-		stats := sac.stats
 
 		_clientIP := sac.ctx["client_ip"]
 		if _clientIP == nil {
@@ -131,45 +130,68 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 		if ok {
 			supportedDataCaps = _supportedDataCaps.([]string)
 		}
-		throttleSettings, ok := throttleConfig.SettingsFor(deviceID, countryCode, platform, supportedDataCaps)
-		if !ok {
-			log.Trace("No throttle config, don't bother tracking usage")
-			continue
-		}
+		throttleSettings, hasThrottleSettings := throttleConfig.SettingsFor(deviceID, countryCode, platform, supportedDataCaps)
 
-		timeZone := ""
-		_timeZone, hasTimeZone := sac.ctx["time_zone"]
-		if hasTimeZone {
-			timeZone = _timeZone.(string)
+		pl := rc.Pipeline()
+		throttleCohort := ""
+		var updateUsage *redis.Cmd
+		if !hasThrottleSettings {
+			throttleCohort = "uncapped"
 		} else {
-			// default timeZone to now
-			timeZone = now.Location().String()
+			stats := sac.stats
+			throttleCohort = throttleSettings.Label
+
+			timeZone := ""
+			_timeZone, hasTimeZone := sac.ctx["time_zone"]
+			if hasTimeZone {
+				timeZone = _timeZone.(string)
+			} else {
+				// default timeZone to now
+				timeZone = now.Location().String()
+			}
+
+			clientKey := "_client:" + deviceID
+			updateUsage = pl.EvalSha(scriptSHA, []string{clientKey},
+				strconv.Itoa(stats.RecvTotal),
+				strconv.Itoa(stats.SentTotal),
+				strings.ToLower(countryCode),
+				clientIP,
+				expirationFor(now, throttleSettings.CapResets, timeZone))
 		}
 
-		clientKey := "_client:" + deviceID
-		_result, err := rc.EvalSha(scriptSHA, []string{clientKey},
-			strconv.Itoa(stats.RecvTotal),
-			strconv.Itoa(stats.SentTotal),
-			strings.ToLower(countryCode),
-			clientIP,
-			expirationFor(now, throttleSettings.CapResets, timeZone)).Result()
+		nowUTC := now.In(time.UTC)
+		today := nowUTC.Format("2006-01-02")
+		uniqueDevicesKey := "_devices:" + strings.ToLower(countryCode) + ":" + today + ":" + throttleCohort
+		pl.SAdd(uniqueDevicesKey, deviceID)
+		pl.ExpireAt(uniqueDevicesKey, daysFrom(nowUTC.In(time.UTC), 2)) // don't keep device IDs around in the database for too long
+
+		throttleCohortKey := "throttlecohort"
+		pl.HSet(throttleCohortKey, deviceID, throttleCohort)
+
+		_, err := pl.Exec()
 		if err != nil {
 			return err
 		}
 
-		result := _result.([]interface{})
-		bytesIn, _ := result[0].(int64)
-		bytesOut, _ := result[1].(int64)
-		_countryCode := result[2]
-		// In production it should never be nil but LedisDB (for unit testing)
-		// has a bug which treats empty string as nil when `EvalSha`.
-		if _countryCode == nil {
-			countryCode = ""
-		} else {
-			countryCode = _countryCode.(string)
+		if hasThrottleSettings {
+			_result, err := updateUsage.Result()
+			if err != nil {
+				return err
+			}
+			result := _result.([]interface{})
+			bytesIn, _ := result[0].(int64)
+			bytesOut, _ := result[1].(int64)
+			_countryCode := result[2]
+			// In production it should never be nil but LedisDB (for unit testing)
+			// has a bug which treats empty string as nil when `EvalSha`.
+			if _countryCode == nil {
+				countryCode = ""
+			} else {
+				countryCode = _countryCode.(string)
+			}
+			ttlSeconds := result[3].(int64)
+			usage.Set(deviceID, countryCode, bytesIn+bytesOut, now, ttlSeconds)
 		}
-		ttlSeconds := result[3].(int64)
-		usage.Set(deviceID, countryCode, bytesIn+bytesOut, now, ttlSeconds)
 	}
 	return nil
 }
@@ -182,8 +204,7 @@ func expirationFor(now time.Time, ttl throttle.CapInterval, timeZoneName string)
 	}
 	switch ttl {
 	case throttle.Daily:
-		tomorrow := now.AddDate(0, 0, 1)
-		return time.Date(tomorrow.Year(), tomorrow.Month(), tomorrow.Day(), 0, 0, 0, 0, now.Location()).Add(-1 * time.Nanosecond).Unix()
+		return daysFrom(now, 1).Unix()
 	case throttle.Weekly:
 		daysFromSunday := int(now.Weekday())
 		daysToNextMonday := 8 - daysFromSunday
@@ -198,4 +219,9 @@ func expirationFor(now time.Time, ttl throttle.CapInterval, timeZoneName string)
 		return time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, now.Location()).Add(-1 * time.Nanosecond).Unix()
 	}
 	return 0
+}
+
+func daysFrom(start time.Time, days int) time.Time {
+	next := start.AddDate(0, 0, days)
+	return time.Date(next.Year(), next.Month(), next.Day(), 0, 0, 0, 0, start.Location()).Add(-1 * time.Nanosecond)
 }
