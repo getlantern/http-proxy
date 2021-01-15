@@ -134,10 +134,20 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 
 		pl := rc.Pipeline()
 		throttleCohort := ""
-		var updateUsage *redis.Cmd
 		if !hasThrottleSettings {
 			throttleCohort = "uncapped"
-		} else {
+		}
+
+		nowUTC := now.In(time.UTC)
+		today := nowUTC.Format("2006-01-02")
+		uniqueDevicesKey := "_devices:" + strings.ToLower(countryCode) + ":" + today + ":" + throttleCohort
+		pl.SAdd(uniqueDevicesKey, deviceID)
+		pl.ExpireAt(uniqueDevicesKey, daysFrom(nowUTC.In(time.UTC), 2)) // don't keep device IDs around in the database for too long
+
+		throttleCohortKey := "throttlecohort"
+		pl.HSet(throttleCohortKey, deviceID, throttleCohort)
+
+		if hasThrottleSettings {
 			stats := sac.stats
 			throttleCohort = throttleSettings.Label
 
@@ -151,29 +161,12 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 			}
 
 			clientKey := "_client:" + deviceID
-			updateUsage = pl.EvalSha(scriptSHA, []string{clientKey},
+			updateUsage := pl.EvalSha(scriptSHA, []string{clientKey},
 				strconv.Itoa(stats.RecvTotal),
 				strconv.Itoa(stats.SentTotal),
 				strings.ToLower(countryCode),
 				clientIP,
 				expirationFor(now, throttleSettings.CapResets, timeZone))
-		}
-
-		nowUTC := now.In(time.UTC)
-		today := nowUTC.Format("2006-01-02")
-		uniqueDevicesKey := "_devices:" + strings.ToLower(countryCode) + ":" + today + ":" + throttleCohort
-		pl.SAdd(uniqueDevicesKey, deviceID)
-		pl.ExpireAt(uniqueDevicesKey, daysFrom(nowUTC.In(time.UTC), 2)) // don't keep device IDs around in the database for too long
-
-		throttleCohortKey := "throttlecohort"
-		pl.HSet(throttleCohortKey, deviceID, throttleCohort)
-
-		_, err := pl.Exec()
-		if err != nil {
-			return err
-		}
-
-		if hasThrottleSettings {
 			_result, err := updateUsage.Result()
 			if err != nil {
 				return err
@@ -191,6 +184,10 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 			}
 			ttlSeconds := result[3].(int64)
 			usage.Set(deviceID, countryCode, bytesIn+bytesOut, now, ttlSeconds)
+		}
+		_, err := pl.Exec()
+		if err != nil {
+			return err
 		}
 	}
 	return nil
