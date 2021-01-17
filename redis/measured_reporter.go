@@ -165,9 +165,6 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 		pl.SAdd(uniqueDevicesKey, deviceID)
 		pl.ExpireAt(uniqueDevicesKey, daysFrom(nowUTC.In(time.UTC), 2)) // don't keep device IDs around in the database for too long
 
-		throttleCohortKey := "throttlecohort"
-		pl.HSet(throttleCohortKey, deviceID, throttleCohort)
-
 		_, err := pl.Exec()
 		if err != nil {
 			return err
