@@ -68,9 +68,7 @@ func TestReportPeriodically(t *testing.T) {
 	assert.Equal(t, "ir", result["countryCode"], "country code should have been remembered once set")
 
 	uniqueDevicesForToday := rc.SMembers("_devices:ir:" + time.Now().In(time.UTC).Format("2006-01-02") + ":forced").Val()
-	throttleCohort := rc.HGet("throttlecohort", deviceID).Val()
 	assert.Equal(t, []string{deviceID}, uniqueDevicesForToday)
-	assert.Equal(t, "forced", throttleCohort)
 }
 
 type fakeLookup struct{ countryCode string }
