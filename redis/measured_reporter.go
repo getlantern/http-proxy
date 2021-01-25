@@ -211,7 +211,7 @@ func expirationFor(now time.Time, ttl throttle.CapInterval, timeZoneName string)
 		}
 		nextMonday := now.AddDate(0, 0, daysToNextMonday)
 		return time.Date(nextMonday.Year(), nextMonday.Month(), nextMonday.Day(), 0, 0, 0, 0, now.Location()).Add(-1 * time.Nanosecond).Unix()
-	case throttle.Monthly:
+	case throttle.Monthly, throttle.Legacy:
 		nextMonth := now.AddDate(0, 1, 0)
 		return time.Date(nextMonth.Year(), nextMonth.Month(), 1, 0, 0, 0, 0, now.Location()).Add(-1 * time.Nanosecond).Unix()
 	}

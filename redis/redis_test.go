@@ -90,7 +90,9 @@ func TestExpirationFor(t *testing.T) {
 	require.Equal(t, friday.Unix(), expirationFor(thursday, throttle.Daily, timeZone), 0)
 	require.Equal(t, friday.Unix(), expirationFor(thursday.Add(5*time.Minute), throttle.Daily, timeZone), 0)
 	require.Equal(t, friday.Unix(), expirationFor(thursday, throttle.Monthly, timeZone), 0)
+	require.Equal(t, friday.Unix(), expirationFor(thursday, throttle.Legacy, timeZone), 0)
 	require.Equal(t, friday.Unix(), expirationFor(thursday.Add(5*time.Minute), throttle.Monthly, timeZone), 0)
+	require.Equal(t, friday.Unix(), expirationFor(thursday.Add(5*time.Minute), throttle.Legacy, timeZone), 0)
 
 	require.Equal(t, nextMonday.Unix(), expirationFor(thursday, throttle.Weekly, timeZone), 0)
 	require.Equal(t, nextMonday.Unix(), expirationFor(thursday.Add(5*time.Minute), throttle.Weekly, timeZone), 0)
