@@ -37,6 +37,7 @@ const (
 	Daily   = "daily"
 	Weekly  = "weekly"
 	Monthly = "monthly"
+	Legacy  = "legacy" // like Monthly for old clients
 )
 
 type Settings struct {
@@ -208,7 +209,8 @@ func (cfg *redisConfig) SettingsFor(deviceID string, countryCode string, platfor
 	}
 
 	clientSupportsInterval := func(requested CapInterval) bool {
-		if requested == Monthly {
+		if requested == Legacy && len(supportedDataCaps) == 0 {
+			// legacy client
 			return true
 		}
 		for _, supported := range supportedDataCaps {
@@ -239,6 +241,6 @@ func (cfg *redisConfig) SettingsFor(deviceID string, countryCode string, platfor
 		}
 	}
 
-	log.Trace("No monthly cap available, don't throttle")
+	log.Trace("No cap available, don't throttle")
 	return nil, false
 }

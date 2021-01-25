@@ -33,11 +33,13 @@ const (
 	"cn": {
 		"default": [
 			{"label": "cohort 5", "deviceFloor": 0.1, "deviceCeil": 0.5, "threshold": 3000, "rate": 300, "capResets": "weekly"},
-			{"label": "cohort 6", "deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 3100, "rate": 310, "capResets": "monthly"}
+			{"label": "cohort 6", "deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 3100, "rate": 310, "capResets": "monthly"},
+			{"label": "cohort 6", "deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 3200, "rate": 320, "capResets": "legacy"}
 		],
 		"windows": [
 			{"label": "cohort 7", "deviceFloor": 0.1, "deviceCeil": 0.5, "threshold": 4000, "rate": 400, "capResets": "weekly"},
-			{"label": "cohort 8", "deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 4100, "rate": 410, "capResets": "monthly"}
+			{"label": "cohort 8", "deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 4100, "rate": 410, "capResets": "monthly"},
+			{"label": "cohort 8", "deviceFloor": 0.5, "deviceCeil": 1.0, "threshold": 4200, "rate": 420, "capResets": "legacy"}
 		]
 	}
 }`
@@ -78,7 +80,7 @@ func TestThrottleConfig(t *testing.T) {
 	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"}, 4000, 400, "weekly", "known country, known platform, segment 1")
 	doTest(t, cfg, deviceIDInSegment2, "cn", "windows", []string{"monthly", "weekly"}, 4100, 410, "monthly", "known country, known platform, segment 2")
 	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"}, 4000, 400, "weekly", "known country, known platform, unknown segment")
-	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", nil, 4100, 410, "monthly", "known country, known platform, segment 1, legacy client")
+	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", nil, 4200, 420, "legacy", "known country, known platform, segment 1, legacy client")
 
 	doTest(t, cfg, deviceIDInSegment1, "cn", "", []string{"monthly", "weekly"}, 3000, 300, "weekly", "known country, unknown platform, segment 1")
 	doTest(t, cfg, deviceIDInSegment2, "cn", "", []string{"monthly", "weekly"}, 3100, 310, "monthly", "known country, unknown platform, segment 2")
