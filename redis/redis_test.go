@@ -2,6 +2,7 @@ package redis
 
 import (
 	"net"
+	"strconv"
 	"testing"
 	"time"
 
@@ -24,7 +25,7 @@ func TestReportPeriodically(t *testing.T) {
 	fetcher := NewDeviceFetcher(rc)
 	statsCh := make(chan *statsAndContext, 10000)
 	newStats := func() {
-		statsCh <- &statsAndContext{map[string]interface{}{"deviceid": deviceID, "client_ip": clientIP, "app_platform": "windows"}, &measured.Stats{RecvTotal: 2, SentTotal: 1}}
+		statsCh <- &statsAndContext{map[string]interface{}{"deviceid": deviceID, "client_ip": clientIP, "app_platform": "windows", "throttled": true}, &measured.Stats{RecvTotal: 2, SentTotal: 1}}
 	}
 	lookup := &fakeLookup{}
 	go reportPeriodically(lookup, rc, time.Millisecond, throttle.NewForcedConfig(5000, 500, throttle.Monthly), statsCh)
@@ -69,6 +70,18 @@ func TestReportPeriodically(t *testing.T) {
 
 	uniqueDevicesForToday := rc.SMembers("_devices:ir:" + time.Now().In(time.UTC).Format("2006-01-02") + ":forced").Val()
 	assert.Equal(t, []string{deviceID}, uniqueDevicesForToday)
+
+	_deviceLastSeen := rc.Get("_deviceLastSeen:ir:forced:" + deviceID).Val()
+	deviceLastSeen, err := strconv.Atoi(_deviceLastSeen)
+	require.NoError(t, err)
+	_deviceFirstThrottled := rc.Get("_deviceFirstThrottled:" + deviceID).Val()
+	deviceFirstThrottled, err := strconv.Atoi(_deviceFirstThrottled)
+
+	nowUnix := int(time.Now().Unix())
+	assert.Greater(t, deviceLastSeen, nowUnix-10)
+	assert.Less(t, deviceLastSeen, nowUnix+10)
+	assert.Greater(t, deviceFirstThrottled, nowUnix-10)
+	assert.Less(t, deviceFirstThrottled, nowUnix+10)
 }
 
 type fakeLookup struct{ countryCode string }

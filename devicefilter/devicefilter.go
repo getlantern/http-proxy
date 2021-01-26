@@ -119,6 +119,11 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	}
 
 	settings, capOn := f.throttleConfig.SettingsFor(lanternDeviceID, u.CountryCode, req.Header.Get(common.PlatformHeader), req.Header[common.SupportedDataCaps])
+
+	measuredCtx := map[string]interface{}{
+		"throttled": false,
+	}
+
 	// To turn the data cap off in Redis we simply set the threshold to 0 or
 	// below. This will also turn off the cap in the UI on desktop and in newer
 	// versions on mobile.
@@ -127,11 +132,9 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 		capOn = settings.Threshold > 0
 
 		// Send throttle settings to measured as well
-		measuredCtx := map[string]interface{}{
-			"throttle_settings": settings,
-		}
-		wc.ControlMessage("measured", measuredCtx)
+		measuredCtx["throttle_settings"] = settings
 	}
+
 	if capOn && u.Bytes > settings.Threshold {
 		// per connection limiter
 		limiter := lanternlisteners.NewRateLimiter(settings.Rate)
@@ -139,10 +142,13 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 			humanize.Bytes(uint64(settings.Rate)))
 		f.instrument.Throttle(true, "datacap")
 		wc.ControlMessage("throttle", limiter)
+		measuredCtx["throttled"] = true
 	} else {
 		// default case is not throttling
 		f.instrument.Throttle(false, "")
 	}
+	wc.ControlMessage("measured", measuredCtx)
+
 	resp, nextCtx, err := next(ctx, req)
 	if resp == nil || err != nil {
 		return resp, nextCtx, err
