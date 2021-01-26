@@ -17,7 +17,8 @@ import (
 	"github.com/getlantern/measured"
 )
 
-const updateUsageScript = `
+const (
+	updateUsageScript = `
 	local clientKey = KEYS[1]
 
 	local bytesIn = redis.call("hincrby", clientKey, "bytesIn", ARGV[1])
@@ -34,6 +35,9 @@ const updateUsageScript = `
 	local ttl = redis.call("ttl", clientKey)
 	return {bytesIn, bytesOut, countryCode, ttl}
 `
+
+	sixtyDays = 60 * 24 * time.Hour
+)
 
 var (
 	log = golog.LoggerFor("redis")
@@ -159,11 +163,24 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 				expirationFor(now, throttleSettings.CapResets, timeZone))
 		}
 
+		countryCodeLower := strings.ToLower(countryCode)
+
 		nowUTC := now.In(time.UTC)
 		today := nowUTC.Format("2006-01-02")
-		uniqueDevicesKey := "_devices:" + strings.ToLower(countryCode) + ":" + today + ":" + throttleCohort
+		uniqueDevicesKey := "_devices:" + countryCodeLower + ":" + today + ":" + throttleCohort
 		pl.SAdd(uniqueDevicesKey, deviceID)
 		pl.ExpireAt(uniqueDevicesKey, daysFrom(nowUTC.In(time.UTC), 2)) // don't keep device IDs around in the database for too long
+
+		deviceLastSeenKey := "_deviceLastSeen:" + countryCodeLower + ":" + throttleCohort + ":" + deviceID
+		pl.Set(deviceLastSeenKey, now.Unix(), 0)
+		pl.Expire(deviceLastSeenKey, sixtyDays) // nb: test fails if we try to set expiration in the above Set call
+
+		throttled := sac.ctx["throttled"] == true
+		if throttled {
+			deviceFirstThrottledKey := "_deviceFirstThrottled:" + deviceID
+			pl.Set(deviceFirstThrottledKey, now.Unix(), 0)
+			pl.Expire(deviceFirstThrottledKey, sixtyDays) // nb: test fails if we try to set expiration in the above Set call
+		}
 
 		_, err := pl.Exec()
 		if err != nil {
