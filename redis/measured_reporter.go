@@ -169,7 +169,9 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 		today := nowUTC.Format("2006-01-02")
 		uniqueDevicesKey := "_devices:" + countryCodeLower + ":" + today + ":" + throttleCohort
 		pl.SAdd(uniqueDevicesKey, deviceID)
-		pl.ExpireAt(uniqueDevicesKey, daysFrom(nowUTC.In(time.UTC), 2)) // don't keep device IDs around in the database for too long
+		// we don't keep these around forever to save space, however we do need to keep them around for longer than the purchase data from pro-server,
+		// to make sure that we can identify the device cohort for all purchases
+		pl.ExpireAt(uniqueDevicesKey, daysFrom(nowUTC.In(time.UTC), 4))
 
 		deviceLastSeenKey := "_deviceLastSeen:" + countryCodeLower + ":" + throttleCohort + ":" + deviceID
 		pl.Set(deviceLastSeenKey, now.Unix(), 0)
