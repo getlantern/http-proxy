@@ -1,4 +1,14 @@
 
+<a name="v2.6.30"></a>
+## [v2.6.30](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.29...v2.6.30)
+
+> 2021-01-28
+
+### Pull Requests
+
+* Merge pull request [#443](https://github.com/getlantern/http-proxy-lantern/issues/443) from getlantern/ox/keep-devices-longer
+
+
 <a name="v2.6.29"></a>
 ## [v2.6.29](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.28...v2.6.29)
 
@@ -1289,19 +1299,19 @@
 
 
 <a name="v0.0.13"></a>
-## [v0.0.13](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.15...v0.0.13)
+## [v0.0.13](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.14...v0.0.13)
 
 > 2016-03-15
 
 
-<a name="v0.0.15"></a>
-## [v0.0.15](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.14...v0.0.15)
+<a name="v0.0.14"></a>
+## [v0.0.14](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.15...v0.0.14)
 
 > 2016-03-10
 
 
-<a name="v0.0.14"></a>
-## [v0.0.14](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.12...v0.0.14)
+<a name="v0.0.15"></a>
+## [v0.0.15](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.12...v0.0.15)
 
 > 2016-03-10
 
