@@ -60,6 +60,10 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 
 	addMeasuredHeader := func(key string, headerValue interface{}) {
 		if headerValue != nil && headerValue != "" {
+			headerArray, ok := headerValue.([]string)
+			if ok && len(headerArray) == 0 {
+				return
+			}
 			measuredCtx[key] = headerValue
 		}
 	}
