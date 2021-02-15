@@ -148,3 +148,10 @@ with:
 ```
 ./revertToProductionBinary.bash <ip addres>
 ```
+
+### Logs on Server
+To view proxy logs on a given machine, run:
+
+```
+journalctl -e -u http-proxy
+```
