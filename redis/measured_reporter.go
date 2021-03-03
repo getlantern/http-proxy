@@ -162,7 +162,7 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 				clientIP,
 				expirationFor(now, throttleSettings.CapResets, timeZone))
 		}
-
+		log.Tracef("device %v on platform %v in country %v with supported data caps %v is in throttle cohort %v", deviceID, platform, countryCode, supportedDataCaps, throttleCohort)
 		countryCodeLower := strings.ToLower(countryCode)
 
 		nowUTC := now.In(time.UTC)
