@@ -46,7 +46,7 @@ require (
 	github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
-	github.com/getlantern/tlsmasq v0.4.0
+	github.com/getlantern/tlsmasq v0.4.2
 	github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836
 	github.com/getlantern/utls v0.0.0-20191119185840-3db8c755b682
 	github.com/getlantern/waitforserver v1.0.1
