@@ -143,6 +143,7 @@ type Proxy struct {
 	ProxyProtocol                      string
 	BBRUpstreamProbeURL                string
 	QUICIETFAddr                       string
+	QUICUseBBR                         bool
 	OQUICAddr                          string
 	OQUICKey                           string
 	OQUICCipher                        string
@@ -910,6 +911,7 @@ func (p *Proxy) listenQUICIETF(addr string, bordaReporter listeners.MeasuredRepo
 	config := &quicwrapper.Config{
 		MaxIncomingStreams: 1000,
 		QuicTracer:         instrument.NewQuicTracer(p.instrument),
+		UseBBR:             p.QUICUseBBR,
 	}
 
 	l, err := quicwrapper.ListenAddr(p.QUICIETFAddr, tlsConf, config)
@@ -929,6 +931,7 @@ func (p *Proxy) listenOQUIC(addr string, bordaReporter listeners.MeasuredReportF
 
 	config := &quicwrapper.Config{
 		MaxIncomingStreams: 1000,
+		UseBBR:             p.QUICUseBBR,
 	}
 
 	oquicKey, err := base64.StdEncoding.DecodeString(p.OQUICKey)
