@@ -268,8 +268,12 @@ github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683 h1:Asfm7ajzavu
 github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683/go.mod h1:GtXRvtMItoflWGLPE7GNq+AdL7BnmpaaNLtDQVD1XHU=
 github.com/getlantern/quic-go v0.0.0-20201013165432-d264463d99fd h1:MoN0qJW/2JOLa96uFcpVJGNDKqDTax21vD2cRgZ7JtQ=
 github.com/getlantern/quic-go v0.0.0-20201013165432-d264463d99fd/go.mod h1:yXttHsSNxQi8AWijC/vLP+OJczXqzHSOcJrM5ITUlCg=
+github.com/getlantern/quic-go v0.7.1-0.20210422183034-b5805f4c233b h1:H+yhPm5w5HiO7Y/ZZniTVEdYh2og3GDBP0TKcs40+K8=
+github.com/getlantern/quic-go v0.7.1-0.20210422183034-b5805f4c233b/go.mod h1:yXttHsSNxQi8AWijC/vLP+OJczXqzHSOcJrM5ITUlCg=
 github.com/getlantern/quicwrapper v0.0.0-20201013170341-d27d67101f2d h1:0MtPatkhg+uy314dgBz6APOeoX0dIH82Z5ucAPNe75k=
 github.com/getlantern/quicwrapper v0.0.0-20201013170341-d27d67101f2d/go.mod h1:az7dh9l/ly3BPl1MgZZqvDroynMbemZ208hX3c7E+zo=
+github.com/getlantern/quicwrapper v0.0.0-20210422191427-7f1e8e47dc0b h1:oXgMyF/uaFA5A7PbNW3xHI2jsSkRxVOZGYZ/wq6zz7k=
+github.com/getlantern/quicwrapper v0.0.0-20210422191427-7f1e8e47dc0b/go.mod h1:hI6tn0dmAy5RAvcNsXiDn4dBWznsoAm1BjdzgQDeRM8=
 github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c h1:IkjF+RwRs8B/RsuD638eUFO2K/227OO2B1FLXGp17Ro=
 github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c/go.mod h1:kExwbqTx1krUnT9ohmXG3jayDTEBfxUKeoRzU6XucLw=
 github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 h1:JyXEChj4lHy5w3hlQVnYpcH4QrBXmhEJgkxb0FPkFlM=
