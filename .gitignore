@@ -49,3 +49,4 @@ reflector
 .vscode
 
 *.mmdb
+.idea

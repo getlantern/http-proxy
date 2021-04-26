@@ -69,6 +69,7 @@ require (
 	github.com/mitchellh/panicwrap v1.0.0
 	github.com/prometheus/client_golang v1.1.0
 	github.com/refraction-networking/utls v0.0.0-20190415193640-32987941ebd3 // indirect
+	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.6.1
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
