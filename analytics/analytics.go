@@ -4,11 +4,11 @@ package analytics
 
 import (
 	"bytes"
+	"github.com/getlantern/http-proxy-lantern/v2/analytics/engine"
 	"math/rand"
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -18,10 +18,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/proxy/filters"
 	"github.com/golang/groupcache/lru"
-)
-
-const (
-	ApiEndpoint = `https://ssl.google-analytics.com/collect`
 )
 
 func init() {
@@ -54,23 +50,26 @@ type analyticsMiddleware struct {
 	siteAccesses chan *siteAccess
 	httpClient   *http.Client
 	dnsCache     *lru.Cache
+	engine       engine.Engine
 }
 
 func New(opts *Options) filters.Filter {
+	eng := engine.New(opts.TrackingID)
 	hostname, err := os.Hostname()
 	if err != nil {
 		log.Errorf("Unable to determine hostname, will use '(direct))': %v", hostname)
 		hostname = "(direct)"
 	}
-	log.Tracef("Will report analytics to Google as %v using hostname '%v', sampling %d percent of requests", opts.TrackingID, hostname, int(opts.SamplePercentage*100))
+	log.Tracef("Will report analytics as %v using hostname '%v', sampling %d percent of requests", eng.GetID(), hostname, int(opts.SamplePercentage*100))
 	am := &analyticsMiddleware{
 		Options:      opts,
 		hostname:     hostname,
 		siteAccesses: make(chan *siteAccess, 1000),
 		httpClient:   &http.Client{},
 		dnsCache:     lru.New(2000),
+		engine:       eng,
 	}
-	go am.submitToGoogle()
+	go am.submitToEngine()
 	return am
 }
 
@@ -104,9 +103,9 @@ func (am *analyticsMiddleware) track(req *http.Request) {
 	}
 }
 
-// submitToGoogle submits tracking information to Google Analytics on a
+// submitToEngine submits tracking information to Analytics engine on a
 // goroutine to avoid blocking the processing of actual requests
-func (am *analyticsMiddleware) submitToGoogle() {
+func (am *analyticsMiddleware) submitToEngine() {
 	for sa := range am.siteAccesses {
 		for _, site := range am.normalizeSite(sa.site, sa.port) {
 			am.trackSession(am.sessionVals(sa, site, sa.port))
@@ -115,47 +114,16 @@ func (am *analyticsMiddleware) submitToGoogle() {
 }
 
 func (am *analyticsMiddleware) sessionVals(sa *siteAccess, site string, port string) string {
-	vals := make(url.Values, 0)
-
-	// Version 1 of the API
-	vals.Add("v", "1")
-	// Our Google Tracking ID
-	vals.Add("tid", am.TrackingID)
-	// The client's ID (Lantern DeviceID, which is Base64 encoded 6 bytes from mac
-	// address)
-	vals.Add("cid", sa.clientId)
-
-	// Override the users IP so we get accurate geo data.
-	// vals.Add("uip", ip)
-	vals.Add("uip", sa.ip)
-	// Make call to anonymize the user's IP address -- basically a policy thing where
-	// Google agrees not to store it.
-	vals.Add("aip", "1")
-
-	// Track this as a page view
-	vals.Add("t", "pageview")
-
-	// Track custom port dimension
-	vals.Add("cd1", port)
-
-	log.Tracef("Tracking view to site: %v", site)
-	vals.Add("dp", site)
-
-	// Use the user-agent reported by the client
-	vals.Add("ua", sa.userAgent)
-
-	// Use the server's hostname as the campaign source so that we can track
-	// activity per server
-	vals.Add("cs", am.hostname)
-	// Campaign medium and campaign name are required for campaign tracking to do
-	// anything. We just fill them in with some dummy values.
-	vals.Add("cm", "proxy")
-	vals.Add("cn", "proxy")
-
-	// Note the absence of session tracking. We don't have a good way to tell
-	// when a session ends, so we don't bother with it.
-
-	return vals.Encode()
+	params := &engine.SessionParams{
+		IP:         sa.ip,
+		ClientId:   sa.clientId,
+		Site:       site,
+		Port:       port,
+		UserAgent:  sa.userAgent,
+		Hostname:   am.hostname,
+		TrackingID: am.TrackingID,
+	}
+	return am.engine.GetSessionValues(params, site, port)
 }
 
 func (am *analyticsMiddleware) normalizeSite(site string, port string) []string {
@@ -208,7 +176,7 @@ func (am *analyticsMiddleware) normalizeSite(site string, port string) []string 
 }
 
 func (am *analyticsMiddleware) trackSession(args string) {
-	r, err := http.NewRequest("POST", ApiEndpoint, bytes.NewBufferString(args))
+	r, err := http.NewRequest("POST", am.engine.GetEndpoint(), bytes.NewBufferString(args))
 
 	if err != nil {
 		log.Errorf("Error constructing GA request: %s", err)
@@ -228,10 +196,10 @@ func (am *analyticsMiddleware) trackSession(args string) {
 
 	resp, err := am.httpClient.Do(r)
 	if err != nil {
-		log.Errorf("Could not send HTTP request to GA: %s", err)
+		log.Errorf("Could not send HTTP request to analytics engine: %s", err)
 		return
 	}
-	log.Tracef("Successfully sent request to GA: %s", resp.Status)
+	log.Tracef("Successfully sent request to analytics engine: %s", resp.Status)
 	if err := resp.Body.Close(); err != nil {
 		log.Tracef("Unable to close response body: %v", err)
 	}
