@@ -31,7 +31,7 @@ require (
 	github.com/getlantern/kcpwrapper v0.0.0-20201001150218-1427e1d39c25
 	github.com/getlantern/keyman v0.0.0-20200820153608-cfd0ee278507
 	github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9
-	github.com/getlantern/lantern-shadowsocks v1.3.6-0.20210430132113-9f09a0867170
+	github.com/getlantern/lantern-shadowsocks v1.3.6-0.20210430154812-aafb7469e6ed
 	github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198
 	github.com/getlantern/mockconn v0.0.0-20191023022503-481dbcceeb58
 	github.com/getlantern/mtime v0.0.0-20200417132445-23682092d1f7
