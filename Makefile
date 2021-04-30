@@ -1,5 +1,4 @@
 SHELL := /bin/bash
-UPX_BIN      ?= $(shell which upx)
 GIT_REVISION := $(shell git rev-parse --short HEAD)
 CHANGE_BIN   := $(shell which git-chglog)
 
@@ -52,11 +51,6 @@ require-version: guard-VERSION
 		exit 1; \
 	fi
 
-require-upx:
-	@if [ "$(UPX_BIN)" = "" ]; then \
-		echo 'Missing "upx" command. See http://upx.sourceforge.net/' && exit 1; \
-	fi
-
 require-change:
 	@ if [ "$(CHANGE_BIN)" = "" ]; then \
 		echo 'Missing "git-chglog" command. See https://github.com/git-chglog/git-chglog'; exit 1; \
@@ -85,13 +79,12 @@ dist-on-docker: $(DIST_DIR) docker-builder
 	-v $$PWD:/src -t $(DOCKER_IMAGE_TAG) /bin/bash -c \
 	'cd /src && go build -o $(DIST_DIR)/http-proxy -ldflags="-X main.revision=$$GIT_REVISION" -mod=vendor ./http-proxy'
 
-$(DIST_DIR)/http-proxy: $(SRCS) | require-upx
+$(DIST_DIR)/http-proxy: $(SRCS)
 	@if [ "$(BUILD_WITH_DOCKER)" = "true" ]; then \
 		$(MAKE) dist-on-docker; \
 	else \
 		$(MAKE) dist-on-linux; \
 	fi
-	upx $(DIST_DIR)/http-proxy
 
 distnochange: $(DIST_DIR)/http-proxy
 

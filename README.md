@@ -91,10 +91,6 @@ With option `-pprofaddr=localhost:6060`, you can always access lots of debug inf
 
 ## Building for distribution and deploying
 
-When building for distribution make sure you're creating a linux/amd64 binary
-and that the resulting binary is compressed with
-[upx](http://upx.sourceforge.net/).
-
 You can use the following command to do all this automatically. Note that `make dist` requires $VERSION. It will tag the repo with that version and will also generate a new changelog:
 
 ```
