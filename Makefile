@@ -9,7 +9,7 @@ DIST_DIR    := dist-bin
 
 SRCS := $(shell find . -name "*.go" -not -path "*_test.go" -not -path "./vendor/*") go.mod go.sum
 
-GO_VERSION := 1.14.4
+GO_VERSION := 1.16.3
 
 DOCKER_IMAGE_TAG := http-proxy-builder
 DOCKER_VOLS = "-v $$PWD/../../..:/src"
