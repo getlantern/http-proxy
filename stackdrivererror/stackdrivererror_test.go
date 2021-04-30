@@ -13,8 +13,7 @@ func TestEnable(t *testing.T) {
 	log := golog.LoggerFor("stackdrivererror-test")
 	ctx := context.Background()
 
-	var percent float64
-	percent = 1.0
+	percent := 1.0
 	credsFile := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 	log.Debugf("Using file: %v", credsFile)
 	if credsFile != "" {
