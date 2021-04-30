@@ -28,6 +28,8 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
+	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
+
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/ops"
 	packetforward "github.com/getlantern/packetforward/server"
@@ -167,6 +169,11 @@ type Proxy struct {
 	TLSMasqSecret                      string
 	TLSMasqTLSMinVersion               uint16
 	TLSMasqTLSCipherSuites             []uint16
+	ShadowsocksAddr                    string
+	ShadowsocksMultiplexAddr           string
+	ShadowsocksSecret                  string
+	ShadowsocksCipher                  string
+	ShadowsocksReplayHistory           int
 	PromExporterAddr                   string
 	CountryLookup                      geo.CountryLookup
 	ISPLookup                          geo.ISPLookup
@@ -352,6 +359,12 @@ func (p *Proxy) ListenAndServe() error {
 		return err
 	}
 	if err := addListenerIfNecessary("oquic", p.OQUICAddr, p.listenOQUIC); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary("shadowsocks", p.ShadowsocksAddr, p.listenShadowsocks); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary("shadowsocks_multiplex", p.ShadowsocksMultiplexAddr, p.wrapMultiplexing(p.listenShadowsocks)); err != nil {
 		return err
 	}
 	if err := addListenerIfNecessary("wss", p.WSSAddr, p.listenWSS); err != nil {
@@ -954,6 +967,31 @@ func (p *Proxy) listenOQUIC(addr string, bordaReporter listeners.MeasuredReportF
 
 	log.Debugf("Listening for oquic at %v", l.Addr())
 	return l, err
+}
+
+func (p *Proxy) listenShadowsocks(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	// This is not using p.ListenTCP on purpose to avoid additional wrapping with idle timing.
+	// The idea here is to be as close to what outline shadowsocks does without any intervention,
+	// especially with respect to draining connections and the timing of closures.
+
+	configs := []shadowsocks.CipherConfig{
+		shadowsocks.CipherConfig{
+			ID:     "default",
+			Secret: p.ShadowsocksSecret,
+			Cipher: p.ShadowsocksCipher,
+		},
+	}
+	ciphers, err := shadowsocks.NewCipherListWithConfigs(configs)
+	if err != nil {
+		return nil, errors.New("Unable to create shadowsocks cipher: %v", err)
+	}
+	l, err := shadowsocks.ListenLocalTCP(addr, ciphers, p.ShadowsocksReplayHistory)
+	if err != nil {
+		return nil, errors.New("Unable to listen for shadowsocks: %v", err)
+	}
+
+	log.Debugf("Listening for shadowsocks at %v", l.Addr())
+	return l, nil
 }
 
 func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {

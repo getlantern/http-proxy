@@ -31,6 +31,7 @@ require (
 	github.com/getlantern/kcpwrapper v0.0.0-20201001150218-1427e1d39c25
 	github.com/getlantern/keyman v0.0.0-20200820153608-cfd0ee278507
 	github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9
+	github.com/getlantern/lantern-shadowsocks v1.3.6-0.20210505161321-68719b2c3018
 	github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198
 	github.com/getlantern/mockconn v0.0.0-20191023022503-481dbcceeb58
 	github.com/getlantern/mtime v0.0.0-20200417132445-23682092d1f7
@@ -67,7 +68,7 @@ require (
 	github.com/mikioh/tcpinfo v0.0.0-20180831101334-131b59fef27f // indirect
 	github.com/mikioh/tcpopt v0.0.0-20180707144150-7178f18b4ea8 // indirect
 	github.com/mitchellh/panicwrap v1.0.0
-	github.com/prometheus/client_golang v1.1.0
+	github.com/prometheus/client_golang v1.7.1
 	github.com/refraction-networking/utls v0.0.0-20190415193640-32987941ebd3 // indirect
 	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
 	github.com/spaolacci/murmur3 v1.1.0
