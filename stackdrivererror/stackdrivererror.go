@@ -26,7 +26,7 @@ func (r *Reporter) Close() {
 }
 
 func (r *Reporter) Report(severity golog.Severity, err error, stack []byte) {
-	errWithIP := fmt.Errorf("%s: %s on %s(%s)", severity.String(), err.Error(), r.proxyName, r.externalIP)
+	errWithIP := fmt.Errorf("%s on %s(%s)", err.Error(), r.proxyName, r.externalIP)
 	r.log.Tracef("Reporting error to stackdriver: %s", errWithIP)
 	r.errorClient.Report(errorreporting.Entry{
 		Error: errWithIP,
