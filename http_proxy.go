@@ -662,7 +662,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 			resolveOp.End()
 			return nil, resolveErr
 		}
-		op.Set("resolve_origin_time", bordaClient.Avg(time.Now().Sub(start).Seconds()))
+		op.Set("resolve_origin_time", bordaClient.Avg(time.Since(start).Seconds()))
 		resolveOp.End()
 
 		conn, dialErr := _dialer(ctx, network, resolvedAddr.String())
@@ -670,7 +670,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 			op.FailIf(dialErr)
 			return nil, dialErr
 		}
-		op.Set("dial_origin_time", bordaClient.Avg(time.Now().Sub(start).Seconds()))
+		op.Set("dial_origin_time", bordaClient.Avg(time.Since(start).Seconds()))
 
 		return conn, nil
 	}
@@ -973,7 +973,7 @@ func (p *Proxy) listenShadowsocks(addr string, bordaReporter listeners.MeasuredR
 	// The idea here is to be as close to what outline shadowsocks does without any intervention,
 	// especially with respect to draining connections and the timing of closures.
 	configs := []shadowsocks.CipherConfig{
-		shadowsocks.CipherConfig{
+		{
 			ID:     "default",
 			Secret: p.ShadowsocksSecret,
 		},
@@ -1062,11 +1062,4 @@ func portsFromCSV(csv string) ([]int, error) {
 		ports[i] = p
 	}
 	return ports, nil
-}
-
-type requestModifier func(req *http.Request)
-
-func (f requestModifier) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
-	f(req)
-	return next(ctx, req)
 }
