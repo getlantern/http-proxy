@@ -175,6 +175,11 @@ var (
 	psmuxAggressivePaddingRatio   = flag.Float64("psmux-aggressive-padding-ratio", 0, "psmux aggressive padding ratio")
 	psmuxDisablePadding           = flag.Bool("psmux-disable-padding", false, "disable all padding")
 	psmuxDisableAggressivePadding = flag.Bool("psmux-disable-aggressive-padding", false, "disable aggressive padding only")
+
+	shadowsocksAddr          = flag.String("shadowsocks-addr", "", "Address at which to listen for shadowsocks connections.")
+	shadowsocksMultiplexAddr = flag.String("shadowsocks-multiplexaddr", "", "Address at which to listen for multiplexed shadowsocks connections.")
+	shadowsocksReplayHistory = flag.Int("shadowsocks-replay-history", 10000, "Replay buffer size (# of handshakes)")
+	shadowsocksSecret        = flag.String("shadowsocks-secret", "", "shadowsocks secret")
 )
 
 func main() {
@@ -421,6 +426,10 @@ func main() {
 		TLSMasqSecret:                      *tlsmasqSecret,
 		TLSMasqTLSMinVersion:               tlsmasqTLSMinVersion,
 		TLSMasqTLSCipherSuites:             tlsmasqTLSSuites,
+		ShadowsocksAddr:                    *shadowsocksAddr,
+		ShadowsocksMultiplexAddr:           *shadowsocksMultiplexAddr,
+		ShadowsocksSecret:                  *shadowsocksSecret,
+		ShadowsocksReplayHistory:           *shadowsocksReplayHistory,
 		PromExporterAddr:                   *promExporterAddr,
 		MultiplexProtocol:                  *multiplexProtocol,
 		SmuxVersion:                        *smuxVersion,
