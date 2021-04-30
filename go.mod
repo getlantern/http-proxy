@@ -41,7 +41,7 @@ require (
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/proxy v0.0.0-20201001032732-eefd72879266
 	github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683
-	github.com/getlantern/quicwrapper v0.0.0-20210422191427-7f1e8e47dc0b
+	github.com/getlantern/quicwrapper v0.0.0-20210430205032-a714f785efc2
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
 	github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
@@ -79,7 +79,7 @@ require (
 	gopkg.in/redis.v5 v5.2.9
 )
 
-replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20210422183034-b5805f4c233b
+replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20210430204126-20cddf3612a7
 
 replace github.com/anacrolix/go-libutp => github.com/getlantern/go-libutp v1.0.3
 
