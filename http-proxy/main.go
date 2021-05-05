@@ -29,6 +29,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/stackdrivererror"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
+	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
 	"github.com/getlantern/quicwrapper"
 )
 
@@ -175,6 +176,12 @@ var (
 	psmuxAggressivePaddingRatio   = flag.Float64("psmux-aggressive-padding-ratio", 0, "psmux aggressive padding ratio")
 	psmuxDisablePadding           = flag.Bool("psmux-disable-padding", false, "disable all padding")
 	psmuxDisableAggressivePadding = flag.Bool("psmux-disable-aggressive-padding", false, "disable aggressive padding only")
+
+	shadowsocksAddr          = flag.String("shadowsocks-addr", "", "Address at which to listen for shadowsocks connections.")
+	shadowsocksMultiplexAddr = flag.String("shadowsocks-multiplexaddr", "", "Address at which to listen for multiplexed shadowsocks connections.")
+	shadowsocksReplayHistory = flag.Int("shadowsocks-replay-history", shadowsocks.DefaultReplayHistory, "Replay buffer size (# of handshakes)")
+	shadowsocksSecret        = flag.String("shadowsocks-secret", "", "shadowsocks secret")
+	shadowsocksCipher        = flag.String("shadowsocks-cipher", shadowsocks.DefaultCipher, "shadowsocks cipher")
 )
 
 func main() {
@@ -421,6 +428,11 @@ func main() {
 		TLSMasqSecret:                      *tlsmasqSecret,
 		TLSMasqTLSMinVersion:               tlsmasqTLSMinVersion,
 		TLSMasqTLSCipherSuites:             tlsmasqTLSSuites,
+		ShadowsocksAddr:                    *shadowsocksAddr,
+		ShadowsocksMultiplexAddr:           *shadowsocksMultiplexAddr,
+		ShadowsocksSecret:                  *shadowsocksSecret,
+		ShadowsocksCipher:                  *shadowsocksCipher,
+		ShadowsocksReplayHistory:           *shadowsocksReplayHistory,
 		PromExporterAddr:                   *promExporterAddr,
 		MultiplexProtocol:                  *multiplexProtocol,
 		SmuxVersion:                        *smuxVersion,
