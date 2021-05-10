@@ -198,7 +198,7 @@ func main() {
 
 	var reporter *stackdrivererror.Reporter
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
-		reporter = stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *proxyName, *externalIP)
+		reporter = stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *proxyName, *externalIP, *proxyProtocol)
 		if reporter != nil {
 			defer reporter.Close()
 		}
