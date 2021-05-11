@@ -1,6 +1,6 @@
 # HTTP/S Proxy with extensions for Lantern
 
-[![wercker status](https://app.wercker.com/status/67d1598d6205dce4aee80a9631d109e5/m/master "wercker status")](https://app.wercker.com/project/byKey/67d1598d6205dce4aee80a9631d109e5)
+https://github.com/getlantern/http-proxy-lantern/actions/workflows/go.yml/badge.svg
 
 These are Lantern-specific middleware components for the HTTP Proxy in Go:
 
@@ -21,7 +21,7 @@ the package `libpcap-dev` installed.
 
 ### Usage
 
-Build it with `GO111MODULE=on go build` or with `make build`.
+Build it with `go build` or with `make build`.
 
 To get list of the command line options, please run `http-proxy-lantern -help`.
 
@@ -151,3 +151,4 @@ To view proxy logs on a given machine, run:
 ```
 journalctl -e -u http-proxy
 ```
+
