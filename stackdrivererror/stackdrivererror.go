@@ -39,11 +39,12 @@ func (r *Reporter) Report(severity golog.Severity, err error, stack []byte) {
 
 // Enable enables golog to report errors to stackdriver and returns the reporter.
 func Enable(ctx context.Context, projectID, stackdriverCreds string,
-	samplePercentage float64, proxyName, externalIP string) *Reporter {
+	samplePercentage float64, proxyName, externalIP, proxyProtocol string) *Reporter {
 	log := golog.LoggerFor("proxy-stackdriver")
 	log.Debugf("Enabling stackdriver error reporting for project %v", projectID)
 	errorClient, err := errorreporting.NewClient(ctx, projectID, errorreporting.Config{
-		ServiceName: "lantern-http-proxy-service",
+		ServiceName:    "lantern-http-proxy-service",
+		ServiceVersion: proxyProtocol,
 		OnError: func(err error) {
 			log.Debugf("Could not log error: %v", err)
 		},

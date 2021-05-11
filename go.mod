@@ -3,7 +3,7 @@ module github.com/getlantern/http-proxy-lantern/v2
 go 1.12
 
 require (
-	cloud.google.com/go v0.65.0
+	cloud.google.com/go v0.81.0
 	git.torproject.org/pluggable-transports/goptlib.git v0.0.0-20180321061416-7d56ec4f381e
 	git.torproject.org/pluggable-transports/obfs4.git v0.0.0-20180421031126-89c21805c212
 	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
@@ -15,7 +15,7 @@ require (
 	github.com/dchest/siphash v1.2.0 // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
-	github.com/getlantern/borda v0.0.0-20200427033127-b36d009c6252
+	github.com/getlantern/borda v0.0.0-20210122163308-eccb55d42214
 	github.com/getlantern/cmux v0.0.0-20200905031936-c55b16ee8462 // indirect
 	github.com/getlantern/cmux/v2 v2.0.0-20200905031936-c55b16ee8462
 	github.com/getlantern/cmuxprivate v0.0.0-20200905032931-afb63438e40b
@@ -23,33 +23,33 @@ require (
 	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v1.0.1
-	github.com/getlantern/geo v0.0.0-20200716105557-5b87700e3d54
+	github.com/getlantern/geo v0.0.0-20200811013710-1d6228c407c3
 	github.com/getlantern/golog v0.0.0-20201105130739-9586b8bde3a9
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
-	github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55
-	github.com/getlantern/http-proxy v0.0.3-0.20200407205042-2382946d79e7
+	github.com/getlantern/hidden v0.0.0-20201229170000-e66e7f878730
+	github.com/getlantern/http-proxy v0.0.3-0.20201221200812-06d1ffe155d1
 	github.com/getlantern/kcpwrapper v0.0.0-20201001150218-1427e1d39c25
-	github.com/getlantern/keyman v0.0.0-20200820153608-cfd0ee278507
+	github.com/getlantern/keyman v0.0.0-20210218183930-5e48f8ced961
 	github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9
-	github.com/getlantern/lantern-shadowsocks v1.3.6-0.20210505161321-68719b2c3018
-	github.com/getlantern/measured v0.0.0-20180919192309-c70b16bb4198
-	github.com/getlantern/mockconn v0.0.0-20191023022503-481dbcceeb58
+	github.com/getlantern/lantern-shadowsocks v1.3.6-0.20210506211859-28c0ec3912e8
+	github.com/getlantern/measured v0.0.0-20210507000559-ec5307b2b8be
+	github.com/getlantern/mockconn v0.0.0-20200818071412-cb30d065a848
 	github.com/getlantern/mtime v0.0.0-20200417132445-23682092d1f7
 	github.com/getlantern/multipath v0.0.0-20201027015000-69ed0bd15259
-	github.com/getlantern/netx v0.0.0-20190110220209-9912de6f94fd
+	github.com/getlantern/netx v0.0.0-20201229185957-3fadd2c8f5ba
 	github.com/getlantern/ops v0.0.0-20200403153110-8476b16edcd6
 	github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/proxy v0.0.0-20201001032732-eefd72879266
 	github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683
-	github.com/getlantern/quicwrapper v0.0.0-20210430210635-ea782e172c7b
+	github.com/getlantern/quicwrapper v0.0.0-20210430211107-8281ff59ece2
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
 	github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
 	github.com/getlantern/tlsmasq v0.4.2
 	github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836
-	github.com/getlantern/utls v0.0.0-20191119185840-3db8c755b682
+	github.com/getlantern/utls v0.0.0-20200903013459-0c02248f7ce1
 	github.com/getlantern/waitforserver v1.0.1
 	github.com/getlantern/withtimeout v0.0.0-20160829163843-511f017cd913
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
@@ -72,11 +72,11 @@ require (
 	github.com/refraction-networking/utls v0.0.0-20190415193640-32987941ebd3 // indirect
 	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
 	github.com/spaolacci/murmur3 v1.1.0
-	github.com/stretchr/testify v1.6.1
+	github.com/stretchr/testify v1.7.0
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	github.com/xtaci/smux v1.5.15-0.20200704123958-f7188026ba01
-	golang.org/x/net v0.0.0-20200822124328-c89045814202
-	google.golang.org/api v0.32.0
+	golang.org/x/net v0.0.0-20210316092652-d523dce5a7f4
+	google.golang.org/api v0.43.0
 	gopkg.in/redis.v5 v5.2.9
 )
 
