@@ -17,7 +17,7 @@ func TestEnable(t *testing.T) {
 	credsFile := os.Getenv("GOOGLE_APPLICATION_CREDENTIALS")
 	log.Debugf("Using file: %v", credsFile)
 	if credsFile != "" {
-		reporter := Enable(ctx, "lantern-http-proxy", credsFile, percent, "fp-testcm-001", "1.1.1.1")
+		reporter := Enable(ctx, "lantern-http-proxy", credsFile, percent, "fp-testcm-001", "1.1.1.1", "version")
 		log.Error("Testing error reporting")
 		time.Sleep(2 * time.Second)
 		reporter.Close()
