@@ -20,7 +20,7 @@ jobs:
         go-version: 1.16
     - name: Granting private modules access
       run: |
-          git config --global url."https://71cee071ea22b7ffb10f68fa330d1130133bbfbd:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+          git config --global url."https://${{ secrets.GITHUB_TOKEN }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
     - name: Build
       run: go build -v ./...
 
