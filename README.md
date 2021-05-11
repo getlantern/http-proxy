@@ -1,6 +1,6 @@
 # HTTP/S Proxy with extensions for Lantern
 
-https://github.com/getlantern/http-proxy-lantern/actions/workflows/go.yml/badge.svg
+![go workflow](https://github.com/getlantern/http-proxy-lantern/actions/workflows/go.yml/badge.svg)
 
 These are Lantern-specific middleware components for the HTTP Proxy in Go:
 
