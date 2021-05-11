@@ -182,8 +182,8 @@ github.com/getlantern/filepersist v0.0.0-20160317154340-c5f0cd24e799 h1:FhkPUYCQ
 github.com/getlantern/filepersist v0.0.0-20160317154340-c5f0cd24e799/go.mod h1:8DGAx0LNUfXNnEH+fXI0s3OCBA/351kZCiz/8YSK3i8=
 github.com/getlantern/framed v0.0.0-20190601192238-ceb6431eeede h1:yrU6Px3ZkvCsDLPryPGi6FN+2iqFPq+JeCb7EFoDBhw=
 github.com/getlantern/framed v0.0.0-20190601192238-ceb6431eeede/go.mod h1:nhnoiS6DE6zfe+BaCMU4YI01UpsuiXnDqM5S8jxHuuI=
-github.com/getlantern/geo v0.0.0-20210511174342-5f865245a263 h1:hR/X8ewL8vLjbk0seHOnqvTvQ1ELDfIXA4LFfKvcEKs=
-github.com/getlantern/geo v0.0.0-20210511174342-5f865245a263/go.mod h1:bpIq2aZXMlF/hzsovA/Y/KYSr8gOkCRvcv8zBAPdzc4=
+github.com/getlantern/geo v0.0.0-20210511190650-305d605f7483 h1:c7a1umjKSHT4pGKGpZgnf9tSwRn2uZyasV8IRx4hqGE=
+github.com/getlantern/geo v0.0.0-20210511190650-305d605f7483/go.mod h1:bpIq2aZXMlF/hzsovA/Y/KYSr8gOkCRvcv8zBAPdzc4=
 github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467 h1:10ez8C+7zyHzmnIiYybx9Qji/zO2tAAde69DfJMbUKY=
 github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467/go.mod h1:IQND0fl/mdTYNICpN/eDYKX+j90TqQYXdpNFWkJpCPs=
 github.com/getlantern/go-libutp v1.0.3 h1:ESmde7HKb1LaB+6G0eWUuWcjN4DmqOvTRqm49De33sI=
