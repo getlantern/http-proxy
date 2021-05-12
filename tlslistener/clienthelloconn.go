@@ -91,6 +91,13 @@ var (
 				_, _ = netx.BidiCopy(c, upstream, bufOut, bufIn)
 			}}
 	}
+
+	// None doesn't react.
+	None = HandshakeReaction{
+		action: "",
+		getConfig: func(c *tls.Config) (*tls.Config, error) {
+			return c, nil
+		}}
 )
 
 // Delayed takes a HandshakeReaction and delays d before executing the action.

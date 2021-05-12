@@ -148,7 +148,7 @@ var (
 	pcapTimeout = flag.Duration("pcap-timeout", 30*time.Millisecond, "Timeout for capturing packets")
 
 	requireSessionTickets      = flag.Bool("require-session-tickets", true, "Specifies whether or not to require TLS session tickets in ClientHellos")
-	missingTicketReaction      = flag.String("missing-session-ticket-reaction", "", "Specifies the reaction when seeing ClientHellos without TLS session tickets. Apply only if require-session-tickets is set")
+	missingTicketReaction      = flag.String("missing-session-ticket-reaction", "None", "Specifies the reaction when seeing ClientHellos without TLS session tickets. Apply only if require-session-tickets is set")
 	missingTicketReactionDelay = flag.Duration("missing-session-ticket-reaction-delay", 0, "Specifies the delay before reaction to ClientHellos without TLS session tickets. Apply only if require-session-tickets is set.")
 	missingTicketReflectSite   = flag.String("missing-session-ticket-reflect-site", "", "Specifies the site to mirror when seeing no TLS session ticket in ClientHellos. Useful only if missing-session-ticket-reaction is ReflectToSite.")
 
@@ -294,11 +294,10 @@ func main() {
 		log.Debugf("Reflecting missing session tickets to site %v", *missingTicketReflectSite)
 	case "None":
 		log.Debug("Not reacting to missing session tickets")
+		reaction = tlslistener.None
 	default:
+		log.Errorf("bad missing-session-ticket-reaction for '%s': '%s', fallback to %s", *proxyProtocol, *missingTicketReaction, reaction.Action())
 		reaction = tlslistener.AlertInternalError
-		if *requireSessionTickets {
-			log.Errorf("unrecognizable missing-session-ticket-reaction '%s', fallback to %s", *missingTicketReaction, reaction.Action())
-		}
 	}
 	if *missingTicketReactionDelay != 0 {
 		reaction = tlslistener.Delayed(*missingTicketReactionDelay, reaction)
