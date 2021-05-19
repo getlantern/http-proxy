@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	utls "github.com/getlantern/utls"
+	utls "github.com/refraction-networking/utls"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
