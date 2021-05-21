@@ -27,6 +27,7 @@ import (
 	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
+	"github.com/getlantern/http-proxy-lantern/v2/ossh"
 	"github.com/getlantern/kcpwrapper"
 	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
 
@@ -174,6 +175,9 @@ type Proxy struct {
 	ShadowsocksSecret                  string
 	ShadowsocksCipher                  string
 	ShadowsocksReplayHistory           int
+	OSSHAddr                           string
+	OSSHKeyword                        string
+	OSSHKeyFile                        string
 	PromExporterAddr                   string
 	CountryLookup                      geo.CountryLookup
 	ISPLookup                          geo.ISPLookup
@@ -368,6 +372,9 @@ func (p *Proxy) ListenAndServe() error {
 		return err
 	}
 	if err := addListenerIfNecessary("wss", p.WSSAddr, p.listenWSS); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary("ossh", p.OSSHAddr, p.wrapMultiplexing(p.listenOSSH)); err != nil {
 		return err
 	}
 
@@ -842,12 +849,26 @@ func (p *Proxy) listenTLSMasq(baseListen func(string, bool) (net.Listener, error
 			l, p.CertFile, p.KeyFile, p.TLSMasqOriginAddr, p.TLSMasqSecret,
 			p.TLSMasqTLSMinVersion, p.TLSMasqTLSCipherSuites, nonFatalErrorsHandler)
 		if wrapErr != nil {
+			l.Close()
 			log.Fatalf("unable to wrap listener with tlsmasq: %v", wrapErr)
 		}
 		log.Debugf("listening for tlsmasq at %v", wrapped.Addr())
 
 		return wrapped, nil
 	}
+}
+
+func (p *Proxy) listenOSSH(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	tcpListener, err := p.listenTCP(addr, true)
+	if err != nil {
+		return nil, errors.New("listen TCP failed: %v", err)
+	}
+	l, err := ossh.Wrap(tcpListener, p.OSSHKeyword, p.OSSHKeyFile)
+	if err != nil {
+		tcpListener.Close()
+		return nil, errors.Wrap(err)
+	}
+	return l, nil
 }
 
 func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {

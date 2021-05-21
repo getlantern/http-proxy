@@ -38,6 +38,7 @@ require (
 	github.com/getlantern/multipath v0.0.0-20201027015000-69ed0bd15259
 	github.com/getlantern/netx v0.0.0-20201229185957-3fadd2c8f5ba
 	github.com/getlantern/ops v0.0.0-20200403153110-8476b16edcd6
+	github.com/getlantern/ossh v0.0.0-20210519185810-21c9fdb2cd03
 	github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/proxy v0.0.0-20201001032732-eefd72879266
@@ -67,14 +68,15 @@ require (
 	github.com/mikioh/tcpinfo v0.0.0-20180831101334-131b59fef27f // indirect
 	github.com/mikioh/tcpopt v0.0.0-20180707144150-7178f18b4ea8 // indirect
 	github.com/mitchellh/panicwrap v1.0.0
-	github.com/prometheus/client_golang v1.7.1
+	github.com/prometheus/client_golang v1.9.0
 	github.com/refraction-networking/utls v0.0.0-20200729012536-186025ac7b77
 	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.7.0
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	github.com/xtaci/smux v1.5.15-0.20200704123958-f7188026ba01
-	golang.org/x/net v0.0.0-20210316092652-d523dce5a7f4
+	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
+	golang.org/x/net v0.0.0-20210414194228-064579744ee0
 	google.golang.org/api v0.43.0
 	gopkg.in/redis.v5 v5.2.9
 )
