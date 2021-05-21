@@ -9,7 +9,7 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/tlsdefaults"
 
-	utls "github.com/getlantern/utls"
+	utls "github.com/refraction-networking/utls"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 )

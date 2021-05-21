@@ -49,7 +49,6 @@ require (
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
 	github.com/getlantern/tlsmasq v0.4.2
 	github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836
-	github.com/getlantern/utls v0.0.0-20200903013459-0c02248f7ce1
 	github.com/getlantern/waitforserver v1.0.1
 	github.com/getlantern/withtimeout v0.0.0-20160829163843-511f017cd913
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
@@ -69,7 +68,7 @@ require (
 	github.com/mikioh/tcpopt v0.0.0-20180707144150-7178f18b4ea8 // indirect
 	github.com/mitchellh/panicwrap v1.0.0
 	github.com/prometheus/client_golang v1.7.1
-	github.com/refraction-networking/utls v0.0.0-20190415193640-32987941ebd3 // indirect
+	github.com/refraction-networking/utls v0.0.0-20200729012536-186025ac7b77
 	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.7.0
@@ -91,3 +90,5 @@ replace git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110
 
 // Waiting on https://github.com/mitchellh/panicwrap/pull/27 to be merged upstream
 replace github.com/mitchellh/panicwrap v1.0.0 => github.com/getlantern/panicwrap v0.0.0-20200707191944-9ba45baf8e51
+
+replace github.com/refraction-networking/utls => github.com/getlantern/utls v0.0.0-20200903013459-0c02248f7ce1
