@@ -222,8 +222,8 @@ github.com/getlantern/keyman v0.0.0-20210218183930-5e48f8ced961 h1:FEBpsJqYoGfiO
 github.com/getlantern/keyman v0.0.0-20210218183930-5e48f8ced961/go.mod h1:VMD668wW8As25Yb7/m9CqnsOk4zKrvFM/2eJgP6HAXE=
 github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9 h1:n2t63QvweEs53Kpy7QbXv6JRSfXpDTTgPMT4cNTOt8g=
 github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9/go.mod h1:Zqiq4op+E689yjuJACMLURzE9XUGj48UDZP7h8aN+kk=
-github.com/getlantern/lantern-shadowsocks v1.3.6-0.20210506211859-28c0ec3912e8 h1:9zuaoCFpJQ97VnF5KUnJbWecpsYeEOX0gbVuEO5uFNA=
-github.com/getlantern/lantern-shadowsocks v1.3.6-0.20210506211859-28c0ec3912e8/go.mod h1:JludU10BDqs/5iHmTlQF4+ToAouyyIK868mA6Okrqco=
+github.com/getlantern/lantern-shadowsocks v1.3.6-0.20210601195915-e04471aa4920 h1:VHBRvnYWECSPUMEIvpn24q3kMgpSR6zLgDMIMthWNFQ=
+github.com/getlantern/lantern-shadowsocks v1.3.6-0.20210601195915-e04471aa4920/go.mod h1:JludU10BDqs/5iHmTlQF4+ToAouyyIK868mA6Okrqco=
 github.com/getlantern/measured v0.0.0-20170302221919-0582bf799783/go.mod h1:5OW2WJitCKExpSw2bploW2fM7PjOd6QnLqyp+IqToqU=
 github.com/getlantern/measured v0.0.0-20210507000559-ec5307b2b8be h1:rfdOTeKew6zcpf5BQ566WInLINdZARimtWVLcgP/a4I=
 github.com/getlantern/measured v0.0.0-20210507000559-ec5307b2b8be/go.mod h1:QG6d9+nAxD1PjVjgGLUUHPZBQUp20/h7j8a3kxd/8Rc=
