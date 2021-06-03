@@ -9,6 +9,7 @@ import (
 	"github.com/getlantern/context"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/hidden"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/measured"
 	"github.com/getlantern/ops"
@@ -19,7 +20,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("lantern-proxy-borda")
+	log = zerologger.Named("lantern-proxy-borda")
 
 	fullyReportedOps = []string{"http_proxy_handle", "tcpinfo", "google_search", "google_captcha", "blacklist", "connect_without_request", "mimic_apache"}
 )

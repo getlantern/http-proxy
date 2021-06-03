@@ -6,11 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 )
 
 func TestEnable(t *testing.T) {
-	log := golog.LoggerFor("stackdrivererror-test")
+	log := zerologger.Named("stackdrivererror-test")
 	ctx := context.Background()
 
 	percent := 1.0

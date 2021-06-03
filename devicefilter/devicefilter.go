@@ -9,7 +9,6 @@ import (
 
 	"github.com/dustin/go-humanize"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/filters"
 
 	"github.com/getlantern/http-proxy/listeners"
@@ -22,10 +21,11 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/usage"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 )
 
 var (
-	log = golog.LoggerFor("devicefilter")
+	log = zerologger.Named("devicefilter")
 
 	epoch = time.Date(2016, 1, 1, 0, 0, 0, 0, time.UTC)
 

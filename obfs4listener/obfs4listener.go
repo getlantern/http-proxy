@@ -8,10 +8,10 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 	"github.com/getlantern/withtimeout"
 
-	"git.torproject.org/pluggable-transports/goptlib.git"
+	pt "git.torproject.org/pluggable-transports/goptlib.git"
 	"git.torproject.org/pluggable-transports/obfs4.git/transports/base"
 	"git.torproject.org/pluggable-transports/obfs4.git/transports/obfs4"
 )
@@ -23,7 +23,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("obfs4listener")
+	log = zerologger.Named("obfs4listener")
 )
 
 func Wrap(wrapped net.Listener, stateDir string, handshakeConcurrency int, maxPendingHandshakesPerClient int, handshakeTimeout time.Duration) (net.Listener, error) {

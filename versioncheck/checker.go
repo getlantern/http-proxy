@@ -33,15 +33,15 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 )
 
 var (
-	log = golog.LoggerFor("versioncheck")
+	log = zerologger.Named("versioncheck")
 
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 )

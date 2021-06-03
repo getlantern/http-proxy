@@ -19,7 +19,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 	"github.com/getlantern/proxy/filters"
 )
 
@@ -28,7 +28,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("bbrlistener")
+	log = zerologger.Named("bbrlistener")
 )
 
 type Middleware interface {

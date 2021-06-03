@@ -15,13 +15,13 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/pcapper"
 )
 
 var (
-	log = golog.LoggerFor("apache")
+	log = zerologger.Named("apache")
 )
 
 type apacheMimic struct {

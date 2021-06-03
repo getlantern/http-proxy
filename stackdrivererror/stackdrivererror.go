@@ -8,6 +8,7 @@ import (
 	"google.golang.org/api/option"
 
 	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 
 	"cloud.google.com/go/errorreporting"
 )
@@ -15,7 +16,7 @@ import (
 // Reporter is a thin wrapper of Google errorreporting client
 type Reporter struct {
 	errorClient *errorreporting.Client
-	log         golog.Logger
+	log         zerologger.LoggerWrapper
 	proxyName   string
 	externalIP  string
 }
@@ -40,7 +41,7 @@ func (r *Reporter) Report(severity golog.Severity, err error, stack []byte) {
 // Enable enables golog to report errors to stackdriver and returns the reporter.
 func Enable(ctx context.Context, projectID, stackdriverCreds string,
 	samplePercentage float64, proxyName, externalIP, proxyProtocol string) *Reporter {
-	log := golog.LoggerFor("proxy-stackdriver")
+	log := zerologger.Named("proxy-stackdriver")
 	log.Debugf("Enabling stackdriver error reporting for project %v", projectID)
 	errorClient, err := errorreporting.NewClient(ctx, projectID, errorreporting.Config{
 		ServiceName:    "lantern-http-proxy-service",

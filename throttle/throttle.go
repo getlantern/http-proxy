@@ -20,7 +20,7 @@ import (
 	"gopkg.in/redis.v5"
 
 	"github.com/getlantern/errors"
-	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 )
 
 const (
@@ -28,7 +28,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("flashlight.throttle")
+	log = zerologger.Named("flashlight.throttle")
 )
 
 type CapInterval string

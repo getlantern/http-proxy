@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("packetcounter")
+	log = zerologger.Named("packetcounter")
 )
 
 // ReportFN is a callback to report how many sentDataPackets have been sent over a TCP

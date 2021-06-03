@@ -20,15 +20,15 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 	"github.com/getlantern/proxy/filters"
 )
 
 type httpsUpgrade struct {
 	httpClient            *http.Client
-	log                   golog.Logger
+	log                   zerologger.LoggerWrapper
 	configServerAuthToken string
 }
 
@@ -40,7 +40,7 @@ func NewHTTPSUpgrade(configServerAuthToken string) filters.Filter {
 				IdleConnTimeout: 4 * time.Minute,
 			},
 		},
-		log:                   golog.LoggerFor("httpsUpgrade"),
+		log:                   zerologger.Named("httpsUpgrade"),
 		configServerAuthToken: configServerAuthToken,
 	}
 }

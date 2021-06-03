@@ -29,12 +29,13 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/stackdrivererror"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
 	"github.com/getlantern/quicwrapper"
 )
 
 var (
-	log      = golog.LoggerFor("lantern-proxy")
+	log      = zerologger.Named("lantern-proxy")
 	revision = "unknown" // overridden by Makefile
 	// Use our own CDN distribution which fetches the origin at most once per
 	// day to avoid hitting the 2000 downloads/day limit imposed by MaxMind.

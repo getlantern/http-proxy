@@ -4,15 +4,15 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 	"github.com/getlantern/netx"
 	"github.com/getlantern/proxy/filters"
 	"github.com/getlantern/tinywss"
 )
 
 var (
-	log = golog.LoggerFor("wss")
+	log = zerologger.Named("wss")
 	// these headers are replicated from the inital http upgrade request
 	// to certain subrequests on a wss connection.
 	headerWhitelist = []string{

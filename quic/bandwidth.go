@@ -5,15 +5,15 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 	"github.com/getlantern/netx"
 	"github.com/getlantern/proxy/filters"
 	"github.com/getlantern/quicwrapper"
 )
 
 var (
-	log = golog.LoggerFor("quic")
+	log = zerologger.Named("quic")
 )
 
 type middleware struct{}

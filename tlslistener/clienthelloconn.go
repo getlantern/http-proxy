@@ -10,11 +10,11 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/netx"
 	utls "github.com/refraction-networking/utls"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 )
 
 var (
@@ -139,7 +139,7 @@ func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utl
 	rrc := &clientHelloRecordingConn{
 		Conn:                  rawConn,
 		dataRead:              buf,
-		log:                   golog.LoggerFor("clienthello-conn"),
+		log:                   zerologger.Named("clienthello-conn"),
 		cfg:                   cfgClone,
 		activeReader:          io.TeeReader(rawConn, buf),
 		helloMutex:            &sync.Mutex{},
@@ -155,7 +155,7 @@ func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utl
 type clientHelloRecordingConn struct {
 	net.Conn
 	dataRead              *bytes.Buffer
-	log                   golog.Logger
+	log                   zerologger.LoggerWrapper
 	activeReader          io.Reader
 	helloMutex            *sync.Mutex
 	cfg                   *tls.Config

@@ -12,14 +12,14 @@ import (
 	"time"
 
 	"github.com/getlantern/enhttp"
-	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 )
 
 var (
-	log = golog.LoggerFor("http-proxy-lantern.ping")
+	log = zerologger.Named("http-proxy-lantern.ping")
 
 	letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 

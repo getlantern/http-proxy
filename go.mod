@@ -67,8 +67,10 @@ require (
 	github.com/mikioh/tcpinfo v0.0.0-20180831101334-131b59fef27f // indirect
 	github.com/mikioh/tcpopt v0.0.0-20180707144150-7178f18b4ea8 // indirect
 	github.com/mitchellh/panicwrap v1.0.0
+	github.com/pkg/errors v0.9.1
 	github.com/prometheus/client_golang v1.7.1
 	github.com/refraction-networking/utls v0.0.0-20200729012536-186025ac7b77
+	github.com/rs/zerolog v1.22.0
 	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.7.0
@@ -77,6 +79,7 @@ require (
 	golang.org/x/net v0.0.0-20210316092652-d523dce5a7f4
 	google.golang.org/api v0.43.0
 	gopkg.in/redis.v5 v5.2.9
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
 replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20210430210533-e2bcf9129430

@@ -25,7 +25,6 @@ import (
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
 	"github.com/getlantern/geo"
-	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
 	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
@@ -73,6 +72,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/tokenfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/versioncheck"
 	"github.com/getlantern/http-proxy-lantern/v2/wss"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 )
 
 const (
@@ -80,7 +80,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("lantern-proxy")
+	log = zerologger.Named("lantern-proxy")
 
 	proxyNameRegex = regexp.MustCompile(`(fp-([a-z0-9]+-)?([a-z0-9]+)-[0-9]{8}-[0-9]+)(-.+)?`)
 )

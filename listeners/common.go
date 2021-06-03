@@ -1,7 +1,5 @@
 package listeners
 
-import (
-	"github.com/getlantern/golog"
-)
+import "github.com/getlantern/http-proxy-lantern/v2/zerologger"
 
-var log = golog.LoggerFor("listeners")
+var log = zerologger.Named("listeners")

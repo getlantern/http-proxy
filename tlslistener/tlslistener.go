@@ -6,12 +6,12 @@ import (
 	"crypto/tls"
 	"net"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/tlsdefaults"
 
 	utls "github.com/refraction-networking/utls"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 )
 
 // Wrap wraps the specified listener in our default TLS listener.
@@ -22,7 +22,7 @@ func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKe
 		return nil, err
 	}
 
-	log := golog.LoggerFor("lantern-proxy-tlslistener")
+	log := zerologger.Named("lantern-proxy-tlslistener")
 
 	utlsConfig := &utls.Config{}
 	onKeys := func(keys [][32]byte) {
@@ -52,7 +52,7 @@ func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKe
 type tlslistener struct {
 	wrapped               net.Listener
 	cfg                   *tls.Config
-	log                   golog.Logger
+	log                   zerologger.LoggerWrapper
 	expectTickets         bool
 	requireTickets        bool
 	utlsCfg               *utls.Config

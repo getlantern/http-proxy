@@ -6,16 +6,16 @@ import (
 	"net/http/httputil"
 	"strings"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 )
 
-var log = golog.LoggerFor("tokenfilter")
+var log = zerologger.Named("tokenfilter")
 
 type tokenFilter struct {
 	token      string

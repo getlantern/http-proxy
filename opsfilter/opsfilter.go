@@ -5,18 +5,18 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/bbr"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 	"github.com/getlantern/http-proxy/listeners"
 )
 
 var (
-	log = golog.LoggerFor("logging")
+	log = zerologger.Named("logging")
 )
 
 type opsfilter struct {

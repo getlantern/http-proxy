@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/v2/zerologger"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy/filters"
 )
 
 var (
-	log = golog.LoggerFor("googlefilter")
+	log = zerologger.Named("googlefilter")
 
 	// DefaultSearchRegex is the default regex for google search domains.
 	DefaultSearchRegex = `^(www.)?google\..+`
