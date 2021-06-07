@@ -24,7 +24,7 @@ require (
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v1.0.1
 	github.com/getlantern/geo v0.0.0-20210511192032-f563c52422c5
-	github.com/getlantern/golog v0.0.0-20201105130739-9586b8bde3a9
+	github.com/getlantern/golog v0.0.0-20210606115803-bce9f9fe5a5f
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
 	github.com/getlantern/hidden v0.0.0-20201229170000-e66e7f878730
 	github.com/getlantern/http-proxy v0.0.3-0.20210512134337-960392ff8d2e
