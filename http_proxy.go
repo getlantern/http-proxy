@@ -8,12 +8,10 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"os/signal"
 	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
 
 	rclient "gopkg.in/redis.v5"
@@ -33,7 +31,6 @@ import (
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/ops"
 	packetforward "github.com/getlantern/packetforward/server"
-	"github.com/getlantern/pcapper"
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
 	"github.com/getlantern/psmux"
@@ -239,32 +236,35 @@ func (p *Proxy) ListenAndServe() error {
 		p.instrument = prom
 	}
 
-	var onServerError func(conn net.Conn, err error)
-	var onListenerError func(conn net.Conn, err error)
-	if p.PCAPDir != "" && p.PCAPIPs > 0 && p.PCAPSPerIP > 0 {
-		log.Debugf("Enabling packet capture, capturing the %d packets for each of the %d most recent IPs into %v", p.PCAPSPerIP, p.PCAPIPs, p.PCAPDir)
-		pcapper.StartCapturing("http-proxy", p.ExternalIntf, "/tmp", p.PCAPIPs, p.PCAPSPerIP, p.PCAPSnapLen, p.PCAPTimeout)
-		onServerError = func(conn net.Conn, err error) {
-			ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-			pcapper.Dump(ip, log.Errorf("Unexpected error handling traffic from %v: %v", ip, err).Error())
-		}
-		onListenerError = func(conn net.Conn, err error) {
-			ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-			pcapper.Dump(ip, log.Errorf("Unexpected error handling new connection from %v: %v", ip, err).Error())
-		}
-
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, syscall.SIGUSR1)
-		go func() {
-			for range c {
-				pcapper.DumpAll("Full Dump")
+	/*
+		var onServerError func(conn net.Conn, err error)
+		var onListenerError func(conn net.Conn, err error)
+		if p.PCAPDir != "" && p.PCAPIPs > 0 && p.PCAPSPerIP > 0 {
+			log.Debugf("Enabling packet capture, capturing the %d packets for each of the %d most recent IPs into %v", p.PCAPSPerIP, p.PCAPIPs, p.PCAPDir)
+			pcapper.StartCapturing("http-proxy", p.ExternalIntf, "/tmp", p.PCAPIPs, p.PCAPSPerIP, p.PCAPSnapLen, p.PCAPTimeout)
+			onServerError = func(conn net.Conn, err error) {
+				ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+				pcapper.Dump(ip, log.Errorf("Unexpected error handling traffic from %v: %v", ip, err).Error())
 			}
-		}()
-	}
+			onListenerError = func(conn net.Conn, err error) {
+				ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+				pcapper.Dump(ip, log.Errorf("Unexpected error handling new connection from %v: %v", ip, err).Error())
+			}
 
-	if err := p.setupPacketForward(); err != nil {
-		return err
-	}
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, syscall.SIGUSR1)
+			go func() {
+				for range c {
+					pcapper.DumpAll("Full Dump")
+				}
+			}()
+		}
+
+
+			if err := p.setupPacketForward(); err != nil {
+				return err
+			}
+	*/
 	p.setupOpsContext()
 	p.setBenchmarkMode()
 	p.bm = bbr.New()
