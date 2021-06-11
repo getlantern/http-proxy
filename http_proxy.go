@@ -260,11 +260,10 @@ func (p *Proxy) ListenAndServe() error {
 			}()
 		}
 
-
-			if err := p.setupPacketForward(); err != nil {
-				return err
-			}
 	*/
+	if err := p.setupPacketForward(); err != nil {
+		log.Errorf("Unable to set up packet forwarding, will continue to start up: %v", err)
+	}
 	p.setupOpsContext()
 	p.setBenchmarkMode()
 	p.bm = bbr.New()
