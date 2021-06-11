@@ -235,10 +235,10 @@ func (p *Proxy) ListenAndServe() error {
 		}()
 		p.instrument = prom
 	}
-
+	var onServerError func(conn net.Conn, err error)
+	var onListenerError func(conn net.Conn, err error)
 	/*
-		var onServerError func(conn net.Conn, err error)
-		var onListenerError func(conn net.Conn, err error)
+
 		if p.PCAPDir != "" && p.PCAPIPs > 0 && p.PCAPSPerIP > 0 {
 			log.Debugf("Enabling packet capture, capturing the %d packets for each of the %d most recent IPs into %v", p.PCAPSPerIP, p.PCAPIPs, p.PCAPDir)
 			pcapper.StartCapturing("http-proxy", p.ExternalIntf, "/tmp", p.PCAPIPs, p.PCAPSPerIP, p.PCAPSnapLen, p.PCAPTimeout)
