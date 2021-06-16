@@ -13,7 +13,7 @@ jobs:
     steps:
     - uses: actions/checkout@v2
     - name: Install libpcap
-      run: sudo apt-get install libpcap-dev
+      run: sudo apt-get update && sudo apt-get install libpcap-dev
     - name: Set up Go
       uses: actions/setup-go@v2
       with:
@@ -21,8 +21,11 @@ jobs:
     - name: Granting private modules access
       run: |
           git config --global url."https://${{ secrets.GH_TOKEN }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
-    - name: Build
-      run: go build -v ./...
-
     - name: Test
       run: go test -v ./...
+
+    - name: Build
+      run: make build
+
+    - name: Deploy canary build to S3
+      run: make deploy-canary
