@@ -11,13 +11,14 @@
 package throttle
 
 import (
+	"context"
 	"encoding/json"
 	"strings"
 	"sync"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/spaolacci/murmur3"
-	"gopkg.in/redis.v5"
 
 	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
@@ -136,6 +137,7 @@ type redisConfig struct {
 	refreshInterval time.Duration
 	settings        SettingsByCountryAndPlatform
 	mx              sync.RWMutex
+	ctx             context.Context
 }
 
 // NewRedisConfig returns a new Config that uses the given redis client to load
@@ -145,6 +147,7 @@ func NewRedisConfig(rc *redis.Client, refreshInterval time.Duration) Config {
 	cfg := &redisConfig{
 		rc:              rc,
 		refreshInterval: refreshInterval,
+		ctx:             context.Background(),
 	}
 	cfg.refreshSettings()
 	go cfg.keepCurrent()
@@ -165,7 +168,7 @@ func (cfg *redisConfig) keepCurrent() {
 }
 
 func (cfg *redisConfig) refreshSettings() {
-	encoded, err := cfg.rc.Get("_throttle").Bytes()
+	encoded, err := cfg.rc.Get(cfg.ctx, "_throttle").Bytes()
 	if err != nil {
 		log.Errorf("Unable to load throttle settings from redis: %v", err)
 		return

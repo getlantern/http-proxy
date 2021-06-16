@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	rclient "gopkg.in/redis.v5"
-
 	utp "github.com/anacrolix/go-libutp"
 	bordaClient "github.com/getlantern/borda/client"
 	"github.com/getlantern/cmux/v2"
@@ -27,6 +25,7 @@ import (
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
 	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
+	rclient "github.com/go-redis/redis/v8"
 
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/ops"
@@ -37,7 +36,6 @@ import (
 	"github.com/getlantern/quicwrapper"
 	"github.com/getlantern/tinywss"
 	"github.com/getlantern/tlsdefaults"
-	"github.com/getlantern/tlsredis"
 	"github.com/xtaci/smux"
 
 	"github.com/getlantern/http-proxy/listeners"
@@ -756,13 +754,7 @@ func (p *Proxy) initRedisClient() {
 		return
 	}
 
-	redisOpts := &tlsredis.Options{
-		RedisURL:       p.ReportingRedisAddr,
-		RedisCAFile:    p.ReportingRedisCA,
-		ClientPKFile:   p.ReportingRedisClientPK,
-		ClientCertFile: p.ReportingRedisClientCert,
-	}
-	p.rc, err = tlsredis.GetClient(redisOpts)
+	p.rc, err = redis.NewClient(p.ReportingRedisAddr)
 	if err != nil {
 		log.Errorf("Error connecting to redis, will not be able to perform bandwidth limiting: %v", err)
 	}
@@ -1064,11 +1056,4 @@ func portsFromCSV(csv string) ([]int, error) {
 		ports[i] = p
 	}
 	return ports, nil
-}
-
-type requestModifier func(req *http.Request)
-
-func (f requestModifier) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
-	f(req)
-	return next(ctx, req)
 }

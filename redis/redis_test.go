@@ -1,6 +1,7 @@
 package redis
 
 import (
+	"context"
 	"net"
 	"strconv"
 	"testing"
@@ -37,7 +38,7 @@ func TestReportPeriodically(t *testing.T) {
 	assert.EqualValues(t, 0, localCopy.Bytes)
 	newStats()
 	time.Sleep(100 * time.Millisecond)
-	result := rc.HGetAll("_client:" + deviceID).Val()
+	result := rc.HGetAll(context.Background(), "_client:"+deviceID).Val()
 	assert.Equal(t, "2", result["bytesIn"])
 	assert.Equal(t, "1", result["bytesOut"])
 	assert.Equal(t, "", result["countryCode"])
@@ -54,7 +55,7 @@ func TestReportPeriodically(t *testing.T) {
 	lookup.countryCode = "ir"
 	newStats()
 	time.Sleep(10 * time.Millisecond)
-	result = rc.HGetAll("_client:" + deviceID).Val()
+	result = rc.HGetAll(context.Background(), "_client:"+deviceID).Val()
 	assert.Equal(t, "4", result["bytesIn"])
 	assert.Equal(t, "2", result["bytesOut"])
 	assert.Equal(t, "ir", result["countryCode"])
@@ -65,16 +66,16 @@ func TestReportPeriodically(t *testing.T) {
 	lookup.countryCode = ""
 	newStats()
 	time.Sleep(10 * time.Millisecond)
-	result = rc.HGetAll("_client:" + deviceID).Val()
+	result = rc.HGetAll(context.Background(), "_client:"+deviceID).Val()
 	assert.Equal(t, "ir", result["countryCode"], "country code should have been remembered once set")
 
-	uniqueDevicesForToday := rc.SMembers("_devices:ir:" + time.Now().In(time.UTC).Format("2006-01-02") + ":forced").Val()
+	uniqueDevicesForToday := rc.SMembers(context.Background(), "_devices:ir:"+time.Now().In(time.UTC).Format("2006-01-02")+":forced").Val()
 	assert.Equal(t, []string{deviceID}, uniqueDevicesForToday)
 
-	_deviceLastSeen := rc.Get("_deviceLastSeen:ir:forced:" + deviceID).Val()
+	_deviceLastSeen := rc.Get(context.Background(), "_deviceLastSeen:ir:forced:"+deviceID).Val()
 	deviceLastSeen, err := strconv.Atoi(_deviceLastSeen)
 	require.NoError(t, err)
-	_deviceFirstThrottled := rc.Get("_deviceFirstThrottled:" + deviceID).Val()
+	_deviceFirstThrottled := rc.Get(context.Background(), "_deviceFirstThrottled:"+deviceID).Val()
 	deviceFirstThrottled, err := strconv.Atoi(_deviceFirstThrottled)
 
 	nowUnix := int(time.Now().Unix())

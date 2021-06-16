@@ -1,6 +1,7 @@
 package throttle
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -68,13 +69,13 @@ func TestThrottleConfig(t *testing.T) {
 	defer rc.Close()
 
 	// try a bad config first
-	require.NoError(t, rc.Set("_throttle", "blah I'm bad settings blah", 0).Err())
+	require.NoError(t, rc.Set(context.Background(), "_throttle", "blah I'm bad settings blah", 0).Err())
 	cfg := NewRedisConfig(rc, refreshInterval)
 	_, ok := cfg.SettingsFor(deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"})
 	require.False(t, ok, "Loading throttle settings from bad config should fail")
 
 	// now do a good config
-	require.NoError(t, rc.Set("_throttle", goodSettings, 0).Err())
+	require.NoError(t, rc.Set(context.Background(), "_throttle", goodSettings, 0).Err())
 	cfg = NewRedisConfig(rc, refreshInterval)
 
 	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"}, 4000, 400, "weekly", "known country, known platform, segment 1")
@@ -95,7 +96,7 @@ func TestThrottleConfig(t *testing.T) {
 	doTest(t, cfg, deviceIDInSegment1, "de", "", []string{"monthly", "weekly"}, 1000, 100, "weekly", "unknown country, unknown platform, unknown segment")
 
 	// update settings
-	require.NoError(t, rc.Set("_throttle", strings.ReplaceAll(goodSettings, "4", "5"), 0).Err())
+	require.NoError(t, rc.Set(context.Background(), "_throttle", strings.ReplaceAll(goodSettings, "4", "5"), 0).Err())
 	time.Sleep(refreshInterval * 2)
 
 	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"}, 5000, 500, "weekly", "known country, known platform, segment 1, after update")
@@ -127,7 +128,7 @@ func TestFailToConnectRedis(t *testing.T) {
 	require.False(t, ok, "Loading throttle settings when unable to contact redis should fail")
 
 	r.Start()
-	require.NoError(t, rc.Set("_throttle", goodSettings, 0).Err())
+	require.NoError(t, rc.Set(context.Background(), "_throttle", goodSettings, 0).Err())
 
 	time.Sleep(refreshInterval * 2)
 	// Should load the config when Redis is back up online
