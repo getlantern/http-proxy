@@ -72,18 +72,16 @@ func TestMain(m *testing.M) {
 	defer tlsTargetServer.Close()
 
 	// Set up HTTP chained server
-	httpProxyAddr, err = setupNewHTTPServer(0, 30*time.Second)
+	httpProxyAddr, err = setupNewHTTPServer(0, 30*time.Second, false)
 	if err != nil {
-		log.Error("Error starting proxy server")
-		os.Exit(1)
+		log.Fatalf("Error starting proxy server: %v", err)
 	}
 	log.Debugf("Started HTTP proxy server at %s", httpProxyAddr)
 
 	// Set up HTTPS chained server
-	tlsProxyAddr, err = setupNewHTTPSServer(0, 30*time.Second)
+	tlsProxyAddr, err = setupNewHTTPServer(0, 30*time.Second, true)
 	if err != nil {
-		log.Error("Error starting proxy server")
-		os.Exit(1)
+		log.Fatalf("Error starting proxy server: %v", err)
 	}
 	log.Debugf("Started HTTPS proxy server at %s", tlsProxyAddr)
 
@@ -147,7 +145,7 @@ func TestReportStats(t *testing.T) {
 func TestMaxConnections(t *testing.T) {
 	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Auth-Token: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
 
-	limitedServerAddr, err := setupNewHTTPServer(5, 30*time.Second)
+	limitedServerAddr, err := setupNewHTTPServer(5, 30*time.Second, false)
 	if err != nil {
 		assert.Fail(t, "Error starting proxy server")
 	}
@@ -206,7 +204,7 @@ func bufEmpty(buf [400]byte) bool {
 }
 
 func TestIdleClientConnections(t *testing.T) {
-	limitedServerAddr, err := setupNewHTTPServer(0, 100*time.Millisecond)
+	limitedServerAddr, err := setupNewHTTPServer(0, 100*time.Millisecond, false)
 	if err != nil {
 		assert.Fail(t, "Error starting proxy server")
 	}
@@ -240,12 +238,12 @@ func TestIdleClientConnections(t *testing.T) {
 // creating a custom server that only sets one timeout at a time
 func TestIdleTargetConnections(t *testing.T) {
 	impatientTimeout := 30 * time.Millisecond
-	normalServerAddr, err := setupNewHTTPServer(0, 30*time.Second)
+	normalServerAddr, err := setupNewHTTPServer(0, 30*time.Second, false)
 	if err != nil {
 		assert.Fail(t, "Error starting proxy server: %s", err)
 	}
 
-	impatientServerAddr, err := setupNewHTTPServer(0, impatientTimeout)
+	impatientServerAddr, err := setupNewHTTPServer(0, impatientTimeout, false)
 	if err != nil {
 		assert.Fail(t, "Error starting proxy server: %s", err)
 	}
@@ -694,39 +692,28 @@ func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
 	return srv
 }
 
-func setupNewHTTPServer(maxConns uint64, idleTimeout time.Duration) (string, error) {
-	s := basicServer(maxConns, idleTimeout)
-	var err error
-	ready := make(chan string)
-	wait := func(addr string) {
-		ready <- addr
-	}
-	go func(err *error) {
-		if *err = s.ListenAndServeHTTP("localhost:0", wait); err != nil {
-			log.Errorf("Unable to serve: %v", err)
+func setupNewHTTPServer(maxConns uint64, idleTimeout time.Duration, https bool) (addr string, err error) {
+	var (
+		s     = basicServer(maxConns, idleTimeout)
+		ready = make(chan string, 1)
+		errC  = make(chan error, 1)
+		wait  = func(addr string) { ready <- addr }
+	)
+	go func() {
+		if https {
+			errC <- s.ListenAndServeHTTPS("localhost:0", "key.pem", "cert.pem", wait)
+		} else {
+			errC <- s.ListenAndServeHTTP("localhost:0", wait)
 		}
-	}(&err)
-	return <-ready, err
-}
-
-func setupNewHTTPSServer(maxConns uint64, idleTimeout time.Duration) (string, error) {
-	s := basicServer(maxConns, idleTimeout)
-	var err error
-	ready := make(chan string)
-	wait := func(addr string) {
-		ready <- addr
-	}
-	go func(err *error) {
-		if *err = s.ListenAndServeHTTPS("localhost:0", "key.pem", "cert.pem", wait); err != nil {
-			log.Errorf("Unable to serve: %v", err)
+	}()
+	select {
+	case addr = <-ready:
+		if https {
+			serverCertificate, err = keyman.LoadCertificateFromFile("cert.pem")
 		}
-	}(&err)
-	addr := <-ready
-	if err != nil {
-		return "", err
+	case err = <-errC:
 	}
-	serverCertificate, err = keyman.LoadCertificateFromFile("cert.pem")
-	return addr, err
+	return
 }
 
 //
