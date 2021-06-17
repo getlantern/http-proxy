@@ -44,7 +44,7 @@ require (
 	github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683
 	github.com/getlantern/quicwrapper v0.0.0-20210430211107-8281ff59ece2
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
-	github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0
+	github.com/getlantern/testredis v0.0.0-20210610142259-c0995d455766
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
 	github.com/getlantern/tlsmasq v0.4.2
