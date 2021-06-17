@@ -1,4 +1,4 @@
-package tlslistener
+package rdplistener
 
 import (
 	"crypto/rand"

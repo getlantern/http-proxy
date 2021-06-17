@@ -1,17 +1,16 @@
-package tlslistener
+package rdplistener
 
 import (
 	"bytes"
 	"crypto/tls"
-	"errors"
-	"fmt"
 	"io"
+	"log"
 	"net"
 	"sync"
-	"time"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/netx"
+	"github.com/getlantern/preconn"
 	utls "github.com/refraction-networking/utls"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
@@ -34,61 +33,57 @@ func (hr HandshakeReaction) Action() string {
 }
 
 var (
-	// AlertHandshakeFailure responds TLS alert 40 (Handshake failure).
-	AlertHandshakeFailure = HandshakeReaction{
-		action: "AlertHandshakeFailure",
-		getConfig: func(c *tls.Config) (*tls.Config, error) {
-			clone := c.Clone()
-			clone.CipherSuites = []uint16{}
-			return clone, nil
-		}}
 
-	// AlertProtocolVersion responds TLS alert 70 (Protocol version).
-	AlertProtocolVersion = HandshakeReaction{
-		action: "AlertProtocolVersion",
-		getConfig: func(c *tls.Config) (*tls.Config, error) {
-			clone := c.Clone()
-			clone.MaxVersion = 1
-			return clone, nil
-		}}
-
-	// AlertInternalError responds TLS alert 80 (Internal error).
-	AlertInternalError = HandshakeReaction{
-		action: "AlertInternalError",
-		getConfig: func(c *tls.Config) (*tls.Config, error) {
-			return nil, errors.New("whatever")
-		}}
-
-	// CloseConnection closes the TLS connection arbitrarily.
-	CloseConnection = HandshakeReaction{
-		action: "CloseConnection",
-		handleConn: func(c *clientHelloRecordingConn) {
-			c.Close()
-		}}
-
-	// ReflectToSite dials TLS connection to the designated site and copies
+	// ReflectToRDP dials TLS connection to the designated site and copies
 	// everything including the ClientHello back and forth between the client
 	// and the site, pretending to be the site itself. It closes the client
 	// connection if unable to dial the site.
-	ReflectToSite = func(site string) HandshakeReaction {
+	ReflectToRDP = func(site string) HandshakeReaction {
 		return HandshakeReaction{
-			action: "ReflectToSite",
+			action: "ReflectToRDP",
 			handleConn: func(c *clientHelloRecordingConn) {
 				defer c.Close()
-				upstream, err := net.Dial("tcp", net.JoinHostPort(site, "443"))
+				upstream, err := net.Dial("tcp", net.JoinHostPort(site, "3389"))
 				if err != nil {
 					return
 				}
 				defer upstream.Close()
-				_, err = c.dataRead.WriteTo(upstream)
+
+				upstream.Write(rdpStartTLS) // client RDP-TLS open (like START-TLS)
+
+				// Check if the target upstream server is going to actually do RDP TLS
+				upstreamRDPhandshake := make([]byte, 32)
+				n, err := upstream.Read(upstreamRDPhandshake)
 				if err != nil {
 					return
 				}
+
+				if bytes.Compare(upstreamRDPhandshake[:n], rdpStartTLSAck) != 0 {
+					// Reflection Target Server sent something very strange, be very afraid, just abort.
+					return
+				}
+
+				// We need to inject the TLS Client Hello back in!
+
+				pConn := preconn.Wrap(c, c.helloPacket)
+				suspectedProbeConn := tls.Server(pConn, &tls.Config{Certificates: c.cfg.Certificates})
+				err = suspectedProbeConn.Handshake()
+				if err != nil {
+					log.Printf("Fuck? %v", err)
+					return
+				}
+
+				upstreamRDPTLS := tls.Client(upstream, &tls.Config{InsecureSkipVerify: true})
+				upstreamRDPTLS.Handshake()
+				if err != nil {
+					return
+				}
+
 				bufOut := bytePool.Get().([]byte)
 				defer bytePool.Put(bufOut)
 				bufIn := bytePool.Get().([]byte)
 				defer bytePool.Put(bufIn)
-				_, _ = netx.BidiCopy(c, upstream, bufOut, bufIn)
+				_, _ = netx.BidiCopy(suspectedProbeConn, upstreamRDPTLS, bufOut, bufIn)
 			}}
 	}
 
@@ -99,27 +94,6 @@ var (
 			return c, nil
 		}}
 )
-
-// Delayed takes a HandshakeReaction and delays d before executing the action.
-func Delayed(d time.Duration, r HandshakeReaction) HandshakeReaction {
-	r2 := HandshakeReaction{
-		action: fmt.Sprintf("%s(after %v)", r.action, d),
-	}
-
-	if r.getConfig != nil {
-		r2.getConfig = func(c *tls.Config) (*tls.Config, error) {
-			time.Sleep(d)
-			return r.getConfig(c)
-		}
-	}
-	if r.handleConn != nil {
-		r2.handleConn = func(c *clientHelloRecordingConn) {
-			time.Sleep(d)
-			r.handleConn(c)
-		}
-	}
-	return r2
-}
 
 var disallowLookbackForTesting bool
 
@@ -139,7 +113,7 @@ func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utl
 	rrc := &clientHelloRecordingConn{
 		Conn:                  rawConn,
 		dataRead:              buf,
-		log:                   golog.LoggerFor("clienthello-conn"),
+		log:                   golog.LoggerFor("rdp-conn"),
 		cfg:                   cfgClone,
 		activeReader:          io.TeeReader(rawConn, buf),
 		helloMutex:            &sync.Mutex{},
@@ -162,6 +136,7 @@ type clientHelloRecordingConn struct {
 	utlsCfg               *utls.Config
 	missingTicketReaction HandshakeReaction
 	instrument            instrument.Instrument
+	helloPacket           []byte
 }
 
 func (rrc *clientHelloRecordingConn) Read(b []byte) (int, error) {
@@ -178,13 +153,16 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		bufferPool.Put(rrc.dataRead)
 	}()
 
-	hello := rrc.dataRead.Bytes()[5:]
+	fullHello := rrc.dataRead.Bytes()
+	hello := fullHello[5:]
 	// We use uTLS here purely because it exposes more TLS handshake internals, allowing
 	// us to decrypt the ClientHello and session tickets, for example. We use those functions
 	// separately without switching to uTLS entirely to allow continued upgrading of the TLS stack
 	// as new Go versions are released.
 	helloMsg, err := utls.UnmarshalClientHello(hello)
 
+	rrc.helloPacket = make([]byte, len(fullHello))
+	copy(rrc.helloPacket, fullHello)
 	if err != nil {
 		return rrc.helloError("malformed ClientHello")
 	}
