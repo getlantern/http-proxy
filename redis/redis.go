@@ -2,32 +2,23 @@ package redis
 
 import (
 	"crypto/tls"
-	"fmt"
-	"regexp"
 
 	"github.com/go-redis/redis/v8"
 )
 
+// Creates a new redis client with the specified redis URL to use, in the form:
+// rediss://:password@host
 func NewClient(redisURL string) (*redis.Client, error) {
-	pass, host, err := parseRedisURL(redisURL)
+	opt, err := redis.ParseURL(redisURL)
 	if err != nil {
-		return nil, fmt.Errorf("failed to parse Redis URL: %v", err)
+		panic(err)
 	}
 
 	return redis.NewClient(&redis.Options{
-		Addr:     host,
-		Password: pass,
+		Addr:     opt.Addr,
+		Password: opt.Password,
 		TLSConfig: &tls.Config{
 			ClientSessionCache: tls.NewLRUClientSessionCache(20),
 		},
 	}), nil
-}
-
-func parseRedisURL(redisURL string) (password string, host string, err error) {
-	redisURLRegExp := regexp.MustCompile(`^rediss://.*?:(.*?)@([\d\.(:\d*)?,]*)$`)
-	matches := redisURLRegExp.FindStringSubmatch(redisURL)
-	if len(matches) < 3 {
-		return "", "", fmt.Errorf("%s should match %s", redisURL, redisURLRegExp.String())
-	}
-	return matches[1], matches[2], nil
 }

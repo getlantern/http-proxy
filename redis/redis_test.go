@@ -16,6 +16,16 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/usage"
 )
 
+func TestRedisUrl(t *testing.T) {
+	cl, err := NewClient("rediss://:password@host:6379")
+	assert.NoError(t, err)
+	assert.NotNil(t, cl)
+
+	cl, err = NewClient("rediss://127.0.0.1:5252")
+	assert.NoError(t, err)
+	assert.NotNil(t, cl)
+}
+
 func TestReportPeriodically(t *testing.T) {
 	tr, err := testredis.Open()
 	assert.NoError(t, err)
