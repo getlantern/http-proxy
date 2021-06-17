@@ -23,6 +23,9 @@ GO        := $(call get-command,go)
 # dependencies rely on C libraries like libpcap-dev.
 BUILD_WITH_DOCKER = false
 
+# Controls whether logs from Redis are included in test output.
+REDIS_LOGS ?= false
+
 ifeq ($(OS),Windows)
 	BUILD_WITH_DOCKER = true
 else ifeq ($(shell uname -s),Darwin)
@@ -113,4 +116,4 @@ docker-builder: system-checks
 	docker build -t $(DOCKER_IMAGE_TAG) --build-arg go_version=go$(GO_VERSION) $$DOCKER_CONTEXT
 
 test:
-	GO111MODULE=on go test -race $$(go list ./...)
+	./test.bash $(REDIS_LOGS)
