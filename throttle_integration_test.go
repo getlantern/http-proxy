@@ -31,8 +31,7 @@ const (
 	timezone = "Asia/Shanghai"
 )
 
-// Requires a Redis setup as specified in this project's docker-compose.yml.
-// See also: 'make test'
+// Requires a Redis setup created in `make test`
 func TestThrottling(t *testing.T) {
 	stopCapture := testlog.Capture(t)
 	defer stopCapture()
