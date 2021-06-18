@@ -44,7 +44,6 @@ require (
 	github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683
 	github.com/getlantern/quicwrapper v0.0.0-20210430211107-8281ff59ece2
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
-	github.com/getlantern/testredis v0.0.0-20210610142259-c0995d455766
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
 	github.com/getlantern/tlsmasq v0.4.2
@@ -81,8 +80,6 @@ require (
 replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20210430210533-e2bcf9129430
 
 replace github.com/anacrolix/go-libutp => github.com/getlantern/go-libutp v1.0.3
-
-//replace github.com/getlantern/testredis => github.com/getlantern/testredis v0.0.0-20180921025736-7a5ea00c9914
 
 // git.apache.org isn't working at the moment, use mirror (should probably switch back once we can)
 replace git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999
