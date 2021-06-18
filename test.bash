@@ -1,6 +1,6 @@
 #! /bin/bash
 
-TEST_REDIS_CONTAINER=config-server-test-redis
+TEST_REDIS_CONTAINER=http-proxy-lantern-test-redis
 
 function fail() {
     echo $1
