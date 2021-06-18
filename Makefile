@@ -102,6 +102,10 @@ deploy-staging: $(DIST_DIR)/http-proxy
 	s3cmd put $(DIST_DIR)/http-proxy s3://http-proxy/http-proxy-staging && \
 	s3cmd setacl --acl-grant read:f87080f71ec0be3b9a933cbb244a6c24d4aca584ac32b3220f56d59071043747 s3://http-proxy/http-proxy-staging
 
+deploy-canary: $(DIST_DIR)/http-proxy
+	s3cmd put $(DIST_DIR)/http-proxy s3://http-proxy/http-proxy-canary && \
+	s3cmd setacl --acl-grant read:f87080f71ec0be3b9a933cbb244a6c24d4aca584ac32b3220f56d59071043747 s3://http-proxy/http-proxy-canary
+
 clean:
 	rm -rf $(BUILD_DIR) $(DIST_DIR)
 
