@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,14 +17,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlantern/errors"
 	"github.com/getlantern/golog/testlog"
 	. "github.com/getlantern/waitforserver"
-	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
+	"github.com/getlantern/http-proxy-lantern/v2/internal/testutil"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 )
 
@@ -69,10 +67,7 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string, redisIsUp bool,
 	log.Debugf("Waiting for origin server at %s...", originAddr)
 	require.NoError(t, WaitForServer("tcp", originAddr, 10*time.Second))
 
-	redisClient, err := testRedis()
-	require.NoError(t, err)
-	defer redisClient.Close()
-
+	redisClient := testutil.TestRedis(t)
 	if redisIsUp {
 		settings := fmt.Sprintf(`{"default": { "default": [{"capResets": "daily", "threshold": %d, "rate": %d}] } }`, throttleThreshold, throttleRate)
 		require.NoError(t, redisClient.Set(context.Background(), "_throttle", settings, 0).Err())
@@ -244,51 +239,4 @@ func (c *ReadSizeConn) Read(b []byte) (n int, err error) {
 	n, err = c.Conn.Read(b)
 	c.readSize += n
 	return
-}
-
-// testRedis returns a client pointed at the local testing setup. This assumes the same setup
-// specified in this project's test-redis.dockerfile. Specifically, a Redis server should be
-// listening on localhost:6379. The master name should be "mymaster" and TLS should be in use.
-//
-// The database will be wiped before this function returns.
-func testRedis() (*redis.Client, error) {
-	c := redis.NewClient(&redis.Options{
-		Addr:      "localhost:6379",
-		TLSConfig: &tls.Config{InsecureSkipVerify: true},
-	})
-	if err := wipeRedis(c); err != nil {
-		c.Close()
-		return nil, fmt.Errorf("failed to wipe database: %w", err)
-	}
-	return c, nil
-}
-
-func wipeRedis(c *redis.Client) error {
-	host, _, err := net.SplitHostPort(c.Options().Addr)
-	if err != nil {
-		return fmt.Errorf("failed to parse test Redis URL: %w", err)
-	}
-	if host != "localhost" && host != "127.0.0.1" {
-		return errors.New("refusing to wipe non-local database")
-	}
-
-	allKeys, err := c.Keys(context.Background(), "*").Result()
-	if err != nil {
-		return fmt.Errorf("failed to obtain all keys: %w", err)
-	}
-	if len(allKeys) == 0 {
-		return nil
-	}
-	_, err = c.Del(context.Background(), allKeys...).Result()
-	if err != nil {
-		return fmt.Errorf("failed to delete all keys: %w", err)
-	}
-	currentKeys, err := c.Keys(context.Background(), "*").Result()
-	if err != nil {
-		return fmt.Errorf("failed to obtain list of keys after delete: %w", err)
-	}
-	if len(currentKeys) > 0 {
-		return fmt.Errorf("expected 0 keys in database after delete, but found %d", len(currentKeys))
-	}
-	return nil
 }
