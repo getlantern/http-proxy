@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -17,6 +18,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/getlantern/errors"
 	"github.com/getlantern/golog/testlog"
 	. "github.com/getlantern/waitforserver"
 	"github.com/go-redis/redis/v8"
@@ -88,7 +90,7 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string, redisIsUp bool,
 
 	proxy := &Proxy{
 		HTTPAddr:                serverAddr,
-		ReportingRedisAddr:      "redis://" + redisClient.Options().Addr,
+		ReportingRedisClient:    redisClient,
 		Token:                   validToken,
 		EnableReports:           true,
 		IdleTimeout:             1 * time.Minute,
@@ -245,54 +247,48 @@ func (c *ReadSizeConn) Read(b []byte) (n int, err error) {
 }
 
 // testRedis returns a client pointed at the local testing setup. This assumes the same setup
-// specified in this project's docker-compose file. Specifically, Sentinel should be available on
-// localhost:26379 and the Redis master(s) should be available on localhost as well. The master name
-// should be "mymaster". None of the servers should be using TLS.
+// specified in this project's test-redis.dockerfile. Specifically, a Redis server should be
+// listening on localhost:6379. The master name should be "mymaster" and TLS should be in use.
 //
 // The database will be wiped before this function returns.
 func testRedis() (*redis.Client, error) {
-	wipeRedis := func(c *redis.Client) error {
-		allKeys, err := c.Keys(context.Background(), "*").Result()
-		if err != nil {
-			return fmt.Errorf("failed to obtain all keys: %w", err)
-		}
-		if len(allKeys) == 0 {
-			return nil
-		}
-		_, err = c.Del(context.Background(), allKeys...).Result()
-		if err != nil {
-			return fmt.Errorf("failed to delete all keys: %w", err)
-		}
-		currentKeys, err := c.Keys(context.Background(), "*").Result()
-		if err != nil {
-			return fmt.Errorf("failed to obtain list of keys after delete: %w", err)
-		}
-		if len(currentKeys) > 0 {
-			return fmt.Errorf("expected 0 keys in database after delete, but found %d", len(currentKeys))
-		}
-		return nil
-	}
-
-	dialFunc := func(ctx context.Context, network, addr string) (net.Conn, error) {
-		// The test Redis and Sentinel instances are running in a Docker network. Inside this
-		// network, the Redis host will be mapped to some IP and Sentinel will report this IP to our
-		// client. However, this IP will not work on our host machine. Both Redis and Sentinel
-		// should be available via localhost though, so we just route everything to localhost.
-		_, port, err := net.SplitHostPort(addr)
-		if err != nil {
-			return nil, fmt.Errorf("failed to parse address: %w", err)
-		}
-		return (&net.Dialer{}).DialContext(ctx, network, "127.0.0.1:"+port)
-	}
-
-	c := redis.NewFailoverClient(&redis.FailoverOptions{
-		MasterName:    "mymaster",
-		SentinelAddrs: []string{"127.0.0.1:26379"},
-		Dialer:        dialFunc,
+	c := redis.NewClient(&redis.Options{
+		Addr:      "localhost:6379",
+		TLSConfig: &tls.Config{InsecureSkipVerify: true},
 	})
 	if err := wipeRedis(c); err != nil {
 		c.Close()
 		return nil, fmt.Errorf("failed to wipe database: %w", err)
 	}
 	return c, nil
+}
+
+func wipeRedis(c *redis.Client) error {
+	host, _, err := net.SplitHostPort(c.Options().Addr)
+	if err != nil {
+		return fmt.Errorf("failed to parse test Redis URL: %w", err)
+	}
+	if host != "localhost" && host != "127.0.0.1" {
+		return errors.New("refusing to wipe non-local database")
+	}
+
+	allKeys, err := c.Keys(context.Background(), "*").Result()
+	if err != nil {
+		return fmt.Errorf("failed to obtain all keys: %w", err)
+	}
+	if len(allKeys) == 0 {
+		return nil
+	}
+	_, err = c.Del(context.Background(), allKeys...).Result()
+	if err != nil {
+		return fmt.Errorf("failed to delete all keys: %w", err)
+	}
+	currentKeys, err := c.Keys(context.Background(), "*").Result()
+	if err != nil {
+		return fmt.Errorf("failed to obtain list of keys after delete: %w", err)
+	}
+	if len(currentKeys) > 0 {
+		return fmt.Errorf("expected 0 keys in database after delete, but found %d", len(currentKeys))
+	}
+	return nil
 }
