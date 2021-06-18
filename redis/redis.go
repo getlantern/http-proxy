@@ -2,6 +2,7 @@ package redis
 
 import (
 	"crypto/tls"
+	"fmt"
 
 	"github.com/go-redis/redis/v8"
 )
@@ -11,7 +12,7 @@ import (
 func NewClient(redisURL string) (*redis.Client, error) {
 	opt, err := redis.ParseURL(redisURL)
 	if err != nil {
-		panic(err)
+		return nil, fmt.Errorf("failed to parse URL")
 	}
 
 	return redis.NewClient(&redis.Options{
