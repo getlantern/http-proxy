@@ -11,8 +11,8 @@ import (
 )
 
 // TestRedis returns a client pointed at the local testing setup. This assumes the same setup
-// specified in this project's test-redis.dockerfile. Specifically, a Redis server should be
-// listening on localhost:6379. The master name should be "mymaster" and TLS should be in use.
+// specified in this project's test.bash file. Specifically, a Redis server should be listening on
+// localhost:6379. The master name should be "mymaster" and TLS should be in use.
 //
 // The database will be wiped before this function returns. The client will be closed when the test
 // completes.
