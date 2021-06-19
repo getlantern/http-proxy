@@ -3,12 +3,31 @@ package testutil
 import (
 	"context"
 	"crypto/tls"
-	"net"
+	"fmt"
 	"testing"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/require"
 )
+
+const (
+	maxDBKey  = "maxDB"
+	redisAddr = "localhost:6379"
+)
+
+// Each client connects to a unique database. Database 0 holds a single key, maxDB, used to track
+// the current highest database number.
+func getNextDatabaseNumber() (int64, error) {
+	c := redis.NewClient(&redis.Options{
+		Addr:      redisAddr,
+		TLSConfig: &tls.Config{InsecureSkipVerify: true},
+	})
+	nextDB, err := c.Incr(context.Background(), maxDBKey).Result()
+	if err != nil {
+		return 0, fmt.Errorf("failed to increment and retrieve maxDB: %w", err)
+	}
+	return nextDB, nil
+}
 
 // TestRedis returns a client pointed at the local testing setup. This assumes the same setup
 // specified in this project's test.bash file. Specifically, a Redis server should be listening on
@@ -19,30 +38,14 @@ import (
 func TestRedis(t *testing.T) *redis.Client {
 	t.Helper()
 
+	nextDB, err := getNextDatabaseNumber()
+	require.NoError(t, err)
+
 	c := redis.NewClient(&redis.Options{
-		Addr:      "localhost:6379",
+		Addr:      redisAddr,
 		TLSConfig: &tls.Config{InsecureSkipVerify: true},
+		DB:        int(nextDB),
 	})
 	t.Cleanup(func() { c.Close() })
-	wipeRedis(t, c)
 	return c
-}
-
-func wipeRedis(t *testing.T, c *redis.Client) {
-	host, _, err := net.SplitHostPort(c.Options().Addr)
-	require.NoError(t, err)
-	if host != "localhost" && host != "127.0.0.1" {
-		t.Fatal("refusing to wipe non-local database")
-	}
-
-	allKeys, err := c.Keys(context.Background(), "*").Result()
-	require.NoError(t, err)
-	if len(allKeys) == 0 {
-		return
-	}
-	_, err = c.Del(context.Background(), allKeys...).Result()
-	require.NoError(t, err)
-	currentKeys, err := c.Keys(context.Background(), "*").Result()
-	require.NoError(t, err)
-	require.Zero(t, len(currentKeys))
 }
