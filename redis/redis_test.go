@@ -1,34 +1,43 @@
 package redis
 
 import (
+	"context"
 	"net"
 	"strconv"
 	"testing"
 	"time"
 
 	"github.com/getlantern/measured"
-	"github.com/getlantern/testredis"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/getlantern/http-proxy-lantern/v2/internal/testutil"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/usage"
 )
 
-func TestReportPeriodically(t *testing.T) {
-	tr, err := testredis.Open()
+func TestRedisUrl(t *testing.T) {
+	cl, err := NewClient("rediss://:password@host:6379")
 	assert.NoError(t, err)
-	defer tr.Close()
-	rc := tr.Client()
+	assert.NotNil(t, cl)
+
+	cl, err = NewClient("rediss://127.0.0.1:5252")
+	assert.NoError(t, err)
+	assert.NotNil(t, cl)
+}
+
+func TestReportPeriodically(t *testing.T) {
+	redisClient := testutil.TestRedis(t)
+
 	deviceID := "device12"
 	clientIP := "1.1.1.1"
-	fetcher := NewDeviceFetcher(rc)
+	fetcher := NewDeviceFetcher(redisClient)
 	statsCh := make(chan *statsAndContext, 10000)
 	newStats := func() {
 		statsCh <- &statsAndContext{map[string]interface{}{"deviceid": deviceID, "client_ip": clientIP, "app_platform": "windows", "throttled": true}, &measured.Stats{RecvTotal: 2, SentTotal: 1}}
 	}
 	lookup := &fakeLookup{}
-	go reportPeriodically(lookup, rc, time.Millisecond, throttle.NewForcedConfig(5000, 500, throttle.Monthly), statsCh)
+	go reportPeriodically(lookup, redisClient, time.Millisecond, throttle.NewForcedConfig(5000, 500, throttle.Monthly), statsCh)
 
 	fetcher.RequestNewDeviceUsage(deviceID)
 	time.Sleep(100 * time.Millisecond)
@@ -36,17 +45,12 @@ func TestReportPeriodically(t *testing.T) {
 	assert.Equal(t, "", localCopy.CountryCode)
 	assert.EqualValues(t, 0, localCopy.Bytes)
 	newStats()
-	time.Sleep(100 * time.Millisecond)
-	result := rc.HGetAll("_client:" + deviceID).Val()
+	time.Sleep(300 * time.Millisecond)
+	result := redisClient.HGetAll(context.Background(), "_client:"+deviceID).Val()
 	assert.Equal(t, "2", result["bytesIn"])
 	assert.Equal(t, "1", result["bytesOut"])
 	assert.Equal(t, "", result["countryCode"])
-
-	// this doesn't appear to work with 'ledis' when testing.  It would need to call HEXPIREAT and
-	// check it with HTTL.  calling EXPIREAT on a hash returns 0 in the script (fails) under test.
-	// possibly we should use a newer version of go redis instead of ledis for this.
-	// filed https://app.zenhub.com/workspaces/lantern-55d6e412162fe7fc264ad9a8/issues/getlantern/lantern-internal/4222
-	// assert.True(t, rc.TTL("_client:"+deviceID).Val() > 0, "should have set TTL to the key")
+	assert.True(t, redisClient.TTL(context.Background(), "_client:"+deviceID).Val() > 0, "should have set TTL to the key")
 	localCopy = usage.Get(deviceID)
 	assert.Equal(t, "", localCopy.CountryCode)
 	assert.EqualValues(t, 3, localCopy.Bytes)
@@ -54,7 +58,7 @@ func TestReportPeriodically(t *testing.T) {
 	lookup.countryCode = "ir"
 	newStats()
 	time.Sleep(10 * time.Millisecond)
-	result = rc.HGetAll("_client:" + deviceID).Val()
+	result = redisClient.HGetAll(context.Background(), "_client:"+deviceID).Val()
 	assert.Equal(t, "4", result["bytesIn"])
 	assert.Equal(t, "2", result["bytesOut"])
 	assert.Equal(t, "ir", result["countryCode"])
@@ -65,16 +69,16 @@ func TestReportPeriodically(t *testing.T) {
 	lookup.countryCode = ""
 	newStats()
 	time.Sleep(10 * time.Millisecond)
-	result = rc.HGetAll("_client:" + deviceID).Val()
+	result = redisClient.HGetAll(context.Background(), "_client:"+deviceID).Val()
 	assert.Equal(t, "ir", result["countryCode"], "country code should have been remembered once set")
 
-	uniqueDevicesForToday := rc.SMembers("_devices:ir:" + time.Now().In(time.UTC).Format("2006-01-02") + ":forced").Val()
+	uniqueDevicesForToday := redisClient.SMembers(context.Background(), "_devices:ir:"+time.Now().In(time.UTC).Format("2006-01-02")+":forced").Val()
 	assert.Equal(t, []string{deviceID}, uniqueDevicesForToday)
 
-	_deviceLastSeen := rc.Get("_deviceLastSeen:ir:forced:" + deviceID).Val()
+	_deviceLastSeen := redisClient.Get(context.Background(), "_deviceLastSeen:ir:forced:"+deviceID).Val()
 	deviceLastSeen, err := strconv.Atoi(_deviceLastSeen)
 	require.NoError(t, err)
-	_deviceFirstThrottled := rc.Get("_deviceFirstThrottled:" + deviceID).Val()
+	_deviceFirstThrottled := redisClient.Get(context.Background(), "_deviceFirstThrottled:"+deviceID).Val()
 	deviceFirstThrottled, err := strconv.Atoi(_deviceFirstThrottled)
 
 	nowUnix := int(time.Now().Unix())

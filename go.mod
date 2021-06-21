@@ -44,13 +44,12 @@ require (
 	github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683
 	github.com/getlantern/quicwrapper v0.0.0-20210430211107-8281ff59ece2
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
-	github.com/getlantern/testredis v0.0.0-20190411184556-1cd088e934c0
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
 	github.com/getlantern/tlsmasq v0.4.2
-	github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836
 	github.com/getlantern/waitforserver v1.0.1
 	github.com/getlantern/withtimeout v0.0.0-20160829163843-511f017cd913
+	github.com/go-redis/redis/v8 v8.10.0
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 	github.com/gonum/blas v0.0.0-20180125090452-e7c5890b24cf // indirect
 	github.com/gonum/floats v0.0.0-20180125090339-7de1f4ea7ab5 // indirect
@@ -76,14 +75,11 @@ require (
 	github.com/xtaci/smux v1.5.15-0.20200704123958-f7188026ba01
 	golang.org/x/net v0.0.0-20210316092652-d523dce5a7f4
 	google.golang.org/api v0.43.0
-	gopkg.in/redis.v5 v5.2.9
 )
 
 replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20210430210533-e2bcf9129430
 
 replace github.com/anacrolix/go-libutp => github.com/getlantern/go-libutp v1.0.3
-
-replace github.com/getlantern/testredis => github.com/getlantern/testredis v0.0.0-20180921025736-7a5ea00c9914
 
 // git.apache.org isn't working at the moment, use mirror (should probably switch back once we can)
 replace git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999

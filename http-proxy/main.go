@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/mitchellh/panicwrap"
 	"github.com/vharitonsky/iniflags"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
 	"github.com/getlantern/http-proxy-lantern/v2/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
+	lanternredis "github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/stackdrivererror"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
@@ -110,10 +112,7 @@ var (
 	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
 
-	reportingRedisAddr       = flag.String("reportingredis", "", "The address of the reporting Redis instance in \"redis[s]://host:port\" format")
-	reportingRedisCA         = flag.String("reportingredisca", "", "Certificate for the CA of Redis instance for reporting")
-	reportingRedisClientPK   = flag.String("reportingredisclientpk", "", "Private key for authenticating client to the Redis instance for reporting")
-	reportingRedisClientCert = flag.String("reportingredisclientcert", "", "Certificate for authenticating client to the Redis instance for reporting")
+	reportingRedisAddr = flag.String("reportingredis", "", "The address of the reporting Redis instance in \"redis[s]://host:port\" format")
 
 	tunnelPorts         = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
 	tos                 = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")
@@ -346,6 +345,16 @@ func main() {
 	}
 	go periodicallyForceGC()
 
+	var reportingRedisClient *redis.Client
+	if *reportingRedisAddr != "" {
+		reportingRedisClient, err = lanternredis.NewClient(*reportingRedisAddr)
+		if err != nil {
+			log.Errorf("failed to initialize redis client, will not be able to perform bandwidth limiting: %v", err)
+		}
+	} else {
+		log.Debug("no redis address configured for bandwidth reporting")
+	}
+
 	p := &proxy.Proxy{
 		HTTPAddr:                           *addr,
 		HTTPMultiplexAddr:                  *multiplexAddr,
@@ -367,10 +376,7 @@ func main() {
 		Pro:                                *pro,
 		ProxiedSitesSamplePercentage:       *proxiedSitesSamplePercentage,
 		ProxiedSitesTrackingID:             *proxiedSitesTrackingId,
-		ReportingRedisAddr:                 *reportingRedisAddr,
-		ReportingRedisCA:                   *reportingRedisCA,
-		ReportingRedisClientPK:             *reportingRedisClientPK,
-		ReportingRedisClientCert:           *reportingRedisClientCert,
+		ReportingRedisClient:               reportingRedisClient,
 		Token:                              *token,
 		TunnelPorts:                        *tunnelPorts,
 		Obfs4Addr:                          *obfs4Addr,

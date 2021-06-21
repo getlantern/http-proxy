@@ -1,13 +1,14 @@
 package redis
 
 import (
+	"context"
 	"math/rand"
 	"net"
 	"strconv"
 	"strings"
 	"time"
 
-	"gopkg.in/redis.v5"
+	"github.com/go-redis/redis/v8"
 
 	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
@@ -94,7 +95,7 @@ func reportPeriodically(countryLookup geo.CountryLookup, rc *redis.Client, repor
 			}
 			if scriptSHA == "" {
 				var err error
-				scriptSHA, err = rc.ScriptLoad(updateUsageScript).Result()
+				scriptSHA, err = rc.ScriptLoad(context.Background(), updateUsageScript).Result()
 				if err != nil {
 					log.Errorf("Unable to load script, skip submitting stats: %v", err)
 					continue
@@ -155,7 +156,7 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 			}
 
 			clientKey := "_client:" + deviceID
-			updateUsage = pl.EvalSha(scriptSHA, []string{clientKey},
+			updateUsage = pl.EvalSha(context.Background(), scriptSHA, []string{clientKey},
 				strconv.Itoa(stats.RecvTotal),
 				strconv.Itoa(stats.SentTotal),
 				strings.ToLower(countryCode),
@@ -168,23 +169,23 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 		nowUTC := now.In(time.UTC)
 		today := nowUTC.Format("2006-01-02")
 		uniqueDevicesKey := "_devices:" + countryCodeLower + ":" + today + ":" + throttleCohort
-		pl.SAdd(uniqueDevicesKey, deviceID)
+		pl.SAdd(context.Background(), uniqueDevicesKey, deviceID)
 		// we don't keep these around forever to save space, however we do need to keep them around for longer than the purchase data from pro-server,
 		// to make sure that we can identify the device cohort for all purchases
-		pl.ExpireAt(uniqueDevicesKey, daysFrom(nowUTC.In(time.UTC), 4))
+		pl.ExpireAt(context.Background(), uniqueDevicesKey, daysFrom(nowUTC.In(time.UTC), 4))
 
 		deviceLastSeenKey := "_deviceLastSeen:" + countryCodeLower + ":" + throttleCohort + ":" + deviceID
-		pl.Set(deviceLastSeenKey, now.Unix(), 0)
-		pl.Expire(deviceLastSeenKey, sixtyDays) // nb: test fails if we try to set expiration in the above Set call
+		pl.Set(context.Background(), deviceLastSeenKey, now.Unix(), 0)
+		pl.Expire(context.Background(), deviceLastSeenKey, sixtyDays) // nb: test fails if we try to set expiration in the above Set call
 
 		throttled := sac.ctx["throttled"] == true
 		if throttled {
 			deviceFirstThrottledKey := "_deviceFirstThrottled:" + deviceID
-			pl.Set(deviceFirstThrottledKey, now.Unix(), 0)
-			pl.Expire(deviceFirstThrottledKey, sixtyDays) // nb: test fails if we try to set expiration in the above Set call
+			pl.Set(context.Background(), deviceFirstThrottledKey, now.Unix(), 0)
+			pl.Expire(context.Background(), deviceFirstThrottledKey, sixtyDays) // nb: test fails if we try to set expiration in the above Set call
 		}
 
-		_, err := pl.Exec()
+		_, err := pl.Exec(context.Background())
 		if err != nil {
 			return err
 		}

@@ -33,6 +33,7 @@ pinger
 http-proxy.raw
 
 test/data/http-proxy.raw
+test/testtickets
 
 loader
 obfs4_bridgeline.txt

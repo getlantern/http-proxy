@@ -7,7 +7,7 @@ import (
 	"github.com/getlantern/geo"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/measured"
-	rclient "gopkg.in/redis.v5"
+	rclient "github.com/go-redis/redis/v8"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
@@ -85,9 +85,6 @@ func combineReporter(reporters ...listeners.MeasuredReportFN) listeners.Measured
 			r(ctx, stats, deltaStats, final)
 		}
 	}
-}
-
-func neverReport(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 }
 
 func neverWrap(ls net.Listener) net.Listener {

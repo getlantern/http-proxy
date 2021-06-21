@@ -14,8 +14,6 @@ import (
 	"strings"
 	"time"
 
-	rclient "gopkg.in/redis.v5"
-
 	utp "github.com/anacrolix/go-libutp"
 	bordaClient "github.com/getlantern/borda/client"
 	"github.com/getlantern/cmux/v2"
@@ -27,6 +25,7 @@ import (
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
 	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
+	rclient "github.com/go-redis/redis/v8"
 
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/ops"
@@ -37,7 +36,6 @@ import (
 	"github.com/getlantern/quicwrapper"
 	"github.com/getlantern/tinywss"
 	"github.com/getlantern/tlsdefaults"
-	"github.com/getlantern/tlsredis"
 	"github.com/xtaci/smux"
 
 	"github.com/getlantern/http-proxy/listeners"
@@ -107,10 +105,7 @@ type Proxy struct {
 	Pro                                bool
 	ProxiedSitesSamplePercentage       float64
 	ProxiedSitesTrackingID             string
-	ReportingRedisAddr                 string
-	ReportingRedisCA                   string
-	ReportingRedisClientPK             string
-	ReportingRedisClientCert           string
+	ReportingRedisClient               *rclient.Client
 	ThrottleRefreshInterval            time.Duration
 	Token                              string
 	TunnelPorts                        string
@@ -192,7 +187,6 @@ type Proxy struct {
 	PsmuxAggressivePaddingRatio   float64
 
 	bm             bbr.Middleware
-	rc             *rclient.Client
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
 }
@@ -270,7 +264,6 @@ func (p *Proxy) ListenAndServe() error {
 	if p.BBRUpstreamProbeURL != "" {
 		go p.bm.ProbeUpstream(p.BBRUpstreamProbeURL)
 	}
-	p.initRedisClient()
 	p.loadThrottleConfig()
 
 	if p.ENHTTPAddr != "" {
@@ -617,12 +610,12 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		filterChain = filterChain.Append(proxy.OnFirstOnly(tokenfilter.New(p.Token, p.instrument)))
 	}
 
-	if p.rc == nil {
+	if p.ReportingRedisClient == nil {
 		log.Debug("Not enabling bandwidth limiting")
 	} else {
 		filterChain = filterChain.Append(
 			proxy.OnFirstOnly(devicefilter.NewPre(
-				redis.NewDeviceFetcher(p.rc), p.throttleConfig, !p.Pro, p.instrument)),
+				redis.NewDeviceFetcher(p.ReportingRedisClient), p.throttleConfig, !p.Pro, p.instrument)),
 		)
 	}
 
@@ -725,12 +718,12 @@ func (p *Proxy) configureBandwidthReporting() (*reportingConfig, listeners.Measu
 	if p.BordaReportInterval > 0 {
 		bordaReporter = borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
 	}
-	return newReportingConfig(p.CountryLookup, p.rc, p.EnableReports, bordaReporter, p.instrument, p.throttleConfig), bordaReporter
+	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.EnableReports, bordaReporter, p.instrument, p.throttleConfig), bordaReporter
 }
 
 func (p *Proxy) loadThrottleConfig() {
-	if !p.Pro && p.ThrottleRefreshInterval > 0 && p.rc != nil {
-		p.throttleConfig = throttle.NewRedisConfig(p.rc, p.ThrottleRefreshInterval)
+	if !p.Pro && p.ThrottleRefreshInterval > 0 && p.ReportingRedisClient != nil {
+		p.throttleConfig = throttle.NewRedisConfig(p.ReportingRedisClient, p.ThrottleRefreshInterval)
 	} else {
 		log.Debug("Not loading throttle config")
 		return
@@ -747,25 +740,6 @@ func (p *Proxy) allowedTunnelPorts() []int {
 		log.Fatal(err)
 	}
 	return ports
-}
-
-func (p *Proxy) initRedisClient() {
-	var err error
-	if p.ReportingRedisAddr == "" {
-		log.Debug("no redis address configured for bandwidth reporting")
-		return
-	}
-
-	redisOpts := &tlsredis.Options{
-		RedisURL:       p.ReportingRedisAddr,
-		RedisCAFile:    p.ReportingRedisCA,
-		ClientPKFile:   p.ReportingRedisClientPK,
-		ClientCertFile: p.ReportingRedisClientCert,
-	}
-	p.rc, err = tlsredis.GetClient(redisOpts)
-	if err != nil {
-		log.Errorf("Error connecting to redis, will not be able to perform bandwidth limiting: %v", err)
-	}
 }
 
 func (p *Proxy) listenHTTP(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
@@ -1064,11 +1038,4 @@ func portsFromCSV(csv string) ([]int, error) {
 		ports[i] = p
 	}
 	return ports, nil
-}
-
-type requestModifier func(req *http.Request)
-
-func (f requestModifier) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
-	f(req)
-	return next(ctx, req)
 }
