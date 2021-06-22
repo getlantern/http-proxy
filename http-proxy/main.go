@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -17,7 +16,6 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/mitchellh/panicwrap"
 	"github.com/vharitonsky/iniflags"
 
 	"github.com/getlantern/geo"
@@ -52,6 +50,7 @@ var (
 	quicIETFAddr     = flag.String("quic-ietf-addr", "", "Address at which to listen for IETF QUIC connections.")
 	quicBBR          = flag.Bool("quic-bbr", false, "Should quic-go use BBR instead of CUBIC")
 	wssAddr          = flag.String("wss-addr", "", "Address at which to listen for WSS connections.")
+	googleAdsAddr    = flag.String("google-ads-addr", "", "Address at which to listen for Google Ads filter connections.")
 	kcpConf          = flag.String("kcpconf", "", "Path to file configuring kcp")
 
 	obfs4Addr                          = flag.String("obfs4-addr", "", "Provide an address here in order to listen with obfs4")
@@ -203,42 +202,42 @@ func main() {
 		}
 	}
 
-	// panicwrap works by re-executing the running program (retaining arguments,
-	// environmental variables, etc.) and monitoring the stderr of the program.
-	exitStatus, panicWrapErr := panicwrap.Wrap(
-		&panicwrap.WrapConfig{
-			DetectDuration: time.Second,
-			Handler: func(msg string) {
-				if reporter != nil {
-					// heuristically separate the error message from the stack trace
-					separator := "\ngoroutine "
-					splitted := strings.SplitN(msg, separator, 2)
-					err := errors.New(splitted[0])
-					var maybeStack []byte
-					if len(splitted) > 1 {
-						maybeStack = []byte(separator + splitted[1])
-					}
-					reporter.Report(golog.FATAL, err, maybeStack)
-				}
-				os.Exit(1)
-			},
-			// Just forward signals to the child process
-			ForwardSignals: []os.Signal{
-				syscall.SIGHUP,
-				syscall.SIGTERM,
-				syscall.SIGQUIT,
-				syscall.SIGINT,
-				syscall.SIGUSR1,
-			},
-		})
-	if panicWrapErr != nil {
-		log.Fatalf("Error setting up panic wrapper: %v", panicWrapErr)
-	} else {
-		// If exitStatus >= 0, then we're the parent process.
-		if exitStatus >= 0 {
-			os.Exit(exitStatus)
-		}
-	}
+	//// panicwrap works by re-executing the running program (retaining arguments,
+	//// environmental variables, etc.) and monitoring the stderr of the program.
+	//exitStatus, panicWrapErr := panicwrap.Wrap(
+	//	&panicwrap.WrapConfig{
+	//		DetectDuration: time.Second,
+	//		Handler: func(msg string) {
+	//			if reporter != nil {
+	//				// heuristically separate the error message from the stack trace
+	//				separator := "\ngoroutine "
+	//				splitted := strings.SplitN(msg, separator, 2)
+	//				err := errors.New(splitted[0])
+	//				var maybeStack []byte
+	//				if len(splitted) > 1 {
+	//					maybeStack = []byte(separator + splitted[1])
+	//				}
+	//				reporter.Report(golog.FATAL, err, maybeStack)
+	//			}
+	//			os.Exit(1)
+	//		},
+	//		// Just forward signals to the child process
+	//		ForwardSignals: []os.Signal{
+	//			syscall.SIGHUP,
+	//			syscall.SIGTERM,
+	//			syscall.SIGQUIT,
+	//			syscall.SIGINT,
+	//			syscall.SIGUSR1,
+	//		},
+	//	})
+	//if panicWrapErr != nil {
+	//	log.Fatalf("Error setting up panic wrapper: %v", panicWrapErr)
+	//} else {
+	//	// If exitStatus >= 0, then we're the parent process.
+	//	if exitStatus >= 0 {
+	//		os.Exit(exitStatus)
+	//	}
+	//}
 
 	// We're in the child (wrapped) process now
 
@@ -418,6 +417,7 @@ func main() {
 		QUICIETFAddr:                       *quicIETFAddr,
 		QUICUseBBR:                         *quicBBR,
 		WSSAddr:                            *wssAddr,
+		GoogleAdsAddr:                      *googleAdsAddr,
 		PCAPDir:                            *pcapDir,
 		PCAPIPs:                            *pcapIPs,
 		PCAPSPerIP:                         *pcapsPerIP,

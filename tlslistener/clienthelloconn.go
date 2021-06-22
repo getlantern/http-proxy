@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/siddontang/go/log"
 	"io"
 	"net"
 	"sync"
@@ -192,6 +193,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
 	// We allow loopback to generate session states (makesessions) to
 	// distribute to Lantern clients.
+	log.Debugf("------> %v %v", disallowLookbackForTesting, sourceIP.IsLoopback())
 	if !disallowLookbackForTesting && sourceIP.IsLoopback() {
 		return nil, nil
 	}

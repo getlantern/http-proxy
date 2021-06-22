@@ -4,16 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
-	"net"
-	"net/http"
-	_ "net/http/pprof"
-	"os"
-	"regexp"
-	"runtime"
-	"strconv"
-	"strings"
-	"time"
-
+	"github.com/PuerkitoBio/goquery"
 	utp "github.com/anacrolix/go-libutp"
 	bordaClient "github.com/getlantern/borda/client"
 	"github.com/getlantern/cmux/v2"
@@ -26,6 +17,15 @@ import (
 	"github.com/getlantern/kcpwrapper"
 	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
 	rclient "github.com/go-redis/redis/v8"
+	"net"
+	"net/http"
+	_ "net/http/pprof"
+	"os"
+	"regexp"
+	"runtime"
+	"strconv"
+	"strings"
+	"time"
 
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/ops"
@@ -145,6 +145,7 @@ type Proxy struct {
 	OQUICAggressivePadding             uint64
 	OQUICMinPadded                     uint64
 	WSSAddr                            string
+	GoogleAdsAddr                      string
 	PCAPDir                            string
 	PCAPIPs                            int
 	PCAPSPerIP                         int
@@ -362,6 +363,7 @@ func (p *Proxy) ListenAndServe() error {
 	if err := addListenerIfNecessary("wss", p.WSSAddr, p.listenWSS); err != nil {
 		return err
 	}
+	p.listenGoogleAds(p.GoogleAdsAddr)
 
 	if err := addListenersForBaseTransport(p.listenTCP, &addresses{
 		obfs4:          p.Obfs4Addr,
@@ -628,19 +630,20 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		proxy.OnFirstOnly(devicefilter.NewPost(bl)),
 	)
 
-	if !p.TestingLocal {
-		allowedLocalAddrs := []string{"127.0.0.1:7300"}
-		if p.PacketForwardAddr != "" {
-			allowedLocalAddrs = append(allowedLocalAddrs, p.PacketForwardAddr)
-		}
-		filterChain = filterChain.Append(proxyfilters.BlockLocal(allowedLocalAddrs))
-	}
+	//if !p.TestingLocal {
+	//	allowedLocalAddrs := []string{"127.0.0.1:7300", "127.0.0.1:5555"}
+	//	if p.PacketForwardAddr != "" {
+	//		allowedLocalAddrs = append(allowedLocalAddrs, p.PacketForwardAddr)
+	//	}
+	//	filterChain = filterChain.Append(proxyfilters.BlockLocal(allowedLocalAddrs))
+	//}
 	filterChain = filterChain.Append(p.instrument.WrapFilter("proxy_http_ping", ping.New(0)))
 
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97
 	_dialer := preferIPV4Dialer(timeoutToDialOriginSite)
 	dialer := func(ctx context.Context, network, addr string) (net.Conn, error) {
+		log.Debugf("=========+++++> %v %v", network, addr)
 		op := ops.Begin("dial_origin")
 		defer op.End()
 
@@ -965,6 +968,61 @@ func (p *Proxy) listenShadowsocks(addr string, bordaReporter listeners.MeasuredR
 
 	log.Debugf("Listening for shadowsocks at %v", l.Addr())
 	return l, nil
+}
+
+type GoogleAdsHandler struct {
+}
+
+func parseResults(doc *goquery.Document) {
+	//doc.Find("#tads,#bottomads,#logocont,#footcnt,#navd,.logo,#mlogo").Remove()
+	//doc.Find(".related-question-pair").Parent().Remove()
+	//
+	//doc.Find("h2:contains('People also ask')").Remove()
+	//doc.Find("a:contains('Feedback')").Remove()
+	//doc.Find("header").Children().First().Remove()
+}
+
+func (g GoogleAdsHandler) ServeHTTP(writer http.ResponseWriter, req *http.Request) {
+	req.URL.Host = "www.google.com"
+	req.Host = "www.google.com"
+	req.URL.Scheme = "https"
+	req.RequestURI = ""
+	client := http.Client{}
+	resp, err := client.Do(req)
+	log.Debugf("GoogleAdsHandler handler")
+	if err != nil {
+		log.Errorf("error in google req %v", err)
+		http.Error(writer, http.StatusText(http.StatusInternalServerError),
+			http.StatusInternalServerError)
+	} else {
+		defer resp.Body.Close()
+
+		doc, err := goquery.NewDocumentFromReader(resp.Body)
+		if err != nil {
+			log.Errorf("Could not parse: %v", err)
+			http.Error(writer, http.StatusText(http.StatusInternalServerError),
+				http.StatusInternalServerError)
+			return
+		}
+
+		parseResults(doc)
+
+		htmlResult, err := doc.Html()
+		if err != nil {
+			log.Errorf("Could not parse: %v", err)
+			http.Error(writer, http.StatusText(http.StatusInternalServerError),
+				http.StatusInternalServerError)
+			return
+		}
+		writer.Write([]byte(htmlResult))
+	}
+}
+
+func (p *Proxy) listenGoogleAds(addr string) error {
+	go http.ListenAndServe(addr, &GoogleAdsHandler{})
+
+	log.Debugf("Listening for google ads filter at %v", addr)
+	return nil
 }
 
 func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
