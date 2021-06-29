@@ -36,8 +36,10 @@ import (
 )
 
 var (
-	log      = golog.LoggerFor("lantern-proxy")
-	revision = "unknown" // overridden by Makefile
+	log        = golog.LoggerFor("lantern-proxy")
+	revision   = "unknown" // overridden by Makefile
+	build_type = "unknown" // overriden by Makefile
+
 	// Use our own CDN distribution which fetches the origin at most once per
 	// day to avoid hitting the 2000 downloads/day limit imposed by MaxMind.
 	geolite2_url = "https://d254wvfcgkka1d.cloudfront.net/app/geoip_download?license_key=%s&edition_id=GeoLite2-Country&suffix=tar.gz"
@@ -187,7 +189,7 @@ func main() {
 	iniflags.SetAllowUnknownFlags(true)
 	iniflags.Parse()
 	if *version {
-		fmt.Fprintf(os.Stderr, "%s: commit %s built with %s\n", os.Args[0], revision, runtime.Version())
+		fmt.Fprintf(os.Stderr, "%s: commit %s built with %s (%s)\n", os.Args[0], revision, runtime.Version(), build_type)
 		return
 	}
 	if *help {
@@ -414,6 +416,7 @@ func main() {
 		BlacklistExpiration:                *blacklistExpiration,
 		ProxyName:                          *proxyName,
 		ProxyProtocol:                      *proxyProtocol,
+		BuildType:                          build_type,
 		BBRUpstreamProbeURL:                *bbrUpstreamProbeURL,
 		QUICIETFAddr:                       *quicIETFAddr,
 		QUICUseBBR:                         *quicBBR,

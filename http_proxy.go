@@ -135,6 +135,7 @@ type Proxy struct {
 	BlacklistExpiration                time.Duration
 	ProxyName                          string
 	ProxyProtocol                      string
+	BuildType                          string
 	BBRUpstreamProbeURL                string
 	QUICIETFAddr                       string
 	QUICUseBBR                         bool
@@ -216,6 +217,7 @@ func (p *Proxy) ListenAndServe() error {
 			p.CountryLookup,
 			p.ISPLookup,
 			instrument.CommonLabels{
+				BuildType:             p.BuildType,
 				Protocol:              p.ProxyProtocol,
 				SupportTLSResumption:  p.SessionTicketKeyFile != "",
 				RequireTLSResumption:  p.RequireSessionTickets,
