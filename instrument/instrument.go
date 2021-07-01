@@ -64,6 +64,7 @@ func (i NoInstrument) quicLostPacket() {}
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
 	Protocol              string
+	BuildType             string
 	SupportTLSResumption  bool
 	RequireTLSResumption  bool
 	MissingTicketReaction string
@@ -73,6 +74,7 @@ type CommonLabels struct {
 func (c *CommonLabels) PromLabels() prometheus.Labels {
 	return map[string]string{
 		"protocol":                c.Protocol,
+		"build_type":              c.BuildType,
 		"support_tls_resumption":  strconv.FormatBool(c.SupportTLSResumption),
 		"require_tls_resumption":  strconv.FormatBool(c.RequireTLSResumption),
 		"missing_ticket_reaction": c.MissingTicketReaction,

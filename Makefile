@@ -32,6 +32,11 @@ else ifeq ($(shell uname -s),Darwin)
 	BUILD_WITH_DOCKER = true
 endif
 
+BUILD_TYPE = stable
+ifeq ($(BUILD_CANARY),true)
+	BUILD_TYPE = canary
+endif
+
 .PHONY: build dist distnochange dist-on-linux dist-on-docker clean test system-checks
 
 # This tags the current version and creates a CHANGELOG for the current directory.
@@ -73,14 +78,14 @@ build: $(BUILD_DIR)/http-proxy
 dist-on-linux: $(DIST_DIR)
 	GOOS=linux GOARCH=amd64 GO111MODULE=on GOPRIVATE="github.com/getlantern" \
 	go build -o $(DIST_DIR)/http-proxy \
-	-ldflags="-X main.revision=$(GIT_REVISION)" \
+	-ldflags="-X main.revision=$(GIT_REVISION) -X main.build_type=$(BUILD_TYPE)" \
 	./http-proxy
 
 dist-on-docker: $(DIST_DIR) docker-builder
 	GO111MODULE=on go mod vendor && \
-	docker run -e GIT_REVISION='$(GIT_REVISION)' \
+	docker run -e GIT_REVISION='$(GIT_REVISION)' -e BUILD_TYPE='$(BUILD_TYPE)' \
 	-v $$PWD:/src -t $(DOCKER_IMAGE_TAG) /bin/bash -c \
-	'cd /src && go build -o $(DIST_DIR)/http-proxy -ldflags="-X main.revision=$$GIT_REVISION" -mod=vendor ./http-proxy'
+	'cd /src && go build -o $(DIST_DIR)/http-proxy -ldflags="-X main.revision=$$GIT_REVISION -X main.build_type=$$BUILD_TYPE" -mod=vendor ./http-proxy'
 
 $(DIST_DIR)/http-proxy: $(SRCS)
 	@if [ "$(BUILD_WITH_DOCKER)" = "true" ]; then \
