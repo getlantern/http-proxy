@@ -1,0 +1,30 @@
+localproxy:
+  addr: multiplexed
+  cert: "-----BEGIN CERTIFICATE-----\nMIIDyDCCArCgAwIBAgIUBNjibUGdemw379/wnDeG2twbqWEwDQYJKoZIhvcNAQEL\nBQAwgYMxHjAcBgNVBAMMFUV4ZW1wbGFyIE1hbnVmYWN0dXJlcjEZMBcGA1UECwwQ\nUGVyc3VhZGVzIEhlYXJzZTEbMBkGA1UECgwSQW5vcGhlbGVzIENpbmNob25hMQ0w\nCwYDVQQHDARUaWtlMQ0wCwYDVQQIDARPaGlvMQswCQYDVQQGEwJVUzAeFw0yMTA2\nMTcyMTA0NDVaFw0yMzA2MTcyMTA0NDVaMIGDMR4wHAYDVQQDDBVFeGVtcGxhciBN\nYW51ZmFjdHVyZXIxGTAXBgNVBAsMEFBlcnN1YWRlcyBIZWFyc2UxGzAZBgNVBAoM\nEkFub3BoZWxlcyBDaW5jaG9uYTENMAsGA1UEBwwEVGlrZTENMAsGA1UECAwET2hp\nbzELMAkGA1UEBhMCVVMwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQDQ\n2lXf1oVZMx1VPCJ+N0/imb336EPJffpOJz+IZW3ADl6RklUseElZQF/OygSoQ8T9\ntPesq5zA2dvROQxQnT7MdCUdjs3edbNXBQ6YaB8DAKGZQO9zUU1yeWOgwfFSGyF9\n3I+xEp+ZWooQJPgOIU6D463z2A6WL8BcYKNDedw14keyFz8lG6CKeO40rtmY4YBU\nYP1qyTqCiFBzc5MPsGehwXxEN+Lp3AjrYlg5kThrpZqsZ+vvaYqKqeQYVIVNGA1H\n9r4hu7SOXD89QKJC1oUhzc/Bs8Sa9LU+o+U/g8iAxrGgRJsPCYBS82ayaKP30/wT\nK1ICyPOEK4DhwlWxbKBtAgMBAAGjMjAwMB0GA1UdDgQWBBQC74uSHcES5fIUYXgf\ntrNp4kNzhzAPBgNVHREECDAGhwSkWoS2MA0GCSqGSIb3DQEBCwUAA4IBAQDHWIDb\ntZ8I+m1KwrpFkRf2KG8KRSYphx/OcwoFCDsV/w2HVT44FGdQAUVHzoxMBYD3KbJT\n+YqsYB3IINmz7i3riOZXq4A71qJqPszYPc3YvwGir3guq6RNvQqo6/6zp8zv7bpq\nIEEoBMTNsL1D4rdjqbepQXHm1FTDDCN42I0VeDcfTXxBX3eQqkQDAC84S2cHoTk9\ny8PQuXXmFEqQ0yITfxaDpQ38B1Fnr6tz1fhhhRaoFKSWkRk/PYAsfNyrxJPDTOWM\nmmq7ruQlQhPxxdmj5mBT7RMBtjpnmcnO8cEa4uKwx6FmoGNE+RauQsYWl01g+RYI\n1O1rnpD7jhPgrIQw\n-----END
+    CERTIFICATE-----\n"
+  authtoken: oB9ahi0ChcRSpPYmOg
+  trusted: true
+  maxpreconnect: 10
+  bias: 0
+  pluggabletransport: ""
+  pluggabletransportsettings: {}
+  kcpsettings: {}
+  enhttpurl: ""
+  tlsdesktoporderedciphersuitenames: []
+  tlsmobileorderedciphersuitenames: []
+  tlsservernameindicator: car.gr
+  tlsclientsessioncachesize: 0
+  tlsclienthelloid: HelloRandomized
+  tlsclienthellosplitting: false
+  tlsclientsessionstate: eyJTZXNzaW9uVGlja2V0IjoiNlBDOHVsZFJHTG5UTlplRkpVVFc5L3pXWGtXVDVEaEE5S2RrR2FOL0Q4MUp2STRTK3RWaVYwWC9hTTMreHVxSjlGODA2T2gyenFxUGpBUlVIM1prU1ViQVVvYVV5QkN3SW0ycmlUNEgzcUZ2eW55VWdReHBNOGZmR3FuU3A0WjRaYlpIdnhvaExqc2R5UzJERXkyZzRSVTFhdzBxMHBZUWd6NTkzYkE3djJtUSIsIlZlcnMiOjc3MSwiQ2lwaGVyU3VpdGUiOjQ5MTk5LCJNYXN0ZXJTZWNyZXQiOiJwUmE0MHhlY0xYZ0Vpa2RSNk53SnVWMkxEamJNV1hPWmFRekFMeU1ZUDZNbjB4L0pHd3FDUzlhR0NkTDBwK2FiIn0=
+  location:
+    city: New York
+    country: United States
+    countrycode: US
+    latitude: 40.83
+    longitude: -74.13
+  multipathendpoint: ""
+  multiplexedaddr: 127.0.0.1:443
+  multiplexedphysicalconns: 0
+  multiplexedprotocol: ""
+  multiplexedsettings: {}
