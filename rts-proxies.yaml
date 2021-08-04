@@ -24,7 +24,7 @@ localproxy:
     latitude: 40.83
     longitude: -74.13
   multipathendpoint: ""
-  multiplexedaddr: 127.0.0.1:443
+  multiplexedaddr: 127.0.0.1:1443
   multiplexedphysicalconns: 0
   multiplexedprotocol: ""
   multiplexedsettings: {}
