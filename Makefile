@@ -77,7 +77,7 @@ $(BUILD_DIR)/http-proxy: $(SRCS) | $(BUILD_DIR)
 build: $(BUILD_DIR)/http-proxy
 
 local-rts: build
-	./bin/http-proxy -config ./rts.ini
+	./bin/http-proxy -config ./rts/rts.ini
 
 local-proxy: local-rts
 

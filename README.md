@@ -62,7 +62,7 @@ Note that  `make local-proxy` is really just an alias for `make local-rts` -- i.
 You can then copy the rts-proxies.yaml file to your Lantern config directory, as in:
 
 ```
-cp rts-proxies.yaml ~/Library/Application\ Support/Lantern/proxies.yaml
+cp ./rts/rts-proxies.yaml ~/Library/Application\ Support/Lantern/proxies.yaml
 ```
 
 Run a Lantern client accordingly from `lantern-desktop`, as in:
