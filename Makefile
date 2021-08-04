@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+.DEFAULT_GOAL := build
 GIT_REVISION := $(shell git rev-parse --short HEAD)
 CHANGE_BIN   := $(shell which git-chglog)
 
@@ -74,6 +75,11 @@ $(BUILD_DIR)/http-proxy: $(SRCS) | $(BUILD_DIR)
 	GOPRIVATE="github.com/getlantern" go build -o $(BUILD_DIR) ./http-proxy
 
 build: $(BUILD_DIR)/http-proxy
+
+local-rts: build
+	./bin/http-proxy -config ./rts/rts.ini
+
+local-proxy: local-rts
 
 dist-on-linux: $(DIST_DIR)
 	GOOS=linux GOARCH=amd64 GO111MODULE=on GOPRIVATE="github.com/getlantern" \
