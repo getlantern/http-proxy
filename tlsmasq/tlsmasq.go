@@ -1,6 +1,7 @@
 package tlsmasq
 
 import (
+	"context"
 	"crypto/tls"
 	"encoding/hex"
 	"fmt"
@@ -27,7 +28,9 @@ func Wrap(ll net.Listener, certFile string, keyFile string, originAddr string, s
 		return nil, fmt.Errorf("unable to load key file for tlsmasq: %v", keyErr)
 	}
 
-	dialOrigin := func() (net.Conn, error) { return net.Dial("tcp", originAddr) }
+	dialOrigin := func(ctx context.Context) (net.Conn, error) {
+		return (&net.Dialer{}).DialContext(ctx, "tcp", originAddr)
+	}
 
 	nonFatalErrChan := make(chan error)
 	go func() {
