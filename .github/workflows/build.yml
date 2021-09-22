@@ -1,0 +1,27 @@
+name: build
+
+on:
+  release:
+    types:
+      - created
+  workflow_dispatch:
+
+jobs:
+  releases-matrix:
+    name: Release Go Binary
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        goos: [freebsd, linux, darwin]
+        goarch: [amd64, arm64]
+    steps:
+    - uses: actions/checkout@v2
+
+    - uses: wangyoucao577/go-release-action@v1.20
+      with:
+        github_token: ${{ secrets.GITHUB_TOKEN }}
+        goos: ${{ matrix.goos }}
+        goarch: ${{ matrix.goarch }}
+        build_command: make build
+        binary_name: ./bin/http-proxy
+        pre_command: git config --global url."https://${{ secrets.GH_TOKEN }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
