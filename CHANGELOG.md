@@ -1,4 +1,15 @@
 
+<a name="v2.6.47"></a>
+## [v2.6.47](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.46...v2.6.47)
+
+> 2021-09-22
+
+### Pull Requests
+
+* Merge pull request [#483](https://github.com/getlantern/http-proxy-lantern/issues/483) from getlantern/myles/top-sites-fix
+* Merge pull request [#482](https://github.com/getlantern/http-proxy-lantern/issues/482) from getlantern/reflog/canary_metrics
+
+
 <a name="v2.6.46"></a>
 ## [v2.6.46](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.45...v2.6.46)
 
@@ -1390,7 +1401,7 @@
 
 
 <a name="v0.0.20"></a>
-## [v0.0.20](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.19...v0.0.20)
+## [v0.0.20](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.18...v0.0.20)
 
 > 2016-05-20
 
@@ -1403,14 +1414,14 @@
 * Merge pull request [#66](https://github.com/getlantern/http-proxy-lantern/issues/66) from getlantern/issue141
 
 
-<a name="v0.0.19"></a>
-## [v0.0.19](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.18...v0.0.19)
+<a name="v0.0.18"></a>
+## [v0.0.18](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.19...v0.0.18)
 
 > 2016-05-03
 
 
-<a name="v0.0.18"></a>
-## [v0.0.18](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.17...v0.0.18)
+<a name="v0.0.19"></a>
+## [v0.0.19](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.17...v0.0.19)
 
 > 2016-05-03
 
@@ -1430,7 +1441,7 @@
 
 
 <a name="reporting-test-auth"></a>
-## [reporting-test-auth](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.16...reporting-test-auth)
+## [reporting-test-auth](https://github.com/getlantern/http-proxy-lantern/compare/reporting-test...reporting-test-auth)
 
 > 2016-04-25
 
@@ -1440,14 +1451,14 @@
 * Merge pull request [#56](https://github.com/getlantern/http-proxy-lantern/issues/56) from getlantern/redis-fix
 
 
-<a name="v0.0.16"></a>
-## [v0.0.16](https://github.com/getlantern/http-proxy-lantern/compare/reporting-test...v0.0.16)
+<a name="reporting-test"></a>
+## [reporting-test](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.16...reporting-test)
 
 > 2016-04-18
 
 
-<a name="reporting-test"></a>
-## [reporting-test](https://github.com/getlantern/http-proxy-lantern/compare/obfs4test...reporting-test)
+<a name="v0.0.16"></a>
+## [v0.0.16](https://github.com/getlantern/http-proxy-lantern/compare/obfs4test...v0.0.16)
 
 > 2016-04-18
 
