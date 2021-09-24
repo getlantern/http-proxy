@@ -6,8 +6,9 @@ import (
 	"bytes"
 	"crypto/tls"
 	"fmt"
-	"log"
 	"net"
+	"strings"
+	"time"
 
 	"github.com/getlantern/golog"
 
@@ -73,7 +74,7 @@ type rdptlslistener struct {
 var (
 	rdpStartTLS     = []byte("\x03\x00\x00\x13\x0e\xe0\x00\x00\x00\x00\x00\x01\x00\x08\x00\x0b\x00\x00\x00")
 	rdpAltStartTLS  = []byte("\x03\x00\x00\x13\x0e\xe0\x00\x00\x00\x00\x00\x01\x00\x08\x00\x03\x00\x00\x00")
-	rdpStartTLSAck  = []byte("\x03\x00\x00\x13\x0e\xd0\x00\x00\x12\x34\x00\x02\x1f\x08\x00\x08\x00\x00\x00")
+	rdpStartTLSAck  = []byte("\x03\x00\x00\x13\x0e\xd0\x00\x00\x12\x34\x00\x02\x1f\x08\x00\x02\x00\x00\x00")
 	badRDPHandshake = fmt.Errorf("Bad RDP START-TLS Handshake")
 )
 
@@ -83,8 +84,9 @@ func (l *rdptlslistener) acceptWithHandshakes() {
 		if err != nil {
 			continue
 		}
+		connectionStart := time.Now()
 
-		incomingRdpClientStartTLS := make([]byte, 32)
+		incomingRdpClientStartTLS := make([]byte, 128) // There may be a microsoft cookie or something
 		n, err := conn.Read(incomingRdpClientStartTLS)
 		if err != nil {
 			conn.Close()
@@ -93,9 +95,16 @@ func (l *rdptlslistener) acceptWithHandshakes() {
 
 		if bytes.Compare(incomingRdpClientStartTLS[:n], rdpStartTLS) != 0 &&
 			bytes.Compare(incomingRdpClientStartTLS[:n], rdpAltStartTLS) != 0 {
-			// "REFLECT"! TODO!! AAAA!
-			// return nil, badRDPHandshake
-			log.Printf("Fuck? %x", incomingRdpClientStartTLS[:n])
+			go func() {
+				// Windows holds on to gibbersh connections for 90 seconds.. why? No idea, but lets replicate it
+				sleepTime := time.Since(connectionStart.Add(time.Second * 90))
+				if sleepTime < 0 {
+					conn.Close()
+					return
+				}
+				time.Sleep(sleepTime * -1)
+				conn.Close()
+			}()
 			return
 		}
 
@@ -110,8 +119,42 @@ func (l *rdptlslistener) acceptWithHandshakes() {
 	}
 }
 
-func (l *rdptlslistener) fullyReflectRDP(conn net.Conn) {
+func maybeRemoveRoutingCookie(in []byte) []byte {
+	if len(in) < 15 {
+		return in
+	}
 
+	if !(in[0] == 0x03 && in[1] == 0x00) {
+		// must be invalid, That's not a TPKT packet to start with..
+		return in
+	}
+
+	if !strings.Contains(string(in), "Cookie: ") {
+		// no cookie to remove
+		return in
+	}
+
+	// Time to remove the routing cookie.
+	for i := 0; i < len(in)-8; i++ {
+		if strings.HasPrefix(string(in[i:]), "Cookie: ") {
+			j := i
+			for {
+				j++
+				if j == len(in) {
+					return in // There is no \r\n, invalid payload
+				}
+				if in[j] == '\n' && in[j-1] == '\r' {
+					// We found the end of the cookie, time to glue the two bits together
+					output := []byte{}
+					output = append(output, in[:i]...)
+					output = append(output, in[j+1:]...)
+					return output
+				}
+			}
+		}
+	}
+	// clearly failed, just return the original body, so that it can be upstreamed up to the decoy server
+	return in
 }
 
 func (l *rdptlslistener) Accept() (net.Conn, error) {

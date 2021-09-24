@@ -28,7 +28,7 @@ func TestAbortOnHello(t *testing.T) {
 
 	for tn, tc := range testCases {
 		t.Run(tc.response.action, func(t *testing.T) {
-			l, _ := net.Listen("tcp", ":0")
+			l, _ := net.Listen("tcp", ":1231")
 			defer l.Close()
 			hl, err := Wrap(l, "../test/testtickets", true, tc.response, instrument.NoInstrument{}, "192.248.148.224")
 			assert.NoError(t, err)
@@ -80,7 +80,10 @@ func TestAbortOnHello(t *testing.T) {
 				// log.Printf("%x", RDPHello[:n])
 				// TODO: SENT NTLM Auth TO CONFIRM CORRECT REFLECTION
 			}
+
+			////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 			// time.Sleep(time.Hour)
+			////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 			// Now make sure we can't spoof a session ticket.
 			rawConn, err := net.Dial("tcp", l.Addr().String())

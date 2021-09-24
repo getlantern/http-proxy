@@ -40,6 +40,7 @@ require (
 	github.com/getlantern/ops v0.0.0-20200403153110-8476b16edcd6
 	github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
+	github.com/getlantern/preconn v0.0.0-20210115195610-7b15d0535d80
 	github.com/getlantern/proxy v0.0.0-20201001032732-eefd72879266
 	github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683
 	github.com/getlantern/quicwrapper v0.0.0-20210430211107-8281ff59ece2
@@ -59,7 +60,7 @@ require (
 	github.com/gonum/matrix v0.0.0-20180124231301-a41cc49d4c29 // indirect
 	github.com/gonum/stat v0.0.0-20180125090729-ec9c8a1062f4
 	github.com/google/gopacket v1.1.17
-	github.com/huandu/xstrings v1.2.0 // indirect
+	github.com/huandu/xstrings v1.3.1 // indirect
 	github.com/juju/ratelimit v1.0.1
 	github.com/lucas-clemente/quic-go v0.7.1-0.20190207125157-7dc4be2ce994
 	github.com/mikioh/tcp v0.0.0-20180707144002-02a37043a4f7 // indirect

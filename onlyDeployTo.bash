@@ -12,7 +12,7 @@ fi
 check_is_proxy_server
 
 echo "Disabling auto-update on $ip"
-ssh lantern@$ip -t "sudo crontab -l | perl -p -e 's/^(.*update_proxy.bash.*)/#\1/g' | sudo crontab -" || die "Could not disable auto-updates"
+ssh -J 178.128.88.196 lantern@$ip -t "sudo crontab -l | perl -p -e 's/^(.*update_proxy.bash.*)/#\1/g' | sudo crontab -" || die "Could not disable auto-updates"
 
 echo "Uploading http-proxy-lantern"
 scp dist-bin/http-proxy lantern@$ip:http-proxy.tmp || die "Could not copy binary"

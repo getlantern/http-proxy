@@ -61,6 +61,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/packetcounter"
 	"github.com/getlantern/http-proxy-lantern/v2/ping"
 	"github.com/getlantern/http-proxy-lantern/v2/quic"
+	rdplistener "github.com/getlantern/http-proxy-lantern/v2/rdp-tlslistener"
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
@@ -436,6 +437,24 @@ func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
 
 			log.Debugf("Using TLS on %v", l.Addr())
 		}
+
+		return l, nil
+	}
+}
+
+func (p *Proxy) wrapRDPIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
+	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+		l, err := fn(addr, bordaReporter)
+		if err != nil {
+			return nil, err
+		}
+
+		l, err = rdplistener.Wrap(l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.RequireSessionTickets, p.MissingTicketReaction, p.TLSListenerAllowTLS13, p.instrument)
+		if err != nil {
+			return nil, err
+		}
+
+		log.Debugf("Using RDP+TLS on %v", l.Addr())
 
 		return l, nil
 	}
