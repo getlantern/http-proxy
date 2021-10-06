@@ -8,7 +8,7 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/netx"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 	"github.com/getlantern/quicwrapper"
 )
 
@@ -22,20 +22,20 @@ func NewMiddleware() *middleware {
 	return &middleware{}
 }
 
-func (m *middleware) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+func (m *middleware) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 
-	resp, nextCtx, err := next(ctx, req)
+	resp, nextCtx, err := next(cs, req)
 	if resp != nil {
-		m.apply(ctx, req, resp)
+		m.apply(cs, req, resp)
 	}
 	return resp, nextCtx, err
 }
 
-func (m *middleware) apply(ctx filters.Context, req *http.Request, resp *http.Response) {
+func (m *middleware) apply(cs *filters.ConnectionState, req *http.Request, resp *http.Response) {
 	// This gives back a BBR ABE response header when requested based on quic's
 	// bandwidth estimate ... not actually BBR and without the particular averaging
 	// done by the bbr middleware.
-	conn := ctx.DownstreamConn()
+	conn := cs.Downstream()
 
 	bbrRequested := req.Header.Get(common.BBRRequested)
 	if bbrRequested == "" {

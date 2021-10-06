@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
 )
@@ -16,7 +16,7 @@ func New() filters.Filter {
 	return &filter{}
 }
 
-func (f *filter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+func (f *filter) Apply(ctx *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 	f.stripHeadersIfNecessary(req)
 	return next(ctx, req)
 }

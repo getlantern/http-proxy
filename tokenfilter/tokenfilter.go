@@ -8,7 +8,7 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
@@ -29,7 +29,7 @@ func New(token string, instrument instrument.Instrument) filters.Filter {
 	}
 }
 
-func (f *tokenFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+func (f *tokenFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 	op := ops.Begin("tokenfilter")
 	defer op.End()
 
@@ -40,14 +40,14 @@ func (f *tokenFilter) Apply(ctx filters.Context, req *http.Request, next filters
 
 	if f.token == "" {
 		log.Trace("Not checking token")
-		return next(ctx, req)
+		return next(cs, req)
 	}
 
 	tokens := req.Header[common.TokenHeader]
 	if tokens == nil || len(tokens) == 0 || tokens[0] == "" {
 		log.Error(errorf(op, "No token provided, mimicking apache"))
 		f.instrument.Mimic(true)
-		return mimicApache(ctx, req)
+		return mimicApache(cs, req)
 	}
 	tokenMatched := false
 	for _, candidate := range tokens {
@@ -60,19 +60,19 @@ func (f *tokenFilter) Apply(ctx filters.Context, req *http.Request, next filters
 		req.Header.Del(common.TokenHeader)
 		log.Tracef("Allowing connection from %v to %v", req.RemoteAddr, req.Host)
 		f.instrument.Mimic(false)
-		return next(ctx, req)
+		return next(cs, req)
 	}
 	log.Error(errorf(op, "Mismatched token(s) %v, mimicking apache", strings.Join(tokens, ",")))
 	f.instrument.Mimic(true)
-	return mimicApache(ctx, req)
+	return mimicApache(cs, req)
 }
 
 func errorf(op ops.Op, msg string, args ...interface{}) error {
 	return op.FailIf(fmt.Errorf(msg, args...))
 }
 
-func mimicApache(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
-	conn := ctx.DownstreamConn()
+func mimicApache(ctx *filters.ConnectionState, req *http.Request) (*http.Response, *filters.ConnectionState, error) {
+	conn := ctx.Downstream()
 	mimic.Apache(conn, req)
 	conn.Close()
 	return nil, ctx, nil

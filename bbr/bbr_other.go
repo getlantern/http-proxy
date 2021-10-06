@@ -1,3 +1,4 @@
+//go:build !linux
 // +build !linux
 
 package bbr
@@ -6,7 +7,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 )
 
 // noopMiddleware is used on non-linux platforms where BBR is unavailable.
@@ -16,21 +17,20 @@ func New() Middleware {
 	return &noopMiddleware{}
 }
 
-func (bm *noopMiddleware) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
-	return next(ctx, req)
+func (bm *noopMiddleware) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
+	return next(cs, req)
 }
 
-func (bm *noopMiddleware) AddMetrics(ctx filters.Context, req *http.Request, resp *http.Response) {
+func (bm *noopMiddleware) AddMetrics(_ *filters.ConnectionState, _ *http.Request, _ *http.Response) {
 }
 
 func (bm *noopMiddleware) Wrap(l net.Listener) net.Listener {
 	return l
 }
 
-func (bm *noopMiddleware) ABE(ctx filters.Context) float64 {
+func (bm *noopMiddleware) ABE(_ *filters.ConnectionState) float64 {
 	return 0
 }
 
-func (bm *noopMiddleware) ProbeUpstream(url string) {
-	return
+func (bm *noopMiddleware) ProbeUpstream(_ string) {
 }

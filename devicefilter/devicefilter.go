@@ -10,7 +10,7 @@ import (
 	"github.com/dustin/go-humanize"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 
 	"github.com/getlantern/http-proxy/listeners"
 
@@ -73,7 +73,7 @@ func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, sendXBQHead
 	}
 }
 
-func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 	if log.IsTraceEnabled() {
 		reqStr, _ := httputil.DumpRequest(req, true)
 		log.Tracef("DeviceFilter Middleware received request:\n%s", reqStr)
@@ -83,12 +83,12 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	// bandwidth cap.
 	if domains.ConfigForRequest(req).Unthrottled {
 		f.instrument.Throttle(false, "domain-excluded")
-		return next(ctx, req)
+		return next(cs, req)
 	}
 
 	// Attached the uid to connection to report stats to redis correctly
 	// "conn" in context is previously attached in server.go
-	wc := ctx.DownstreamConn().(listeners.WrapConn)
+	wc := cs.Downstream().(listeners.WrapConn)
 	lanternDeviceID := req.Header.Get(common.DeviceIdHeader)
 
 	if lanternDeviceID == "" {
@@ -96,17 +96,17 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 		// ID. Just throttle them.
 		f.instrument.Throttle(true, "no-device-id")
 		wc.ControlMessage("throttle", alwaysThrottle)
-		return next(ctx, req)
+		return next(cs, req)
 	}
 	if lanternDeviceID == "~~~~~~" {
 		// This is checkfallbacks, don't throttle it
 		f.instrument.Throttle(false, "checkfallbacks")
-		return next(ctx, req)
+		return next(cs, req)
 	}
 
 	if f.throttleConfig == nil {
 		f.instrument.Throttle(false, "no-config")
-		return next(ctx, req)
+		return next(cs, req)
 	}
 
 	// Throttling enabled
@@ -115,7 +115,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 		// Eagerly request device ID data from Redis and store it in usage
 		f.deviceFetcher.RequestNewDeviceUsage(lanternDeviceID)
 		f.instrument.Throttle(false, "no-usage-data")
-		return next(ctx, req)
+		return next(cs, req)
 	}
 
 	settings, capOn := f.throttleConfig.SettingsFor(lanternDeviceID, u.CountryCode, req.Header.Get(common.PlatformHeader), req.Header[common.SupportedDataCaps])
@@ -149,7 +149,7 @@ func (f *deviceFilterPre) Apply(ctx filters.Context, req *http.Request, next fil
 	}
 	wc.ControlMessage("measured", measuredCtx)
 
-	resp, nextCtx, err := next(ctx, req)
+	resp, nextCtx, err := next(cs, req)
 	if resp == nil || err != nil {
 		return resp, nextCtx, err
 	}
@@ -174,10 +174,10 @@ func NewPost(bl *blacklist.Blacklist) filters.Filter {
 	}
 }
 
-func (f *deviceFilterPost) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+func (f *deviceFilterPost) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 	// For privacy, delete the DeviceId header before passing it along
 	req.Header.Del(common.DeviceIdHeader)
 	ip, _, _ := net.SplitHostPort(req.RemoteAddr)
 	f.bl.Succeed(ip)
-	return next(ctx, req)
+	return next(cs, req)
 }

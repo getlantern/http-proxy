@@ -16,6 +16,7 @@
 package httpsupgrade
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"time"
@@ -23,7 +24,7 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 )
 
 type httpsUpgrade struct {
@@ -46,17 +47,17 @@ func NewHTTPSUpgrade(configServerAuthToken string) filters.Filter {
 }
 
 // Apply implements the filters.Filter interface for HTTP request processing.
-func (h *httpsUpgrade) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+func (h *httpsUpgrade) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 	if req.Method == "CONNECT" {
-		return next(ctx, req)
+		return next(cs, req)
 	}
 	if cfg := domains.ConfigForRequest(req); cfg.RewriteToHTTPS {
 		if cfg.AddConfigServerHeaders {
 			h.addConfigServerHeaders(req)
 		}
-		return h.rewrite(ctx, cfg.Host, req)
+		return h.rewrite(cs, cfg.Host, req)
 	}
-	return next(ctx, req)
+	return next(cs, req)
 }
 
 func (h *httpsUpgrade) addConfigServerHeaders(req *http.Request) {
@@ -73,8 +74,8 @@ func (h *httpsUpgrade) addConfigServerHeaders(req *http.Request) {
 	}
 }
 
-func (h *httpsUpgrade) rewrite(ctx filters.Context, host string, r *http.Request) (*http.Response, filters.Context, error) {
-	req := r.Clone(ctx)
+func (h *httpsUpgrade) rewrite(cs *filters.ConnectionState, host string, r *http.Request) (*http.Response, *filters.ConnectionState, error) {
+	req := r.Clone(context.Background())
 	req.Host = host + ":443"
 	req.URL.Host = req.Host
 	req.URL.Scheme = "https"
@@ -89,7 +90,7 @@ func (h *httpsUpgrade) rewrite(ctx filters.Context, host string, r *http.Request
 	res, err := h.httpClient.Do(req)
 	if err != nil {
 		h.log.Errorf("Error short circuiting with HTTP/2 with req %#v, %v", req, err)
-		return res, ctx, err
+		return res, cs, err
 	}
 
 	// Downgrade the response back to 1.1 to avoid any oddities with clients choking on h2, although
@@ -110,5 +111,5 @@ func (h *httpsUpgrade) rewrite(ctx filters.Context, host string, r *http.Request
 	// response body is complete, as otherwise Lantern will hang until the TCP connection times out
 	// with the idle timer.
 	res.Close = true
-	return res, ctx, err
+	return res, cs, err
 }

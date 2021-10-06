@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package bbr
@@ -13,7 +14,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/netx"
 	"github.com/getlantern/ops"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 )
 
 type middleware struct {

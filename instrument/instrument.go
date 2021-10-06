@@ -13,7 +13,7 @@ import (
 
 	"github.com/getlantern/geo"
 	"github.com/getlantern/multipath"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 )
 
 // Instrument is the common interface about what can be instrumented.
@@ -88,15 +88,15 @@ type instrumentedFilter struct {
 	filters.Filter
 }
 
-func (f *instrumentedFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+func (f *instrumentedFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 	start := time.Now()
-	res, ctx, err := f.Filter.Apply(ctx, req, next)
+	res, cs, err := f.Filter.Apply(cs, req, next)
 	f.requests.Inc()
 	if err != nil {
 		f.errors.Inc()
 	}
 	f.duration.Observe(time.Since(start).Seconds())
-	return res, ctx, err
+	return res, cs, err
 }
 
 // PromInstrument is an implementation of Instrument which exports Prometheus

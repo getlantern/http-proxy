@@ -30,8 +30,8 @@ import (
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/ops"
 	packetforward "github.com/getlantern/packetforward/server"
-	"github.com/getlantern/proxy"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2"
+	"github.com/getlantern/proxy/v2/filters"
 	"github.com/getlantern/psmux"
 	"github.com/getlantern/quicwrapper"
 	"github.com/getlantern/tinywss"
@@ -694,12 +694,12 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 
 	filterChain = filterChain.Append(
 		proxyfilters.DiscardInitialPersistentRequest,
-		filters.FilterFunc(func(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+		filters.FilterFunc(func(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 			if domains.ConfigForRequest(req).AddForwardedFor {
 				// Only add X-Forwarded-For for certain domains
-				return proxyfilters.AddForwardedFor(ctx, req, next)
+				return proxyfilters.AddForwardedFor(cs, req, next)
 			}
-			return next(ctx, req)
+			return next(cs, req)
 		}),
 		httpsupgrade.NewHTTPSUpgrade(p.CfgSvrAuthToken),
 		proxyfilters.RestrictConnectPorts(p.allowedTunnelPorts()),
