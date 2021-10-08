@@ -27,7 +27,7 @@ require (
 	github.com/getlantern/golog v0.0.0-20210606115803-bce9f9fe5a5f
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
 	github.com/getlantern/hidden v0.0.0-20201229170000-e66e7f878730
-	github.com/getlantern/http-proxy v0.0.3-0.20211006010257-9f95a66e4a75
+	github.com/getlantern/http-proxy v0.0.3-0.20211008020722-4e6e03ccbef2
 	github.com/getlantern/kcpwrapper v0.0.0-20201001150218-1427e1d39c25
 	github.com/getlantern/keyman v0.0.0-20210218183930-5e48f8ced961
 	github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9
@@ -40,7 +40,7 @@ require (
 	github.com/getlantern/ops v0.0.0-20200403153110-8476b16edcd6
 	github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
-	github.com/getlantern/proxy/v2 v2.0.0-20211006000641-9563b7bf8256
+	github.com/getlantern/proxy/v2 v2.0.0-20211008013723-571214ef7a70
 	github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683
 	github.com/getlantern/quicwrapper v0.0.0-20210430211107-8281ff59ece2
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
