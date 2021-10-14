@@ -88,3 +88,7 @@ replace git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110
 replace github.com/mitchellh/panicwrap v1.0.0 => github.com/getlantern/panicwrap v0.0.0-20200707191944-9ba45baf8e51
 
 replace github.com/refraction-networking/utls => github.com/getlantern/utls v0.0.0-20200903013459-0c02248f7ce1
+
+// Version 0.5.6 has a security issue. As this is an indirect dependency, we need to use 'replace'
+// over 'require' to fully remove references to 0.5.6 in go.sum
+replace github.com/ulikunitz/xz => github.com/ulikunitz/xz v0.5.8
