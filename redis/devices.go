@@ -1,12 +1,13 @@
 package redis
 
 import (
+	"context"
 	"strconv"
 	"sync"
 	"time"
 
 	"github.com/getlantern/http-proxy-lantern/v2/usage"
-	"gopkg.in/redis.v5"
+	"github.com/go-redis/redis/v8"
 )
 
 const getUsageScript = `
@@ -47,6 +48,7 @@ type DeviceFetcher struct {
 	rc      *redis.Client
 	ongoing *ongoingSet
 	queue   chan string
+	ctx     context.Context
 }
 
 // NewDeviceFetcher creates a new DeviceFetcher
@@ -55,6 +57,7 @@ func NewDeviceFetcher(rc *redis.Client) *DeviceFetcher {
 		rc:      rc,
 		ongoing: &ongoingSet{set: make(map[string]bool, 512)},
 		queue:   make(chan string, 512),
+		ctx:     context.Background(),
 	}
 
 	go df.processDeviceUsageRequests()
@@ -81,7 +84,7 @@ func (df *DeviceFetcher) processDeviceUsageRequests() {
 	for deviceID := range df.queue {
 		if scriptSHA == "" {
 			var err error
-			scriptSHA, err = df.rc.ScriptLoad(getUsageScript).Result()
+			scriptSHA, err = df.rc.ScriptLoad(df.ctx, getUsageScript).Result()
 			if err != nil {
 				log.Errorf("Unable to load script, skip fetching usage: %v", err)
 				continue
@@ -96,7 +99,7 @@ func (df *DeviceFetcher) processDeviceUsageRequests() {
 
 func (df *DeviceFetcher) retrieveDeviceUsage(scriptSHA string, deviceID string) error {
 	clientKey := "_client:" + deviceID
-	_vals, err := df.rc.EvalSha(scriptSHA, []string{clientKey}).Result()
+	_vals, err := df.rc.EvalSha(df.ctx, scriptSHA, []string{clientKey}).Result()
 	if err != nil {
 		return err
 	}

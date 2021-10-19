@@ -24,7 +24,6 @@ _testmain.go
 *.prof
 
 .env
-*.pem
 http-proxy-lantern
 http-proxy/http-proxy
 pinger
@@ -33,6 +32,7 @@ pinger
 http-proxy.raw
 
 test/data/http-proxy.raw
+test/testtickets
 
 loader
 obfs4_bridgeline.txt

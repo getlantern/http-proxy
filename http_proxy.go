@@ -8,15 +8,11 @@ import (
 	"net/http"
 	_ "net/http/pprof"
 	"os"
-	"os/signal"
 	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
-	"syscall"
 	"time"
-
-	rclient "gopkg.in/redis.v5"
 
 	utp "github.com/anacrolix/go-libutp"
 	bordaClient "github.com/getlantern/borda/client"
@@ -30,18 +26,17 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/ossh"
 	"github.com/getlantern/kcpwrapper"
 	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
+	rclient "github.com/go-redis/redis/v8"
 
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/ops"
 	packetforward "github.com/getlantern/packetforward/server"
-	"github.com/getlantern/pcapper"
 	"github.com/getlantern/proxy"
 	"github.com/getlantern/proxy/filters"
 	"github.com/getlantern/psmux"
 	"github.com/getlantern/quicwrapper"
 	"github.com/getlantern/tinywss"
 	"github.com/getlantern/tlsdefaults"
-	"github.com/getlantern/tlsredis"
 	"github.com/xtaci/smux"
 
 	"github.com/getlantern/http-proxy/listeners"
@@ -111,10 +106,7 @@ type Proxy struct {
 	Pro                                bool
 	ProxiedSitesSamplePercentage       float64
 	ProxiedSitesTrackingID             string
-	ReportingRedisAddr                 string
-	ReportingRedisCA                   string
-	ReportingRedisClientPK             string
-	ReportingRedisClientCert           string
+	ReportingRedisClient               *rclient.Client
 	ThrottleRefreshInterval            time.Duration
 	Token                              string
 	TunnelPorts                        string
@@ -144,6 +136,7 @@ type Proxy struct {
 	BlacklistExpiration                time.Duration
 	ProxyName                          string
 	ProxyProtocol                      string
+	BuildType                          string
 	BBRUpstreamProbeURL                string
 	QUICIETFAddr                       string
 	QUICUseBBR                         bool
@@ -199,7 +192,6 @@ type Proxy struct {
 	PsmuxAggressivePaddingRatio   float64
 
 	bm             bbr.Middleware
-	rc             *rclient.Client
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
 }
@@ -229,6 +221,7 @@ func (p *Proxy) ListenAndServe() error {
 			p.CountryLookup,
 			p.ISPLookup,
 			instrument.CommonLabels{
+				BuildType:             p.BuildType,
 				Protocol:              p.ProxyProtocol,
 				SupportTLSResumption:  p.SessionTicketKeyFile != "",
 				RequireTLSResumption:  p.RequireSessionTickets,
@@ -242,32 +235,34 @@ func (p *Proxy) ListenAndServe() error {
 		}()
 		p.instrument = prom
 	}
-
 	var onServerError func(conn net.Conn, err error)
 	var onListenerError func(conn net.Conn, err error)
-	if p.PCAPDir != "" && p.PCAPIPs > 0 && p.PCAPSPerIP > 0 {
-		log.Debugf("Enabling packet capture, capturing the %d packets for each of the %d most recent IPs into %v", p.PCAPSPerIP, p.PCAPIPs, p.PCAPDir)
-		pcapper.StartCapturing("http-proxy", p.ExternalIntf, "/tmp", p.PCAPIPs, p.PCAPSPerIP, p.PCAPSnapLen, p.PCAPTimeout)
-		onServerError = func(conn net.Conn, err error) {
-			ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-			pcapper.Dump(ip, log.Errorf("Unexpected error handling traffic from %v: %v", ip, err).Error())
-		}
-		onListenerError = func(conn net.Conn, err error) {
-			ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-			pcapper.Dump(ip, log.Errorf("Unexpected error handling new connection from %v: %v", ip, err).Error())
-		}
+	/*
 
-		c := make(chan os.Signal, 1)
-		signal.Notify(c, syscall.SIGUSR1)
-		go func() {
-			for range c {
-				pcapper.DumpAll("Full Dump")
+		if p.PCAPDir != "" && p.PCAPIPs > 0 && p.PCAPSPerIP > 0 {
+			log.Debugf("Enabling packet capture, capturing the %d packets for each of the %d most recent IPs into %v", p.PCAPSPerIP, p.PCAPIPs, p.PCAPDir)
+			pcapper.StartCapturing("http-proxy", p.ExternalIntf, "/tmp", p.PCAPIPs, p.PCAPSPerIP, p.PCAPSnapLen, p.PCAPTimeout)
+			onServerError = func(conn net.Conn, err error) {
+				ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+				pcapper.Dump(ip, log.Errorf("Unexpected error handling traffic from %v: %v", ip, err).Error())
 			}
-		}()
-	}
+			onListenerError = func(conn net.Conn, err error) {
+				ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
+				pcapper.Dump(ip, log.Errorf("Unexpected error handling new connection from %v: %v", ip, err).Error())
+			}
 
+			c := make(chan os.Signal, 1)
+			signal.Notify(c, syscall.SIGUSR1)
+			go func() {
+				for range c {
+					pcapper.DumpAll("Full Dump")
+				}
+			}()
+		}
+
+	*/
 	if err := p.setupPacketForward(); err != nil {
-		return err
+		log.Errorf("Unable to set up packet forwarding, will continue to start up: %v", err)
 	}
 	p.setupOpsContext()
 	p.setBenchmarkMode()
@@ -275,7 +270,6 @@ func (p *Proxy) ListenAndServe() error {
 	if p.BBRUpstreamProbeURL != "" {
 		go p.bm.ProbeUpstream(p.BBRUpstreamProbeURL)
 	}
-	p.initRedisClient()
 	p.loadThrottleConfig()
 
 	if p.ENHTTPAddr != "" {
@@ -625,12 +619,12 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		filterChain = filterChain.Append(proxy.OnFirstOnly(tokenfilter.New(p.Token, p.instrument)))
 	}
 
-	if p.rc == nil {
+	if p.ReportingRedisClient == nil {
 		log.Debug("Not enabling bandwidth limiting")
 	} else {
 		filterChain = filterChain.Append(
 			proxy.OnFirstOnly(devicefilter.NewPre(
-				redis.NewDeviceFetcher(p.rc), p.throttleConfig, !p.Pro, p.instrument)),
+				redis.NewDeviceFetcher(p.ReportingRedisClient), p.throttleConfig, !p.Pro, p.instrument)),
 		)
 	}
 
@@ -733,12 +727,12 @@ func (p *Proxy) configureBandwidthReporting() (*reportingConfig, listeners.Measu
 	if p.BordaReportInterval > 0 {
 		bordaReporter = borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
 	}
-	return newReportingConfig(p.CountryLookup, p.rc, p.EnableReports, bordaReporter, p.instrument, p.throttleConfig), bordaReporter
+	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.EnableReports, bordaReporter, p.instrument, p.throttleConfig), bordaReporter
 }
 
 func (p *Proxy) loadThrottleConfig() {
-	if !p.Pro && p.ThrottleRefreshInterval > 0 && p.rc != nil {
-		p.throttleConfig = throttle.NewRedisConfig(p.rc, p.ThrottleRefreshInterval)
+	if !p.Pro && p.ThrottleRefreshInterval > 0 && p.ReportingRedisClient != nil {
+		p.throttleConfig = throttle.NewRedisConfig(p.ReportingRedisClient, p.ThrottleRefreshInterval)
 	} else {
 		log.Debug("Not loading throttle config")
 		return
@@ -755,25 +749,6 @@ func (p *Proxy) allowedTunnelPorts() []int {
 		log.Fatal(err)
 	}
 	return ports
-}
-
-func (p *Proxy) initRedisClient() {
-	var err error
-	if p.ReportingRedisAddr == "" {
-		log.Debug("no redis address configured for bandwidth reporting")
-		return
-	}
-
-	redisOpts := &tlsredis.Options{
-		RedisURL:       p.ReportingRedisAddr,
-		RedisCAFile:    p.ReportingRedisCA,
-		ClientPKFile:   p.ReportingRedisClientPK,
-		ClientCertFile: p.ReportingRedisClientCert,
-	}
-	p.rc, err = tlsredis.GetClient(redisOpts)
-	if err != nil {
-		log.Errorf("Error connecting to redis, will not be able to perform bandwidth limiting: %v", err)
-	}
 }
 
 func (p *Proxy) listenHTTP(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
@@ -1086,11 +1061,4 @@ func portsFromCSV(csv string) ([]int, error) {
 		ports[i] = p
 	}
 	return ports, nil
-}
-
-type requestModifier func(req *http.Request)
-
-func (f requestModifier) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
-	f(req)
-	return next(ctx, req)
 }

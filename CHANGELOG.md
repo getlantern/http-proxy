@@ -1,4 +1,60 @@
 
+<a name="v2.6.47"></a>
+## [v2.6.47](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.46...v2.6.47)
+
+> 2021-09-22
+
+### Pull Requests
+
+* Merge pull request [#483](https://github.com/getlantern/http-proxy-lantern/issues/483) from getlantern/myles/top-sites-fix
+* Merge pull request [#482](https://github.com/getlantern/http-proxy-lantern/issues/482) from getlantern/reflog/canary_metrics
+
+
+<a name="v2.6.46"></a>
+## [v2.6.46](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.45...v2.6.46)
+
+> 2021-06-22
+
+
+<a name="v2.6.45"></a>
+## [v2.6.45](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.44...v2.6.45)
+
+> 2021-06-21
+
+### Pull Requests
+
+* Merge pull request [#479](https://github.com/getlantern/http-proxy-lantern/issues/479) from getlantern/myles/ha-redis
+* Merge pull request [#478](https://github.com/getlantern/http-proxy-lantern/issues/478) from getlantern/reflog/add_canary
+* Merge pull request [#480](https://github.com/getlantern/http-proxy-lantern/issues/480) from getlantern/harry/ha-redis-testing
+
+
+<a name="v2.6.44"></a>
+## [v2.6.44](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.43...v2.6.44)
+
+> 2021-06-10
+
+### Pull Requests
+
+* Merge pull request [#477](https://github.com/getlantern/http-proxy-lantern/issues/477) from getlantern/ox/enablepacketforward
+
+
+<a name="v2.6.43"></a>
+## [v2.6.43](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.42...v2.6.43)
+
+> 2021-06-10
+
+### Pull Requests
+
+* Merge pull request [#476](https://github.com/getlantern/http-proxy-lantern/issues/476) from getlantern/packet-forward-hotfix
+* Merge pull request [#475](https://github.com/getlantern/http-proxy-lantern/issues/475) from getlantern/reflog/structured_logging
+
+
+<a name="v2.6.42"></a>
+## [v2.6.42](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.41...v2.6.42)
+
+> 2021-06-01
+
+
 <a name="v2.6.41"></a>
 ## [v2.6.41](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.40...v2.6.41)
 
@@ -50,8 +106,6 @@
 ### Pull Requests
 
 * Merge pull request [#461](https://github.com/getlantern/http-proxy-lantern/issues/461) from getlantern/shadowsocks
-* Merge pull request [#465](https://github.com/getlantern/http-proxy-lantern/issues/465) from getlantern/bump-bbr-for-less-logs
-* Merge pull request [#464](https://github.com/getlantern/http-proxy-lantern/issues/464) from getlantern/fix-bbr-not-working
 
 
 <a name="v2.6.35"></a>
@@ -61,6 +115,8 @@
 
 ### Pull Requests
 
+* Merge pull request [#465](https://github.com/getlantern/http-proxy-lantern/issues/465) from getlantern/bump-bbr-for-less-logs
+* Merge pull request [#464](https://github.com/getlantern/http-proxy-lantern/issues/464) from getlantern/fix-bbr-not-working
 * Merge pull request [#463](https://github.com/getlantern/http-proxy-lantern/issues/463) from getlantern/stackdriver-grouping
 
 
@@ -153,18 +209,18 @@
 ### Pull Requests
 
 * Merge pull request [#435](https://github.com/getlantern/http-proxy-lantern/issues/435) from getlantern/ox/issue4657
-* Merge pull request [#432](https://github.com/getlantern/http-proxy-lantern/issues/432) from getlantern/git-chglog
-* Merge pull request [#433](https://github.com/getlantern/http-proxy-lantern/issues/433) from getlantern/4420-versioncheck-lantern
-* Merge pull request [#431](https://github.com/getlantern/http-proxy-lantern/issues/431) from getlantern/upgrade-multipath
 
 
 <a name="v2.6.25"></a>
 ## [v2.6.25](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.24...v2.6.25)
 
-> 2020-10-26
+> 2021-01-05
 
 ### Pull Requests
 
+* Merge pull request [#432](https://github.com/getlantern/http-proxy-lantern/issues/432) from getlantern/git-chglog
+* Merge pull request [#433](https://github.com/getlantern/http-proxy-lantern/issues/433) from getlantern/4420-versioncheck-lantern
+* Merge pull request [#431](https://github.com/getlantern/http-proxy-lantern/issues/431) from getlantern/upgrade-multipath
 * Merge pull request [#426](https://github.com/getlantern/http-proxy-lantern/issues/426) from getlantern/quic_18
 
 
@@ -243,13 +299,19 @@
 
 
 <a name="v2.6.17"></a>
-## [v2.6.17](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.15...v2.6.17)
+## [v2.6.17](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.15-geph...v2.6.17)
 
 > 2020-08-17
 
 ### Pull Requests
 
 * Merge pull request [#414](https://github.com/getlantern/http-proxy-lantern/issues/414) from getlantern/3868-throughput-per-isp
+
+
+<a name="v2.6.15-geph"></a>
+## [v2.6.15-geph](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.15...v2.6.15-geph)
+
+> 2020-07-20
 
 
 <a name="v2.6.15"></a>
@@ -447,13 +509,16 @@
 ### Pull Requests
 
 * Merge pull request [#389](https://github.com/getlantern/http-proxy-lantern/issues/389) from getlantern/proxy-log-fix
-* Merge pull request [#388](https://github.com/getlantern/http-proxy-lantern/issues/388) from getlantern/ox/issue3549-debug
 
 
 <a name="2.5.6"></a>
 ## [2.5.6](https://github.com/getlantern/http-proxy-lantern/compare/2.5.5...2.5.6)
 
 > 2020-04-06
+
+### Pull Requests
+
+* Merge pull request [#388](https://github.com/getlantern/http-proxy-lantern/issues/388) from getlantern/ox/issue3549-debug
 
 
 <a name="2.5.5"></a>
@@ -601,7 +666,7 @@
 
 
 <a name="2.4.0"></a>
-## [2.4.0](https://github.com/getlantern/http-proxy-lantern/compare/2.3.10...2.4.0)
+## [2.4.0](https://github.com/getlantern/http-proxy-lantern/compare/2.3.12...2.4.0)
 
 > 2020-01-21
 
@@ -612,15 +677,6 @@
 * Merge pull request [#364](https://github.com/getlantern/http-proxy-lantern/issues/364) from getlantern/harry/3261
 * Merge pull request [#362](https://github.com/getlantern/http-proxy-lantern/issues/362) from getlantern/throttling-tiny-fixes
 * Merge pull request [#361](https://github.com/getlantern/http-proxy-lantern/issues/361) from getlantern/new-changelog-generator
-
-
-<a name="2.3.10"></a>
-## [2.3.10](https://github.com/getlantern/http-proxy-lantern/compare/2.3.12...2.3.10)
-
-> 2019-12-20
-
-### Pull Requests
-
 * Merge pull request [#360](https://github.com/getlantern/http-proxy-lantern/issues/360) from getlantern/update-quic-go
 
 
@@ -635,7 +691,7 @@
 
 
 <a name="2.3.11"></a>
-## [2.3.11](https://github.com/getlantern/http-proxy-lantern/compare/2.3.9...2.3.11)
+## [2.3.11](https://github.com/getlantern/http-proxy-lantern/compare/2.3.10...2.3.11)
 
 > 2019-12-16
 
@@ -643,6 +699,15 @@
 
 * Merge pull request [#358](https://github.com/getlantern/http-proxy-lantern/issues/358) from getlantern/lampshade-back-compatibiliby
 * Merge pull request [#357](https://github.com/getlantern/http-proxy-lantern/issues/357) from getlantern/3156-defer-fix
+
+
+<a name="2.3.10"></a>
+## [2.3.10](https://github.com/getlantern/http-proxy-lantern/compare/2.3.9...2.3.10)
+
+> 2019-12-14
+
+### Pull Requests
+
 * Merge pull request [#356](https://github.com/getlantern/http-proxy-lantern/issues/356) from getlantern/3156-measure-version-redirects
 * Merge pull request [#353](https://github.com/getlantern/http-proxy-lantern/issues/353) from getlantern/3137-configurable-response-to-invalid-ticket
 * Merge pull request [#354](https://github.com/getlantern/http-proxy-lantern/issues/354) from getlantern/3137-response-type-as-label
@@ -659,40 +724,40 @@
 
 > 2019-12-04
 
-### Pull Requests
-
-* Merge pull request [#355](https://github.com/getlantern/http-proxy-lantern/issues/355) from getlantern/ox/issue3158
-* Merge pull request [#352](https://github.com/getlantern/http-proxy-lantern/issues/352) from getlantern/not-collect-probing-source-ip
-
-
-<a name="2.3.7"></a>
-## [2.3.7](https://github.com/getlantern/http-proxy-lantern/compare/2.3.6...2.3.7)
-
-> 2019-11-20
-
-### Pull Requests
-
-* Merge pull request [#351](https://github.com/getlantern/http-proxy-lantern/issues/351) from getlantern/handle-no-session-ticket-separately
-
-
-<a name="2.3.6"></a>
-## [2.3.6](https://github.com/getlantern/http-proxy-lantern/compare/2.3.5...2.3.6)
-
-> 2019-11-19
-
 ### Reverts
 
 * Support Apache mimicry when multiplexing
 
 ### Pull Requests
 
+* Merge pull request [#355](https://github.com/getlantern/http-proxy-lantern/issues/355) from getlantern/ox/issue3158
+* Merge pull request [#352](https://github.com/getlantern/http-proxy-lantern/issues/352) from getlantern/not-collect-probing-source-ip
+* Merge pull request [#351](https://github.com/getlantern/http-proxy-lantern/issues/351) from getlantern/handle-no-session-ticket-separately
 * Merge pull request [#350](https://github.com/getlantern/http-proxy-lantern/issues/350) from getlantern/hello-naming
 * Merge pull request [#349](https://github.com/getlantern/http-proxy-lantern/issues/349) from getlantern/decrypt-tickets
 * Merge pull request [#342](https://github.com/getlantern/http-proxy-lantern/issues/342) from getlantern/harry/apache-mimicry-testing
+
+
+<a name="2.3.7"></a>
+## [2.3.7](https://github.com/getlantern/http-proxy-lantern/compare/2.3.6...2.3.7)
+
+> 2019-11-17
+
+### Pull Requests
+
 * Merge pull request [#346](https://github.com/getlantern/http-proxy-lantern/issues/346) from getlantern/allow-no-session-ticket-loopback
 * Merge pull request [#345](https://github.com/getlantern/http-proxy-lantern/issues/345) from getlantern/collect-prober-ip
 * Merge pull request [#344](https://github.com/getlantern/http-proxy-lantern/issues/344) from getlantern/go-minor-version
 * Merge pull request [#343](https://github.com/getlantern/http-proxy-lantern/issues/343) from getlantern/hello-ticket-test
+
+
+<a name="2.3.6"></a>
+## [2.3.6](https://github.com/getlantern/http-proxy-lantern/compare/2.3.5...2.3.6)
+
+> 2019-11-17
+
+### Pull Requests
+
 * Merge pull request [#341](https://github.com/getlantern/http-proxy-lantern/issues/341) from getlantern/require-tickets
 * Merge pull request [#340](https://github.com/getlantern/http-proxy-lantern/issues/340) from getlantern/harry/go-version-fix
 
@@ -897,16 +962,13 @@
 ### Pull Requests
 
 * Merge pull request [#299](https://github.com/getlantern/http-proxy-lantern/issues/299) from getlantern/ox/issue2713
+* Merge pull request [#295](https://github.com/getlantern/http-proxy-lantern/issues/295) from getlantern/ox/end_dial_origin_op
 
 
 <a name="0.2.12"></a>
 ## [0.2.12](https://github.com/getlantern/http-proxy-lantern/compare/0.2.11...0.2.12)
 
-> 2019-03-21
-
-### Pull Requests
-
-* Merge pull request [#295](https://github.com/getlantern/http-proxy-lantern/issues/295) from getlantern/ox/end_dial_origin_op
+> 2019-03-20
 
 
 <a name="0.2.11"></a>
@@ -1024,16 +1086,16 @@
 ### Pull Requests
 
 * Merge pull request [#274](https://github.com/getlantern/http-proxy-lantern/issues/274) from getlantern/ox/lampshadehang
-* Merge pull request [#272](https://github.com/getlantern/http-proxy-lantern/issues/272) from getlantern/x-forwarded-for-pro-server
 
 
 <a name="0.2.1"></a>
 ## [0.2.1](https://github.com/getlantern/http-proxy-lantern/compare/0.2.0...0.2.1)
 
-> 2018-10-23
+> 2018-12-03
 
 ### Pull Requests
 
+* Merge pull request [#272](https://github.com/getlantern/http-proxy-lantern/issues/272) from getlantern/x-forwarded-for-pro-server
 * Merge pull request [#271](https://github.com/getlantern/http-proxy-lantern/issues/271) from getlantern/deploy-scripts
 * Merge pull request [#269](https://github.com/getlantern/http-proxy-lantern/issues/269) from getlantern/ox/multiplex
 
@@ -1059,7 +1121,23 @@
 
 
 <a name="0.1.14"></a>
-## [0.1.14](https://github.com/getlantern/http-proxy-lantern/compare/0.1.10...0.1.14)
+## [0.1.14](https://github.com/getlantern/http-proxy-lantern/compare/0.1.13...0.1.14)
+
+> 2018-09-30
+
+### Pull Requests
+
+* Merge pull request [#266](https://github.com/getlantern/http-proxy-lantern/issues/266) from getlantern/ox/goupgrade2
+
+
+<a name="0.1.13"></a>
+## [0.1.13](https://github.com/getlantern/http-proxy-lantern/compare/0.1.12...0.1.13)
+
+> 2018-09-30
+
+
+<a name="0.1.12"></a>
+## [0.1.12](https://github.com/getlantern/http-proxy-lantern/compare/0.1.11...0.1.12)
 
 > 2018-09-30
 
@@ -1069,41 +1147,35 @@
 
 ### Pull Requests
 
-* Merge pull request [#266](https://github.com/getlantern/http-proxy-lantern/issues/266) from getlantern/ox/goupgrade2
+* Merge pull request [#265](https://github.com/getlantern/http-proxy-lantern/issues/265) from getlantern/ox/goupgrade
 * Merge pull request [#264](https://github.com/getlantern/http-proxy-lantern/issues/264) from getlantern/ox/deps
 * Merge pull request [#258](https://github.com/getlantern/http-proxy-lantern/issues/258) from getlantern/issue_1579
 * Merge pull request [#262](https://github.com/getlantern/http-proxy-lantern/issues/262) from getlantern/691-fix-bugs
 * Merge pull request [#261](https://github.com/getlantern/http-proxy-lantern/issues/261) from getlantern/2052-fix-ci
 * Merge pull request [#260](https://github.com/getlantern/http-proxy-lantern/issues/260) from getlantern/revert-259-issue-2234-client-ip
-
-
-<a name="0.1.10"></a>
-## [0.1.10](https://github.com/getlantern/http-proxy-lantern/compare/0.1.12...0.1.10)
-
-> 2018-08-10
-
-### Pull Requests
-
 * Merge pull request [#259](https://github.com/getlantern/http-proxy-lantern/issues/259) from getlantern/issue-2234-client-ip
 * Merge pull request [#256](https://github.com/getlantern/http-proxy-lantern/issues/256) from getlantern/data-cap-off
 * Merge pull request [#257](https://github.com/getlantern/http-proxy-lantern/issues/257) from getlantern/data-cap-off-joesis
 * Merge pull request [#246](https://github.com/getlantern/http-proxy-lantern/issues/246) from getlantern/2145-reconnect-redis
 
 
-<a name="0.1.12"></a>
-## [0.1.12](https://github.com/getlantern/http-proxy-lantern/compare/0.1.11...0.1.12)
-
-> 2018-07-13
-
-
 <a name="0.1.11"></a>
-## [0.1.11](https://github.com/getlantern/http-proxy-lantern/compare/0.1.9...0.1.11)
+## [0.1.11](https://github.com/getlantern/http-proxy-lantern/compare/0.1.10...0.1.11)
 
 > 2018-07-13
 
 ### Pull Requests
 
 * Merge pull request [#254](https://github.com/getlantern/http-proxy-lantern/issues/254) from getlantern/proxy-update-close-log
+
+
+<a name="0.1.10"></a>
+## [0.1.10](https://github.com/getlantern/http-proxy-lantern/compare/0.1.9...0.1.10)
+
+> 2018-07-13
+
+### Pull Requests
+
 * Merge pull request [#253](https://github.com/getlantern/http-proxy-lantern/issues/253) from getlantern/version-check
 * Merge pull request [#252](https://github.com/getlantern/http-proxy-lantern/issues/252) from getlantern/deploy-ip-check
 * Merge pull request [#251](https://github.com/getlantern/http-proxy-lantern/issues/251) from getlantern/timeout-error-details
@@ -1192,13 +1264,9 @@
 
 
 <a name="v0.1.1"></a>
-## [v0.1.1](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.20...v0.1.1)
+## [v0.1.1](https://github.com/getlantern/http-proxy-lantern/compare/v0.1.0...v0.1.1)
 
 > 2018-06-22
-
-### Reverts
-
-* Using special DeviceID for getlantern/lantern[#851](https://github.com/getlantern/http-proxy-lantern/issues/851)
 
 ### Pull Requests
 
@@ -1208,6 +1276,19 @@
 * Merge pull request [#231](https://github.com/getlantern/http-proxy-lantern/issues/231) from getlantern/issue-1706
 * Merge pull request [#232](https://github.com/getlantern/http-proxy-lantern/issues/232) from getlantern/tag-changelog
 * Merge pull request [#224](https://github.com/getlantern/http-proxy-lantern/issues/224) from getlantern/sample-stackdriver
+
+
+<a name="v0.1.0"></a>
+## [v0.1.0](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.20...v0.1.0)
+
+> 2018-06-19
+
+### Reverts
+
+* Using special DeviceID for getlantern/lantern[#851](https://github.com/getlantern/http-proxy-lantern/issues/851)
+
+### Pull Requests
+
 * Merge pull request [#230](https://github.com/getlantern/http-proxy-lantern/issues/230) from getlantern/ox/issue2104
 * Merge pull request [#228](https://github.com/getlantern/http-proxy-lantern/issues/228) from getlantern/ox/issue2100
 * Merge pull request [#229](https://github.com/getlantern/http-proxy-lantern/issues/229) from getlantern/ox/issue2103
@@ -1360,7 +1441,7 @@
 
 
 <a name="reporting-test-auth"></a>
-## [reporting-test-auth](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.16...reporting-test-auth)
+## [reporting-test-auth](https://github.com/getlantern/http-proxy-lantern/compare/reporting-test...reporting-test-auth)
 
 > 2016-04-25
 
@@ -1370,14 +1451,14 @@
 * Merge pull request [#56](https://github.com/getlantern/http-proxy-lantern/issues/56) from getlantern/redis-fix
 
 
-<a name="v0.0.16"></a>
-## [v0.0.16](https://github.com/getlantern/http-proxy-lantern/compare/reporting-test...v0.0.16)
+<a name="reporting-test"></a>
+## [reporting-test](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.16...reporting-test)
 
 > 2016-04-18
 
 
-<a name="reporting-test"></a>
-## [reporting-test](https://github.com/getlantern/http-proxy-lantern/compare/obfs4test...reporting-test)
+<a name="v0.0.16"></a>
+## [v0.0.16](https://github.com/getlantern/http-proxy-lantern/compare/obfs4test...v0.0.16)
 
 > 2016-04-18
 
@@ -1490,7 +1571,7 @@
 
 
 <a name="v0.0.6"></a>
-## [v0.0.6](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.5...v0.0.6)
+## [v0.0.6](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.4...v0.0.6)
 
 > 2016-01-26
 
@@ -1499,14 +1580,14 @@
 * Merge pull request [#22](https://github.com/getlantern/http-proxy-lantern/issues/22) from getlantern/3409
 
 
-<a name="v0.0.5"></a>
-## [v0.0.5](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.4...v0.0.5)
+<a name="v0.0.4"></a>
+## [v0.0.4](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.5...v0.0.4)
 
 > 2015-11-24
 
 
-<a name="v0.0.4"></a>
-## [v0.0.4](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.5-go.1.5.3...v0.0.4)
+<a name="v0.0.5"></a>
+## [v0.0.5](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.5-go.1.5.3...v0.0.5)
 
 > 2015-11-24
 

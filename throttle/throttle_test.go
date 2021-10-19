@@ -1,13 +1,15 @@
 package throttle
 
 import (
+	"context"
+	"crypto/tls"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/getlantern/golog/testlog"
-	"github.com/getlantern/testredis"
-	"github.com/stretchr/testify/assert"
+	"github.com/getlantern/http-proxy-lantern/v2/internal/testutil"
+	"github.com/go-redis/redis/v8"
 	"github.com/stretchr/testify/require"
 )
 
@@ -58,23 +60,16 @@ func TestThrottleConfig(t *testing.T) {
 	stopCapture := testlog.Capture(t)
 	defer stopCapture()
 
-	r, err := testredis.Open()
-	if !assert.NoError(t, err) {
-		return
-	}
-	defer r.Close()
-
-	rc := r.Client()
-	defer rc.Close()
+	rc := testutil.TestRedis(t)
 
 	// try a bad config first
-	require.NoError(t, rc.Set("_throttle", "blah I'm bad settings blah", 0).Err())
+	require.NoError(t, rc.Set(context.Background(), "_throttle", "blah I'm bad settings blah", 0).Err())
 	cfg := NewRedisConfig(rc, refreshInterval)
 	_, ok := cfg.SettingsFor(deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"})
 	require.False(t, ok, "Loading throttle settings from bad config should fail")
 
 	// now do a good config
-	require.NoError(t, rc.Set("_throttle", goodSettings, 0).Err())
+	require.NoError(t, rc.Set(context.Background(), "_throttle", goodSettings, 0).Err())
 	cfg = NewRedisConfig(rc, refreshInterval)
 
 	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"}, 4000, 400, "weekly", "known country, known platform, segment 1")
@@ -95,7 +90,7 @@ func TestThrottleConfig(t *testing.T) {
 	doTest(t, cfg, deviceIDInSegment1, "de", "", []string{"monthly", "weekly"}, 1000, 100, "weekly", "unknown country, unknown platform, unknown segment")
 
 	// update settings
-	require.NoError(t, rc.Set("_throttle", strings.ReplaceAll(goodSettings, "4", "5"), 0).Err())
+	require.NoError(t, rc.Set(context.Background(), "_throttle", strings.ReplaceAll(goodSettings, "4", "5"), 0).Err())
 	time.Sleep(refreshInterval * 2)
 
 	doTest(t, cfg, deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"}, 5000, 500, "weekly", "known country, known platform, segment 1, after update")
@@ -113,21 +108,18 @@ func TestFailToConnectRedis(t *testing.T) {
 	stopCapture := testlog.Capture(t)
 	defer stopCapture()
 
-	r, err := testredis.OpenUnstarted()
-	if !assert.NoError(t, err) {
-		return
-	}
-	defer r.Close()
+	bogusClient := redis.NewClient(&redis.Options{
+		Addr:      "localhost:80",
+		TLSConfig: &tls.Config{InsecureSkipVerify: true},
+	})
 
-	rc := r.Client()
-	defer rc.Close()
-
-	cfg := NewRedisConfig(rc, refreshInterval)
+	cfg := NewRedisConfig(bogusClient, refreshInterval)
 	_, ok := cfg.SettingsFor(deviceIDInSegment1, "cn", "windows", []string{"monthly", "weekly"})
 	require.False(t, ok, "Loading throttle settings when unable to contact redis should fail")
 
-	r.Start()
-	require.NoError(t, rc.Set("_throttle", goodSettings, 0).Err())
+	redisClient := testutil.TestRedis(t)
+	cfg = NewRedisConfig(redisClient, refreshInterval)
+	require.NoError(t, redisClient.Set(context.Background(), "_throttle", goodSettings, 0).Err())
 
 	time.Sleep(refreshInterval * 2)
 	// Should load the config when Redis is back up online

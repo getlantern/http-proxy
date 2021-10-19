@@ -1,4 +1,5 @@
 SHELL := /bin/bash
+.DEFAULT_GOAL := build
 GIT_REVISION := $(shell git rev-parse --short HEAD)
 CHANGE_BIN   := $(shell which git-chglog)
 
@@ -9,7 +10,7 @@ DIST_DIR    := dist-bin
 
 SRCS := $(shell find . -name "*.go" -not -path "*_test.go" -not -path "./vendor/*") go.mod go.sum
 
-GO_VERSION := 1.16.3
+GO_VERSION := 1.16.5
 
 DOCKER_IMAGE_TAG := http-proxy-builder
 DOCKER_VOLS = "-v $$PWD/../../..:/src"
@@ -23,10 +24,18 @@ GO        := $(call get-command,go)
 # dependencies rely on C libraries like libpcap-dev.
 BUILD_WITH_DOCKER = false
 
+# Controls whether logs from Redis are included in test output.
+REDIS_LOGS ?= false
+
 ifeq ($(OS),Windows)
 	BUILD_WITH_DOCKER = true
 else ifeq ($(shell uname -s),Darwin)
 	BUILD_WITH_DOCKER = true
+endif
+
+BUILD_TYPE = stable
+ifeq ($(BUILD_CANARY),true)
+	BUILD_TYPE = canary
 endif
 
 .PHONY: build dist distnochange dist-on-linux dist-on-docker clean test system-checks
@@ -67,17 +76,22 @@ $(BUILD_DIR)/http-proxy: $(SRCS) | $(BUILD_DIR)
 
 build: $(BUILD_DIR)/http-proxy
 
+local-rts: build
+	./bin/http-proxy -config ./rts/rts.ini
+
+local-proxy: local-rts
+
 dist-on-linux: $(DIST_DIR)
 	GOOS=linux GOARCH=amd64 GO111MODULE=on GOPRIVATE="github.com/getlantern" \
 	go build -o $(DIST_DIR)/http-proxy \
-	-ldflags="-X main.revision=$(GIT_REVISION)" \
+	-ldflags="-X main.revision=$(GIT_REVISION) -X main.build_type=$(BUILD_TYPE)" \
 	./http-proxy
 
 dist-on-docker: $(DIST_DIR) docker-builder
 	GO111MODULE=on go mod vendor && \
-	docker run -e GIT_REVISION='$(GIT_REVISION)' \
+	docker run -e GIT_REVISION='$(GIT_REVISION)' -e BUILD_TYPE='$(BUILD_TYPE)' \
 	-v $$PWD:/src -t $(DOCKER_IMAGE_TAG) /bin/bash -c \
-	'cd /src && go build -o $(DIST_DIR)/http-proxy -ldflags="-X main.revision=$$GIT_REVISION" -mod=vendor ./http-proxy'
+	'cd /src && go build -o $(DIST_DIR)/http-proxy -ldflags="-X main.revision=$$GIT_REVISION -X main.build_type=$$BUILD_TYPE" -mod=vendor ./http-proxy'
 
 $(DIST_DIR)/http-proxy: $(SRCS)
 	@if [ "$(BUILD_WITH_DOCKER)" = "true" ]; then \
@@ -99,6 +113,10 @@ deploy-staging: $(DIST_DIR)/http-proxy
 	s3cmd put $(DIST_DIR)/http-proxy s3://http-proxy/http-proxy-staging && \
 	s3cmd setacl --acl-grant read:f87080f71ec0be3b9a933cbb244a6c24d4aca584ac32b3220f56d59071043747 s3://http-proxy/http-proxy-staging
 
+deploy-canary: $(DIST_DIR)/http-proxy
+	s3cmd put $(DIST_DIR)/http-proxy s3://http-proxy/http-proxy-canary && \
+	s3cmd setacl --acl-grant read:f87080f71ec0be3b9a933cbb244a6c24d4aca584ac32b3220f56d59071043747 s3://http-proxy/http-proxy-canary
+
 clean:
 	rm -rf $(BUILD_DIR) $(DIST_DIR)
 
@@ -113,4 +131,4 @@ docker-builder: system-checks
 	docker build -t $(DOCKER_IMAGE_TAG) --build-arg go_version=go$(GO_VERSION) $$DOCKER_CONTEXT
 
 test:
-	GO111MODULE=on go test -race $$(go list ./...)
+	./test.bash $(REDIS_LOGS)

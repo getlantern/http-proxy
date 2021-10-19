@@ -51,18 +51,27 @@ TRACE=1 go test
 
 *Keep in mind that cURL doesn't support tunneling through an HTTPS proxy, so if you use the -https option you have to use other tools for testing.*
 
-Run the server with:
+You can run a local server with a set configuration (just a default ReflectToSite proxy as of this writing) with
 
 ```
-cd http-proxy
-go install && http-proxy -https -token <your-token> -enablereports -stackdriver-project-id http-proxy-lantern -stackdriver-creds /Users/afisk/lantern_aws/salt/http_proxy/lantern-stackdriver.json
+make local-proxy
 ```
 
-Run a Lantern client accordingly, as in:
+Note that  `make local-proxy` is really just an alias for `make local-rts` -- i.e. a ReflectToSite local proxy.
+
+You can then copy the rts-proxies.yaml file to your Lantern config directory, as in:
 
 ```
-./lantern -force-proxy-addr localhost:8080 -force-auth-token <your-token>
+cp ./rts/rts-proxies.yaml ~/Library/Application\ Support/Lantern/proxies.yaml
 ```
+
+Run a Lantern client accordingly from `lantern-desktop`, as in:
+
+```
+./lantern -readableconfig -stickyconfig
+```
+
+If you're developing a new transport, you can also add new versions of those files for that transport as you're testing.
 
 You have two options to test it: the Lantern client or [checkfallbacks](https://github.com/getlantern/lantern/tree/valencia/src/github.com/getlantern/checkfallbacks).
 

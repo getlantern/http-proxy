@@ -16,6 +16,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/mitchellh/panicwrap"
 	"github.com/vharitonsky/iniflags"
 
@@ -26,6 +27,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
 	"github.com/getlantern/http-proxy-lantern/v2/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
+	lanternredis "github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/stackdrivererror"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
@@ -34,8 +36,10 @@ import (
 )
 
 var (
-	log      = golog.LoggerFor("lantern-proxy")
-	revision = "unknown" // overridden by Makefile
+	log        = golog.LoggerFor("lantern-proxy")
+	revision   = "unknown" // overridden by Makefile
+	build_type = "unknown" // overriden by Makefile
+
 	// Use our own CDN distribution which fetches the origin at most once per
 	// day to avoid hitting the 2000 downloads/day limit imposed by MaxMind.
 	geolite2_url = "https://d254wvfcgkka1d.cloudfront.net/app/geoip_download?license_key=%s&edition_id=GeoLite2-Country&suffix=tar.gz"
@@ -110,10 +114,7 @@ var (
 	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
 
-	reportingRedisAddr       = flag.String("reportingredis", "", "The address of the reporting Redis instance in \"redis[s]://host:port\" format")
-	reportingRedisCA         = flag.String("reportingredisca", "", "Certificate for the CA of Redis instance for reporting")
-	reportingRedisClientPK   = flag.String("reportingredisclientpk", "", "Private key for authenticating client to the Redis instance for reporting")
-	reportingRedisClientCert = flag.String("reportingredisclientcert", "", "Certificate for authenticating client to the Redis instance for reporting")
+	reportingRedisAddr = flag.String("reportingredis", "", "The address of the reporting Redis instance in \"redis[s]://host:port\" format")
 
 	tunnelPorts         = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
 	tos                 = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")
@@ -192,7 +193,7 @@ func main() {
 	iniflags.SetAllowUnknownFlags(true)
 	iniflags.Parse()
 	if *version {
-		fmt.Fprintf(os.Stderr, "%s: commit %s built with %s\n", os.Args[0], revision, runtime.Version())
+		fmt.Fprintf(os.Stderr, "%s: commit %s built with %s (%s)\n", os.Args[0], revision, runtime.Version(), build_type)
 		return
 	}
 	if *help {
@@ -354,6 +355,16 @@ func main() {
 	}
 	go periodicallyForceGC()
 
+	var reportingRedisClient *redis.Client
+	if *reportingRedisAddr != "" {
+		reportingRedisClient, err = lanternredis.NewClient(*reportingRedisAddr)
+		if err != nil {
+			log.Errorf("failed to initialize redis client, will not be able to perform bandwidth limiting: %v", err)
+		}
+	} else {
+		log.Debug("no redis address configured for bandwidth reporting")
+	}
+
 	p := &proxy.Proxy{
 		HTTPAddr:                           *addr,
 		HTTPMultiplexAddr:                  *multiplexAddr,
@@ -375,10 +386,7 @@ func main() {
 		Pro:                                *pro,
 		ProxiedSitesSamplePercentage:       *proxiedSitesSamplePercentage,
 		ProxiedSitesTrackingID:             *proxiedSitesTrackingId,
-		ReportingRedisAddr:                 *reportingRedisAddr,
-		ReportingRedisCA:                   *reportingRedisCA,
-		ReportingRedisClientPK:             *reportingRedisClientPK,
-		ReportingRedisClientCert:           *reportingRedisClientCert,
+		ReportingRedisClient:               reportingRedisClient,
 		Token:                              *token,
 		TunnelPorts:                        *tunnelPorts,
 		Obfs4Addr:                          *obfs4Addr,
@@ -416,6 +424,7 @@ func main() {
 		BlacklistExpiration:                *blacklistExpiration,
 		ProxyName:                          *proxyName,
 		ProxyProtocol:                      *proxyProtocol,
+		BuildType:                          build_type,
 		BBRUpstreamProbeURL:                *bbrUpstreamProbeURL,
 		QUICIETFAddr:                       *quicIETFAddr,
 		QUICUseBBR:                         *quicBBR,
