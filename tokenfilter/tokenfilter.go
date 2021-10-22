@@ -71,9 +71,9 @@ func errorf(op ops.Op, msg string, args ...interface{}) error {
 	return op.FailIf(fmt.Errorf(msg, args...))
 }
 
-func mimicApache(ctx *filters.ConnectionState, req *http.Request) (*http.Response, *filters.ConnectionState, error) {
-	conn := ctx.Downstream()
+func mimicApache(cs *filters.ConnectionState, req *http.Request) (*http.Response, *filters.ConnectionState, error) {
+	conn := cs.Downstream()
 	mimic.Apache(conn, req)
 	conn.Close()
-	return nil, ctx, nil
+	return nil, cs, nil
 }

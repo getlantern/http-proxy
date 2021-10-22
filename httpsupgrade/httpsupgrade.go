@@ -16,7 +16,6 @@
 package httpsupgrade
 
 import (
-	"context"
 	"net"
 	"net/http"
 	"time"
@@ -75,7 +74,7 @@ func (h *httpsUpgrade) addConfigServerHeaders(req *http.Request) {
 }
 
 func (h *httpsUpgrade) rewrite(cs *filters.ConnectionState, host string, r *http.Request) (*http.Response, *filters.ConnectionState, error) {
-	req := r.Clone(context.Background())
+	req := r.Clone(r.Context())
 	req.Host = host + ":443"
 	req.URL.Host = req.Host
 	req.URL.Scheme = "https"
