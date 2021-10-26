@@ -65,6 +65,14 @@ require-change:
 		echo 'Missing "git-chglog" command. See https://github.com/git-chglog/git-chglog'; exit 1; \
 	fi
 
+# n.b. The http-proxy-custom prefix is to facilitate searching for custom binaries in the S3 UI.
+require-binary-name: guard-BINARY_NAME
+	@if ! [[ "$$BINARY_NAME" =~ http-proxy-custom-.+-.+ ]]; then \
+		echo "BINARY_NAME must be a name of the form 'http-proxy-custom-<your name or alias>-<issue number>'"; \
+		echo "For example, 'http-proxy-custom-hwh33-tlsmasq999'"; \
+		exit 1; \
+	fi
+
 $(BUILD_DIR):
 	mkdir -p $(BUILD_DIR)
 
@@ -116,6 +124,10 @@ deploy-staging: $(DIST_DIR)/http-proxy
 deploy-canary: $(DIST_DIR)/http-proxy
 	s3cmd put $(DIST_DIR)/http-proxy s3://http-proxy/http-proxy-canary && \
 	s3cmd setacl --acl-grant read:f87080f71ec0be3b9a933cbb244a6c24d4aca584ac32b3220f56d59071043747 s3://http-proxy/http-proxy-canary
+
+deploy-custom: $(DIST_DIR)/http-proxy require-binary-name
+	s3cmd put $(DIST_DIR)/http-proxy s3://http-proxy/$(BINARY_NAME) && \
+	s3cmd setacl --acl-grant read:f87080f71ec0be3b9a933cbb244a6c24d4aca584ac32b3220f56d59071043747 s3://http-proxy/$(BINARY_NAME)
 
 clean:
 	rm -rf $(BUILD_DIR) $(DIST_DIR)
