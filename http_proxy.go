@@ -2,7 +2,6 @@ package proxy
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"net"
 	"net/http"
@@ -139,12 +138,6 @@ type Proxy struct {
 	BBRUpstreamProbeURL                string
 	QUICIETFAddr                       string
 	QUICUseBBR                         bool
-	OQUICAddr                          string
-	OQUICKey                           string
-	OQUICCipher                        string
-	OQUICMaxPaddingHint                uint64
-	OQUICAggressivePadding             uint64
-	OQUICMinPadded                     uint64
 	WSSAddr                            string
 	PCAPDir                            string
 	PCAPIPs                            int
@@ -279,7 +272,7 @@ func (p *Proxy) ListenAndServe() error {
 		return err
 	}
 
-	if p.QUICIETFAddr != "" || p.OQUICAddr != "" {
+	if p.QUICIETFAddr != "" {
 		filterChain = filterChain.Prepend(quic.NewMiddleware())
 	}
 	if p.WSSAddr != "" {
@@ -350,9 +343,6 @@ func (p *Proxy) ListenAndServe() error {
 		return err
 	}
 	if err := addListenerIfNecessary("quic_ietf", p.QUICIETFAddr, p.listenQUICIETF); err != nil {
-		return err
-	}
-	if err := addListenerIfNecessary("oquic", p.OQUICAddr, p.listenOQUIC); err != nil {
 		return err
 	}
 	if err := addListenerIfNecessary("shadowsocks", p.ShadowsocksAddr, p.listenShadowsocks); err != nil {
@@ -564,9 +554,6 @@ func (p *Proxy) proxyProtocol() string {
 	}
 	if p.QUICIETFAddr != "" {
 		return "quic_ietf"
-	}
-	if p.OQUICAddr != "" {
-		return "oquic"
 	}
 	if p.WSSAddr != "" {
 		return "wss"
@@ -898,7 +885,7 @@ func (p *Proxy) listenQUICIETF(addr string, bordaReporter listeners.MeasuredRepo
 
 	config := &quicwrapper.Config{
 		MaxIncomingStreams: 1000,
-		QuicTracer:         instrument.NewQuicTracer(p.instrument),
+		Tracer:             instrument.NewQuicTracer(p.instrument),
 		UseBBR:             p.QUICUseBBR,
 	}
 
@@ -908,39 +895,6 @@ func (p *Proxy) listenQUICIETF(addr string, bordaReporter listeners.MeasuredRepo
 	}
 
 	log.Debugf("Listening for quic at %v", l.Addr())
-	return l, err
-}
-
-func (p *Proxy) listenOQUIC(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
-	tlsConf, err := tlsdefaults.BuildListenerConfig(addr, p.KeyFile, p.CertFile)
-	if err != nil {
-		return nil, err
-	}
-
-	config := &quicwrapper.Config{
-		MaxIncomingStreams: 1000,
-		UseBBR:             p.QUICUseBBR,
-	}
-
-	oquicKey, err := base64.StdEncoding.DecodeString(p.OQUICKey)
-	if err != nil {
-		return nil, err
-	}
-
-	oqConfig := &quicwrapper.OQuicConfig{
-		Key:               oquicKey,
-		Cipher:            p.OQUICCipher,
-		AggressivePadding: int64(p.OQUICAggressivePadding),
-		MaxPaddingHint:    uint8(p.OQUICMaxPaddingHint),
-		MinPadded:         int(p.OQUICMinPadded),
-	}
-
-	l, err := quicwrapper.ListenAddrOQuic(p.OQUICAddr, tlsConf, config, oqConfig)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debugf("Listening for oquic at %v", l.Addr())
 	return l, err
 }
 

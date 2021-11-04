@@ -42,7 +42,7 @@ require (
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/proxy v0.0.0-20201001032732-eefd72879266
 	github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683
-	github.com/getlantern/quicwrapper v0.0.0-20210430211107-8281ff59ece2
+	github.com/getlantern/quicwrapper v0.0.0-20211104133553-140f96139f9f
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
@@ -73,11 +73,11 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	github.com/xtaci/smux v1.5.15-0.20200704123958-f7188026ba01
-	golang.org/x/net v0.0.0-20210316092652-d523dce5a7f4
+	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	google.golang.org/api v0.43.0
 )
 
-replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20210430210533-e2bcf9129430
+replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.0.0-20211103152344-c9ce5bfd4854
 
 replace github.com/anacrolix/go-libutp => github.com/getlantern/go-libutp v1.0.3
 
