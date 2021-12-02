@@ -34,7 +34,7 @@ import (
 
 	"github.com/blang/semver"
 	"github.com/getlantern/golog"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
@@ -114,11 +114,11 @@ func (c *VersionChecker) Filter() filters.Filter {
 }
 
 // Apply satisfies the filters.Filter interface.
-func (c *VersionChecker) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+func (c *VersionChecker) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 	defer req.Header.Del(common.VersionHeader)
 	// avoid redirect loop
 	if req.Host == c.rewriteURL.Host {
-		return next(ctx, req)
+		return next(cs, req)
 	}
 	var shouldRedirect bool
 	var reason string
@@ -128,18 +128,18 @@ func (c *VersionChecker) Apply(ctx filters.Context, req *http.Request, next filt
 	switch req.Method {
 	case http.MethodConnect:
 		if shouldRedirect, reason = c.shouldRedirectOnConnect(req); shouldRedirect {
-			return c.redirectOnConnect(ctx, req)
+			return c.redirectOnConnect(cs, req)
 		}
 	case http.MethodGet:
 		// the first request from browser should always be GET
 		if shouldRedirect, reason = c.shouldRedirect(req); shouldRedirect {
-			return c.redirect(ctx, req)
+			return c.redirect(cs, req)
 		}
 	}
-	return next(ctx, req)
+	return next(cs, req)
 }
 
-func (c *VersionChecker) redirect(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
+func (c *VersionChecker) redirect(cs *filters.ConnectionState, req *http.Request) (*http.Response, *filters.ConnectionState, error) {
 	log.Tracef("Redirecting %s %s%s to %s",
 		req.Method,
 		req.Host,
@@ -154,7 +154,7 @@ func (c *VersionChecker) redirect(ctx filters.Context, req *http.Request) (*http
 			"Location": []string{c.rewriteURLString},
 		},
 		Close: true,
-	}, ctx, nil
+	}, cs, nil
 }
 
 func (c *VersionChecker) shouldRedirect(req *http.Request) (bool, string) {
@@ -180,8 +180,8 @@ func (c *VersionChecker) shouldRedirectOnConnect(req *http.Request) (bool, strin
 	return false, "ineligible port"
 }
 
-func (c *VersionChecker) redirectOnConnect(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
-	conn := ctx.DownstreamConn()
+func (c *VersionChecker) redirectOnConnect(cs *filters.ConnectionState, req *http.Request) (*http.Response, *filters.ConnectionState, error) {
+	conn := cs.Downstream()
 	// Acknowledge the CONNECT request
 	resp := &http.Response{
 		StatusCode: http.StatusOK,
@@ -189,7 +189,7 @@ func (c *VersionChecker) redirectOnConnect(ctx filters.Context, req *http.Reques
 		ProtoMinor: 1,
 	}
 	if err := resp.Write(conn); err != nil {
-		return nil, ctx, err
+		return nil, cs, err
 	}
 
 	// Consume the first request the application sent over the CONNECT tunnel
@@ -205,7 +205,7 @@ func (c *VersionChecker) redirectOnConnect(ctx filters.Context, req *http.Reques
 
 	// Send the actual response to the application regardless of what the
 	// request is, as the request is consumed already.
-	return c.redirect(ctx, req)
+	return c.redirect(cs, req)
 }
 
 func (c *VersionChecker) matchVersion(req *http.Request) (bool, string) {

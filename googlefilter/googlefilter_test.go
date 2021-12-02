@@ -4,7 +4,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -31,8 +31,9 @@ func TestRecordGoogleActivity(t *testing.T) {
 func TestApply(t *testing.T) {
 	f := New(DefaultSearchRegex, DefaultCaptchaRegex).(*googleFilter)
 	req, _ := http.NewRequest(http.MethodGet, "https://google.com", nil)
-	_, _, err := f.Apply(filters.BackgroundContext(), req, func(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
-		return nil, ctx, nil
+	cs := filters.NewConnectionState(req, nil, nil)
+	_, _, err := f.Apply(cs, req, func(cs *filters.ConnectionState, req *http.Request) (*http.Response, *filters.ConnectionState, error) {
+		return nil, cs, nil
 	})
 
 	assert.NoError(t, err)

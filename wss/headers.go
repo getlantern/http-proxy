@@ -7,7 +7,7 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
 	"github.com/getlantern/netx"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 	"github.com/getlantern/tinywss"
 )
 
@@ -26,12 +26,12 @@ func NewMiddleware() *middleware {
 	return &middleware{}
 }
 
-func (m *middleware) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
-	m.apply(ctx, req)
-	return next(ctx, req)
+func (m *middleware) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
+	m.apply(cs, req)
+	return next(cs, req)
 }
 
-func (m *middleware) apply(ctx filters.Context, req *http.Request) {
+func (m *middleware) apply(cs *filters.ConnectionState, req *http.Request) {
 
 	// carries through certain headers on authorized connections from CDNs
 	// for domains that are configured to receive client ip information.
@@ -43,7 +43,7 @@ func (m *middleware) apply(ctx filters.Context, req *http.Request) {
 		return
 	}
 
-	conn := ctx.DownstreamConn()
+	conn := cs.Downstream()
 	netx.WalkWrapped(conn, func(conn net.Conn) bool {
 		if t, ok := conn.(*tinywss.WsConn); ok {
 			upHdr := t.UpgradeHeaders()

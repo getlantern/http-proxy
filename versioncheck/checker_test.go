@@ -12,7 +12,7 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/getlantern/proxy"
+	"github.com/getlantern/proxy/v2"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"

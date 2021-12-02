@@ -7,8 +7,8 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
-	"github.com/getlantern/proxy"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2"
+	"github.com/getlantern/proxy/v2/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/bbr"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
@@ -28,7 +28,7 @@ func New(bm bbr.Middleware) filters.Filter {
 	return &opsfilter{bm}
 }
 
-func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 	deviceID := req.Header.Get(common.DeviceIdHeader)
 	originHost, originPort, _ := net.SplitHostPort(req.Host)
 	if (originPort == "0" || originPort == "") && req.Method != http.MethodConnect {
@@ -85,10 +85,10 @@ func (f *opsfilter) Apply(ctx filters.Context, req *http.Request, next filters.N
 	measuredCtx["client_ip"] = clientIP
 
 	// Send the same context data to measured as well
-	wc := ctx.DownstreamConn().(listeners.WrapConn)
+	wc := cs.Downstream().(listeners.WrapConn)
 	wc.ControlMessage("measured", measuredCtx)
 
-	resp, nextCtx, nextErr := next(ctx, req)
+	resp, nextCtx, nextErr := next(cs, req)
 	op.FailIf(nextErr)
 
 	return resp, nextCtx, nextErr
