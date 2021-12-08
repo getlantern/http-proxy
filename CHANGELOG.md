@@ -1,4 +1,10 @@
 
+<a name="v2.6.53"></a>
+## [v2.6.53](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.52...v2.6.53)
+
+> 2021-12-08
+
+
 <a name="v2.6.52"></a>
 ## [v2.6.52](https://github.com/getlantern/http-proxy-lantern/compare/v2.6.51...v2.6.52)
 
