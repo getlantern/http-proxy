@@ -47,7 +47,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 		}
 		app := ""
 		_app := ctx["client_app"]
-		if _version != nil {
+		if _app != nil {
 			app = _app.(string)
 		}
 		var client_ip net.IP
