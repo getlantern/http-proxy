@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"net"
+	"strings"
 	"time"
 
 	"github.com/getlantern/geo"
@@ -46,9 +47,9 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 			version = _version.(string)
 		}
 		app := ""
-		_app := ctx["client_app"]
+		_app := ctx["app"]
 		if _app != nil {
-			app = _app.(string)
+			app = strings.ToLower(_app.(string))
 		}
 		var client_ip net.IP
 		_client_ip := ctx["client_ip"]

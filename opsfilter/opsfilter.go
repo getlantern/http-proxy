@@ -76,6 +76,7 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	addMeasuredHeader("deviceid", deviceID)
 	addMeasuredHeader("app_version", version)
 	addMeasuredHeader("app_platform", platform)
+	addMeasuredHeader("app", app)
 	addMeasuredHeader("supported_data_caps", req.Header[common.SupportedDataCaps])
 	addMeasuredHeader("time_zone", req.Header.Get(common.TimeZoneHeader))
 
