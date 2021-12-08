@@ -45,6 +45,11 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 		if _version != nil {
 			version = _version.(string)
 		}
+		app := ""
+		_app := ctx["client_app"]
+		if _version != nil {
+			app = _app.(string)
+		}
 		var client_ip net.IP
 		_client_ip := ctx["client_ip"]
 		if _client_ip != nil {
@@ -55,7 +60,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 		if hasThrottleSettings {
 			dataCapCohort = throttleSettings.(*throttle.Settings).Label
 		}
-		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, dataCapCohort, client_ip)
+		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, app, dataCapCohort, client_ip)
 	}
 
 	var reporter listeners.MeasuredReportFN

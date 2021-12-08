@@ -40,6 +40,7 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	}
 	platform := req.Header.Get(common.PlatformHeader)
 	version := req.Header.Get(common.VersionHeader)
+	app := req.Header.Get(common.AppHeader)
 
 	op := ops.Begin("proxy").
 		Set("device_id", deviceID).
@@ -48,7 +49,8 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 		Set("origin_port", originPort).
 		Set("proxy_dial_timeout", req.Header.Get(proxy.DialTimeoutHeader)).
 		Set("app_platform", platform).
-		Set("app_version", version)
+		Set("app_version", version).
+		Set("client_app", app)
 	log.Tracef("Starting op")
 	defer op.End()
 
