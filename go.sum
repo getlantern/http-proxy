@@ -290,11 +290,11 @@ github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7 h1:wVcJbQS7pf4h
 github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7/go.mod h1:ZLyPOKtNWU4vWnAiRiNQ7hbfLMqCEuj1DgQWBtHp7tQ=
 github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4 h1:73U3J4msGw3cXeKtCEbY7hbOdD6aX8gJv8BOu+VagF8=
 github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4/go.mod h1:f8WmDYKFOaC5/y0d3GWl6UKf1ZbSlIoMzkuC8x7pUhg=
-github.com/getlantern/tlsmasq v0.4.5 h1:dFh3AxZdicyo8Sqy1/iZLpWiGuJGew43SKaVSL7o6QA=
-github.com/getlantern/tlsmasq v0.4.5/go.mod h1:qgXekW+O2Eag1/hsAndpV/xdY1XXZaoIj7FhXskbxdY=
+github.com/getlantern/tlsmasq v0.4.6 h1:yk+XnAgB9XofhJ9leFR/SotRlLLtS2vElvjB43Xjn7E=
+github.com/getlantern/tlsmasq v0.4.6/go.mod h1:If80SpH0K1QvlZ5xeLlp3Vba73s8r1aCZzSmQNKN/pY=
 github.com/getlantern/tlsredis v0.0.0-20180308045249-5d4ed6dd3836/go.mod h1:1ZJE0mXEdPyyuF1daUTDBo2nVWB/6nuZy7IcNmRnHrc=
-github.com/getlantern/tlsutil v0.5.0 h1:VNQMXW3oMtPDSNyeTLk+MaU8FGkusNxwARJ30sR7yPw=
-github.com/getlantern/tlsutil v0.5.0/go.mod h1:lVgvr4nxuQ1ocOho90UB6LnHFlpP16TXAGpHR8Z0QnI=
+github.com/getlantern/tlsutil v0.5.1 h1:Cn19aDidw4+yufrQaCAYjZir3g1QaObs1xf4qzez3CA=
+github.com/getlantern/tlsutil v0.5.1/go.mod h1:lVgvr4nxuQ1ocOho90UB6LnHFlpP16TXAGpHR8Z0QnI=
 github.com/getlantern/utls v0.0.0-20200903013459-0c02248f7ce1 h1:+Egmu6VMMPm8/FHz8TOtQ1Usn3zg0gkS7ZHrLFycyok=
 github.com/getlantern/utls v0.0.0-20200903013459-0c02248f7ce1/go.mod h1:81/JblRrFcHdL/b50CIN3OuJmkt41KbgnjQu+mBSbgQ=
 github.com/getlantern/uuid v1.1.2-0.20190507182000-5c9436b8c718/go.mod h1:uX10hOzZUUDR+oYNSIks+RcozOEiwTNC/K2rw9SUi1k=
