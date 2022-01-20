@@ -13,7 +13,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/netx"
 	"github.com/getlantern/ops"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 )
 
 type middleware struct {
@@ -31,16 +31,16 @@ func New() Middleware {
 }
 
 // Apply implements the interface filters.Filter.
-func (bm *middleware) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
-	resp, nextCtx, err := next(ctx, req)
+func (bm *middleware) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
+	resp, nextCS, err := next(cs, req)
 	if resp != nil {
-		bm.AddMetrics(nextCtx, req, resp)
+		bm.AddMetrics(nextCS, req, resp)
 	}
-	return resp, nextCtx, err
+	return resp, nextCS, err
 }
 
-func (bm *middleware) AddMetrics(ctx filters.Context, req *http.Request, resp *http.Response) {
-	conn := ctx.DownstreamConn()
+func (bm *middleware) AddMetrics(cs *filters.ConnectionState, req *http.Request, resp *http.Response) {
+	conn := cs.Downstream()
 	s := bm.statsFor(conn)
 
 	bbrRequested := req.Header.Get(common.BBRRequested)
@@ -125,8 +125,8 @@ func (bm *middleware) Wrap(l net.Listener) net.Listener {
 	return &bbrlistener{l, bm}
 }
 
-func (bm *middleware) ABE(ctx filters.Context) float64 {
-	conn := ctx.DownstreamConn()
+func (bm *middleware) ABE(cs *filters.ConnectionState) float64 {
+	conn := cs.Downstream()
 	if conn == nil {
 		return 0
 	}

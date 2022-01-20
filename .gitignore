@@ -50,3 +50,5 @@ reflector
 
 *.mmdb
 .idea
+
+*.pem

@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -38,9 +38,9 @@ func (c *CaptureTx) takeProto() string {
 	return p
 }
 
-func (c *CaptureTx) next(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
-	c.req = req.Clone(ctx)
-	return nil, ctx, nil
+func (c *CaptureTx) next(cs *filters.ConnectionState, req *http.Request) (*http.Response, *filters.ConnectionState, error) {
+	c.req = req.Clone(context.Background())
+	return nil, cs, nil
 }
 
 func captureRoundTripInfo(f filters.Filter) *CaptureTx {
@@ -59,29 +59,29 @@ func TestRedirect(t *testing.T) {
 
 	req, _ := http.NewRequest("GET", "http://config.getiantem.org:80/abc.gz", nil)
 	req.RemoteAddr = "127.0.0.1:1234"
-	ctx := filters.BackgroundContext()
+	cs := filters.NewConnectionState(req, nil, nil)
 
-	chain.Apply(ctx, req, cap.next)
+	chain.Apply(cs, req, cap.next)
 	req = cap.takeRequest()
 	assert.Equal(t, "https", req.URL.Scheme, "scheme should be HTTPS")
 	assert.Equal(t, "config.getiantem.org:443", req.Host, "should use port 443")
 
 	for _, method := range []string{"GET", "HEAD", "PUT", "POST", "DELETE", "OPTIONS"} {
 		req, _ = http.NewRequest(method, "http://api.getiantem.org/abc.gz", nil)
-		chain.Apply(ctx, req, cap.next)
+		chain.Apply(cs, req, cap.next)
 		req = cap.takeRequest()
 		assert.Equal(t, "https", req.URL.Scheme, "scheme should be HTTPS")
 		assert.Equal(t, "api.getiantem.org:443", req.Host, "should use port 443")
 	}
 
 	req, _ = http.NewRequest("CONNECT", "http://api.getiantem.org/", nil)
-	chain.Apply(ctx, req, cap.next)
+	chain.Apply(cs, req, cap.next)
 	req = cap.takeRequest()
 	assert.Equal(t, "http", req.URL.Scheme, "should not clear scheme")
 	assert.Equal(t, "api.getiantem.org", req.Host, "should remain http (port 80)")
 
 	req, _ = http.NewRequest("GET", "http://not-config-server.org/abc.gz", nil)
-	chain.Apply(ctx, req, cap.next)
+	chain.Apply(cs, req, cap.next)
 	req = cap.takeRequest()
 	assert.Equal(t, "http", req.URL.Scheme, "should not rewrite to https for other sites")
 	assert.Equal(t, "not-config-server.org", req.Host, "should not use port 443 for other sites")
@@ -93,12 +93,12 @@ func TestHTTPS2(t *testing.T) {
 	chain := filters.Join(up)
 
 	req, _ := http.NewRequest("GET", "http://config.getiantem.org/abc.gz", nil)
-	next := func(ctx filters.Context, req *http.Request) (*http.Response, filters.Context, error) {
-		return nil, ctx, nil
+	next := func(cs *filters.ConnectionState, req *http.Request) (*http.Response, *filters.ConnectionState, error) {
+		return nil, cs, nil
 	}
-	ctx := filters.BackgroundContext()
 
-	res, ctx, err := chain.Apply(ctx, req, next)
+	cs := filters.NewConnectionState(req, nil, nil)
+	res, cs, err := chain.Apply(cs, req, next)
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
 
@@ -111,7 +111,7 @@ func TestHTTPS2(t *testing.T) {
 	r.Host = r.URL.Host
 	r.RequestURI = ""
 
-	res, ctx, err = chain.Apply(ctx, r, next)
+	res, cs, err = chain.Apply(cs, r, next)
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
 

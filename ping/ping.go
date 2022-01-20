@@ -13,7 +13,7 @@ import (
 
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/golog"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 )
@@ -46,19 +46,19 @@ func New(timingExpiration time.Duration) filters.Filter {
 	return pm
 }
 
-func (pm *pingMiddleware) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+func (pm *pingMiddleware) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 	log.Trace("In ping")
 	pingSize := req.Header.Get(common.PingHeader)
 	pingURL := req.Header.Get(common.PingURLHeader)
 	isPingURL := strings.HasPrefix(enhttp.OriginHost(req), "ping-chained-server")
 	if pingSize == "" && pingURL == "" && !isPingURL {
 		log.Trace("Bypassing ping")
-		return next(ctx, req)
+		return next(cs, req)
 	}
 	log.Trace("Processing ping")
 
 	if pingURL != "" {
-		return pm.urlPing(ctx, req, pingURL)
+		return pm.urlPing(cs, req, pingURL)
 	}
 
 	var size int
@@ -76,15 +76,15 @@ func (pm *pingMiddleware) Apply(ctx filters.Context, req *http.Request, next fil
 			size, parseErr = strconv.Atoi(req.URL.RawQuery)
 		}
 		if parseErr != nil {
-			return filters.Fail(ctx, req, http.StatusBadRequest, fmt.Errorf("Invalid ping size %v\n", pingSize))
+			return filters.Fail(cs, req, http.StatusBadRequest, fmt.Errorf("Invalid ping size %v\n", pingSize))
 		}
 	}
 
-	return pm.cannedPing(ctx, req, size)
+	return pm.cannedPing(cs, req, size)
 }
 
-func (pm *pingMiddleware) cannedPing(ctx filters.Context, req *http.Request, size int) (*http.Response, filters.Context, error) {
-	return filters.ShortCircuit(ctx, req, &http.Response{
+func (pm *pingMiddleware) cannedPing(cs *filters.ConnectionState, req *http.Request, size int) (*http.Response, *filters.ConnectionState, error) {
+	return filters.ShortCircuit(cs, req, &http.Response{
 		StatusCode: http.StatusOK,
 		Body:       &randReader{size * len(data)},
 	})

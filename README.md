@@ -126,6 +126,17 @@ be done using either `deployTo.bash` or `onlyDeployTo.bash`. They do the same
 thing but `deployTo.bash` first runs `make dist` whereas `onlyDeployTo.bash`
 copies the existing binary at dist/http-proxy.
 
+## Deploying a Custom Binary
+Sometimes it's useful to deploy a custom binary to one or more tracks. This can
+be done by running `make deploy-custom` and setting the environment variable
+`BINARY_NAME` to the desired binary name, e.g.
+`http-proxy-custom-hwh33-tlsmasq999`.
+
+To deploy a track running the custom binary, add the `custom_proxy_binary` key
+to the track's pillar data, mapped to the name specified above. At the time of
+writing, track pillar data is specified in the `track_pillars` structure in
+lantern_aws/etc/current_production_track_config.py
+
 ### ssh config
 Most of our proxies have `servermasq` enabled on them.
 This means that you cannot ssh directly into them. Instead you have to use a cloudmaster as a bastion jump host.

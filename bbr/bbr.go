@@ -20,7 +20,7 @@ import (
 	"net/http"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 )
 
 const (
@@ -35,14 +35,14 @@ type Middleware interface {
 	filters.Filter
 
 	// AddMetrics adds BBR metrics to the given response.
-	AddMetrics(ctx filters.Context, req *http.Request, resp *http.Response)
+	AddMetrics(ctx *filters.ConnectionState, req *http.Request, resp *http.Response)
 
 	// Wrap wraps the given listener with support for BBR metrics.
 	Wrap(l net.Listener) net.Listener
 
 	// ABE returns an estimate of the available bandwidth in Mbps for the given
 	// Context
-	ABE(ctx filters.Context) float64
+	ABE(ctx *filters.ConnectionState) float64
 
 	// ProbeUpstream continuously probes the upstream URL and uses the BBR estimates
 	// returned from upstream to determine the weakest link and adjust the ABE returned

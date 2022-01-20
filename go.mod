@@ -27,7 +27,7 @@ require (
 	github.com/getlantern/golog v0.0.0-20210606115803-bce9f9fe5a5f
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
 	github.com/getlantern/hidden v0.0.0-20201229170000-e66e7f878730
-	github.com/getlantern/http-proxy v0.0.3-0.20210512134337-960392ff8d2e
+	github.com/getlantern/http-proxy v0.0.3-0.20211022035117-86faba795750
 	github.com/getlantern/kcpwrapper v0.0.0-20201001150218-1427e1d39c25
 	github.com/getlantern/keyman v0.0.0-20210218183930-5e48f8ced961
 	github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9
@@ -35,19 +35,20 @@ require (
 	github.com/getlantern/measured v0.0.0-20210507000559-ec5307b2b8be
 	github.com/getlantern/mockconn v0.0.0-20200818071412-cb30d065a848
 	github.com/getlantern/mtime v0.0.0-20200417132445-23682092d1f7
-	github.com/getlantern/multipath v0.0.0-20201027015000-69ed0bd15259
-	github.com/getlantern/netx v0.0.0-20201229185957-3fadd2c8f5ba
+	github.com/getlantern/multipath v0.0.0-20211105161347-48cd80ec7050
+	github.com/getlantern/netx v0.0.0-20210803075350-eb4fa6261e47
 	github.com/getlantern/ops v0.0.0-20200403153110-8476b16edcd6
 	github.com/getlantern/ossh v0.0.0-20210519185810-21c9fdb2cd03
 	github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
-	github.com/getlantern/proxy v0.0.0-20201001032732-eefd72879266
+	github.com/getlantern/proxy/v2 v2.0.0
 	github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683
-	github.com/getlantern/quicwrapper v0.0.0-20210430211107-8281ff59ece2
+	github.com/getlantern/quicwrapper v0.0.0-20211104133553-140f96139f9f
 	github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 // indirect
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
-	github.com/getlantern/tlsmasq v0.4.5
+	github.com/getlantern/tlsmasq v0.4.6
+	github.com/getlantern/tlsutil v0.5.1
 	github.com/getlantern/waitforserver v1.0.1
 	github.com/getlantern/withtimeout v0.0.0-20160829163843-511f017cd913
 	github.com/go-redis/redis/v8 v8.10.0
@@ -75,11 +76,11 @@ require (
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	github.com/xtaci/smux v1.5.15-0.20200704123958-f7188026ba01
 	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
-	golang.org/x/net v0.0.0-20210414194228-064579744ee0
+	golang.org/x/net v0.0.0-20210428140749-89ef3d95e781
 	google.golang.org/api v0.43.0
 )
 
-replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20210430210533-e2bcf9129430
+replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.0.0-20211103152344-c9ce5bfd4854
 
 replace github.com/anacrolix/go-libutp => github.com/getlantern/go-libutp v1.0.3
 

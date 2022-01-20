@@ -4,12 +4,18 @@ import (
 	"context"
 	"crypto/tls"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"net"
+	"sync"
 
+	"github.com/getlantern/golog"
 	"github.com/getlantern/tlsmasq"
 	"github.com/getlantern/tlsmasq/ptlshs"
+	"github.com/getlantern/tlsutil"
 )
+
+var log = golog.LoggerFor("tlsmasq-listener")
 
 func Wrap(ll net.Listener, certFile string, keyFile string, originAddr string, secret string,
 	tlsMinVersion uint16, tlsCipherSuites []uint16, onNonFatalErrors func(error)) (net.Listener, error) {
@@ -51,5 +57,45 @@ func Wrap(ll net.Listener, certFile string, keyFile string, originAddr string, s
 		},
 	}
 
-	return tlsmasq.WrapListener(ll, listenerCfg), nil
+	return wrapListener(ll, listenerCfg), nil
+}
+
+type loggingListener struct {
+	tlsmasqListener net.Listener
+}
+
+func wrapListener(transportListener net.Listener, cfg tlsmasq.ListenerConfig) net.Listener {
+	return loggingListener{tlsmasq.WrapListener(transportListener, cfg)}
+}
+
+func (l loggingListener) Accept() (net.Conn, error) {
+	conn, err := l.tlsmasqListener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	return loggingConn{Conn: conn.(tlsmasq.Conn)}, nil
+}
+
+func (l loggingListener) Addr() net.Addr { return l.tlsmasqListener.Addr() }
+func (l loggingListener) Close() error   { return l.tlsmasqListener.Close() }
+
+type loggingConn struct {
+	tlsmasq.Conn
+	handshakeOnce sync.Once
+}
+
+func (conn loggingConn) Read(b []byte) (n int, err error)  { return conn.doIO(b, conn.Conn.Read) }
+func (conn loggingConn) Write(b []byte) (n int, err error) { return conn.doIO(b, conn.Conn.Write) }
+
+func (conn loggingConn) doIO(b []byte, io func([]byte) (int, error)) (n int, err error) {
+	conn.handshakeOnce.Do(func() {
+		var alertErr tlsutil.UnexpectedAlertError
+		if err = conn.Handshake(); err != nil && errors.As(err, &alertErr) {
+			log.Debugf("received alert from origin in tlsmasq handshake: %v", alertErr.Alert)
+		}
+	})
+	if err != nil {
+		return 0, err
+	}
+	return io(b)
 }

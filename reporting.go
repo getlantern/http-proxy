@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"net"
+	"strings"
 	"time"
 
 	"github.com/getlantern/geo"
@@ -45,6 +46,11 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 		if _version != nil {
 			version = _version.(string)
 		}
+		app := ""
+		_app := ctx["app"]
+		if _app != nil {
+			app = strings.ToLower(_app.(string))
+		}
 		var client_ip net.IP
 		_client_ip := ctx["client_ip"]
 		if _client_ip != nil {
@@ -55,7 +61,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 		if hasThrottleSettings {
 			dataCapCohort = throttleSettings.(*throttle.Settings).Label
 		}
-		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, dataCapCohort, client_ip)
+		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, app, dataCapCohort, client_ip)
 	}
 
 	var reporter listeners.MeasuredReportFN

@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 )
@@ -33,7 +33,7 @@ var (
 	defaultTimingExpiration = 1 * time.Minute
 )
 
-func (pm *pingMiddleware) urlPing(ctx filters.Context, req *http.Request, pingURL string) (*http.Response, filters.Context, error) {
+func (pm *pingMiddleware) urlPing(cs *filters.ConnectionState, req *http.Request, pingURL string) (*http.Response, *filters.ConnectionState, error) {
 	pm.urlTimingsMx.RLock()
 	timing, found := pm.urlTimings[pingURL]
 	pm.urlTimingsMx.RUnlock()
@@ -46,11 +46,11 @@ func (pm *pingMiddleware) urlPing(ctx filters.Context, req *http.Request, pingUR
 		var err error
 		timing, err = pm.timeURL(pingURL)
 		if err != nil {
-			return filters.Fail(ctx, req, http.StatusInternalServerError, log.Errorf("Unable to obtain timing for %v: %v", pingURL, err))
+			return filters.Fail(cs, req, http.StatusInternalServerError, log.Errorf("Unable to obtain timing for %v: %v", pingURL, err))
 		}
 	}
 
-	return filters.ShortCircuit(ctx, req, &http.Response{
+	return filters.ShortCircuit(cs, req, &http.Response{
 		StatusCode: timing.statusCode,
 		Header:     http.Header{common.PingTSHeader: []string{timing.ts.String()}},
 	})

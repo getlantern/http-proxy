@@ -13,7 +13,7 @@ import (
 
 	"github.com/getlantern/geo"
 	"github.com/getlantern/multipath"
-	"github.com/getlantern/proxy/filters"
+	"github.com/getlantern/proxy/v2/filters"
 )
 
 // Instrument is the common interface about what can be instrumented.
@@ -27,7 +27,7 @@ type Instrument interface {
 	XBQHeaderSent()
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
-	ProxiedBytes(sent, recv int, platform, version, dataCapCohort string, clientIP net.IP)
+	ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP)
 	TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int)
 	quicSentPacket()
 	quicLostPacket()
@@ -54,7 +54,7 @@ func (i NoInstrument) Throttle(m bool, reason string) {}
 func (i NoInstrument) XBQHeaderSent()                                    {}
 func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
 func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
-func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, dataCapCohort string, clientIP net.IP) {
+func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP) {
 }
 func (i NoInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int) {
 }
@@ -88,15 +88,15 @@ type instrumentedFilter struct {
 	filters.Filter
 }
 
-func (f *instrumentedFilter) Apply(ctx filters.Context, req *http.Request, next filters.Next) (*http.Response, filters.Context, error) {
+func (f *instrumentedFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 	start := time.Now()
-	res, ctx, err := f.Filter.Apply(ctx, req, next)
+	res, cs, err := f.Filter.Apply(cs, req, next)
 	f.requests.Inc()
 	if err != nil {
 		f.errors.Inc()
 	}
 	f.duration.Observe(time.Since(start).Seconds())
-	return res, ctx, err
+	return res, cs, err
 }
 
 // PromInstrument is an implementation of Instrument which exports Prometheus
@@ -142,11 +142,11 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		bytesSent: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_sent_bytes_total",
 			Help: "Bytes sent to the client connections. Pluggable transport overhead excluded",
-		}, append(commonLabelNames, "app_platform", "app_version", "datacap_cohort")).MustCurryWith(commonLabels),
+		}, append(commonLabelNames, "app_platform", "app_version", "app", "datacap_cohort")).MustCurryWith(commonLabels),
 		bytesRecv: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_received_bytes_total",
 			Help: "Bytes received from the client connections. Pluggable transport overhead excluded",
-		}, append(commonLabelNames, "app_platform", "app_version", "datacap_cohort")).MustCurryWith(commonLabels),
+		}, append(commonLabelNames, "app_platform", "app_version", "app", "datacap_cohort")).MustCurryWith(commonLabels),
 		bytesSentByISP: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_downstream_by_isp_sent_bytes_total",
 			Help: "Bytes sent to the client connections, by country and isp. Pluggable transport overhead excluded",
@@ -350,8 +350,8 @@ func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, dataCapCohort string, clientIP net.IP) {
-	labels := prometheus.Labels{"app_platform": platform, "app_version": version, "datacap_cohort": dataCapCohort}
+func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP) {
+	labels := prometheus.Labels{"app_platform": platform, "app_version": version, "app": app, "datacap_cohort": dataCapCohort}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
 	country := p.countryLookup.CountryCode(clientIP)
