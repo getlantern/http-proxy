@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"errors"
 	"net"
 	"strconv"
 	"time"
@@ -20,7 +21,15 @@ func preferIPV4Dialer(timeout time.Duration) func(ctx context.Context, network, 
 		dialer := net.Dialer{
 			Deadline: time.Now().Add(timeout),
 		}
-		return dialer.DialContext(ctx, "tcp4", tcpAddr.String())
+		conn, err := dialer.DialContext(ctx, "tcp4", tcpAddr.String())
+		if err != nil {
+			var e *net.AddrError
+			// if this is a network address error, we will retry with the specified network instead (tcp6 most likely)
+			if errors.As(err, &e) {
+				conn, err = dialer.DialContext(ctx, network, hostport)
+			}
+		}
+		return conn, err
 	}
 }
 
