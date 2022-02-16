@@ -135,7 +135,7 @@ be done by running `make deploy-custom` and setting the environment variable
 To deploy a track running the custom binary, add the `custom_proxy_binary` key
 to the track's pillar data, mapped to the name specified above. At the time of
 writing, track pillar data is specified in the `track_pillars` structure in
-lantern_aws/etc/current_production_track_config.py
+lantern-infrastructure/etc/current_production_track_config.py
 
 ### ssh config
 Most of our proxies have `servermasq` enabled on them.
