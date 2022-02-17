@@ -130,12 +130,18 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 			platform = _platform.(string)
 		}
 
+		var appName string
+		_appName, ok := sac.ctx["app"]
+		if ok {
+			appName = _appName.(string)
+		}
+
 		var supportedDataCaps []string
 		_supportedDataCaps, ok := sac.ctx["supported_data_caps"]
 		if ok {
 			supportedDataCaps = _supportedDataCaps.([]string)
 		}
-		throttleSettings, hasThrottleSettings := throttleConfig.SettingsFor(deviceID, countryCode, platform, supportedDataCaps)
+		throttleSettings, hasThrottleSettings := throttleConfig.SettingsFor(deviceID, countryCode, platform, appName, supportedDataCaps)
 
 		pl := rc.Pipeline()
 		throttleCohort := ""

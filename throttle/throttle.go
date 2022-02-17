@@ -45,6 +45,9 @@ type Settings struct {
 	// Label uniquely identifies this set of settings for reporting purposes
 	Label string
 
+	// AppName constrains this setting to a particular application name. Leave blank to apply to all applications.
+	AppName string
+
 	// DeviceFloor is an optional number between 0 and 1 that sets the floor (inclusive) of devices included in the cohort that gets these settings
 	DeviceFloor float64
 
@@ -85,7 +88,7 @@ type Config interface {
 	// (country and platform) this should fall back to default values if a specific value isn't provided.
 	// supportedDataCaps identifies which cap intervals the client supports ("daily", "weekly" or "monthly").
 	// If this list is empty, the client is assumed to support "monthly" (legacy clients).
-	SettingsFor(deviceID string, countryCode string, platform string, supportedDataCaps []string) (settings *Settings, ok bool)
+	SettingsFor(deviceID, countryCode, platform, appName string, supportedDataCaps []string) (settings *Settings, ok bool)
 }
 
 // NewForcedConfig returns a new Config that uses the forced threshold, rate and TTL
@@ -104,7 +107,7 @@ type forcedConfig struct {
 	Settings
 }
 
-func (cfg *forcedConfig) SettingsFor(deviceID string, countryCode string, platform string, supportedDataCaps []string) (settings *Settings, ok bool) {
+func (cfg *forcedConfig) SettingsFor(deviceID, countryCode, platform, appName string, supportedDataCaps []string) (settings *Settings, ok bool) {
 	return &cfg.Settings, true
 }
 
@@ -186,25 +189,25 @@ func (cfg *redisConfig) refreshSettings() {
 	cfg.mx.Unlock()
 }
 
-func (cfg *redisConfig) SettingsFor(deviceID string, countryCode string, platform string, supportedDataCaps []string) (*Settings, bool) {
+func (cfg *redisConfig) SettingsFor(deviceID, countryCode, platform, appName string, supportedDataCaps []string) (*Settings, bool) {
 	cfg.mx.RLock()
 	settings := cfg.settings
 	cfg.mx.RUnlock()
 
-	platformSettings, _ := settings[strings.ToLower(countryCode)]
+	platformSettings := settings[strings.ToLower(countryCode)]
 	if platformSettings == nil {
 		log.Tracef("No settings found for country %v, use default", countryCode)
-		platformSettings, _ = settings["default"]
+		platformSettings = settings["default"]
 		if platformSettings == nil {
 			log.Trace("No settings for default country, not throttling")
 			return nil, false
 		}
 	}
 
-	constrainedSettings, _ := platformSettings[strings.ToLower(platform)]
+	constrainedSettings := platformSettings[strings.ToLower(platform)]
 	if len(constrainedSettings) == 0 {
 		log.Tracef("No settings found for platform %v, use default", platform)
-		constrainedSettings, _ = platformSettings["default"]
+		constrainedSettings = platformSettings["default"]
 		if len(constrainedSettings) == 0 {
 			log.Trace("No settings for default platform, not throttling")
 			return nil, false
@@ -229,21 +232,36 @@ func (cfg *redisConfig) SettingsFor(deviceID string, countryCode string, platfor
 	hashOfDeviceID := hash.Sum64()
 	const scale = 1000000 // do not change this, as it will result in users being segmented differently than they were before
 	segment := float64((hashOfDeviceID % scale)) / float64(scale)
-	for _, candidateSettings := range constrainedSettings {
-		if clientSupportsInterval(candidateSettings.CapResets) {
-			if candidateSettings.DeviceFloor <= segment && (candidateSettings.DeviceCeil > segment || (candidateSettings.DeviceCeil == 1 && segment == 1)) {
-				return candidateSettings, true
+
+	settingsForAppName := func(checkAppName string) *Settings {
+		for _, candidateSettings := range constrainedSettings {
+			if clientSupportsInterval(candidateSettings.CapResets) {
+				appMatches := candidateSettings.AppName == checkAppName
+				deviceMatches := candidateSettings.DeviceFloor <= segment && (candidateSettings.DeviceCeil > segment || (candidateSettings.DeviceCeil == 1 && segment == 1))
+				if appMatches && deviceMatches {
+					return candidateSettings
+				}
 			}
 		}
-	}
 
-	log.Tracef("No setting for segment %v, using first supported in list", segment)
-	for _, candidateSettings := range constrainedSettings {
-		if clientSupportsInterval(candidateSettings.CapResets) {
-			return candidateSettings, true
+		log.Tracef("No setting for segment %v, using first supported in list", segment)
+		for _, candidateSettings := range constrainedSettings {
+			if clientSupportsInterval(candidateSettings.CapResets) {
+				appMatches := candidateSettings.AppName == checkAppName
+				if appMatches {
+					return candidateSettings
+				}
+			}
 		}
+
+		return nil
 	}
 
-	log.Trace("No cap available, don't throttle")
-	return nil, false
+	result := settingsForAppName(appName)
+	if result == nil && appName != "" {
+		log.Tracef("No applicable settings found for app name %v, trying with no app name", appName)
+		result = settingsForAppName("")
+	}
+
+	return result, result != nil
 }
