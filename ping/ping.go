@@ -12,14 +12,14 @@ import (
 	"time"
 
 	"github.com/getlantern/enhttp"
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/proxy/v2/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 )
 
 var (
-	log = golog.LoggerFor("http-proxy-lantern.ping")
+	log = zaplog.LoggerFor("http-proxy-lantern.ping")
 
 	letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
@@ -47,15 +47,15 @@ func New(timingExpiration time.Duration) filters.Filter {
 }
 
 func (pm *pingMiddleware) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
-	log.Trace("In ping")
+	log.Debug("In ping")
 	pingSize := req.Header.Get(common.PingHeader)
 	pingURL := req.Header.Get(common.PingURLHeader)
 	isPingURL := strings.HasPrefix(enhttp.OriginHost(req), "ping-chained-server")
 	if pingSize == "" && pingURL == "" && !isPingURL {
-		log.Trace("Bypassing ping")
+		log.Debug("Bypassing ping")
 		return next(cs, req)
 	}
-	log.Trace("Processing ping")
+	log.Debug("Processing ping")
 
 	if pingURL != "" {
 		return pm.urlPing(cs, req, pingURL)

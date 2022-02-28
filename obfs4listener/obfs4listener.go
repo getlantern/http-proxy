@@ -8,7 +8,7 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/withtimeout"
 
 	"git.torproject.org/pluggable-transports/goptlib.git"
@@ -23,7 +23,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("obfs4listener")
+	log = zaplog.LoggerFor("obfs4listener")
 )
 
 func Wrap(wrapped net.Listener, stateDir string, handshakeConcurrency int, maxPendingHandshakesPerClient int, handshakeTimeout time.Duration) (net.Listener, error) {
@@ -48,9 +48,9 @@ func Wrap(wrapped net.Listener, stateDir string, handshakeConcurrency int, maxPe
 		handshakeTimeout = DefaultHandshakeTimeout
 	}
 
-	log.Debugf("Handshake Concurrency: %d", handshakeConcurrency)
-	log.Debugf("Max Pending Handshakes Per Client: %d", maxPendingHandshakesPerClient)
-	log.Debugf("Handshake Timeout: %v", handshakeTimeout)
+	log.Infof("Handshake Concurrency: %d", handshakeConcurrency)
+	log.Infof("Max Pending Handshakes Per Client: %d", maxPendingHandshakesPerClient)
+	log.Infof("Handshake Timeout: %v", handshakeTimeout)
 
 	var clientsFinished sync.WaitGroup
 
@@ -203,13 +203,13 @@ func (l *obfs4listener) wrap(conn net.Conn) {
 	})
 
 	if timedOut {
-		log.Tracef("Handshake with %v timed out", conn.RemoteAddr())
+		log.Debugf("Handshake with %v timed out", conn.RemoteAddr())
 		conn.Close()
 	} else if err != nil {
-		log.Tracef("Handshake error with %v: %v", conn.RemoteAddr(), err)
+		log.Debugf("Handshake error with %v: %v", conn.RemoteAddr(), err)
 		conn.Close()
 	} else {
-		log.Tracef("Successful obfs4 handshake in %v", time.Now().Sub(start))
+		log.Debugf("Successful obfs4 handshake in %v", time.Now().Sub(start))
 		l.ready <- &result{_wrapped.(net.Conn), err}
 	}
 }
@@ -217,9 +217,9 @@ func (l *obfs4listener) wrap(conn net.Conn) {
 func (l *obfs4listener) monitor() {
 	for {
 		time.Sleep(5 * time.Second)
-		log.Debugf("Number of clients: %d", atomic.LoadInt64(&l.numClients))
-		log.Debugf("Connections waiting to start handshaking: %d", len(l.pending))
-		log.Debugf("Currently handshaking connections: %d", atomic.LoadInt64(&l.handshaking))
+		log.Infof("Number of clients: %d", atomic.LoadInt64(&l.numClients))
+		log.Infof("Connections waiting to start handshaking: %d", len(l.pending))
+		log.Infof("Currently handshaking connections: %d", atomic.LoadInt64(&l.handshaking))
 	}
 }
 

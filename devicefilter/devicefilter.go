@@ -9,7 +9,7 @@ import (
 
 	"github.com/dustin/go-humanize"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/proxy/v2/filters"
 
 	"github.com/getlantern/http-proxy/listeners"
@@ -25,7 +25,7 @@ import (
 )
 
 var (
-	log = golog.LoggerFor("devicefilter")
+	log = zaplog.LoggerFor("devicefilter")
 
 	epoch = time.Date(2016, 1, 1, 0, 0, 0, 0, time.UTC)
 
@@ -62,7 +62,7 @@ type deviceFilterPost struct {
 
 func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, sendXBQHeader bool, instrument instrument.Instrument) filters.Filter {
 	if throttleConfig != nil {
-		log.Debug("Throttling enabled")
+		log.Info("Throttling enabled")
 	}
 
 	return &deviceFilterPre{
@@ -76,7 +76,7 @@ func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, sendXBQHead
 func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 	if log.IsTraceEnabled() {
 		reqStr, _ := httputil.DumpRequest(req, true)
-		log.Tracef("DeviceFilter Middleware received request:\n%s", reqStr)
+		log.Debugf("DeviceFilter Middleware received request:\n%s", reqStr)
 	}
 
 	// Some domains are excluded from being throttled and don't count towards the
@@ -128,7 +128,7 @@ func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, 
 	// below. This will also turn off the cap in the UI on desktop and in newer
 	// versions on mobile.
 	if capOn {
-		log.Tracef("Got throttle settings: %v", settings)
+		log.Debugf("Got throttle settings: %v", settings)
 		capOn = settings.Threshold > 0
 
 		// Send throttle settings to measured as well
@@ -138,7 +138,7 @@ func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, 
 	if capOn && u.Bytes > settings.Threshold {
 		// per connection limiter
 		limiter := lanternlisteners.NewRateLimiter(settings.Rate)
-		log.Tracef("Throttling connection from device %s to %v per second", lanternDeviceID,
+		log.Debugf("Throttling connection from device %s to %v per second", lanternDeviceID,
 			humanize.Bytes(uint64(settings.Rate)))
 		f.instrument.Throttle(true, "datacap")
 		wc.ControlMessage("throttle", limiter)

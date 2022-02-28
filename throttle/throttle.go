@@ -21,7 +21,7 @@ import (
 	"github.com/spaolacci/murmur3"
 
 	"github.com/getlantern/errors"
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 )
 
 const (
@@ -29,7 +29,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("flashlight.throttle")
+	log = zaplog.LoggerFor("flashlight.throttle")
 )
 
 type CapInterval string
@@ -156,11 +156,11 @@ func NewRedisConfig(rc *redis.Client, refreshInterval time.Duration) Config {
 
 func (cfg *redisConfig) keepCurrent() {
 	if cfg.refreshInterval <= 0 {
-		log.Debugf("Defaulting refresh interval to %v", DefaultRefreshInterval)
+		log.Infof("Defaulting refresh interval to %v", DefaultRefreshInterval)
 		cfg.refreshInterval = DefaultRefreshInterval
 	}
 
-	log.Debugf("Refreshing every %v", cfg.refreshInterval)
+	log.Infof("Refreshing every %v", cfg.refreshInterval)
 	for {
 		time.Sleep(cfg.refreshInterval)
 		cfg.refreshSettings()
@@ -179,7 +179,7 @@ func (cfg *redisConfig) refreshSettings() {
 		return
 	}
 
-	log.Debugf("Loaded throttle config: %v", string(encoded))
+	log.Infof("Loaded throttle config: %v", string(encoded))
 
 	cfg.mx.Lock()
 	cfg.settings = settings
@@ -193,20 +193,20 @@ func (cfg *redisConfig) SettingsFor(deviceID string, countryCode string, platfor
 
 	platformSettings, _ := settings[strings.ToLower(countryCode)]
 	if platformSettings == nil {
-		log.Tracef("No settings found for country %v, use default", countryCode)
+		log.Debugf("No settings found for country %v, use default", countryCode)
 		platformSettings, _ = settings["default"]
 		if platformSettings == nil {
-			log.Trace("No settings for default country, not throttling")
+			log.Debug("No settings for default country, not throttling")
 			return nil, false
 		}
 	}
 
 	constrainedSettings, _ := platformSettings[strings.ToLower(platform)]
 	if len(constrainedSettings) == 0 {
-		log.Tracef("No settings found for platform %v, use default", platform)
+		log.Debugf("No settings found for platform %v, use default", platform)
 		constrainedSettings, _ = platformSettings["default"]
 		if len(constrainedSettings) == 0 {
-			log.Trace("No settings for default platform, not throttling")
+			log.Debug("No settings for default platform, not throttling")
 			return nil, false
 		}
 	}
@@ -237,13 +237,13 @@ func (cfg *redisConfig) SettingsFor(deviceID string, countryCode string, platfor
 		}
 	}
 
-	log.Tracef("No setting for segment %v, using first supported in list", segment)
+	log.Debugf("No setting for segment %v, using first supported in list", segment)
 	for _, candidateSettings := range constrainedSettings {
 		if clientSupportsInterval(candidateSettings.CapResets) {
 			return candidateSettings, true
 		}
 	}
 
-	log.Trace("No cap available, don't throttle")
+	log.Debug("No cap available, don't throttle")
 	return nil, false
 }

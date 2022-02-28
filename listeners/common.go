@@ -1,7 +1,7 @@
 package listeners
 
 import (
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 )
 
-var log = golog.LoggerFor("listeners")
+var log = zaplog.LoggerFor("listeners")

@@ -11,13 +11,13 @@ import (
 	"os"
 	"time"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 )
 
 var (
-	log = golog.LoggerFor("pinger")
+	log = zaplog.LoggerFor("pinger")
 )
 
 func main() {
@@ -41,7 +41,7 @@ func main() {
 				start := time.Now()
 				conn, err := net.Dial("tcp", *proxy)
 				delta := time.Now().Sub(start)
-				log.Debugf("Dial time: %v", delta)
+				log.Infof("Dial time: %v", delta)
 				return conn, err
 			},
 		},
@@ -78,6 +78,6 @@ func makeRequest(client *http.Client, url, token, size string) {
 	} else {
 		io.Copy(ioutil.Discard, resp.Body)
 		delta := time.Now().Sub(start)
-		log.Debugf("%v Finished %v request in %v", time.Now(), size, delta)
+		log.Infof("%v Finished %v request in %v", time.Now(), size, delta)
 	}
 }

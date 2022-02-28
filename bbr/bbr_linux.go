@@ -24,7 +24,7 @@ type middleware struct {
 }
 
 func New() Middleware {
-	log.Debug("Tracking bbr metrics on Linux")
+	log.Info("Tracking bbr metrics on Linux")
 	return &middleware{
 		statsByClient: make(map[string]*stats),
 	}
@@ -46,7 +46,7 @@ func (bm *middleware) AddMetrics(cs *filters.ConnectionState, req *http.Request,
 	bbrRequested := req.Header.Get(common.BBRRequested)
 	clear := bbrRequested == "clear"
 	if clear {
-		log.Tracef("Clearing stats for %v", conn.RemoteAddr())
+		log.Debugf("Clearing stats for %v", conn.RemoteAddr())
 		s.clear()
 	}
 
@@ -89,7 +89,7 @@ func (bm *middleware) statsFor(conn net.Conn) *stats {
 
 func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, bytesSent int, info *bbrconn.TCPInfo, bbrInfo *bbrconn.BBRInfo, err error) {
 	if err != nil {
-		log.Tracef("Unable to get BBR info (this happens when connections are closed unexpectedly): %v", err)
+		log.Debugf("Unable to get BBR info (this happens when connections are closed unexpectedly): %v", err)
 		return
 	}
 	s.update(float64(bytesSent), float64(bbrInfo.MaxBW)*8/1000/1000)
@@ -114,14 +114,14 @@ func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, b
 				op.Set("est_mbps_min", borda.Min(estMbps))
 				op.Set("est_mbps_max", borda.Max(estMbps))
 			}
-			log.Tracef("Reporting tcp info for %v", remoteAddr)
+			log.Debugf("Reporting tcp info for %v", remoteAddr)
 			op.End()
 		}()
 	}
 }
 
 func (bm *middleware) Wrap(l net.Listener) net.Listener {
-	log.Debugf("Enabling bbr metrics on %v", l.Addr())
+	log.Infof("Enabling bbr metrics on %v", l.Addr())
 	return &bbrlistener{l, bm}
 }
 

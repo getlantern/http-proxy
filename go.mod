@@ -43,6 +43,7 @@ require (
 	github.com/getlantern/tlsutil v0.5.1
 	github.com/getlantern/waitforserver v1.0.1
 	github.com/getlantern/withtimeout v0.0.0-20160829163843-511f017cd913
+	github.com/getlantern/zaplog v0.0.0-20220228175714-8e33ac45c960
 	github.com/go-redis/redis/v8 v8.10.0
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 	github.com/gonum/stat v0.0.0-20180125090729-ec9c8a1062f4
@@ -159,6 +160,9 @@ require (
 	go.opentelemetry.io/otel v0.20.0 // indirect
 	go.opentelemetry.io/otel/metric v0.20.0 // indirect
 	go.opentelemetry.io/otel/trace v0.20.0 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20201117144127-c1f2f97bffc9 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
@@ -173,7 +177,7 @@ require (
 	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/redis.v5 v5.2.9 // indirect
 	gopkg.in/tomb.v1 v1.0.0-20141024135613-dd632973f1e7 // indirect
-	gopkg.in/yaml.v3 v3.0.0-20200313102051-9f266ea9e77c // indirect
+	gopkg.in/yaml.v3 v3.0.0-20210107192922-496545a6307b // indirect
 )
 
 replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20220215050330-93bd217f5741

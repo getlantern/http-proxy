@@ -7,7 +7,7 @@ import (
 	borda "github.com/getlantern/borda/client"
 	"github.com/getlantern/borda/client/rpcclient"
 	"github.com/getlantern/context"
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/hidden"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/measured"
@@ -19,7 +19,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("lantern-proxy-borda")
+	log = zaplog.LoggerFor("lantern-proxy-borda")
 
 	fullyReportedOps = []string{"http_proxy_handle", "tcpinfo", "google_search", "google_captcha", "blacklist", "connect_without_request", "mimic_apache"}
 )
@@ -37,7 +37,7 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 		case string:
 			for _, fullyReportedOp := range fullyReportedOps {
 				if t == fullyReportedOp {
-					log.Tracef("Including fully reported op %v in borda sample", fullyReportedOp)
+					log.Debugf("Including fully reported op %v in borda sample", fullyReportedOp)
 					return true
 				}
 			}
@@ -95,7 +95,7 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 			"server_connection":          borda.Float(1),
 			"server_connection_duration": borda.Float(float64(stats.Duration) / nanosPerSecond),
 		}
-		log.Tracef("xfer: %v %v", _ctx, vals)
+		log.Debugf("xfer: %v %v", _ctx, vals)
 
 		if !inSample(_ctx) {
 			return

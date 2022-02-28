@@ -4,7 +4,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
 	"github.com/getlantern/netx"
 	"github.com/getlantern/proxy/v2/filters"
@@ -12,7 +12,7 @@ import (
 )
 
 var (
-	log = golog.LoggerFor("wss")
+	log = zaplog.LoggerFor("wss")
 	// these headers are replicated from the inital http upgrade request
 	// to certain subrequests on a wss connection.
 	headerWhitelist = []string{
@@ -51,9 +51,9 @@ func (m *middleware) apply(cs *filters.ConnectionState, req *http.Request) {
 			for _, header := range headerWhitelist {
 				if val := upHdr.Get(header); val != "" {
 					req.Header.Set(header, val)
-					log.Tracef("WSS: copied header %s (%s)", header, val)
+					log.Debugf("WSS: copied header %s (%s)", header, val)
 				} else {
-					log.Tracef("WSS: header %s was not present!", header)
+					log.Debugf("WSS: header %s was not present!", header)
 				}
 			}
 			return false

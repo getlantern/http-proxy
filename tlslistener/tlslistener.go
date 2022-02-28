@@ -6,7 +6,7 @@ import (
 	"crypto/tls"
 	"net"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/tlsdefaults"
 
 	utls "github.com/refraction-networking/utls"
@@ -22,7 +22,7 @@ func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKe
 		return nil, err
 	}
 
-	log := golog.LoggerFor("lantern-proxy-tlslistener")
+	log := zaplog.LoggerFor("lantern-proxy-tlslistener")
 
 	utlsConfig := &utls.Config{}
 	onKeys := func(keys [][32]byte) {
@@ -41,7 +41,7 @@ func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKe
 
 	expectTickets := sessionTicketKeyFile != ""
 	if expectTickets {
-		log.Debugf("Will rotate session ticket key and store in %v", sessionTicketKeyFile)
+		log.Infof("Will rotate session ticket key and store in %v", sessionTicketKeyFile)
 		maintainSessionTicketKey(cfg, sessionTicketKeyFile, onKeys)
 	}
 

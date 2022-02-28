@@ -66,7 +66,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 
 	var reporter listeners.MeasuredReportFN
 	if throttleConfig == nil {
-		log.Debug("No throttling configured, don't bother reporting bandwidth usage to Redis")
+		log.Info("No throttling configured, don't bother reporting bandwidth usage to Redis")
 		reporter = func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats,
 			final bool) {
 			// noop

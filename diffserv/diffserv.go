@@ -4,13 +4,13 @@
 package diffserv
 
 import (
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"golang.org/x/net/ipv4"
 	"net"
 )
 
 var (
-	log = golog.LoggerFor("diffserv")
+	log = zaplog.LoggerFor("diffserv")
 )
 
 // Wrap wraps the given Listener into a Listener that applies the specified tos

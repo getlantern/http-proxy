@@ -15,13 +15,13 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/pcapper"
 )
 
 var (
-	log = golog.LoggerFor("apache")
+	log = zaplog.LoggerFor("apache")
 )
 
 type apacheMimic struct {
@@ -56,7 +56,7 @@ func SetServerAddr(addr string) {
 // Set 'Host' and 'Port' before calling it.
 func Apache(conn net.Conn, req *http.Request) {
 	ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-	log.Tracef("Mimicking apache to client at %v", ip)
+	log.Debugf("Mimicking apache to client at %v", ip)
 	ops.Begin("mimic_apache").Set("client_ip", ip).End()
 	pcapper.Dump(ip, "Mimicking apache")
 	path := req.URL.Path

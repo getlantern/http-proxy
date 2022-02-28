@@ -20,7 +20,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
 	"github.com/getlantern/proxy/v2/filters"
@@ -40,7 +40,7 @@ func NewHTTPSUpgrade(configServerAuthToken string) filters.Filter {
 				IdleConnTimeout: 4 * time.Minute,
 			},
 		},
-		log:                   golog.LoggerFor("httpsUpgrade"),
+		log:                   zaplog.LoggerFor("httpsUpgrade"),
 		configServerAuthToken: configServerAuthToken,
 	}
 }
@@ -78,7 +78,7 @@ func (h *httpsUpgrade) rewrite(cs *filters.ConnectionState, host string, r *http
 	req.Host = host + ":443"
 	req.URL.Host = req.Host
 	req.URL.Scheme = "https"
-	h.log.Tracef("Rewrote request with URL %#v to HTTPS", req.URL)
+	h.log.Debugf("Rewrote request with URL %#v to HTTPS", req.URL)
 	// Make sure the request stays open.
 	req.Close = false
 

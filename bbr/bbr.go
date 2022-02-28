@@ -19,7 +19,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/proxy/v2/filters"
 )
 
@@ -28,7 +28,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("bbrlistener")
+	log = zaplog.LoggerFor("bbrlistener")
 )
 
 type Middleware interface {

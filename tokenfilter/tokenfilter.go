@@ -6,7 +6,7 @@ import (
 	"net/http/httputil"
 	"strings"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy/v2/filters"
 
@@ -15,7 +15,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
 )
 
-var log = golog.LoggerFor("tokenfilter")
+var log = zaplog.LoggerFor("tokenfilter")
 
 type tokenFilter struct {
 	token      string
@@ -35,11 +35,11 @@ func (f *tokenFilter) Apply(cs *filters.ConnectionState, req *http.Request, next
 
 	if log.IsTraceEnabled() {
 		reqStr, _ := httputil.DumpRequest(req, true)
-		log.Tracef("Token Filter Middleware received request:\n%s", reqStr)
+		log.Debugf("Token Filter Middleware received request:\n%s", reqStr)
 	}
 
 	if f.token == "" {
-		log.Trace("Not checking token")
+		log.Debug("Not checking token")
 		return next(cs, req)
 	}
 
@@ -58,7 +58,7 @@ func (f *tokenFilter) Apply(cs *filters.ConnectionState, req *http.Request, next
 	}
 	if tokenMatched {
 		req.Header.Del(common.TokenHeader)
-		log.Tracef("Allowing connection from %v to %v", req.RemoteAddr, req.Host)
+		log.Debugf("Allowing connection from %v to %v", req.RemoteAddr, req.Host)
 		f.instrument.Mimic(false)
 		return next(cs, req)
 	}

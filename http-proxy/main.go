@@ -21,7 +21,7 @@ import (
 	"github.com/vharitonsky/iniflags"
 
 	"github.com/getlantern/geo"
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 
 	proxy "github.com/getlantern/http-proxy-lantern/v2"
 	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
@@ -35,7 +35,7 @@ import (
 )
 
 var (
-	log        = golog.LoggerFor("lantern-proxy")
+	log        = zaplog.LoggerFor("lantern-proxy")
 	revision   = "unknown" // overridden by Makefile
 	build_type = "unknown" // overriden by Makefile
 
@@ -248,7 +248,7 @@ func main() {
 		syscall.SIGQUIT)
 	go func() {
 		for range c {
-			log.Debug("Stopping server")
+			log.Info("Stopping server")
 			os.Exit(0)
 		}
 	}()
@@ -259,7 +259,7 @@ func main() {
 
 	if *pprofAddr != "" {
 		go func() {
-			log.Debugf("Starting pprof page at http://%s/debug/pprof", *pprofAddr)
+			log.Infof("Starting pprof page at http://%s/debug/pprof", *pprofAddr)
 			if err := http.ListenAndServe(*pprofAddr, nil); err != nil {
 				log.Error(err)
 			}
@@ -285,9 +285,9 @@ func main() {
 			log.Fatal("missing-session-ticket-reflect-site should not be empty")
 		}
 		reaction = tlslistener.ReflectToSite(*missingTicketReflectSite)
-		log.Debugf("Reflecting missing session tickets to site %v", *missingTicketReflectSite)
+		log.Infof("Reflecting missing session tickets to site %v", *missingTicketReflectSite)
 	case "None":
-		log.Debug("Not reacting to missing session tickets")
+		log.Info("Not reacting to missing session tickets")
 		reaction = tlslistener.None
 	default:
 		log.Errorf("bad missing-session-ticket-reaction for '%s': '%s', fallback to %s", *proxyProtocol, *missingTicketReaction, reaction.Action())
@@ -298,9 +298,9 @@ func main() {
 	}
 
 	if reaction.Action() == "" {
-		log.Debug("Not using missing-session-ticket-reaction")
+		log.Info("Not using missing-session-ticket-reaction")
 	} else {
-		log.Debugf("Using missing-session-ticket-reaction %v", reaction.Action())
+		log.Infof("Using missing-session-ticket-reaction %v", reaction.Action())
 	}
 
 	var (
@@ -347,7 +347,7 @@ func main() {
 			log.Errorf("failed to initialize redis client, will not be able to perform bandwidth limiting: %v", err)
 		}
 	} else {
-		log.Debug("no redis address configured for bandwidth reporting")
+		log.Info("no redis address configured for bandwidth reporting")
 	}
 
 	p := &proxy.Proxy{

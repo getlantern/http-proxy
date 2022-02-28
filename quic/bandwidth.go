@@ -5,7 +5,7 @@ import (
 	"net"
 	"net/http"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/netx"
 	"github.com/getlantern/proxy/v2/filters"
@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	log = golog.LoggerFor("quic")
+	log = zaplog.LoggerFor("quic")
 )
 
 type middleware struct{}
@@ -39,7 +39,7 @@ func (m *middleware) apply(cs *filters.ConnectionState, req *http.Request, resp 
 
 	bbrRequested := req.Header.Get(common.BBRRequested)
 	if bbrRequested == "" {
-		log.Tracef("No BBR estimate requested...")
+		log.Debugf("No BBR estimate requested...")
 		// BBR info not requested, ignore
 		return
 	}
@@ -54,7 +54,7 @@ func (m *middleware) apply(cs *filters.ConnectionState, req *http.Request, resp 
 		return true
 	})
 
-	log.Tracef("Quic estABE = %v", estABE)
+	log.Debugf("Quic estABE = %v", estABE)
 	if resp.Header == nil {
 		resp.Header = make(http.Header, 1)
 	}

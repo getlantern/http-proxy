@@ -10,7 +10,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/netx"
 	utls "github.com/refraction-networking/utls"
 
@@ -139,7 +139,7 @@ func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utl
 	rrc := &clientHelloRecordingConn{
 		Conn:                  rawConn,
 		dataRead:              buf,
-		log:                   golog.LoggerFor("clienthello-conn"),
+		log:                   zaplog.LoggerFor("clienthello-conn"),
 		cfg:                   cfgClone,
 		activeReader:          io.TeeReader(rawConn, buf),
 		helloMutex:            &sync.Mutex{},

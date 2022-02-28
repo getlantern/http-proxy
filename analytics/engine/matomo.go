@@ -48,7 +48,7 @@ func (ma matomo) GetSessionValues(sa *SessionParams, site string, port string) s
 	// Track custom port dimension
 	vals.Add("dimension1", port)
 
-	log.Tracef("Tracking view to site: %v using Matomo", site)
+	log.Debugf("Tracking view to site: %v using Matomo", site)
 	vals.Add("url", site)
 
 	// Use the user-agent reported by the client

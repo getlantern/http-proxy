@@ -63,7 +63,7 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string, redisIsUp bool,
 		io.CopyN(rw, rand.New(rand.NewSource(time.Now().UnixNano())), int64(n))
 	}))
 	originAddr := originSite.Listener.Addr().String()
-	log.Debugf("Waiting for origin server at %s...", originAddr)
+	log.Infof("Waiting for origin server at %s...", originAddr)
 	require.NoError(t, WaitForServer("tcp", originAddr, 10*time.Second))
 
 	redisClient := testutil.TestRedis(t)
@@ -173,7 +173,7 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string, redisIsUp bool,
 		require.Len(t, parts, 4)
 		require.Len(t, strings.Split(xbq, "/"), 3)
 
-		log.Debugf("XBQ is: %v", xbq)
+		log.Infof("XBQ is: %v", xbq)
 		assert.NotEqual(t, "0", parts[0], "Should show some usage")
 		assert.Equal(t, "10", parts[1], "Should show correct bandwidth limit")
 

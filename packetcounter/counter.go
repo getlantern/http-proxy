@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/google/gopacket"
 	"github.com/google/gopacket/layers"
 	"github.com/google/gopacket/pcap"
@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("packetcounter")
+	log = zaplog.LoggerFor("packetcounter")
 )
 
 // ReportFN is a callback to report how many sentDataPackets have been sent over a TCP
@@ -72,7 +72,7 @@ func Track(interfaceName, listenPort string, report ReportFN) {
 		}
 		data, _, err := handle.ZeroCopyReadPacketData()
 		if err != nil {
-			log.Debugf("error getting packet: %v", err)
+			log.Infof("error getting packet: %v", err)
 			continue
 		}
 		// error is expected because we don't decode TLS. Ranging over decoded

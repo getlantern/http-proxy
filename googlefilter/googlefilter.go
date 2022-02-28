@@ -8,13 +8,13 @@ import (
 	"net/http"
 	"regexp"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy/v2/filters"
 )
 
 var (
-	log = golog.LoggerFor("googlefilter")
+	log = zaplog.LoggerFor("googlefilter")
 
 	// DefaultSearchRegex is the default regex for google search domains.
 	DefaultSearchRegex = `^(www.)?google\..+`
@@ -48,13 +48,13 @@ func (f *googleFilter) Apply(cs *filters.ConnectionState, req *http.Request, nex
 func (f *googleFilter) recordActivity(req *http.Request) (sawSearch bool, sawCaptcha bool) {
 	if f.searchRegex.MatchString(req.Host) {
 		op := ops.Begin("google_search")
-		log.Tracef("Saw google search")
+		log.Debugf("Saw google search")
 		op.End()
 		return true, false
 	}
 	if f.captchaRegex.MatchString(req.Host) {
 		op := ops.Begin("google_captcha")
-		log.Tracef("Saw google captcha")
+		log.Debugf("Saw google captcha")
 		op.End()
 		return false, true
 	}

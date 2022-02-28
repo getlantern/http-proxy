@@ -17,7 +17,7 @@ func (bm *middleware) ProbeUpstream(url string) {
 func (bm *middleware) probeUpstream(url string) {
 	newUpstreamABE := doProbeUpstream(url)
 	if newUpstreamABE > upstreamABEUnknown {
-		log.Tracef("Setting upstream ABE to %v", newUpstreamABE)
+		log.Debugf("Setting upstream ABE to %v", newUpstreamABE)
 		bm.setUpstreamABE(newUpstreamABE)
 	}
 }

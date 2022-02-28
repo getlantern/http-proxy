@@ -50,7 +50,7 @@ func (ga googleAnalytics) GetSessionValues(sa *SessionParams, site string, port 
 	// Track custom port dimension
 	vals.Add("cd1", port)
 
-	log.Tracef("Tracking view to site: %v using GA", site)
+	log.Debugf("Tracking view to site: %v using GA", site)
 	vals.Add("dp", site)
 
 	// Use the user-agent reported by the client

@@ -9,12 +9,12 @@ import (
 	"strconv"
 
 	"github.com/getlantern/bbrconn"
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 )
 
 var (
-	log = golog.LoggerFor("bbr.reflector")
+	log = zaplog.LoggerFor("bbr.reflector")
 
 	addr = flag.String("addr", ":80", "address to listen for HTTP connections, defaults to port 80 on all interfaces")
 
@@ -57,7 +57,7 @@ func handle(resp http.ResponseWriter, req *http.Request) {
 	}
 
 	estABE := float64(binfo.MaxBW) * 8 / 1000 / 1000
-	log.Debugf("Reporting ABE %v", estABE)
+	log.Infof("Reporting ABE %v", estABE)
 	trailers := http.Header{}
 	trailers.Set(common.BBRAvailableBandwidthEstimateHeader, fmt.Sprint(estABE))
 

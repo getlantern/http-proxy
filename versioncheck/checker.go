@@ -33,7 +33,7 @@ import (
 	"time"
 
 	"github.com/blang/semver"
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/proxy/v2/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
@@ -41,7 +41,7 @@ import (
 )
 
 var (
-	log = golog.LoggerFor("versioncheck")
+	log = zaplog.LoggerFor("versioncheck")
 
 	random = rand.New(rand.NewSource(time.Now().UnixNano()))
 )
@@ -140,7 +140,7 @@ func (c *VersionChecker) Apply(cs *filters.ConnectionState, req *http.Request, n
 }
 
 func (c *VersionChecker) redirect(cs *filters.ConnectionState, req *http.Request) (*http.Response, *filters.ConnectionState, error) {
-	log.Tracef("Redirecting %s %s%s to %s",
+	log.Debugf("Redirecting %s %s%s to %s",
 		req.Method,
 		req.Host,
 		req.URL.Path,
@@ -197,7 +197,7 @@ func (c *VersionChecker) redirectOnConnect(cs *filters.ConnectionState, req *htt
 	bufReader := bufio.NewReader(conn)
 	req, err := http.ReadRequest(bufReader)
 	if err != nil {
-		log.Tracef("Fail to read tunneled request before redirecting: %v", err)
+		log.Debugf("Fail to read tunneled request before redirecting: %v", err)
 	} else if req.Body != nil {
 		_, _ = io.Copy(ioutil.Discard, req.Body)
 		req.Body.Close()

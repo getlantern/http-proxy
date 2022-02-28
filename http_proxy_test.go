@@ -76,14 +76,14 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("Error starting proxy server: %v", err)
 	}
-	log.Debugf("Started HTTP proxy server at %s", httpProxyAddr)
+	log.Infof("Started HTTP proxy server at %s", httpProxyAddr)
 
 	// Set up HTTPS chained server
 	tlsProxyAddr, err = setupNewHTTPServer(0, 30*time.Second, true)
 	if err != nil {
 		log.Fatalf("Error starting proxy server: %v", err)
 	}
-	log.Debugf("Started HTTPS proxy server at %s", tlsProxyAddr)
+	log.Infof("Started HTTPS proxy server at %s", tlsProxyAddr)
 
 	os.Exit(m.Run())
 }
@@ -137,7 +137,7 @@ func TestReportStats(t *testing.T) {
 	if assert.True(t, len(mr.traffic) > 0) {
 		stats := mr.traffic[""]
 		if assert.NotNil(t, stats) {
-			log.Debug(stats)
+			log.Info(stats)
 		}
 	}
 }
@@ -633,7 +633,7 @@ func testRoundTrip(t *testing.T, addr string, isTls bool, target *targetHandler,
 
 	if !isTls {
 		conn, err = net.Dial("tcp", addr)
-		log.Debugf("%s -> %s (via HTTP) -> %s", conn.LocalAddr().String(), addr, target.server.URL)
+		log.Infof("%s -> %s (via HTTP) -> %s", conn.LocalAddr().String(), addr, target.server.URL)
 		if !assert.NoError(t, err, "should dial proxy server") {
 			t.FailNow()
 		}
@@ -644,7 +644,7 @@ func testRoundTrip(t *testing.T, addr string, isTls bool, target *targetHandler,
 			CipherSuites:       preferredCipherSuites,
 			InsecureSkipVerify: true,
 		})
-		log.Debugf("%s -> %s (via HTTPS) -> %s", tlsConn.LocalAddr().String(), addr, target.server.URL)
+		log.Infof("%s -> %s (via HTTPS) -> %s", tlsConn.LocalAddr().String(), addr, target.server.URL)
 		if !assert.NoError(t, err, "should dial proxy server") {
 			t.FailNow()
 		}
@@ -772,7 +772,7 @@ func newTargetHandler(msg string, tls bool) (string, *targetHandler) {
 	} else {
 		m.server.Start()
 	}
-	log.Debugf("Started target site at %v", m.server.URL)
+	log.Infof("Started target site at %v", m.server.URL)
 	return m.server.URL, &m
 }
 

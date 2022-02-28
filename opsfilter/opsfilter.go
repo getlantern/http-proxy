@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy/v2"
 	"github.com/getlantern/proxy/v2/filters"
@@ -16,7 +16,7 @@ import (
 )
 
 var (
-	log = golog.LoggerFor("logging")
+	log = zaplog.LoggerFor("logging")
 )
 
 type opsfilter struct {
@@ -51,7 +51,7 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 		Set("app_platform", platform).
 		Set("app_version", version).
 		Set("client_app", app)
-	log.Tracef("Starting op")
+	log.Debugf("Starting op")
 	defer op.End()
 
 	measuredCtx := map[string]interface{}{

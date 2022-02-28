@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/pcapper"
 
@@ -34,7 +34,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("blacklist")
+	log = zaplog.LoggerFor("blacklist")
 
 	blacklistingEnabled = false // we've temporarily turned off blacklisting for safety
 )
@@ -65,22 +65,22 @@ type Options struct {
 func (opts *Options) applyDefaults() {
 	if opts.MaxIdleTime <= 0 {
 		opts.MaxIdleTime = DefaultMaxIdleTime
-		log.Debugf("Defaulted MaxIdleTime to %v", opts.MaxIdleTime)
+		log.Infof("Defaulted MaxIdleTime to %v", opts.MaxIdleTime)
 	}
 
 	if opts.MaxConnectInterval <= 0 {
 		opts.MaxConnectInterval = DefaultMaxConnectInterval
-		log.Debugf("Defaulted MaxConnectInterval to %v", opts.MaxConnectInterval)
+		log.Infof("Defaulted MaxConnectInterval to %v", opts.MaxConnectInterval)
 	}
 
 	if opts.AllowedFailures <= 0 {
 		opts.AllowedFailures = DefaultAllowedFailures
-		log.Debugf("Defaulted AllowedFailures to %v", opts.AllowedFailures)
+		log.Infof("Defaulted AllowedFailures to %v", opts.AllowedFailures)
 	}
 
 	if opts.Expiration <= 0 {
 		opts.Expiration = DefaultExpiration
-		log.Debugf("Defaulted Expiration to %v", opts.Expiration)
+		log.Infof("Defaulted Expiration to %v", opts.Expiration)
 	}
 	if opts.Instrument == nil {
 		opts.Instrument = instrument.NoInstrument{}
@@ -146,7 +146,7 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 	defer bl.mutex.RUnlock()
 	_, blacklisted := bl.blacklist[ip]
 	if blacklisted {
-		log.Tracef("%v is blacklisted", ip)
+		log.Debugf("%v is blacklisted", ip)
 		bl.instrument.Blacklist(true)
 		return false
 	}
@@ -202,13 +202,13 @@ func (bl *Blacklist) onSuccess(ip string) {
 }
 
 func (bl *Blacklist) checkForIdlers() {
-	log.Trace("Checking for idlers")
+	log.Debug("Checking for idlers")
 	now := time.Now()
 	var blacklistAdditions []string
 	for ip, t := range bl.firstConnectionTime {
 		if now.Sub(t) > bl.maxIdleTime {
 			msg := fmt.Sprintf("%v connected but failed to successfully send an HTTP request within %v", ip, bl.maxIdleTime)
-			log.Trace(msg)
+			log.Debug(msg)
 			delete(bl.firstConnectionTime, ip)
 			ops.Begin("connect_without_request").Set("client_ip", ip).End()
 			pcapper.Dump(ip, fmt.Sprintf("Blacklist Check: %v", msg))
@@ -236,7 +236,7 @@ func (bl *Blacklist) checkExpiration() {
 	bl.mutex.Lock()
 	for ip, blacklistedAt := range bl.blacklist {
 		if now.Sub(blacklistedAt) > bl.blacklistExpiration {
-			log.Tracef("Removing %v from blacklist", ip)
+			log.Debugf("Removing %v from blacklist", ip)
 			delete(bl.blacklist, ip)
 			delete(bl.failureCounts, ip)
 			delete(bl.firstConnectionTime, ip)

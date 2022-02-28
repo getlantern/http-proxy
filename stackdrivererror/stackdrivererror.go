@@ -7,7 +7,7 @@ import (
 
 	"google.golang.org/api/option"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 
 	"cloud.google.com/go/errorreporting"
 )
@@ -27,7 +27,7 @@ func (r *Reporter) Close() {
 
 func (r *Reporter) Report(severity golog.Severity, err error, stack []byte) {
 	errWithIP := fmt.Errorf("%s on %s(%s)", err.Error(), r.proxyName, r.externalIP)
-	r.log.Tracef("Reporting error to stackdriver: %s", errWithIP)
+	r.log.Debugf("Reporting error to stackdriver: %s", errWithIP)
 	r.errorClient.Report(errorreporting.Entry{
 		Error: errWithIP,
 		Stack: stack,
@@ -40,8 +40,8 @@ func (r *Reporter) Report(severity golog.Severity, err error, stack []byte) {
 // Enable enables golog to report errors to stackdriver and returns the reporter.
 func Enable(ctx context.Context, projectID, stackdriverCreds string,
 	samplePercentage float64, proxyName, externalIP, proxyProtocol string, track string) *Reporter {
-	log := golog.LoggerFor("proxy-stackdriver")
-	log.Debugf("Enabling stackdriver error reporting for project %v", projectID)
+	log := zaplog.LoggerFor("proxy-stackdriver")
+	log.Infof("Enabling stackdriver error reporting for project %v", projectID)
 	serviceVersion := track
 
 	// This was a stopgap because at the time of this writing not all proxies know their track.
@@ -52,11 +52,11 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string,
 		ServiceName:    "lantern-http-proxy-service",
 		ServiceVersion: serviceVersion,
 		OnError: func(err error) {
-			log.Debugf("Could not log error: %v", err)
+			log.Infof("Could not log error: %v", err)
 		},
 	}, option.WithCredentialsFile(stackdriverCreds))
 	if err != nil {
-		log.Debugf("Error setting up stackdriver error reporting? %v", err)
+		log.Infof("Error setting up stackdriver error reporting? %v", err)
 		return nil
 	}
 
@@ -69,7 +69,7 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string,
 		if severity == golog.ERROR {
 			r := rand.Float64()
 			if r > samplePercentage {
-				log.Tracef("Not in sample. %v less than %v", r, samplePercentage)
+				log.Debugf("Not in sample. %v less than %v", r, samplePercentage)
 				return
 			}
 		}

@@ -169,7 +169,7 @@ func requestItem(t *testing.T, buf *bytes.Buffer, addr, method, path string, hea
 		}
 
 		req = req + "\r\n"
-		log.Trace(req)
+		log.Debug(req)
 		_, err := conn.Write([]byte(req))
 
 		if assert.NoError(t, err, "should write") {

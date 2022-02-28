@@ -9,13 +9,13 @@ import (
 	"net"
 	"sync"
 
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/tlsmasq"
 	"github.com/getlantern/tlsmasq/ptlshs"
 	"github.com/getlantern/tlsutil"
 )
 
-var log = golog.LoggerFor("tlsmasq-listener")
+var log = zaplog.LoggerFor("tlsmasq-listener")
 
 func Wrap(ll net.Listener, certFile string, keyFile string, originAddr string, secret string,
 	tlsMinVersion uint16, tlsCipherSuites []uint16, onNonFatalErrors func(error)) (net.Listener, error) {
@@ -91,7 +91,7 @@ func (conn loggingConn) doIO(b []byte, io func([]byte) (int, error)) (n int, err
 	conn.handshakeOnce.Do(func() {
 		var alertErr tlsutil.UnexpectedAlertError
 		if err = conn.Handshake(); err != nil && errors.As(err, &alertErr) {
-			log.Debugf("received alert from origin in tlsmasq handshake: %v", alertErr.Alert)
+			log.Infof("received alert from origin in tlsmasq handshake: %v", alertErr.Alert)
 		}
 	})
 	if err != nil {

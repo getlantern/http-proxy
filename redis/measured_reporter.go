@@ -11,7 +11,7 @@ import (
 	"github.com/go-redis/redis/v8"
 
 	"github.com/getlantern/geo"
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/usage"
 	"github.com/getlantern/http-proxy/listeners"
@@ -41,7 +41,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("redis")
+	log = zaplog.LoggerFor("redis")
 )
 
 type statsAndContext struct {
@@ -75,7 +75,7 @@ func NewMeasuredReporter(countryLookup geo.CountryLookup, rc *redis.Client, repo
 func reportPeriodically(countryLookup geo.CountryLookup, rc *redis.Client, reportInterval time.Duration, throttleConfig throttle.Config, statsCh chan *statsAndContext) {
 	// randomize the interval to evenly distribute traffic to reporting Redis.
 	randomized := time.Duration(reportInterval.Nanoseconds()/2 + rand.Int63n(reportInterval.Nanoseconds()))
-	log.Debugf("Will report data usage to Redis every %v", randomized)
+	log.Infof("Will report data usage to Redis every %v", randomized)
 	ticker := time.NewTicker(randomized)
 	statsByDeviceID := make(map[string]*statsAndContext)
 	var scriptSHA string
@@ -91,7 +91,7 @@ func reportPeriodically(countryLookup geo.CountryLookup, rc *redis.Client, repor
 			statsByDeviceID[deviceID] = statsByDeviceID[deviceID].add(sac)
 		case <-ticker.C:
 			if log.IsTraceEnabled() {
-				log.Tracef("Submitting %d stats", len(statsByDeviceID))
+				log.Debugf("Submitting %d stats", len(statsByDeviceID))
 			}
 			if scriptSHA == "" {
 				var err error
@@ -163,7 +163,7 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 				clientIP,
 				expirationFor(now, throttleSettings.CapResets, timeZone))
 		}
-		log.Tracef("device %v on platform %v in country %v with supported data caps %v is in throttle cohort %v", deviceID, platform, countryCode, supportedDataCaps, throttleCohort)
+		log.Debugf("device %v on platform %v in country %v with supported data caps %v is in throttle cohort %v", deviceID, platform, countryCode, supportedDataCaps, throttleCohort)
 		countryCodeLower := strings.ToLower(countryCode)
 
 		nowUTC := now.In(time.UTC)

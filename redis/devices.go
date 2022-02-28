@@ -113,13 +113,13 @@ func (df *DeviceFetcher) retrieveDeviceUsage(scriptSHA string, deviceID string) 
 	_bytesIn := vals[0].(string)
 	bytesIn, err := strconv.ParseInt(_bytesIn, 10, 64)
 	if err != nil {
-		log.Debugf("Error parsing bytesIn: %v", err)
+		log.Infof("Error parsing bytesIn: %v", err)
 		return nil
 	}
 	_bytesOut := vals[1].(string)
 	bytesOut, err := strconv.ParseInt(_bytesOut, 10, 64)
 	if err != nil {
-		log.Debugf("Error parsing bytesOut: %v", err)
+		log.Infof("Error parsing bytesOut: %v", err)
 		return nil
 	}
 	countryCode := vals[2].(string)

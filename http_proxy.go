@@ -20,7 +20,7 @@ import (
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
 	"github.com/getlantern/geo"
-	"github.com/getlantern/golog"
+	"github.com/getlantern/zaplog"
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
 	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
@@ -74,7 +74,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("lantern-proxy")
+	log = zaplog.LoggerFor("lantern-proxy")
 
 	proxyNameRegex = regexp.MustCompile(`(fp-([a-z0-9]+-)?([a-z0-9]+)-[0-9]{8}-[0-9]+)(-.+)?`)
 )
@@ -217,7 +217,7 @@ func (p *Proxy) ListenAndServe() error {
 				MissingTicketReaction: p.MissingTicketReaction.Action(),
 			})
 		go func() {
-			log.Debugf("Running Prometheus exporter at http://%s/metrics", p.PromExporterAddr)
+			log.Infof("Running Prometheus exporter at http://%s/metrics", p.PromExporterAddr)
 			if err := prom.Run(p.PromExporterAddr); err != nil {
 				log.Error(err)
 			}
@@ -229,7 +229,7 @@ func (p *Proxy) ListenAndServe() error {
 	/*
 
 		if p.PCAPDir != "" && p.PCAPIPs > 0 && p.PCAPSPerIP > 0 {
-			log.Debugf("Enabling packet capture, capturing the %d packets for each of the %d most recent IPs into %v", p.PCAPSPerIP, p.PCAPIPs, p.PCAPDir)
+			log.Infof("Enabling packet capture, capturing the %d packets for each of the %d most recent IPs into %v", p.PCAPSPerIP, p.PCAPIPs, p.PCAPDir)
 			pcapper.StartCapturing("http-proxy", p.ExternalIntf, "/tmp", p.PCAPIPs, p.PCAPSPerIP, p.PCAPSnapLen, p.PCAPTimeout)
 			onServerError = func(conn net.Conn, err error) {
 				ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
@@ -379,9 +379,9 @@ func (p *Proxy) ListenAndServe() error {
 
 	if p.EnableMultipath {
 		mpl := multipath.NewListener(allListeners, p.instrument.MultipathStats(listenerProtocols))
-		log.Debug("Serving multipath at:")
+		log.Info("Serving multipath at:")
 		for i, l := range allListeners {
-			log.Debugf("  %-20s:  %v", listenerProtocols[i], l.Addr())
+			log.Infof("  %-20s:  %v", listenerProtocols[i], l.Addr())
 		}
 		return srv.Serve(mpl, nil)
 	} else {
@@ -389,7 +389,7 @@ func (p *Proxy) ListenAndServe() error {
 		for _, _l := range allListeners {
 			l := _l
 			go func() {
-				log.Debugf("Serving at: %v", l.Addr())
+				log.Infof("Serving at: %v", l.Addr())
 				errCh <- srv.Serve(l, mimic.SetServerAddr)
 			}()
 		}
@@ -402,7 +402,7 @@ func (p *Proxy) ListenAndServeENHTTP() error {
 	if err != nil {
 		return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
 	}
-	log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
+	log.Infof("Listening for encapsulated HTTP at %v", el.Addr())
 	filterChain := filters.Join(tokenfilter.New(p.Token, p.instrument), p.instrument.WrapFilter("proxy_http_ping", ping.New(0)))
 	enhttpHandler := enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL)
 	server := &http.Server{
@@ -424,7 +424,7 @@ func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
 				return nil, err
 			}
 
-			log.Debugf("Using TLS on %v", l.Addr())
+			log.Infof("Using TLS on %v", l.Addr())
 		}
 
 		return l, nil
@@ -456,7 +456,7 @@ func (p *Proxy) wrapMultiplexing(fn listenerBuilderFN) listenerBuilderFN {
 			Protocol: proto,
 		})
 
-		log.Debugf("Multiplexing on %v", l.Addr())
+		log.Infof("Multiplexing on %v", l.Addr())
 		return l, nil
 	}
 }
@@ -522,13 +522,13 @@ func (p *Proxy) buildPsmuxProtocol() (cmux.Protocol, error) {
 func (p *Proxy) setupOpsContext() {
 	ops.SetGlobal("app", "http-proxy")
 	if p.ExternalIP != "" {
-		log.Debugf("Will report with proxy_host: %v", p.ExternalIP)
+		log.Infof("Will report with proxy_host: %v", p.ExternalIP)
 		ops.SetGlobal("proxy_host", p.ExternalIP)
 	}
 	proxyName, dc := proxyName(p.ProxyName)
 	// Only set proxy name if it follows our naming convention
 	if proxyName != "" {
-		log.Debugf("Will report with proxy_name %v in dc %v", proxyName, dc)
+		log.Infof("Will report with proxy_name %v in dc %v", proxyName, dc)
 		ops.SetGlobal("proxy_name", proxyName)
 		ops.SetGlobal("dc", dc)
 	}
@@ -563,7 +563,7 @@ func (p *Proxy) proxyProtocol() string {
 
 func (p *Proxy) setBenchmarkMode() {
 	if p.Benchmark {
-		log.Debug("Putting proxy into benchmarking mode. Only a limited rate of requests to a specific set of domains will be allowed, no authentication token required.")
+		log.Info("Putting proxy into benchmarking mode. Only a limited rate of requests to a specific set of domains will be allowed, no authentication token required.")
 		p.HTTPS = true
 		p.Token = "bench"
 	}
@@ -600,7 +600,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}
 
 	if p.ReportingRedisClient == nil {
-		log.Debug("Not enabling bandwidth limiting")
+		log.Info("Not enabling bandwidth limiting")
 	} else {
 		filterChain = filterChain.Append(
 			proxy.OnFirstOnly(devicefilter.NewPre(
@@ -662,7 +662,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	// redirect certain percentage of the requests to an URL to notify the user
 	// to upgrade.
 	if p.VersionCheck {
-		log.Debugf("versioncheck: Will redirect %.4f%% of requests from Lantern clients %s to %s",
+		log.Infof("versioncheck: Will redirect %.4f%% of requests from Lantern clients %s to %s",
 			p.VersionCheckRedirectPercentage*100,
 			p.VersionCheckRange,
 			p.VersionCheckRedirectURL,
@@ -714,14 +714,14 @@ func (p *Proxy) loadThrottleConfig() {
 	if !p.Pro && p.ThrottleRefreshInterval > 0 && p.ReportingRedisClient != nil {
 		p.throttleConfig = throttle.NewRedisConfig(p.ReportingRedisClient, p.ThrottleRefreshInterval)
 	} else {
-		log.Debug("Not loading throttle config")
+		log.Info("Not loading throttle config")
 		return
 	}
 }
 
 func (p *Proxy) allowedTunnelPorts() []int {
 	if p.TunnelPorts == "" {
-		log.Debug("tunnelling all ports")
+		log.Info("tunnelling all ports")
 		return nil
 	}
 	ports, err := portsFromCSV(p.TunnelPorts)
@@ -737,7 +737,7 @@ func (p *Proxy) listenHTTP(baseListen func(string, bool) (net.Listener, error)) 
 		if err != nil {
 			return nil, errors.New("Unable to listen for HTTP: %v", err)
 		}
-		log.Debugf("Listening for HTTP(S) at %v", l.Addr())
+		log.Infof("Listening for HTTP(S) at %v", l.Addr())
 		return l, nil
 	}
 }
@@ -753,7 +753,7 @@ func (p *Proxy) listenOBFS4(baseListen func(string, bool) (net.Listener, error))
 			l.Close()
 			return nil, errors.New("Unable to wrap listener with OBFS4: %v", err)
 		}
-		log.Debugf("Listening for OBFS4 at %v", wrapped.Addr())
+		log.Infof("Listening for OBFS4 at %v", wrapped.Addr())
 		return wrapped, nil
 	}
 }
@@ -765,7 +765,7 @@ func (p *Proxy) listenLampshade(trackBBR bool, onListenerError func(net.Conn, er
 			return nil, err
 		}
 		if bordaReporter != nil {
-			log.Debug("Wrapping lampshade's TCP listener with measured reporting")
+			log.Info("Wrapping lampshade's TCP listener with measured reporting")
 			l = listeners.NewMeasuredListener(l,
 				measuredReportingInterval,
 				borda.ConnectionTypedBordaReporter("physical", bordaReporter))
@@ -774,7 +774,7 @@ func (p *Proxy) listenLampshade(trackBBR bool, onListenerError func(net.Conn, er
 		if wrapErr != nil {
 			log.Fatalf("Unable to initialize lampshade with tcp: %v", wrapErr)
 		}
-		log.Debugf("Listening for lampshade at %v", wrapped.Addr())
+		log.Infof("Listening for lampshade at %v", wrapped.Addr())
 
 		if trackBBR {
 			// We wrap the lampshade listener itself so that we record BBR metrics on
@@ -797,7 +797,7 @@ func (p *Proxy) listenTLSMasq(baseListen func(string, bool) (net.Listener, error
 		}
 
 		nonFatalErrorsHandler := func(err error) {
-			log.Debugf("non-fatal error from tlsmasq: %v", err)
+			log.Infof("non-fatal error from tlsmasq: %v", err)
 		}
 
 		wrapped, wrapErr := tlsmasq.Wrap(
@@ -806,7 +806,7 @@ func (p *Proxy) listenTLSMasq(baseListen func(string, bool) (net.Listener, error
 		if wrapErr != nil {
 			log.Fatalf("unable to wrap listener with tlsmasq: %v", wrapErr)
 		}
-		log.Debugf("listening for tlsmasq at %v", wrapped.Addr())
+		log.Infof("listening for tlsmasq at %v", wrapped.Addr())
 
 		return wrapped, nil
 	}
@@ -821,12 +821,12 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 		l = listeners.NewIdleConnListener(l, p.IdleTimeout)
 	}
 	if p.DiffServTOS > 0 {
-		log.Debugf("Setting diffserv TOS to %d", p.DiffServTOS)
+		log.Infof("Setting diffserv TOS to %d", p.DiffServTOS)
 		// Note - this doesn't actually wrap the underlying connection, it'll still
 		// be a net.TCPConn
 		l = diffserv.Wrap(l, p.DiffServTOS)
 	} else {
-		log.Debugf("Not setting diffserv TOS")
+		log.Infof("Not setting diffserv TOS")
 	}
 	if wrapBBR {
 		l = p.bm.Wrap(l)
@@ -868,7 +868,7 @@ func (p *Proxy) listenKCP(kcpConf string, bordaReporter listeners.MeasuredReport
 		return nil, errors.New("Unable to decode KCPConf at %v: %v", p.KCPConf, err)
 	}
 
-	log.Debugf("Listening KCP at %v", cfg.Listen)
+	log.Infof("Listening KCP at %v", cfg.Listen)
 	return kcpwrapper.Listen(cfg, func(conn net.Conn) net.Conn {
 		if p.IdleTimeout <= 0 {
 			return conn
@@ -895,7 +895,7 @@ func (p *Proxy) listenQUICIETF(addr string, bordaReporter listeners.MeasuredRepo
 		return nil, err
 	}
 
-	log.Debugf("Listening for quic at %v", l.Addr())
+	log.Infof("Listening for quic at %v", l.Addr())
 	return l, err
 }
 
@@ -920,7 +920,7 @@ func (p *Proxy) listenShadowsocks(addr string, bordaReporter listeners.MeasuredR
 		return nil, errors.New("Unable to listen for shadowsocks: %v", err)
 	}
 
-	log.Debugf("Listening for shadowsocks at %v", l.Addr())
+	log.Infof("Listening for shadowsocks at %v", l.Addr())
 	return l, nil
 }
 
@@ -935,7 +935,7 @@ func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN)
 		if err != nil {
 			return nil, err
 		}
-		log.Debugf("Using TLS on %v", l.Addr())
+		log.Infof("Using TLS on %v", l.Addr())
 	}
 	opts := &tinywss.ListenOpts{
 		Listener: l,
@@ -946,13 +946,13 @@ func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN)
 		return nil, err
 	}
 
-	log.Debugf("Listening for wss at %v", l.Addr())
+	log.Infof("Listening for wss at %v", l.Addr())
 	return l, err
 }
 
 func (p *Proxy) setupPacketForward() error {
 	if runtime.GOOS != "linux" {
-		log.Debugf("Ignoring packet forward on %v", runtime.GOOS)
+		log.Infof("Ignoring packet forward on %v", runtime.GOOS)
 		return nil
 	}
 	if p.PacketForwardAddr == "" {
@@ -974,7 +974,7 @@ func (p *Proxy) setupPacketForward() error {
 	if err != nil {
 		return errors.New("Error configuring packet forwarding: %v", err)
 	}
-	log.Debugf("Listening for packet forwarding at %v", l.Addr())
+	log.Infof("Listening for packet forwarding at %v", l.Addr())
 
 	go func() {
 		if err := s.Serve(l); err != nil {
