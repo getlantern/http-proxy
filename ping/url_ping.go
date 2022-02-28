@@ -46,7 +46,7 @@ func (pm *pingMiddleware) urlPing(cs *filters.ConnectionState, req *http.Request
 		var err error
 		timing, err = pm.timeURL(pingURL)
 		if err != nil {
-			return filters.Fail(cs, req, http.StatusInternalServerError, log.Errorf("Unable to obtain timing for %v: %v", pingURL, err))
+			return filters.Fail(cs, req, http.StatusInternalServerError, fmt.Errorf("unable to obtain timing for %v: %v", pingURL, err))
 		}
 	}
 
@@ -67,10 +67,10 @@ func (pm *pingMiddleware) timeURL(pingURL string) (*urlTiming, error) {
 		defer resp.Body.Close()
 		size, err = io.Copy(ioutil.Discard, resp.Body)
 		if err != nil {
-			return nil, fmt.Errorf("Error copying response body: %v", err)
+			return nil, fmt.Errorf("error copying response body: %v", err)
 		}
 	}
-	latency := time.Now().Sub(start)
+	latency := time.Since(start)
 	timing := &urlTiming{
 		statusCode: resp.StatusCode,
 		latency:    latency,

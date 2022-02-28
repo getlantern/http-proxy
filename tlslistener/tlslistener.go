@@ -6,8 +6,9 @@ import (
 	"crypto/tls"
 	"net"
 
-	"github.com/getlantern/zaplog"
 	"github.com/getlantern/tlsdefaults"
+	"github.com/getlantern/zaplog"
+	"go.uber.org/zap"
 
 	utls "github.com/refraction-networking/utls"
 
@@ -52,7 +53,7 @@ func Wrap(wrapped net.Listener, keyFile string, certFile string, sessionTicketKe
 type tlslistener struct {
 	wrapped               net.Listener
 	cfg                   *tls.Config
-	log                   golog.Logger
+	log                   *zap.SugaredLogger
 	expectTickets         bool
 	requireTickets        bool
 	utlsCfg               *utls.Config

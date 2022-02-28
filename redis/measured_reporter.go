@@ -11,11 +11,11 @@ import (
 	"github.com/go-redis/redis/v8"
 
 	"github.com/getlantern/geo"
-	"github.com/getlantern/zaplog"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/usage"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/measured"
+	"github.com/getlantern/zaplog"
 )
 
 const (
@@ -90,9 +90,6 @@ func reportPeriodically(countryLookup geo.CountryLookup, rc *redis.Client, repor
 			deviceID := _deviceID.(string)
 			statsByDeviceID[deviceID] = statsByDeviceID[deviceID].add(sac)
 		case <-ticker.C:
-			if log.IsTraceEnabled() {
-				log.Debugf("Submitting %d stats", len(statsByDeviceID))
-			}
 			if scriptSHA == "" {
 				var err error
 				scriptSHA, err = rc.ScriptLoad(context.Background(), updateUsageScript).Result()

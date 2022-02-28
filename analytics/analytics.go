@@ -7,7 +7,6 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"os"
 	"strconv"
 	"strings"
@@ -15,9 +14,9 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/v2/analytics/engine"
 
-	"github.com/getlantern/zaplog"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/proxy/v2/filters"
+	"github.com/getlantern/zaplog"
 	"github.com/golang/groupcache/lru"
 )
 
@@ -186,14 +185,6 @@ func (am *analyticsMiddleware) trackSession(args string) {
 
 	r.Header.Add("Content-Type", "application/x-www-form-urlencoded")
 	r.Header.Add("Content-Length", strconv.Itoa(len(args)))
-
-	if log.IsTraceEnabled() {
-		if req, err := httputil.DumpRequestOut(r, true); err != nil {
-			log.Errorf("Could not dump request: %v", err)
-		} else {
-			log.Debugf("Full analytics request: %v", string(req))
-		}
-	}
 
 	resp, err := am.httpClient.Do(r)
 	if err != nil {

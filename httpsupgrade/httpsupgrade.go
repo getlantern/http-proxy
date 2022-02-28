@@ -20,15 +20,16 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/getlantern/zaplog"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
 	"github.com/getlantern/proxy/v2/filters"
+	"github.com/getlantern/zaplog"
+	"go.uber.org/zap"
 )
 
 type httpsUpgrade struct {
 	httpClient            *http.Client
-	log                   golog.Logger
+	log                   *zap.SugaredLogger
 	configServerAuthToken string
 }
 

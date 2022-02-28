@@ -3,12 +3,11 @@ package tokenfilter
 import (
 	"fmt"
 	"net/http"
-	"net/http/httputil"
 	"strings"
 
-	"github.com/getlantern/zaplog"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy/v2/filters"
+	"github.com/getlantern/zaplog"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
@@ -33,18 +32,13 @@ func (f *tokenFilter) Apply(cs *filters.ConnectionState, req *http.Request, next
 	op := ops.Begin("tokenfilter")
 	defer op.End()
 
-	if log.IsTraceEnabled() {
-		reqStr, _ := httputil.DumpRequest(req, true)
-		log.Debugf("Token Filter Middleware received request:\n%s", reqStr)
-	}
-
 	if f.token == "" {
 		log.Debug("Not checking token")
 		return next(cs, req)
 	}
 
 	tokens := req.Header[common.TokenHeader]
-	if tokens == nil || len(tokens) == 0 || tokens[0] == "" {
+	if len(tokens) == 0 || tokens[0] == "" {
 		log.Error(errorf(op, "No token provided, mimicking apache"))
 		f.instrument.Mimic(true)
 		return mimicApache(cs, req)

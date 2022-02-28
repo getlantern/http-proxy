@@ -4,13 +4,12 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/http/httputil"
 	"time"
 
 	"github.com/dustin/go-humanize"
 
-	"github.com/getlantern/zaplog"
 	"github.com/getlantern/proxy/v2/filters"
+	"github.com/getlantern/zaplog"
 
 	"github.com/getlantern/http-proxy/listeners"
 
@@ -74,11 +73,6 @@ func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, sendXBQHead
 }
 
 func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
-	if log.IsTraceEnabled() {
-		reqStr, _ := httputil.DumpRequest(req, true)
-		log.Debugf("DeviceFilter Middleware received request:\n%s", reqStr)
-	}
-
 	// Some domains are excluded from being throttled and don't count towards the
 	// bandwidth cap.
 	if domains.ConfigForRequest(req).Unthrottled {

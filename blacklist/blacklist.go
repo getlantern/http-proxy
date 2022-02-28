@@ -8,9 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlantern/zaplog"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/pcapper"
+	"github.com/getlantern/zaplog"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 )
@@ -131,7 +131,7 @@ func (bl *Blacklist) Succeed(ip string) {
 	case bl.successes <- ip:
 		// ip submitted as success
 	default:
-		_ = log.Errorf("Unable to record success from %v", ip)
+		log.Errorf("Unable to record success from %v", ip)
 	}
 }
 
@@ -155,7 +155,7 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 	case bl.connections <- ip:
 		// ip submitted as connected
 	default:
-		_ = log.Errorf("Unable to record connection from %v", ip)
+		log.Errorf("Unable to record connection from %v", ip)
 	}
 	return true
 }
@@ -217,7 +217,7 @@ func (bl *Blacklist) checkForIdlers() {
 			bl.failureCounts[ip] = count
 			if count >= bl.allowedFailures {
 				ops.Begin("blacklist").Set("client_ip", ip).End()
-				_ = log.Errorf("Blacklisting %v", ip)
+				log.Errorf("Blacklisting %v", ip)
 				blacklistAdditions = append(blacklistAdditions, ip)
 			}
 		}

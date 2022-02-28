@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"math/rand"
 
+	"go.uber.org/zap"
 	"google.golang.org/api/option"
 
+	"github.com/getlantern/golog"
 	"github.com/getlantern/zaplog"
 
 	"cloud.google.com/go/errorreporting"
@@ -15,7 +17,7 @@ import (
 // Reporter is a thin wrapper of Google errorreporting client
 type Reporter struct {
 	errorClient *errorreporting.Client
-	log         golog.Logger
+	log         *zap.SugaredLogger
 	proxyName   string
 	externalIP  string
 }
