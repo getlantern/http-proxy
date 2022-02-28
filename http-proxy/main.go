@@ -174,6 +174,8 @@ var (
 	shadowsocksReplayHistory = flag.Int("shadowsocks-replay-history", shadowsocks.DefaultReplayHistory, "Replay buffer size (# of handshakes)")
 	shadowsocksSecret        = flag.String("shadowsocks-secret", "", "shadowsocks secret")
 	shadowsocksCipher        = flag.String("shadowsocks-cipher", shadowsocks.DefaultCipher, "shadowsocks cipher")
+
+	track = flag.String("track", "", "The track this proxy is running on")
 )
 
 func main() {
@@ -190,7 +192,7 @@ func main() {
 
 	var reporter *stackdrivererror.Reporter
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
-		reporter = stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *proxyName, *externalIP, *proxyProtocol)
+		reporter = stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *proxyName, *externalIP, *proxyProtocol, *track)
 		if reporter != nil {
 			defer reporter.Close()
 		}
