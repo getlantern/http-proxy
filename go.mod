@@ -124,6 +124,7 @@ require (
 	github.com/libp2p/go-buffer-pool v0.0.2 // indirect
 	github.com/marten-seemann/qtls-go1-16 v0.1.4 // indirect
 	github.com/marten-seemann/qtls-go1-17 v0.1.0 // indirect
+	github.com/marten-seemann/qtls-go1-18 v0.1.0-beta.1 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mdlayher/netlink v1.1.0 // indirect
 	github.com/mholt/archiver v3.1.1+incompatible // indirect
