@@ -146,7 +146,7 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 	defer bl.mutex.RUnlock()
 	_, blacklisted := bl.blacklist[ip]
 	if blacklisted {
-		log.Tracef("%v is blacklisted", ip)
+		log.Errorf("%v is blacklisted", ip)
 		bl.instrument.Blacklist(true)
 		return false
 	}
