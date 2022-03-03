@@ -49,7 +49,7 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string,
 		serviceVersion = proxyProtocol
 	}
 	errorClient, err := errorreporting.NewClient(ctx, projectID, errorreporting.Config{
-		ServiceName:    "lantern-http-proxy-service",
+		ServiceName:    proxyProtocol,
 		ServiceVersion: serviceVersion,
 		OnError: func(err error) {
 			log.Debugf("Could not log error: %v", err)
