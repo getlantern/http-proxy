@@ -332,8 +332,6 @@ github.com/getlantern/wal v0.0.0-20200930025800-dc0a686070bd/go.mod h1:emAPVd2NR
 github.com/getlantern/withtimeout v0.0.0-20160829163843-511f017cd913 h1:YK3YNyTsa+1BPWOoN0F79rrjHyfNx4MAoFEvzwQU+dY=
 github.com/getlantern/withtimeout v0.0.0-20160829163843-511f017cd913/go.mod h1:bwttrA0oacoHdL476F60prypY1oC++WLtVexumgZozY=
 github.com/getlantern/yaml v0.0.0-20190801163808-0c9bb1ebf426/go.mod h1:SoTXbOvaDC1bH3QrlkU5kz/h12tU/hN54wSMUCdgEXs=
-github.com/getlantern/zaplog v0.0.0-20220228175714-8e33ac45c960 h1:NYwja2Tbl4+u5+BTNfH+RVhrziCoAtsaPeFxfe4BEag=
-github.com/getlantern/zaplog v0.0.0-20220228175714-8e33ac45c960/go.mod h1:+/05T4zuyaH796qnVNb/Dwuj2/5qdnt4V7243aWiRx8=
 github.com/getlantern/zenodb v0.0.0-20210122162929-313c7629e057 h1:FzmNLJUK8ehanEX4zAyIppdodBQkCqStC61IHkivjCs=
 github.com/getlantern/zenodb v0.0.0-20210122162929-313c7629e057/go.mod h1:jmUDTw9FyCHJC8DvCadxkBuRdPcu00r94vwfwwN7yD0=
 github.com/ghodss/yaml v1.0.0/go.mod h1:4dBDuWmgqj2HViK6kFavaiC9ZROes6MMH2rRYeMEF04=

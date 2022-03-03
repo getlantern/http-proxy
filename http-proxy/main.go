@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -19,6 +18,7 @@ import (
 	"github.com/go-redis/redis/v8"
 	"github.com/mitchellh/panicwrap"
 	"github.com/vharitonsky/iniflags"
+	"go.uber.org/zap"
 
 	"github.com/getlantern/geo"
 	"github.com/getlantern/zaplog"
@@ -192,9 +192,10 @@ func main() {
 
 	var reporter *stackdrivererror.Reporter
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
-		reporter = stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *proxyName, *externalIP, *proxyProtocol, *track)
-		if reporter != nil {
-			defer reporter.Close()
+		var err error
+		reporter, err = stackdrivererror.Enable(*stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *proxyName, *externalIP, *proxyProtocol, *track)
+		if err != nil {
+			log.Debugf("Failed to enable stackdriver error reporter: %w", err)
 		}
 	}
 
@@ -213,7 +214,7 @@ func main() {
 					if len(splitted) > 1 {
 						maybeStack = []byte(separator + splitted[1])
 					}
-					reporter.Report(golog.FATAL, err, maybeStack)
+					reporter.Report(zap.FatalLevel, err, maybeStack)
 				}
 				os.Exit(1)
 			},

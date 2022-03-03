@@ -20,7 +20,6 @@ require (
 	github.com/getlantern/geo v0.0.0-20210511192032-f563c52422c5
 	github.com/getlantern/golog v0.0.0-20210606115803-bce9f9fe5a5f
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
-	github.com/getlantern/hidden v0.0.0-20201229170000-e66e7f878730
 	github.com/getlantern/http-proxy v0.0.3-0.20211022035117-86faba795750
 	github.com/getlantern/kcpwrapper v0.0.0-20201001150218-1427e1d39c25
 	github.com/getlantern/keyman v0.0.0-20210218183930-5e48f8ced961
@@ -58,6 +57,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	github.com/xtaci/smux v1.5.15-0.20200704123958-f7188026ba01
+	go.uber.org/zap v1.21.0
 	golang.org/x/net v0.0.0-20210503060351-7fd8e65b6420
 	google.golang.org/api v0.67.0
 )
@@ -95,6 +95,7 @@ require (
 	github.com/getlantern/goexpr v0.0.0-20190618200516-431684af4c0b // indirect
 	github.com/getlantern/grtrack v0.0.0-20160824195228-cbf67d3fa0fd // indirect
 	github.com/getlantern/hex v0.0.0-20190417191902-c6586a6fe0b7 // indirect
+	github.com/getlantern/hidden v0.0.0-20201229170000-e66e7f878730 // indirect
 	github.com/getlantern/idletiming v0.0.0-20200228204104-10036786eac5 // indirect
 	github.com/getlantern/kcp-go v2.0.3-0.20171025115649-19559e0e938c+incompatible // indirect
 	github.com/getlantern/keepcurrent v0.0.0-20200810061110-d1e504f19555 // indirect
@@ -162,7 +163,6 @@ require (
 	go.opentelemetry.io/otel/trace v0.20.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.0.0-20201117144127-c1f2f97bffc9 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect

@@ -6,9 +6,9 @@ import (
 	"math/rand"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"google.golang.org/api/option"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/zaplog"
 
 	"cloud.google.com/go/errorreporting"
@@ -27,21 +27,21 @@ func (r *Reporter) Close() {
 	r.errorClient.Flush()
 }
 
-func (r *Reporter) Report(severity golog.Severity, err error, stack []byte) {
+func (r *Reporter) Report(severity zapcore.Level, err error, stack []byte) {
 	errWithIP := fmt.Errorf("%s on %s(%s)", err.Error(), r.proxyName, r.externalIP)
 	r.log.Debugf("Reporting error to stackdriver: %s", errWithIP)
 	r.errorClient.Report(errorreporting.Entry{
 		Error: errWithIP,
 		Stack: stack,
 	})
-	if severity == golog.FATAL {
+	if severity >= zapcore.FatalLevel {
 		r.Close()
 	}
 }
 
 // Enable enables golog to report errors to stackdriver and returns the reporter.
-func Enable(ctx context.Context, projectID, stackdriverCreds string,
-	samplePercentage float64, proxyName, externalIP, proxyProtocol string, track string) *Reporter {
+func Enable(projectID, stackdriverCreds string,
+	samplePercentage float64, proxyName, externalIP, proxyProtocol string, track string) (*Reporter, error) {
 	log := zaplog.LoggerFor("proxy-stackdriver")
 	log.Infof("Enabling stackdriver error reporting for project %v", projectID)
 	serviceVersion := track
@@ -50,7 +50,7 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string,
 	if serviceVersion == "" {
 		serviceVersion = proxyProtocol
 	}
-	errorClient, err := errorreporting.NewClient(ctx, projectID, errorreporting.Config{
+	errorClient, err := errorreporting.NewClient(context.Background(), projectID, errorreporting.Config{
 		ServiceName:    "lantern-http-proxy-service",
 		ServiceVersion: serviceVersion,
 		OnError: func(err error) {
@@ -58,27 +58,24 @@ func Enable(ctx context.Context, projectID, stackdriverCreds string,
 		},
 	}, option.WithCredentialsFile(stackdriverCreds))
 	if err != nil {
-		log.Infof("Error setting up stackdriver error reporting? %v", err)
-		return nil
+		return nil, fmt.Errorf("error setting up stackdriver error reporting? %w", err)
 	}
 
 	reporter := &Reporter{errorClient, log, proxyName, externalIP}
 
-	gologReporter := func(err error, severity golog.Severity, ctx map[string]interface{}) {
-		if severity < golog.ERROR {
-			return
+	zapReporter := func(entry zapcore.Entry) error { //func(err error, severity zapcore.Level, ctx map[string]interface{}) {
+		if entry.Level < zapcore.WarnLevel {
+			return nil
 		}
-		if severity == golog.ERROR {
-			r := rand.Float64()
-			if r > samplePercentage {
-				log.Debugf("Not in sample. %v less than %v", r, samplePercentage)
-				return
-			}
+		r := rand.Float64()
+		if r > samplePercentage {
+			log.Debugf("Not in sample. %v less than %v", r, samplePercentage)
+			return nil
 		}
 
-		reporter.Report(severity, err, nil)
+		reporter.Report(entry.Level, err, nil)
+		return nil
 	}
-	golog.RegisterReporter(gologReporter)
-
-	return reporter
+	zaplog.RegisterHook(zapReporter)
+	return reporter, nil
 }
