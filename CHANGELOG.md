@@ -1,4 +1,10 @@
 
+<a name="v2.7.3"></a>
+## [v2.7.3](https://github.com/getlantern/http-proxy-lantern/compare/v2.7.2...v2.7.3)
+
+> 2022-03-03
+
+
 <a name="v2.7.2"></a>
 ## [v2.7.2](https://github.com/getlantern/http-proxy-lantern/compare/v2.7.1...v2.7.2)
 
@@ -1529,7 +1535,7 @@
 
 
 <a name="reporting-test-auth"></a>
-## [reporting-test-auth](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.16...reporting-test-auth)
+## [reporting-test-auth](https://github.com/getlantern/http-proxy-lantern/compare/reporting-test...reporting-test-auth)
 
 > 2016-04-25
 
@@ -1539,14 +1545,14 @@
 * Merge pull request [#56](https://github.com/getlantern/http-proxy-lantern/issues/56) from getlantern/redis-fix
 
 
-<a name="v0.0.16"></a>
-## [v0.0.16](https://github.com/getlantern/http-proxy-lantern/compare/reporting-test...v0.0.16)
+<a name="reporting-test"></a>
+## [reporting-test](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.16...reporting-test)
 
 > 2016-04-18
 
 
-<a name="reporting-test"></a>
-## [reporting-test](https://github.com/getlantern/http-proxy-lantern/compare/obfs4test...reporting-test)
+<a name="v0.0.16"></a>
+## [v0.0.16](https://github.com/getlantern/http-proxy-lantern/compare/obfs4test...v0.0.16)
 
 > 2016-04-18
 
