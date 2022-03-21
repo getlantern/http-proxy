@@ -175,6 +175,10 @@ var (
 	shadowsocksSecret        = flag.String("shadowsocks-secret", "", "shadowsocks secret")
 	shadowsocksCipher        = flag.String("shadowsocks-cipher", shadowsocks.DefaultCipher, "shadowsocks cipher")
 
+	osshAddr    = flag.String("ossh-addr", "", "address at which to listen for OSSH connections")
+	osshKeyword = flag.String("ossh-obfuscation-keyword", "", "keyword used to obfuscate OSSH handshakes")
+	osshKeyFile = flag.String("ossh-host-key-file", "", "file containing a PEM-encoded RSA private key used to authenticate to OSSH clients")
+
 	track = flag.String("track", "", "The track this proxy is running on")
 )
 
@@ -328,6 +332,10 @@ func main() {
 		}
 	}
 
+	if *osshAddr != "" && (*osshKeyword == "" || *osshKeyFile == "") {
+		log.Fatalf("OSSH requires ossh-obfuscation-keyword and ossh-host-key-file")
+	}
+
 	if *packetForwardIntf != "" {
 		*externalIntf = *packetForwardIntf
 	}
@@ -428,6 +436,9 @@ func main() {
 		ShadowsocksSecret:                  *shadowsocksSecret,
 		ShadowsocksCipher:                  *shadowsocksCipher,
 		ShadowsocksReplayHistory:           *shadowsocksReplayHistory,
+		OSSHAddr:                           *osshAddr,
+		OSSHKeyword:                        *osshKeyword,
+		OSSHKeyFile:                        *osshKeyFile,
 		PromExporterAddr:                   *promExporterAddr,
 		MultiplexProtocol:                  *multiplexProtocol,
 		SmuxVersion:                        *smuxVersion,
