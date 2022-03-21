@@ -43,5 +43,5 @@ func Wrap(l net.Listener, obfuscationKeyword, hostKeyFile string) (net.Listener,
 			}
 		},
 	}
-	return ossh.WrapListener(l, cfg), nil
+	return ossh.WrapListener(l, cfg)
 }
