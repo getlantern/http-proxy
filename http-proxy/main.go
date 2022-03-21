@@ -178,6 +178,8 @@ var (
 	osshAddr    = flag.String("ossh-addr", "", "address at which to listen for OSSH connections")
 	osshKeyword = flag.String("ossh-obfuscation-keyword", "", "keyword used to obfuscate OSSH handshakes")
 	osshKeyFile = flag.String("ossh-host-key-file", "", "file containing a PEM-encoded RSA private key used to authenticate to OSSH clients")
+
+	track = flag.String("track", "", "The track this proxy is running on")
 )
 
 func main() {
@@ -194,7 +196,7 @@ func main() {
 
 	var reporter *stackdrivererror.Reporter
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
-		reporter = stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *proxyName, *externalIP, *proxyProtocol)
+		reporter = stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *proxyName, *externalIP, *proxyProtocol, *track)
 		if reporter != nil {
 			defer reporter.Close()
 		}
