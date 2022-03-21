@@ -32,7 +32,7 @@ require (
 	github.com/getlantern/multipath v0.0.0-20211105161347-48cd80ec7050
 	github.com/getlantern/netx v0.0.0-20210803075350-eb4fa6261e47
 	github.com/getlantern/ops v0.0.0-20200403153110-8476b16edcd6
-	github.com/getlantern/ossh v0.0.0-20210519185810-21c9fdb2cd03
+	github.com/getlantern/ossh v0.0.0-20220318011632-2e2582565253
 	github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360
 	github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde
 	github.com/getlantern/proxy/v2 v2.0.1-0.20220303164029-b34b76e0e581
@@ -58,8 +58,8 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	github.com/xtaci/smux v1.5.15-0.20200704123958-f7188026ba01
-	golang.org/x/crypto v0.0.0-20210322153248-0c34fe9e7dc2
-	golang.org/x/net v0.0.0-20210503060351-7fd8e65b6420
+	golang.org/x/crypto v0.0.0-20220315160706-3147a52a75dd
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2
 	google.golang.org/api v0.67.0
 )
 
