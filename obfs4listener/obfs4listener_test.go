@@ -8,8 +8,8 @@ import (
 	"os"
 	"testing"
 
-	"git.torproject.org/pluggable-transports/obfs4.git/transports/obfs4"
 	"github.com/stretchr/testify/assert"
+	"gitlab.com/yawning/obfs4.git/transports/obfs4"
 )
 
 func TestRoundTrip(t *testing.T) {
