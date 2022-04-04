@@ -1,7 +1,6 @@
 # This docker machine is able to compile http-proxy-lantern for Ubuntu Linux
 
-FROM ubuntu:16.04
-MAINTAINER "The Lantern Team" <team@getlantern.org>
+FROM ubuntu:20.04
 
 # Requisites for building Go.
 RUN apt-get update && apt-get install -y git tar gzip curl hostname

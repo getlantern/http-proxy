@@ -11,9 +11,9 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/withtimeout"
 
-	"git.torproject.org/pluggable-transports/goptlib.git"
-	"git.torproject.org/pluggable-transports/obfs4.git/transports/base"
-	"git.torproject.org/pluggable-transports/obfs4.git/transports/obfs4"
+	pt "git.torproject.org/pluggable-transports/goptlib.git"
+	"gitlab.com/yawning/obfs4.git/transports/base"
+	"gitlab.com/yawning/obfs4.git/transports/obfs4"
 )
 
 const (

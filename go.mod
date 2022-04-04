@@ -1,11 +1,10 @@
 module github.com/getlantern/http-proxy-lantern/v2
 
-go 1.17
+go 1.18
 
 require (
 	cloud.google.com/go/errorreporting v0.2.0
-	git.torproject.org/pluggable-transports/goptlib.git v0.0.0-20180321061416-7d56ec4f381e
-	git.torproject.org/pluggable-transports/obfs4.git v0.0.0-20180421031126-89c21805c212
+	git.torproject.org/pluggable-transports/goptlib.git v1.2.0
 	github.com/anacrolix/go-libutp v1.0.1
 	github.com/blang/semver v0.0.0-20180723201105-3c1074078d32
 	github.com/dustin/go-humanize v1.0.0
@@ -57,6 +56,7 @@ require (
 	github.com/stretchr/testify v1.7.0
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	github.com/xtaci/smux v1.5.15-0.20200704123958-f7188026ba01
+	gitlab.com/yawning/obfs4.git v0.0.0-20220204003609-77af0cba934d
 	golang.org/x/net v0.0.0-20210503060351-7fd8e65b6420
 	google.golang.org/api v0.67.0
 )
@@ -64,8 +64,8 @@ require (
 require (
 	cloud.google.com/go v0.100.2 // indirect
 	cloud.google.com/go/compute v0.1.0 // indirect
+	filippo.io/edwards25519 v1.0.0-rc.1.0.20210721174708-390f27c3be20 // indirect
 	github.com/Yawning/chacha20 v0.0.0-20170904085104-e3b1f968fc63 // indirect
-	github.com/agl/ed25519 v0.0.0-20170116200512-5312a6153412 // indirect
 	github.com/anacrolix/envpprof v1.0.0 // indirect
 	github.com/anacrolix/missinggo v1.1.1 // indirect
 	github.com/anacrolix/mmsg v0.0.0-20180515031531-a4a3ba1fc8bb // indirect
@@ -76,7 +76,7 @@ require (
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/dchest/siphash v1.2.0 // indirect
+	github.com/dchest/siphash v1.2.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/dvyukov/go-fuzz v0.0.0-20210429054444-fca39067bc72 // indirect
@@ -155,11 +155,12 @@ require (
 	github.com/ulikunitz/xz v0.5.6 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2 // indirect
+	gitlab.com/yawning/edwards25519-extra.git v0.0.0-20211229043746-2f91fcc9fbdb // indirect
 	go.opencensus.io v0.23.0 // indirect
 	go.opentelemetry.io/otel v0.20.0 // indirect
 	go.opentelemetry.io/otel/metric v0.20.0 // indirect
 	go.opentelemetry.io/otel/trace v0.20.0 // indirect
-	golang.org/x/crypto v0.0.0-20201117144127-c1f2f97bffc9 // indirect
+	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/sync v0.0.0-20210220032951-036812b2e83c // indirect
