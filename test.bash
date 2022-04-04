@@ -3,7 +3,7 @@
 TEST_REDIS_CONTAINER=http-proxy-lantern-test-redis
 
 function fail() {
-    echo $1
+    echo "$1"
     exit 1
 }
 
@@ -25,7 +25,7 @@ echo "Starting local test Redis. Container ID:"
 docker run \
   --name $TEST_REDIS_CONTAINER \
   -p 6379:6379 \
-  -v $PWD/test/test-redis-data:/opt/getlantern/ \
+  -v "$PWD"/test/test-redis-data:/opt/getlantern/ \
   -e ALLOW_EMPTY_PASSWORD=yes \
   -e REDIS_TLS_ENABLED=yes \
   -e REDIS_TLS_PORT=6379 \
@@ -35,4 +35,4 @@ docker run \
   -e REDIS_TLS_AUTH_CLIENTS=no \
   --rm -d bitnami/redis:latest || fail "Failed to start local Redis server"
 
-go test ./... || (printRedisLogs $1; exit 1)
+go test ./... || (printRedisLogs "$1"; exit 1)
