@@ -2,6 +2,9 @@
 
 FROM ubuntu:20.04
 
+# Avoids the build hanging on anything that might expect user interaction.
+ARG DEBIAN_FRONTEND=noninteractive
+
 # Requisites for building Go.
 RUN apt-get update && apt-get install -y git tar gzip curl hostname
 

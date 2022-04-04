@@ -2,7 +2,11 @@
 <a name="v2.7.3"></a>
 ## [v2.7.3](https://github.com/getlantern/http-proxy-lantern/compare/v2.7.2...v2.7.3)
 
-> 2022-03-03
+> 2022-04-04
+
+### Pull Requests
+
+* Merge pull request [#500](https://github.com/getlantern/http-proxy-lantern/issues/500) from getlantern/myles/upgrade-obfs4
 
 
 <a name="v2.7.2"></a>
