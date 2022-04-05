@@ -65,8 +65,6 @@ $(DIST_DIR):
 $(BUILD_DIR)/http-proxy: $(SRCS) | $(BUILD_DIR)
 	GOPRIVATE="github.com/getlantern" go build -o $(BUILD_DIR) ./http-proxy
 
-$(BUILD_DIR)/git-chglog: go.sum tools.go
-
 build: $(BUILD_DIR)/http-proxy
 
 local-rts: build
@@ -95,14 +93,10 @@ $(DIST_DIR)/http-proxy: $(SRCS)
 
 distnochange: $(DIST_DIR)/http-proxy
 
-dist: require-version $(DIST_DIR)/http-proxy $(BUILD_DIR)/git-chglog
+dist: require-version $(DIST_DIR)/http-proxy
 	echo "Tagging..." && \
 	git tag -a "$$VERSION" -f --annotate -m"Tagged $$VERSION" && \
-	git push --tags -f && \
-	$(BUILD_DIR)/git-chglog --output CHANGELOG.md && \
-	git add CHANGELOG.md && \
-	git commit -m "Updated changelog for $$VERSION" && \
-	git push origin HEAD
+	git push --tags
 
 deploy: $(DIST_DIR)/http-proxy
 	s3cmd put $(DIST_DIR)/http-proxy s3://http-proxy/http-proxy && \

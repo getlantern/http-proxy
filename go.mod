@@ -42,7 +42,6 @@ require (
 	github.com/getlantern/tlsutil v0.5.1
 	github.com/getlantern/waitforserver v1.0.1
 	github.com/getlantern/withtimeout v0.0.0-20160829163843-511f017cd913
-	github.com/git-chglog/git-chglog v0.15.1
 	github.com/go-redis/redis/v8 v8.10.0
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 	github.com/gonum/stat v0.0.0-20180125090729-ec9c8a1062f4
@@ -66,28 +65,21 @@ require (
 	cloud.google.com/go v0.100.2 // indirect
 	cloud.google.com/go/compute v0.1.0 // indirect
 	filippo.io/edwards25519 v1.0.0-rc.1.0.20210721174708-390f27c3be20 // indirect
-	github.com/Masterminds/goutils v1.1.1 // indirect
-	github.com/Masterminds/semver/v3 v3.1.1 // indirect
-	github.com/Masterminds/sprig/v3 v3.2.2 // indirect
 	github.com/Yawning/chacha20 v0.0.0-20170904085104-e3b1f968fc63 // indirect
 	github.com/anacrolix/envpprof v1.0.0 // indirect
 	github.com/anacrolix/missinggo v1.1.1 // indirect
 	github.com/anacrolix/mmsg v0.0.0-20180515031531-a4a3ba1fc8bb // indirect
 	github.com/anacrolix/sync v0.0.0-20180808010631-44578de4e778 // indirect
-	github.com/andygrunwald/go-jira v1.14.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
 	github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
-	github.com/coreos/go-semver v0.3.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dchest/siphash v1.2.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/dsnet/compress v0.0.1 // indirect
 	github.com/dvyukov/go-fuzz v0.0.0-20210429054444-fca39067bc72 // indirect
-	github.com/fatih/color v1.13.0 // indirect
-	github.com/fatih/structs v1.1.0 // indirect
 	github.com/fsnotify/fsnotify v1.4.9 // indirect
 	github.com/getlantern/bufconn v0.0.0-20190625204133-a08544339f8d // indirect
 	github.com/getlantern/byteexec v0.0.0-20170405023437-4cfb26ec74f4 // indirect
@@ -116,7 +108,6 @@ require (
 	github.com/getlantern/zenodb v0.0.0-20210122162929-313c7629e057 // indirect
 	github.com/go-stack/stack v1.8.0 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20210107165309-348f09dbbbc0 // indirect
-	github.com/golang-jwt/jwt v3.2.1+incompatible // indirect
 	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/golang/snappy v0.0.3 // indirect
 	github.com/gonum/blas v0.0.0-20180125090452-e7c5890b24cf // indirect
@@ -126,27 +117,20 @@ require (
 	github.com/gonum/lapack v0.0.0-20180125091020-f0b8b25edece // indirect
 	github.com/gonum/matrix v0.0.0-20180124231301-a41cc49d4c29 // indirect
 	github.com/google/go-cmp v0.5.7 // indirect
-	github.com/google/go-querystring v1.0.0 // indirect
 	github.com/google/uuid v1.1.2 // indirect
 	github.com/googleapis/gax-go/v2 v2.1.1 // indirect
 	github.com/hashicorp/golang-lru v0.5.3 // indirect
 	github.com/huandu/xstrings v1.3.1 // indirect
-	github.com/imdario/mergo v0.3.12 // indirect
-	github.com/kyokomi/emoji/v2 v2.2.8 // indirect
 	github.com/libp2p/go-buffer-pool v0.0.2 // indirect
 	github.com/marten-seemann/qtls-go1-16 v0.1.4 // indirect
 	github.com/marten-seemann/qtls-go1-17 v0.1.0 // indirect
 	github.com/marten-seemann/qtls-go1-18 v0.1.0-beta.1 // indirect
-	github.com/mattn/go-colorable v0.1.11 // indirect
-	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/matttproud/golang_protobuf_extensions v1.0.1 // indirect
 	github.com/mdlayher/netlink v1.1.0 // indirect
 	github.com/mholt/archiver v3.1.1+incompatible // indirect
 	github.com/mikioh/tcp v0.0.0-20180707144002-02a37043a4f7 // indirect
 	github.com/mikioh/tcpinfo v0.0.0-20180831101334-131b59fef27f // indirect
 	github.com/mikioh/tcpopt v0.0.0-20180707144150-7178f18b4ea8 // indirect
-	github.com/mitchellh/copystructure v1.0.0 // indirect
-	github.com/mitchellh/reflectwalk v1.0.0 // indirect
 	github.com/nwaples/rardecode v1.0.0 // indirect
 	github.com/nxadm/tail v1.4.8 // indirect
 	github.com/onsi/ginkgo v1.16.4 // indirect
@@ -161,17 +145,13 @@ require (
 	github.com/prometheus/common v0.10.0 // indirect
 	github.com/prometheus/procfs v0.1.3 // indirect
 	github.com/shadowsocks/go-shadowsocks2 v0.1.4-0.20201002022019-75d43273f5a5 // indirect
-	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8 // indirect
-	github.com/spf13/cast v1.3.1 // indirect
 	github.com/templexxx/cpufeat v0.0.0-20180724012125-cef66df7f161 // indirect
 	github.com/templexxx/reedsolomon v0.0.0-20170927015403-7092926d7d05 // indirect
 	github.com/templexxx/xor v0.0.0-20191217153810-f85b25db303b // indirect
 	github.com/ti-mo/conntrack v0.3.0 // indirect
 	github.com/ti-mo/netfilter v0.3.1 // indirect
 	github.com/tjfoc/gmsm v1.3.2 // indirect
-	github.com/trivago/tgo v1.0.7 // indirect
-	github.com/tsuyoshiwada/go-gitcmd v0.0.0-20180205145712-5f1f5f9475df // indirect
 	github.com/ulikunitz/xz v0.5.6 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/xwb1989/sqlparser v0.0.0-20180606152119-120387863bf2 // indirect
