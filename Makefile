@@ -95,11 +95,11 @@ $(DIST_DIR)/http-proxy: $(SRCS)
 
 distnochange: $(DIST_DIR)/http-proxy
 
-dist: require-version $(DIST_DIR)/http-proxy $(BUILD_DIR)/git-chlog
+dist: require-version $(DIST_DIR)/http-proxy $(BUILD_DIR)/git-chglog
 	echo "Tagging..." && \
 	git tag -a "$$VERSION" -f --annotate -m"Tagged $$VERSION" && \
 	git push --tags -f && \
-	$(BUILD_DIR)/git-chlog --output CHANGELOG.md && \
+	$(BUILD_DIR)/git-chglog --output CHANGELOG.md && \
 	git add CHANGELOG.md && \
 	git commit -m "Updated changelog for $$VERSION" && \
 	git push origin HEAD
