@@ -1,7 +1,6 @@
 SHELL := /bin/bash
 .DEFAULT_GOAL := build
 GIT_REVISION := $(shell git rev-parse --short HEAD)
-CHANGE_BIN   := $(shell which git-chglog)
 
 # Binaries compiled for the host OS will be output to BUILD_DIR.
 # Binaries compiles for distribution will be output to DIST_DIR.
@@ -40,17 +39,6 @@ endif
 
 .PHONY: build dist distnochange dist-on-linux dist-on-docker clean test system-checks
 
-# This tags the current version and creates a CHANGELOG for the current directory.
-define tag-changelog
-	echo "Tagging..." && \
-	git tag -a "$$VERSION" -f --annotate -m"Tagged $$VERSION" && \
-	git push --tags -f && \
-	$(CHANGE_BIN) --output CHANGELOG.md && \
-	git add CHANGELOG.md && \
-	git commit -m "Updated changelog for $$VERSION" && \
-	git push origin HEAD
-endef
-
 guard-%:
 	 @ if [ -z '${${*}}' ]; then echo 'Environment variable $* not set' && exit 1; fi
 
@@ -58,11 +46,6 @@ require-version: guard-VERSION
 	@if ! [[ "$$VERSION" =~ v[0-9]+[.][0-9]+[.][0-9]+ ]]; then \
 		echo "VERSION must be a semantic version like 'v1.2.10'"; \
 		exit 1; \
-	fi
-
-require-change:
-	@ if [ "$(CHANGE_BIN)" = "" ]; then \
-		echo 'Missing "git-chglog" command. See https://github.com/git-chglog/git-chglog'; exit 1; \
 	fi
 
 # n.b. The http-proxy-custom prefix is to facilitate searching for custom binaries in the S3 UI.
@@ -81,6 +64,8 @@ $(DIST_DIR):
 
 $(BUILD_DIR)/http-proxy: $(SRCS) | $(BUILD_DIR)
 	GOPRIVATE="github.com/getlantern" go build -o $(BUILD_DIR) ./http-proxy
+
+$(BUILD_DIR)/git-chglog: go.sum tools.go
 
 build: $(BUILD_DIR)/http-proxy
 
@@ -110,8 +95,14 @@ $(DIST_DIR)/http-proxy: $(SRCS)
 
 distnochange: $(DIST_DIR)/http-proxy
 
-dist: require-version require-change $(DIST_DIR)/http-proxy
-	$(call tag-changelog)
+dist: require-version $(DIST_DIR)/http-proxy $(BUILD_DIR)/git-chlog
+	echo "Tagging..." && \
+	git tag -a "$$VERSION" -f --annotate -m"Tagged $$VERSION" && \
+	git push --tags -f && \
+	$(BUILD_DIR)/git-chlog --output CHANGELOG.md && \
+	git add CHANGELOG.md && \
+	git commit -m "Updated changelog for $$VERSION" && \
+	git push origin HEAD
 
 deploy: $(DIST_DIR)/http-proxy
 	s3cmd put $(DIST_DIR)/http-proxy s3://http-proxy/http-proxy && \

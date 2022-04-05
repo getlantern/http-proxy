@@ -1,4 +1,14 @@
 
+<a name="v2.7.5"></a>
+## [v2.7.5](https://github.com/getlantern/http-proxy-lantern/compare/v2.7.4...v2.7.5)
+
+> 2022-04-05
+
+### Pull Requests
+
+* Merge pull request [#501](https://github.com/getlantern/http-proxy-lantern/issues/501) from getlantern/redis-minpool
+
+
 <a name="v2.7.4"></a>
 ## [v2.7.4](https://github.com/getlantern/http-proxy-lantern/compare/v2.7.3...v2.7.4)
 
@@ -1505,7 +1515,7 @@
 
 
 <a name="v0.0.20"></a>
-## [v0.0.20](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.18...v0.0.20)
+## [v0.0.20](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.19...v0.0.20)
 
 > 2016-05-20
 
@@ -1518,14 +1528,14 @@
 * Merge pull request [#66](https://github.com/getlantern/http-proxy-lantern/issues/66) from getlantern/issue141
 
 
-<a name="v0.0.18"></a>
-## [v0.0.18](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.19...v0.0.18)
+<a name="v0.0.19"></a>
+## [v0.0.19](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.18...v0.0.19)
 
 > 2016-05-03
 
 
-<a name="v0.0.19"></a>
-## [v0.0.19](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.17...v0.0.19)
+<a name="v0.0.18"></a>
+## [v0.0.18](https://github.com/getlantern/http-proxy-lantern/compare/v0.0.17...v0.0.18)
 
 > 2016-05-03
 
