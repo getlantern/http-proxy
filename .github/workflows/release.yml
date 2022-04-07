@@ -21,10 +21,10 @@ jobs:
     - name: Granting private modules access
       run: |
           git config --global url."https://${{ secrets.GH_TOKEN }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
-    - name: Test
-      run: make test
-    - name: Build
-      run: make build
+
+    #- name: Test
+    #  run: make test
+
     - name: Set up S3cmd cli tool
       uses: s3-actions/s3cmd@v1.1
       with:
@@ -34,9 +34,9 @@ jobs:
         secret_key: ${{ secrets.S3_SECRET_KEY }}
 
     - name: Deploy canary build to S3
-      if: ${{ github.ref }} == 'refs/heads/canary'
+      if: github.ref == 'refs/heads/canary'
       run: make deploy-canary
 
     - name: Deploy main build to S3
-      if: ${{ github.ref }} == 'refs/heads/main'
+      if: github.ref == 'refs/heads/main'
       run: make deploy
