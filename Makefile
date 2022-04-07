@@ -1,4 +1,4 @@
-SHELL := /bin/bash
+SHELL := bash
 .DEFAULT_GOAL := build
 GIT_REVISION := $(shell git rev-parse --short HEAD)
 
