@@ -14,6 +14,12 @@ These are Lantern-specific middleware components for the HTTP Proxy in Go:
 
 * Custom responses for mimicking Apache in certain cases
 
+## Deploying
+
+All pushes to the `main` branch are automatically deployed to production via CI in GitHub Actions.
+
+All pushes to the `canary` branch are automatically deployed to the canary binary distribution URL for any proxies running the canary version.
+
 ### Building
 
 Currently, http-proxy-lantern will only build on Linux hosts. You need to have
@@ -97,28 +103,6 @@ If you are using checkfallbacks, make sure that both the certificate and the tok
 With option `-pprofaddr=localhost:6060`, you can always access lots of debug information from http://localhost:6060/debug/pprof. Ref https://golang.org/pkg/net/http/pprof/.
 
 ***Be sure to only listen on localhost or private addresses for security reason.***
-
-## Building for distribution and deploying
-
-You can use the following command to do all this automatically. Note that `make dist` requires $VERSION. It will tag the repo with that version and will also generate a new changelog:
-
-```
-VERSION=v0.1.3 make dist
-```
-
-To build for distribution but not tagging or generating new changelog:
-
-```
-make distnochange
-```
-
-When building on non-linux machines, prepending `docker-` to the targets, i.e., `make docker-dist` and `make docker-distnochange` respectively.
-
-Once you've build a binary for distribution, you can deploy it to all live proxies with:
-
-```
-make deploy
-```
 
 ## Temporarily Deploying a Preview Binary to a Single Server
 Sometimes it's useful to deploy a preview binary to a single server. This can
