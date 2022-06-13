@@ -1,30 +1,24 @@
-# This docker machine is able to compile http-proxy-lantern for Ubuntu Linux
+# syntax = docker/dockerfile:1.3
+FROM --platform=linux/amd64 golang:alpine as builder
 
-FROM ubuntu:20.04
+RUN apk add build-base gcc libpcap-dev git
 
-# Avoids the build hanging on anything that might expect user interaction.
-ARG DEBIAN_FRONTEND=noninteractive
+WORKDIR $GOPATH/src/getlantern/http-proxy-lantern/
+COPY . .
 
-# Requisites for building Go.
-RUN apt-get update && apt-get install -y git tar gzip curl hostname
+RUN --mount=type=secret,id=github_oauth_token \
+    git config --global url."https://$(cat /run/secrets/github_oauth_token):x-oauth-basic@github.com/".insteadOf "https://github.com/"
 
-# Compilers and tools for CGO.
-RUN apt-get install -y build-essential pkg-config make libpcap-dev
+RUN --mount=type=cache,mode=0755,target=/root/.cache/go-build \
+    GOARCH=amd64 GOOS=linux CGO_ENABLED=1 go build -v -o /usr/local/bin/http-proxy ./http-proxy
 
-# Getting Go.
-ENV GOROOT /usr/local/go
-ENV GOPATH /
+FROM alpine as user
+RUN adduser -S -u 10000 lantern
 
-ENV PATH $PATH:$GOROOT/bin
+FROM --platform=linux/amd64 alpine
+RUN apk add libpcap libgcc libstdc++
+COPY --from=user /etc/passwd /etc/passwd
+COPY --from=builder /usr/local/bin/http-proxy /usr/local/bin/http-proxy
 
-ARG go_version
-ENV GO_VERSION $go_version
-ENV GO_PACKAGE_URL https://storage.googleapis.com/golang/$GO_VERSION.linux-amd64.tar.gz
-RUN curl -sSL $GO_PACKAGE_URL | tar -xvzf - -C /usr/local
-
-ENV WORKDIR /src
-
-# Expect the $WORKDIR volume to be mounted.
-VOLUME [ "$WORKDIR" ]
-
-WORKDIR $WORKDIR
+USER lantern
+CMD ["/usr/local/bin/http-proxy"]
