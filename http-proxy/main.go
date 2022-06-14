@@ -1,10 +1,8 @@
 package main
 
 import (
-	"context"
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -16,20 +14,14 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/mitchellh/panicwrap"
 	"github.com/vharitonsky/iniflags"
 
-	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
 
 	proxy "github.com/getlantern/http-proxy-lantern/v2"
-	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
 	"github.com/getlantern/http-proxy-lantern/v2/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
-	lanternredis "github.com/getlantern/http-proxy-lantern/v2/redis"
-	"github.com/getlantern/http-proxy-lantern/v2/stackdrivererror"
-	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
 	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
 )
@@ -38,10 +30,6 @@ var (
 	log        = golog.LoggerFor("lantern-proxy")
 	revision   = "unknown" // overridden by Makefile
 	build_type = "unknown" // overriden by Makefile
-
-	// Use our own CDN distribution which fetches the origin at most once per
-	// day to avoid hitting the 2000 downloads/day limit imposed by MaxMind.
-	geolite2_url = "https://d254wvfcgkka1d.cloudfront.net/app/geoip_download?license_key=%s&edition_id=GeoLite2-Country&suffix=tar.gz"
 
 	hostname, _ = os.Hostname()
 
@@ -82,30 +70,18 @@ var (
 	cfgSvrAuthToken           = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
 	connectOKWaitsForUpstream = flag.Bool("connect-ok-waits-for-upstream", false, "Set to true to wait for upstream connection before responding OK to CONNECT requests")
 
-	throttleRefreshInterval = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
+	enableMultipath = flag.Bool("enablemultipath", false, "Enable multipath. Only clients support multipath can communicate with it.")
 
-	enableMultipath       = flag.Bool("enablemultipath", false, "Enable multipath. Only clients support multipath can communicate with it.")
-	enableReports         = flag.Bool("enablereports", false, "Enable stats reporting")
-	bordaReportInterval   = flag.Duration("borda-report-interval", 0*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
-	bordaSamplePercentage = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
-	bordaBufferSize       = flag.Int("borda-buffer-size", 10000, "Size of borda buffer, caps how many distinct measurements to keep during each submit interval")
+	https     = flag.Bool("https", false, "Use TLS for client to proxy communication")
+	idleClose = flag.Uint64("idleclose", 70, "Time in seconds that an idle connection will be allowed before closing it")
+	_         = flag.Uint64("maxconns", 0, "Max number of simultaneous allowed connections, unused")
 
-	externalIP = flag.String("externalip", "", "The external IP of this proxy, used for reporting to Borda")
-	https      = flag.Bool("https", false, "Use TLS for client to proxy communication")
-	idleClose  = flag.Uint64("idleclose", 70, "Time in seconds that an idle connection will be allowed before closing it")
-	_          = flag.Uint64("maxconns", 0, "Max number of simultaneous allowed connections, unused")
-
-	pprofAddr         = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
-	promExporterAddr  = flag.String("promexporteraddr", "", "Prometheus exporter address to listen on, not activate exporter if empty")
-	maxmindLicenseKey = flag.String("maxmindlicensekey", "", "MaxMind license key to load the GeoLite2 Country database")
-	geoip2ISPDBFile   = flag.String("geoip2ispdbfile", "", "The local copy of the GeoIP2 ISP database")
+	pprofAddr = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
 
 	pro = flag.Bool("pro", false, "Set to true to make this a pro proxy (no bandwidth limiting unless forced throttling)")
 
 	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
-
-	reportingRedisAddr = flag.String("reportingredis", "", "The address of the reporting Redis instance in \"redis[s]://host:port\" format")
 
 	tunnelPorts         = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
 	tos                 = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")
@@ -123,15 +99,6 @@ var (
 
 	googleSearchRegex  = flag.String("google-search-regex", googlefilter.DefaultSearchRegex, "Regex for detecting access to Google Search")
 	googleCaptchaRegex = flag.String("google-captcha-regex", googlefilter.DefaultCaptchaRegex, "Regex for detecting access to Google captcha page")
-
-	blacklistMaxIdleTime        = flag.Duration("blacklist-max-idle-time", blacklist.DefaultMaxIdleTime, "How long to wait for an HTTP request before considering a connection failed for blacklisting")
-	blacklistMaxConnectInterval = flag.Duration("blacklist-max-connect-interval", blacklist.DefaultMaxConnectInterval, "Successive connection attempts within this interval will be treated as a single attempt for blacklisting")
-	blacklistAllowedFailures    = flag.Int("blacklist-allowed-failures", blacklist.DefaultAllowedFailures, "The number of failed connection attempts we tolerate before blacklisting an IP address")
-	blacklistExpiration         = flag.Duration("blacklist-expiration", blacklist.DefaultExpiration, "How long to wait before removing an ip from the blacklist")
-
-	stackdriverProjectID        = flag.String("stackdriver-project-id", "lantern-http-proxy", "Optional project ID for stackdriver error reporting as in http-proxy-lantern")
-	stackdriverCreds            = flag.String("stackdriver-creds", "/home/lantern/lantern-stackdriver.json", "Optional full json file path containing stackdriver credentials")
-	stackdriverSamplePercentage = flag.Float64("stackdriver-sample-percentage", 0.003, "The percentage of devices to report to Stackdriver (0.01 = 1%)")
 
 	pcapDir     = flag.String("pcap-dir", "/tmp", "Directory in which to save pcaps")
 	pcapIPs     = flag.Int("pcap-ips", 0, "The number of IP addresses for which to capture packets")
@@ -190,31 +157,12 @@ func main() {
 		return
 	}
 
-	var reporter *stackdrivererror.Reporter
-	if *stackdriverProjectID != "" && *stackdriverCreds != "" {
-		reporter = stackdrivererror.Enable(context.Background(), *stackdriverProjectID, *stackdriverCreds, *stackdriverSamplePercentage, *proxyName, *externalIP, *proxyProtocol, *track)
-		if reporter != nil {
-			defer reporter.Close()
-		}
-	}
-
 	// panicwrap works by re-executing the running program (retaining arguments,
 	// environmental variables, etc.) and monitoring the stderr of the program.
 	exitStatus, panicWrapErr := panicwrap.Wrap(
 		&panicwrap.WrapConfig{
 			DetectDuration: time.Second,
 			Handler: func(msg string) {
-				if reporter != nil {
-					// heuristically separate the error message from the stack trace
-					separator := "\ngoroutine "
-					splitted := strings.SplitN(msg, separator, 2)
-					err := errors.New(splitted[0])
-					var maybeStack []byte
-					if len(splitted) > 1 {
-						maybeStack = []byte(separator + splitted[1])
-					}
-					reporter.Report(golog.FATAL, err, maybeStack)
-				}
 				os.Exit(1)
 			},
 			// Just forward signals to the child process
@@ -331,24 +279,11 @@ func main() {
 	if *packetForwardIntf != "" {
 		*externalIntf = *packetForwardIntf
 	}
-	if *maxmindLicenseKey == "" {
-		log.Fatal("maxmindlicensekey should not be empty")
-	}
 	mux := *multiplexProtocol
 	if mux != "smux" && mux != "psmux" {
 		log.Fatalf("unsupported multiplex protocol %v", mux)
 	}
 	go periodicallyForceGC()
-
-	var reportingRedisClient *redis.Client
-	if *reportingRedisAddr != "" {
-		reportingRedisClient, err = lanternredis.NewClient(*reportingRedisAddr)
-		if err != nil {
-			log.Errorf("failed to initialize redis client, will not be able to perform bandwidth limiting: %v", err)
-		}
-	} else {
-		log.Debug("no redis address configured for bandwidth reporting")
-	}
 
 	p := &proxy.Proxy{
 		HTTPAddr:                           *addr,
@@ -357,21 +292,12 @@ func main() {
 		CertFile:                           *certfile,
 		CfgSvrAuthToken:                    *cfgSvrAuthToken,
 		ConnectOKWaitsForUpstream:          *connectOKWaitsForUpstream,
-		EnableReports:                      *enableReports,
 		EnableMultipath:                    *enableMultipath,
-		ThrottleRefreshInterval:            *throttleRefreshInterval,
-		BordaReportInterval:                *bordaReportInterval,
-		BordaSamplePercentage:              *bordaSamplePercentage,
-		BordaBufferSize:                    *bordaBufferSize,
-		ExternalIP:                         *externalIP,
 		HTTPS:                              *https,
 		IdleTimeout:                        time.Duration(*idleClose) * time.Second,
 		KeyFile:                            *keyfile,
 		SessionTicketKeyFile:               *sessionTicketKeyFile,
 		Pro:                                *pro,
-		ProxiedSitesSamplePercentage:       *proxiedSitesSamplePercentage,
-		ProxiedSitesTrackingID:             *proxiedSitesTrackingId,
-		ReportingRedisClient:               reportingRedisClient,
 		Token:                              *token,
 		TunnelPorts:                        *tunnelPorts,
 		Obfs4Addr:                          *obfs4Addr,
@@ -397,10 +323,6 @@ func main() {
 		VersionCheckRedirectPercentage:     *versionCheckRedirectPercentage,
 		GoogleSearchRegex:                  *googleSearchRegex,
 		GoogleCaptchaRegex:                 *googleCaptchaRegex,
-		BlacklistMaxIdleTime:               *blacklistMaxIdleTime,
-		BlacklistMaxConnectInterval:        *blacklistMaxConnectInterval,
-		BlacklistAllowedFailures:           *blacklistAllowedFailures,
-		BlacklistExpiration:                *blacklistExpiration,
 		ProxyName:                          *proxyName,
 		ProxyProtocol:                      *proxyProtocol,
 		BuildType:                          build_type,
@@ -428,7 +350,6 @@ func main() {
 		ShadowsocksSecret:                  *shadowsocksSecret,
 		ShadowsocksCipher:                  *shadowsocksCipher,
 		ShadowsocksReplayHistory:           *shadowsocksReplayHistory,
-		PromExporterAddr:                   *promExporterAddr,
 		MultiplexProtocol:                  *multiplexProtocol,
 		SmuxVersion:                        *smuxVersion,
 		SmuxMaxFrameSize:                   *smuxMaxFrameSize,
@@ -444,13 +365,6 @@ func main() {
 		PsmuxDisableAggressivePadding:      *psmuxDisableAggressivePadding,
 		PsmuxAggressivePadding:             *psmuxAggressivePadding,
 		PsmuxAggressivePaddingRatio:        *psmuxAggressivePaddingRatio,
-	}
-	p.CountryLookup = geo.FromWeb(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), "GeoLite2-Country.mmdb", 24*time.Hour, "GeoLite2-Country.mmdb")
-	ispLookup, err := geo.FromFile(*geoip2ISPDBFile)
-	if err != nil {
-		log.Errorf("Error loading ISP database file: %v", err)
-	} else {
-		p.ISPLookup = ispLookup
 	}
 
 	log.Fatal(p.ListenAndServe())

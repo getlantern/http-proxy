@@ -12,18 +12,15 @@ import (
 	"net/url"
 	"os"
 	"strconv"
-	"sync"
 	"testing"
 	"time"
 
 	"github.com/getlantern/keyman"
-	"github.com/getlantern/measured"
 	"github.com/stretchr/testify/assert"
 
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/http-proxy/server"
 
-	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/tokenfilter"
 )
 
@@ -35,8 +32,6 @@ const (
 )
 
 var (
-	mr = &mockReporter{traffic: make(map[string]*measured.Stats)}
-
 	httpProxyAddr    string
 	tlsProxyAddr     string
 	httpTargetServer *targetHandler
@@ -106,40 +101,6 @@ func TestProxyName(t *testing.T) {
 	runTest(true, "fp-obfs4-donyc3-20160715-005", "fp-obfs4-donyc3-20160715-005", "donyc3")
 	runTest(false, "fp-14325-adsfds-006", "", "")
 	runTest(false, "cloudcompile", "", "")
-}
-
-// Keep this one first to avoid measuring previous connections
-func TestReportStats(t *testing.T) {
-	connectReq := "CONNECT %s HTTP/1.1\r\nHost: %s\r\nX-Lantern-Device-Id: %s\r\n\r\n"
-	connectResp := "HTTP/1.1 400 Bad Request\r\n"
-	testFn := func(conn net.Conn, targetURL *url.URL) {
-		var err error
-		req := fmt.Sprintf(connectReq, targetURL.Host, targetURL.Host, deviceId)
-		t.Log("\n" + req)
-		_, err = conn.Write([]byte(req))
-		if !assert.NoError(t, err, "should write CONNECT request") {
-			t.FailNow()
-		}
-
-		var buf [400]byte
-		_, err = conn.Read(buf[:])
-		if !assert.Contains(t, string(buf[:]), connectResp,
-			"should mimic Apache because no token was provided") {
-			t.FailNow()
-		}
-	}
-
-	testRoundTrip(t, httpProxyAddr, false, httpTargetServer, testFn)
-	testRoundTrip(t, tlsProxyAddr, true, httpTargetServer, testFn)
-	time.Sleep(200 * time.Millisecond)
-	mr.tmtx.Lock()
-	defer mr.tmtx.Unlock()
-	if assert.True(t, len(mr.traffic) > 0) {
-		stats := mr.traffic[""]
-		if assert.NotNil(t, stats) {
-			log.Debug(stats)
-		}
-	}
 }
 
 func TestMaxConnections(t *testing.T) {
@@ -312,7 +273,7 @@ func TestConnectNoToken(t *testing.T) {
 		}
 
 		var buf [400]byte
-		_, err = conn.Read(buf[:])
+		conn.Read(buf[:])
 		if !assert.Contains(t, string(buf[:]), connectResp,
 			"should mimic Apache because no token was provided") {
 			t.FailNow()
@@ -341,7 +302,7 @@ func TestConnectBadToken(t *testing.T) {
 		}
 
 		var buf [400]byte
-		_, err = conn.Read(buf[:])
+		conn.Read(buf[:])
 		if !assert.Contains(t, string(buf[:]), connectResp,
 			"should mimic Apache because no token was provided") {
 			t.FailNow()
@@ -373,7 +334,7 @@ func TestConnectNoDevice(t *testing.T) {
 		}
 
 		var buf [400]byte
-		_, err = conn.Read(buf[:])
+		conn.Read(buf[:])
 		if !assert.Contains(t, string(buf[:]), connectResp,
 			"should mimic Apache because no token was provided") {
 			t.FailNow()
@@ -467,7 +428,7 @@ func TestDirectNoToken(t *testing.T) {
 		}
 
 		var buf [400]byte
-		_, err = conn.Read(buf[:])
+		conn.Read(buf[:])
 		if !assert.Contains(t, string(buf[:]), connectResp,
 			"should get 404 Not Found because no token was provided") {
 			t.FailNow()
@@ -496,7 +457,7 @@ func TestDirectBadToken(t *testing.T) {
 		}
 
 		var buf [400]byte
-		_, err = conn.Read(buf[:])
+		conn.Read(buf[:])
 		if !assert.Contains(t, string(buf[:]), connectResp,
 			"should get 404 Not Found because no token was provided") {
 			t.FailNow()
@@ -528,7 +489,7 @@ func TestDirectNoDevice(t *testing.T) {
 		}
 
 		var buf [400]byte
-		_, err = conn.Read(buf[:])
+		conn.Read(buf[:])
 		if !assert.Contains(t, string(buf[:]), connectResp,
 			"should get 404 Not Found because no token was provided") {
 			t.FailNow()
@@ -605,7 +566,7 @@ func TestInvalidRequest(t *testing.T) {
 		}
 
 		buf := [400]byte{}
-		_, err = conn.Read(buf[:])
+		conn.Read(buf[:])
 		assert.Contains(t, string(buf[:]), connectResp, "should 400")
 
 	}
@@ -668,7 +629,7 @@ func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
 	// Create server
 	srv := server.New(&server.Opts{
 		IdleTimeout: idleTimeout,
-		Filter:      tokenfilter.New(validToken, instrument.NoInstrument{}),
+		Filter:      tokenfilter.New(validToken),
 	})
 
 	// Add net.Listener wrappers for inbound connections
@@ -682,10 +643,6 @@ func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
 		// Close connections after idleTimeout seconds of no activity
 		func(ls net.Listener) net.Listener {
 			return listeners.NewIdleConnListener(ls, idleTimeout)
-		},
-		// Measure connections
-		func(ls net.Listener) net.Listener {
-			return listeners.NewMeasuredListener(ls, 100*time.Millisecond, mr.Report)
 		},
 	)
 
@@ -774,26 +731,4 @@ func newTargetHandler(msg string, tls bool) (string, *targetHandler) {
 	}
 	log.Debugf("Started target site at %v", m.server.URL)
 	return m.server.URL, &m
-}
-
-//
-//
-// Mock Redis reporter
-//
-
-type mockReporter struct {
-	traffic map[string]*measured.Stats
-	lmtx    sync.Mutex
-	tmtx    sync.Mutex
-}
-
-func (mr *mockReporter) Report(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
-	mr.tmtx.Lock()
-	defer mr.tmtx.Unlock()
-	_deviceID := ctx["deviceid"]
-	deviceID := ""
-	if _deviceID != nil {
-		deviceID = _deviceID.(string)
-	}
-	mr.traffic[deviceID] = stats
 }

@@ -11,21 +11,18 @@ import (
 	"github.com/getlantern/proxy/v2/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
-	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
 )
 
 var log = golog.LoggerFor("tokenfilter")
 
 type tokenFilter struct {
-	token      string
-	instrument instrument.Instrument
+	token string
 }
 
-func New(token string, instrument instrument.Instrument) filters.Filter {
+func New(token string) filters.Filter {
 	return &tokenFilter{
-		token:      token,
-		instrument: instrument,
+		token: token,
 	}
 }
 
@@ -44,9 +41,8 @@ func (f *tokenFilter) Apply(cs *filters.ConnectionState, req *http.Request, next
 	}
 
 	tokens := req.Header[common.TokenHeader]
-	if tokens == nil || len(tokens) == 0 || tokens[0] == "" {
+	if len(tokens) == 0 || tokens[0] == "" {
 		log.Error(errorf(op, "No token provided, mimicking apache"))
-		f.instrument.Mimic(true)
 		return mimicApache(cs, req)
 	}
 	tokenMatched := false
@@ -59,11 +55,9 @@ func (f *tokenFilter) Apply(cs *filters.ConnectionState, req *http.Request, next
 	if tokenMatched {
 		req.Header.Del(common.TokenHeader)
 		log.Tracef("Allowing connection from %v to %v", req.RemoteAddr, req.Host)
-		f.instrument.Mimic(false)
 		return next(cs, req)
 	}
 	log.Error(errorf(op, "Mismatched token(s) %v, mimicking apache", strings.Join(tokens, ",")))
-	f.instrument.Mimic(true)
 	return mimicApache(cs, req)
 }
 

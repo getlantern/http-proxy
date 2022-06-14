@@ -16,7 +16,6 @@ import (
 
 	"github.com/getlantern/http-proxy/server"
 
-	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
 	"github.com/getlantern/http-proxy-lantern/v2/tokenfilter"
 )
@@ -87,15 +86,8 @@ var candidates = []entry{
 	{"INVALID", "/not-existed"},
 }
 
-type entryWithHeaders struct {
-	method         string
-	path           string
-	withHostHeader bool
-	headers        []string
-}
-
 func TestMimicApache(t *testing.T) {
-	tf := tokenfilter.New("arbitrary-token", instrument.NoInstrument{})
+	tf := tokenfilter.New("arbitrary-token")
 	s := server.New(&server.Opts{
 		IdleTimeout: 30 * time.Second,
 		Filter:      filters.Join(tf),

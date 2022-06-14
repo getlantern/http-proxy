@@ -37,7 +37,6 @@ import (
 	"github.com/getlantern/proxy/v2/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
-	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 )
 
 var (
@@ -57,13 +56,12 @@ type VersionChecker struct {
 	rewriteAddr      string
 	tunnelPorts      []string
 	ppm              int
-	instrument       instrument.Instrument
 }
 
 // New constructs a VersionChecker to check the request and rewrite/redirect if
 // required.  It errors if the versionRange string is not valid, or the rewrite
 // URL is malformed. tunnelPortsToCheck defaults to 80 only.
-func New(versionRange string, rewriteURL string, tunnelPortsToCheck []string, percentage float64, inst instrument.Instrument) (*VersionChecker, error) {
+func New(versionRange string, rewriteURL string, tunnelPortsToCheck []string, percentage float64) (*VersionChecker, error) {
 	u, err := url.Parse(rewriteURL)
 	if err != nil {
 		return nil, err
@@ -81,10 +79,7 @@ func New(versionRange string, rewriteURL string, tunnelPortsToCheck []string, pe
 	if err != nil {
 		return nil, err
 	}
-	if inst == nil {
-		inst = instrument.NoInstrument{}
-	}
-	return &VersionChecker{ver, u, rewriteURL, rewriteAddr, tunnelPortsToCheck, int(percentage * oneMillion), inst}, nil
+	return &VersionChecker{ver, u, rewriteURL, rewriteAddr, tunnelPortsToCheck, int(percentage * oneMillion)}, nil
 }
 
 // Dial is a function that dials a network connection.
@@ -121,18 +116,14 @@ func (c *VersionChecker) Apply(cs *filters.ConnectionState, req *http.Request, n
 		return next(cs, req)
 	}
 	var shouldRedirect bool
-	var reason string
-	defer func() {
-		c.instrument.VersionCheck(shouldRedirect, req.Method, reason)
-	}()
 	switch req.Method {
 	case http.MethodConnect:
-		if shouldRedirect, reason = c.shouldRedirectOnConnect(req); shouldRedirect {
+		if shouldRedirect, _ = c.shouldRedirectOnConnect(req); shouldRedirect {
 			return c.redirectOnConnect(cs, req)
 		}
 	case http.MethodGet:
 		// the first request from browser should always be GET
-		if shouldRedirect, reason = c.shouldRedirect(req); shouldRedirect {
+		if shouldRedirect, _ = c.shouldRedirect(req); shouldRedirect {
 			return c.redirect(cs, req)
 		}
 	}

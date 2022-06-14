@@ -25,16 +25,16 @@ const (
 )
 
 func TestParseVersionRange(t *testing.T) {
-	_, e := New("> 3.1.x", "", nil, 1, nil)
+	_, e := New("> 3.1.x", "", nil, 1)
 	assert.NoError(t, e)
-	_, e = New("< 3.x", "", nil, 1, nil)
+	_, e = New("< 3.x", "", nil, 1)
 	assert.NoError(t, e)
-	_, e = New("= 3.1.1", "", nil, 1, nil)
+	_, e = New("= 3.1.1", "", nil, 1)
 	assert.NoError(t, e)
 }
 
 func TestRedirectRules(t *testing.T) {
-	f, _ := New("< 3.1.x", redirectURL, nil, 1, nil)
+	f, _ := New("< 3.1.x", redirectURL, nil, 1)
 	req, _ := http.NewRequest("POST", "http://anysite.com", nil)
 	shouldRedirect := func() bool {
 		should, _ := f.shouldRedirect(req)
@@ -72,7 +72,7 @@ func TestPercentage(t *testing.T) {
 }
 
 func testPercentage(t *testing.T, percentage float64, exact bool) {
-	f, _ := New("< 3.1.1", redirectURL, nil, percentage, nil)
+	f, _ := New("< 3.1.1", redirectURL, nil, percentage)
 	req, _ := http.NewRequest("GET", "http://anysite.com", nil)
 	req.Header.Set("Accept", "text/html")
 	req.Header.Set("User-Agent", "Mozilla/5.0 xxx")
@@ -155,7 +155,7 @@ func setupServers(t *testing.T) (string, string, func()) {
 		return "", "", originServer.Close
 	}
 
-	f, _ := New("< 3.1.1", redirectURL, []string{originPort}, 1, nil)
+	f, _ := New("< 3.1.1", redirectURL, []string{originPort}, 1)
 	p, _ := proxy.New(&proxy.Opts{Filter: f})
 	go p.Serve(l)
 	return originServer.URL, l.Addr().String(), func() {

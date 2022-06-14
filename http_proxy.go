@@ -14,17 +14,14 @@ import (
 	"time"
 
 	utp "github.com/anacrolix/go-libutp"
-	bordaClient "github.com/getlantern/borda/client"
 	"github.com/getlantern/cmux/v2"
 	"github.com/getlantern/cmuxprivate"
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
-	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
 	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
-	rclient "github.com/go-redis/redis/v8"
 
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/ops"
@@ -41,27 +38,19 @@ import (
 	"github.com/getlantern/http-proxy/proxyfilters"
 	"github.com/getlantern/http-proxy/server"
 
-	"github.com/getlantern/http-proxy-lantern/v2/analytics"
 	"github.com/getlantern/http-proxy-lantern/v2/bbr"
-	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
-	"github.com/getlantern/http-proxy-lantern/v2/borda"
 	"github.com/getlantern/http-proxy-lantern/v2/cleanheadersfilter"
-	"github.com/getlantern/http-proxy-lantern/v2/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/v2/diffserv"
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
 	"github.com/getlantern/http-proxy-lantern/v2/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/v2/httpsupgrade"
-	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/lampshade"
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/v2/listeners"
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
-	"github.com/getlantern/http-proxy-lantern/v2/packetcounter"
 	"github.com/getlantern/http-proxy-lantern/v2/ping"
 	"github.com/getlantern/http-proxy-lantern/v2/quic"
-	"github.com/getlantern/http-proxy-lantern/v2/redis"
-	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/v2/tlsmasq"
 	"github.com/getlantern/http-proxy-lantern/v2/tokenfilter"
@@ -85,9 +74,6 @@ type Proxy struct {
 	HTTPAddr                           string
 	HTTPMultiplexAddr                  string
 	HTTPUTPAddr                        string
-	BordaReportInterval                time.Duration
-	BordaSamplePercentage              float64
-	BordaBufferSize                    int
 	ExternalIP                         string
 	CertFile                           string
 	CfgSvrAuthToken                    string
@@ -97,15 +83,10 @@ type Proxy struct {
 	ENHTTPServerURL                    string
 	ENHTTPReapIdleTime                 time.Duration
 	EnableMultipath                    bool
-	EnableReports                      bool
 	HTTPS                              bool
 	IdleTimeout                        time.Duration
 	KeyFile                            string
 	Pro                                bool
-	ProxiedSitesSamplePercentage       float64
-	ProxiedSitesTrackingID             string
-	ReportingRedisClient               *rclient.Client
-	ThrottleRefreshInterval            time.Duration
 	Token                              string
 	TunnelPorts                        string
 	Obfs4Addr                          string
@@ -128,10 +109,6 @@ type Proxy struct {
 	VersionCheckRedirectPercentage     float64
 	GoogleSearchRegex                  string
 	GoogleCaptchaRegex                 string
-	BlacklistMaxIdleTime               time.Duration
-	BlacklistMaxConnectInterval        time.Duration
-	BlacklistAllowedFailures           int
-	BlacklistExpiration                time.Duration
 	ProxyName                          string
 	ProxyProtocol                      string
 	BuildType                          string
@@ -160,9 +137,6 @@ type Proxy struct {
 	ShadowsocksSecret                  string
 	ShadowsocksCipher                  string
 	ShadowsocksReplayHistory           int
-	PromExporterAddr                   string
-	CountryLookup                      geo.CountryLookup
-	ISPLookup                          geo.ISPLookup
 
 	MultiplexProtocol             string
 	SmuxVersion                   int
@@ -180,12 +154,10 @@ type Proxy struct {
 	PsmuxAggressivePadding        int
 	PsmuxAggressivePaddingRatio   float64
 
-	bm             bbr.Middleware
-	throttleConfig throttle.Config
-	instrument     instrument.Instrument
+	bm bbr.Middleware
 }
 
-type listenerBuilderFN func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error)
+type listenerBuilderFN func(addr string) (net.Listener, error)
 
 type addresses struct {
 	obfs4          string
@@ -198,32 +170,6 @@ type addresses struct {
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe() error {
-	if p.CountryLookup == nil {
-		p.CountryLookup = geo.NoLookup{}
-	}
-	if p.ISPLookup == nil {
-		p.ISPLookup = geo.NoLookup{}
-	}
-	p.instrument = instrument.NoInstrument{}
-	if p.PromExporterAddr != "" {
-		prom := instrument.NewPrometheus(
-			p.CountryLookup,
-			p.ISPLookup,
-			instrument.CommonLabels{
-				BuildType:             p.BuildType,
-				Protocol:              p.ProxyProtocol,
-				SupportTLSResumption:  p.SessionTicketKeyFile != "",
-				RequireTLSResumption:  p.RequireSessionTickets,
-				MissingTicketReaction: p.MissingTicketReaction.Action(),
-			})
-		go func() {
-			log.Debugf("Running Prometheus exporter at http://%s/metrics", p.PromExporterAddr)
-			if err := prom.Run(p.PromExporterAddr); err != nil {
-				log.Error(err)
-			}
-		}()
-		p.instrument = prom
-	}
 	var onServerError func(conn net.Conn, err error)
 	var onListenerError func(conn net.Conn, err error)
 	/*
@@ -259,15 +205,13 @@ func (p *Proxy) ListenAndServe() error {
 	if p.BBRUpstreamProbeURL != "" {
 		go p.bm.ProbeUpstream(p.BBRUpstreamProbeURL)
 	}
-	p.loadThrottleConfig()
 
 	if p.ENHTTPAddr != "" {
 		return p.ListenAndServeENHTTP()
 	}
 
 	// Only allow connections from remote IPs that are not blacklisted
-	blacklist := p.createBlacklist()
-	filterChain, dial, err := p.createFilterChain(blacklist)
+	filterChain, dial, err := p.createFilterChain()
 	if err != nil {
 		return err
 	}
@@ -285,13 +229,13 @@ func (p *Proxy) ListenAndServe() error {
 		// Use the same buffer pool as lampshade for now but need to optimize later.
 		BufferSource:             lampshade.BufferPool,
 		Dial:                     dial,
-		Filter:                   p.instrument.WrapFilter("proxy", filterChain),
+		Filter:                   filterChain,
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
-		OnError:                  p.instrument.WrapConnErrorHandler("proxy_serve", onServerError),
+		OnError:                  onServerError,
 	})
-	bwReporting, bordaReporter := p.configureBandwidthReporting()
+
 	// Throttle connections when signaled
-	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
+	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener)
 
 	allListeners := make([]net.Listener, 0)
 	listenerProtocols := make([]string, 0)
@@ -299,14 +243,13 @@ func (p *Proxy) ListenAndServe() error {
 		if addr == "" {
 			return nil
 		}
-		l, err := fn(addr, bordaReporter)
+
+		l, err := fn(addr)
 		if err != nil {
 			return err
 		}
 		listenerProtocols = append(listenerProtocols, proto)
-		// Although we include blacklist functionality, it's currently only used to
-		// track potential blacklisting ad doesn't actually blacklist anyone.
-		allListeners = append(allListeners, lanternlisteners.NewAllowingListener(l, blacklist.OnConnect))
+		allListeners = append(allListeners, l)
 		return nil
 	}
 
@@ -320,7 +263,6 @@ func (p *Proxy) ListenAndServe() error {
 
 		// We pass onListenerError to lampshade so that we can count errors in its
 		// internal connection handling and dump pcaps in response to them.
-		onListenerError = p.instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
 		if err := addListenerIfNecessary("lampshade", addrs.lampshade, p.listenLampshade(true, onListenerError, baseListen)); err != nil {
 			return err
 		}
@@ -378,7 +320,7 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if p.EnableMultipath {
-		mpl := multipath.NewListener(allListeners, p.instrument.MultipathStats(listenerProtocols))
+		mpl := multipath.NewListener(allListeners, nil)
 		log.Debug("Serving multipath at:")
 		for i, l := range allListeners {
 			log.Debugf("  %-20s:  %v", listenerProtocols[i], l.Addr())
@@ -403,23 +345,23 @@ func (p *Proxy) ListenAndServeENHTTP() error {
 		return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
 	}
 	log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
-	filterChain := filters.Join(tokenfilter.New(p.Token, p.instrument), p.instrument.WrapFilter("proxy_http_ping", ping.New(0)))
+	filterChain := filters.Join(tokenfilter.New(p.Token), ping.New(0))
 	enhttpHandler := enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL)
 	server := &http.Server{
-		Handler: filters.Intercept(enhttpHandler, p.instrument.WrapFilter("proxy", filterChain)),
+		Handler: filters.Intercept(enhttpHandler, filterChain),
 	}
 	return server.Serve(el)
 }
 
 func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
-	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
-		l, err := fn(addr, bordaReporter)
+	return func(addr string) (net.Listener, error) {
+		l, err := fn(addr)
 		if err != nil {
 			return nil, err
 		}
 
 		if p.HTTPS {
-			l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.RequireSessionTickets, p.MissingTicketReaction, p.TLSListenerAllowTLS13, p.instrument)
+			l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.RequireSessionTickets, p.MissingTicketReaction, p.TLSListenerAllowTLS13)
 			if err != nil {
 				return nil, err
 			}
@@ -432,8 +374,8 @@ func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
 }
 
 func (p *Proxy) wrapMultiplexing(fn listenerBuilderFN) listenerBuilderFN {
-	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
-		l, err := fn(addr, bordaReporter)
+	return func(addr string) (net.Listener, error) {
+		l, err := fn(addr)
 		if err != nil {
 			return nil, err
 		}
@@ -569,21 +511,12 @@ func (p *Proxy) setBenchmarkMode() {
 	}
 }
 
-func (p *Proxy) createBlacklist() *blacklist.Blacklist {
-	return blacklist.New(blacklist.Options{
-		MaxIdleTime:        p.BlacklistMaxIdleTime,        // 30 * time.Second,
-		MaxConnectInterval: p.BlacklistMaxConnectInterval, // 5 * time.Second,
-		AllowedFailures:    p.BlacklistAllowedFailures,    // 10,
-		Expiration:         p.BlacklistExpiration,         // 6 * time.Hour,
-	})
-}
-
 // createFilterChain creates a chain of filters that modify the default behavior
 // of proxy.Proxy to implement Lantern-specific logic like authentication,
 // Apache mimicry, bandwidth throttling, BBR metric reporting, etc. The actual
 // work of proxying plain HTTP and CONNECT requests is handled by proxy.Proxy
 // itself.
-func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy.DialFunc, error) {
+func (p *Proxy) createFilterChain() (filters.Chain, proxy.DialFunc, error) {
 	filterChain := filters.Join(p.bm)
 
 	if p.Benchmark {
@@ -596,25 +529,11 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 			"ping-chained-server": 1 * time.Nanosecond, // Internal ping-chained-server protocol
 		}))
 	} else {
-		filterChain = filterChain.Append(proxy.OnFirstOnly(tokenfilter.New(p.Token, p.instrument)))
-	}
-
-	if p.ReportingRedisClient == nil {
-		log.Debug("Not enabling bandwidth limiting")
-	} else {
-		filterChain = filterChain.Append(
-			proxy.OnFirstOnly(devicefilter.NewPre(
-				redis.NewDeviceFetcher(p.ReportingRedisClient), p.throttleConfig, !p.Pro, p.instrument)),
-		)
+		filterChain = filterChain.Append(proxy.OnFirstOnly(tokenfilter.New(p.Token)))
 	}
 
 	filterChain = filterChain.Append(
 		proxy.OnFirstOnly(googlefilter.New(p.GoogleSearchRegex, p.GoogleCaptchaRegex)),
-		analytics.New(&analytics.Options{
-			TrackingID:       p.ProxiedSitesTrackingID,
-			SamplePercentage: p.ProxiedSitesSamplePercentage,
-		}),
-		proxy.OnFirstOnly(devicefilter.NewPost(bl)),
 	)
 
 	if !p.TestingLocal {
@@ -624,7 +543,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		}
 		filterChain = filterChain.Append(proxyfilters.BlockLocal(allowedLocalAddrs))
 	}
-	filterChain = filterChain.Append(p.instrument.WrapFilter("proxy_http_ping", ping.New(0)))
+	filterChain = filterChain.Append(ping.New(0))
 
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97
@@ -632,8 +551,6 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	dialer := func(ctx context.Context, network, addr string) (net.Conn, error) {
 		op := ops.Begin("dial_origin")
 		defer op.End()
-
-		start := time.Now()
 
 		// resolve separately so that we can track the DNS resolution time
 		resolveOp := ops.Begin("resolve_origin")
@@ -644,15 +561,12 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 			resolveOp.End()
 			return nil, resolveErr
 		}
-		op.Set("resolve_origin_time", bordaClient.Avg(time.Now().Sub(start).Seconds()))
-		resolveOp.End()
 
 		conn, dialErr := _dialer(ctx, network, resolvedAddr.String())
 		if dialErr != nil {
 			op.FailIf(dialErr)
 			return nil, dialErr
 		}
-		op.Set("dial_origin_time", bordaClient.Avg(time.Now().Sub(start).Seconds()))
 
 		return conn, nil
 	}
@@ -670,7 +584,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		vc, err := versioncheck.New(p.VersionCheckRange,
 			p.VersionCheckRedirectURL,
 			[]string{"80"}, // checks CONNECT tunnel to 80 port only.
-			p.VersionCheckRedirectPercentage, p.instrument)
+			p.VersionCheckRedirectPercentage)
 		if err != nil {
 			log.Errorf("Fail to init versioncheck, skipping: %v", err)
 		} else {
@@ -702,23 +616,6 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}, nil
 }
 
-func (p *Proxy) configureBandwidthReporting() (*reportingConfig, listeners.MeasuredReportFN) {
-	var bordaReporter listeners.MeasuredReportFN
-	if p.BordaReportInterval > 0 {
-		bordaReporter = borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
-	}
-	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.EnableReports, bordaReporter, p.instrument, p.throttleConfig), bordaReporter
-}
-
-func (p *Proxy) loadThrottleConfig() {
-	if !p.Pro && p.ThrottleRefreshInterval > 0 && p.ReportingRedisClient != nil {
-		p.throttleConfig = throttle.NewRedisConfig(p.ReportingRedisClient, p.ThrottleRefreshInterval)
-	} else {
-		log.Debug("Not loading throttle config")
-		return
-	}
-}
-
 func (p *Proxy) allowedTunnelPorts() []int {
 	if p.TunnelPorts == "" {
 		log.Debug("tunnelling all ports")
@@ -732,7 +629,7 @@ func (p *Proxy) allowedTunnelPorts() []int {
 }
 
 func (p *Proxy) listenHTTP(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
-	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	return func(addr string) (net.Listener, error) {
 		l, err := baseListen(addr, true)
 		if err != nil {
 			return nil, errors.New("Unable to listen for HTTP: %v", err)
@@ -743,7 +640,7 @@ func (p *Proxy) listenHTTP(baseListen func(string, bool) (net.Listener, error)) 
 }
 
 func (p *Proxy) listenOBFS4(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
-	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	return func(addr string) (net.Listener, error) {
 		l, err := baseListen(addr, true)
 		if err != nil {
 			return nil, errors.New("Unable to listen for OBFS4: %v", err)
@@ -759,16 +656,10 @@ func (p *Proxy) listenOBFS4(baseListen func(string, bool) (net.Listener, error))
 }
 
 func (p *Proxy) listenLampshade(trackBBR bool, onListenerError func(net.Conn, error), baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
-	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	return func(addr string) (net.Listener, error) {
 		l, err := baseListen(addr, false)
 		if err != nil {
 			return nil, err
-		}
-		if bordaReporter != nil {
-			log.Debug("Wrapping lampshade's TCP listener with measured reporting")
-			l = listeners.NewMeasuredListener(l,
-				measuredReportingInterval,
-				borda.ConnectionTypedBordaReporter("physical", bordaReporter))
 		}
 		wrapped, wrapErr := lampshade.Wrap(l, p.CertFile, p.KeyFile, p.LampshadeKeyCacheSize, p.LampshadeMaxClientInitAge, onListenerError)
 		if wrapErr != nil {
@@ -790,7 +681,7 @@ func (p *Proxy) listenLampshade(trackBBR bool, onListenerError func(net.Conn, er
 }
 
 func (p *Proxy) listenTLSMasq(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
-	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	return func(addr string) (net.Listener, error) {
 		l, err := baseListen(addr, false)
 		if err != nil {
 			return nil, err
@@ -831,12 +722,7 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 	if wrapBBR {
 		l = p.bm.Wrap(l)
 	}
-	_, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		log.Errorf("Error extracting port from addr %v, skip counting TCP packets: %v", addr, err)
-	} else {
-		go packetcounter.Track(p.ExternalIntf, port, p.instrument.TCPPackets)
-	}
+
 	return l, nil
 }
 
@@ -855,7 +741,7 @@ func (p *Proxy) listenUTP(addr string, wrapBBR bool) (net.Listener, error) {
 	return l, nil
 }
 
-func (p *Proxy) listenKCP(kcpConf string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+func (p *Proxy) listenKCP(kcpConf string) (net.Listener, error) {
 	cfg := &kcpwrapper.ListenerConfig{}
 	file, err := os.Open(kcpConf) // For read access.
 	if err != nil {
@@ -877,7 +763,7 @@ func (p *Proxy) listenKCP(kcpConf string, bordaReporter listeners.MeasuredReport
 	})
 }
 
-func (p *Proxy) listenQUICIETF(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+func (p *Proxy) listenQUICIETF(addr string) (net.Listener, error) {
 	tlsConf, err := tlsdefaults.BuildListenerConfig(addr, p.KeyFile, p.CertFile)
 	if err != nil {
 		return nil, err
@@ -885,7 +771,6 @@ func (p *Proxy) listenQUICIETF(addr string, bordaReporter listeners.MeasuredRepo
 
 	config := &quicwrapper.Config{
 		MaxIncomingStreams:      1000,
-		Tracer:                  instrument.NewQuicTracer(p.instrument),
 		UseBBR:                  p.QUICUseBBR,
 		DisablePathMTUDiscovery: true,
 	}
@@ -899,7 +784,7 @@ func (p *Proxy) listenQUICIETF(addr string, bordaReporter listeners.MeasuredRepo
 	return l, err
 }
 
-func (p *Proxy) listenShadowsocks(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
 	// This is not using p.ListenTCP on purpose to avoid additional wrapping with idle timing.
 	// The idea here is to be as close to what outline shadowsocks does without any intervention,
 	// especially with respect to draining connections and the timing of closures.
@@ -924,14 +809,14 @@ func (p *Proxy) listenShadowsocks(addr string, bordaReporter listeners.MeasuredR
 	return l, nil
 }
 
-func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+func (p *Proxy) listenWSS(addr string) (net.Listener, error) {
 	l, err := p.listenTCP(addr, true)
 	if err != nil {
 		return nil, errors.New("Unable to listen for wss: %v", err)
 	}
 
 	if p.HTTPS {
-		l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.RequireSessionTickets, p.MissingTicketReaction, p.TLSListenerAllowTLS13, p.instrument)
+		l, err = tlslistener.Wrap(l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.RequireSessionTickets, p.MissingTicketReaction, p.TLSListenerAllowTLS13)
 		if err != nil {
 			return nil, err
 		}
