@@ -1,6 +1,7 @@
 addr =   # Address to listen with HTTP(S)
 allowMissingConfig = false  # Don't terminate the app if the ini file cannot be read.
 allowUnknownFlags = true  # Don't terminate the app if ini file contains unknown flags.
+expvarsAddr = # optional dddress to listen to for expvars
 bbrprobeurl =   # optional URL to probe for upstream BBR bandwidth estimates
 bench = false  # Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.
 blacklist-allowed-failures = 100  # The number of failed connection attempts we tolerate before blacklisting an IP address

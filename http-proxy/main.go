@@ -31,6 +31,7 @@ var (
 	hostname, _ = os.Hostname()
 
 	addr          = flag.String("addr", "", "Address to listen with HTTP(S)")
+	expvarsAddr   = flag.String("expvars-addr", "", "Address to publish expvars to")
 	multiplexAddr = flag.String("multiplexaddr", "", "Multiplexed address at which to listen with HTTP(S)")
 	lampshadeAddr = flag.String("lampshade-addr", "", "Address at which to listen for lampshade connections with tcp. Requires https to be true.")
 	quicIETFAddr  = flag.String("quic-ietf-addr", "", "Address at which to listen for IETF QUIC connections.")
@@ -238,6 +239,7 @@ func main() {
 	p := &proxy.Proxy{
 		HTTPAddr:                           *addr,
 		HTTPMultiplexAddr:                  *multiplexAddr,
+		ExpvarsAddr:                        *expvarsAddr,
 		CertFile:                           *certfile,
 		CfgSvrAuthToken:                    *cfgSvrAuthToken,
 		ConnectOKWaitsForUpstream:          *connectOKWaitsForUpstream,

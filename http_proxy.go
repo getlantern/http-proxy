@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"encoding/json"
+	"expvar"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -21,6 +22,7 @@ import (
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
 	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
+	"github.com/getlantern/measured"
 
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/ops"
@@ -72,6 +74,7 @@ type Proxy struct {
 	TestingLocal                       bool
 	HTTPAddr                           string
 	HTTPMultiplexAddr                  string
+	ExpvarsAddr                        string
 	ExternalIP                         string
 	CertFile                           string
 	CfgSvrAuthToken                    string
@@ -192,6 +195,7 @@ func (p *Proxy) ListenAndServe() error {
 		}
 
 	*/
+
 	if err := p.setupPacketForward(); err != nil {
 		log.Errorf("Unable to set up packet forwarding, will continue to start up: %v", err)
 	}
@@ -232,6 +236,24 @@ func (p *Proxy) ListenAndServe() error {
 
 	// Throttle connections when signaled
 	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener)
+
+	if p.ExpvarsAddr != "" {
+		proxyTx := expvar.NewInt("proxy_tx_bytes_total")
+		proxyRx := expvar.NewInt("proxy_rx_bytes_total")
+
+		mux := http.NewServeMux()
+		mux.Handle("/debug/vars", expvar.Handler())
+		go http.ListenAndServe(p.ExpvarsAddr, mux)
+
+		expvarReporter := func(_ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
+			proxyTx.Set(int64(stats.SentTotal))
+			proxyRx.Set(int64(stats.RecvTotal))
+		}
+
+		srv.AddListenerWrappers(func(l net.Listener) net.Listener {
+			return listeners.NewMeasuredListener(l, time.Second, expvarReporter)
+		})
+	}
 
 	allListeners := make([]net.Listener, 0)
 	listenerProtocols := make([]string, 0)
