@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	utp "github.com/anacrolix/go-libutp"
 	"github.com/getlantern/cmux/v2"
 	"github.com/getlantern/cmuxprivate"
 	"github.com/getlantern/enhttp"
@@ -73,7 +72,6 @@ type Proxy struct {
 	TestingLocal                       bool
 	HTTPAddr                           string
 	HTTPMultiplexAddr                  string
-	HTTPUTPAddr                        string
 	ExternalIP                         string
 	CertFile                           string
 	CfgSvrAuthToken                    string
@@ -91,7 +89,6 @@ type Proxy struct {
 	TunnelPorts                        string
 	Obfs4Addr                          string
 	Obfs4MultiplexAddr                 string
-	Obfs4UTPAddr                       string
 	Obfs4Dir                           string
 	Obfs4HandshakeConcurrency          int
 	Obfs4MaxPendingHandshakesPerClient int
@@ -100,7 +97,6 @@ type Proxy struct {
 	Benchmark                          bool
 	DiffServTOS                        int
 	LampshadeAddr                      string
-	LampshadeUTPAddr                   string
 	LampshadeKeyCacheSize              int
 	LampshadeMaxClientInitAge          time.Duration
 	VersionCheck                       bool
@@ -304,17 +300,6 @@ func (p *Proxy) ListenAndServe() error {
 		http:           p.HTTPAddr,
 		httpMultiplex:  p.HTTPMultiplexAddr,
 		tlsmasq:        p.TLSMasqAddr,
-	}); err != nil {
-		return err
-	}
-
-	if err := addListenersForBaseTransport(p.listenUTP, &addresses{
-		obfs4:          "",
-		obfs4Multiplex: p.Obfs4UTPAddr,
-		lampshade:      p.LampshadeUTPAddr,
-		http:           "",
-		httpMultiplex:  p.HTTPUTPAddr,
-		tlsmasq:        "",
 	}); err != nil {
 		return err
 	}
@@ -721,21 +706,6 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 	}
 	if wrapBBR {
 		l = p.bm.Wrap(l)
-	}
-
-	return l, nil
-}
-
-func (p *Proxy) listenUTP(addr string, wrapBBR bool) (net.Listener, error) {
-	var l net.Listener
-	var err error
-	l, err = utp.NewSocket("udp", addr)
-	if err != nil {
-		return nil, err
-	}
-
-	if p.IdleTimeout > 0 {
-		l = listeners.NewIdleConnListener(l, p.IdleTimeout)
 	}
 
 	return l, nil

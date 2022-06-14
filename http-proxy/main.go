@@ -33,19 +33,16 @@ var (
 
 	hostname, _ = os.Hostname()
 
-	addr             = flag.String("addr", "", "Address to listen with HTTP(S)")
-	multiplexAddr    = flag.String("multiplexaddr", "", "Multiplexed address at which to listen with HTTP(S)")
-	utpAddr          = flag.String("utpaddr", "", "Address at which to listen with HTTP(S) over utp")
-	lampshadeAddr    = flag.String("lampshade-addr", "", "Address at which to listen for lampshade connections with tcp. Requires https to be true.")
-	lampshadeUTPAddr = flag.String("lampshade-utpaddr", "", "Address at which to listen for lampshade connections with utp. Requires https to be true.")
-	quicIETFAddr     = flag.String("quic-ietf-addr", "", "Address at which to listen for IETF QUIC connections.")
-	quicBBR          = flag.Bool("quic-bbr", false, "Should quic-go use BBR instead of CUBIC")
-	wssAddr          = flag.String("wss-addr", "", "Address at which to listen for WSS connections.")
-	kcpConf          = flag.String("kcpconf", "", "Path to file configuring kcp")
+	addr          = flag.String("addr", "", "Address to listen with HTTP(S)")
+	multiplexAddr = flag.String("multiplexaddr", "", "Multiplexed address at which to listen with HTTP(S)")
+	lampshadeAddr = flag.String("lampshade-addr", "", "Address at which to listen for lampshade connections with tcp. Requires https to be true.")
+	quicIETFAddr  = flag.String("quic-ietf-addr", "", "Address at which to listen for IETF QUIC connections.")
+	quicBBR       = flag.Bool("quic-bbr", false, "Should quic-go use BBR instead of CUBIC")
+	wssAddr       = flag.String("wss-addr", "", "Address at which to listen for WSS connections.")
+	kcpConf       = flag.String("kcpconf", "", "Path to file configuring kcp")
 
 	obfs4Addr                          = flag.String("obfs4-addr", "", "Provide an address here in order to listen with obfs4")
 	obfs4MultiplexAddr                 = flag.String("obfs4-multiplexaddr", "", "Provide an address here in order to listen with multiplexed obfs4")
-	obfs4UTPAddr                       = flag.String("obfs4-utpaddr", "", "Provide an address here in order to listen with obfs4 over utp")
 	obfs4Dir                           = flag.String("obfs4-dir", ".", "Directory where obfs4 can store its files")
 	obfs4HandshakeConcurrency          = flag.Int("obfs4-handshake-concurrency", obfs4listener.DefaultHandshakeConcurrency, "How many concurrent OBFS4 handshakes to process")
 	obfs4MaxPendingHandshakesPerClient = flag.Int("obfs4-max-pending-handshakes-per-client", obfs4listener.DefaultMaxPendingHandshakesPerClient, "How many pending OBFS4 handshakes to allow per client")
@@ -201,7 +198,7 @@ func main() {
 		}
 	}()
 
-	if (*lampshadeAddr != "" || *lampshadeUTPAddr != "") && !*https {
+	if (*lampshadeAddr != "") && !*https {
 		log.Fatal("Use of lampshade requires https flag to be true")
 	}
 
@@ -288,7 +285,6 @@ func main() {
 	p := &proxy.Proxy{
 		HTTPAddr:                           *addr,
 		HTTPMultiplexAddr:                  *multiplexAddr,
-		HTTPUTPAddr:                        *utpAddr,
 		CertFile:                           *certfile,
 		CfgSvrAuthToken:                    *cfgSvrAuthToken,
 		ConnectOKWaitsForUpstream:          *connectOKWaitsForUpstream,
@@ -302,7 +298,6 @@ func main() {
 		TunnelPorts:                        *tunnelPorts,
 		Obfs4Addr:                          *obfs4Addr,
 		Obfs4MultiplexAddr:                 *obfs4MultiplexAddr,
-		Obfs4UTPAddr:                       *obfs4UTPAddr,
 		Obfs4Dir:                           *obfs4Dir,
 		Obfs4HandshakeConcurrency:          *obfs4HandshakeConcurrency,
 		Obfs4MaxPendingHandshakesPerClient: *obfs4MaxPendingHandshakesPerClient,
@@ -314,7 +309,6 @@ func main() {
 		Benchmark:                          *bench,
 		DiffServTOS:                        *tos,
 		LampshadeAddr:                      *lampshadeAddr,
-		LampshadeUTPAddr:                   *lampshadeUTPAddr,
 		LampshadeKeyCacheSize:              *lampshadeKeyCacheSize,
 		LampshadeMaxClientInitAge:          *lampshadeMaxClientInitAge,
 		VersionCheck:                       *versionCheck != "",
