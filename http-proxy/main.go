@@ -7,14 +7,11 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"os/signal"
 	"runtime"
 	"runtime/debug"
 	"strings"
-	"syscall"
 	"time"
 
-	"github.com/mitchellh/panicwrap"
 	"github.com/vharitonsky/iniflags"
 
 	"github.com/getlantern/golog"
@@ -153,50 +150,6 @@ func main() {
 		flag.Usage()
 		return
 	}
-
-	// panicwrap works by re-executing the running program (retaining arguments,
-	// environmental variables, etc.) and monitoring the stderr of the program.
-	exitStatus, panicWrapErr := panicwrap.Wrap(
-		&panicwrap.WrapConfig{
-			DetectDuration: time.Second,
-			Handler: func(msg string) {
-				os.Exit(1)
-			},
-			// Just forward signals to the child process
-			ForwardSignals: []os.Signal{
-				syscall.SIGHUP,
-				syscall.SIGTERM,
-				syscall.SIGQUIT,
-				syscall.SIGINT,
-				syscall.SIGUSR1,
-			},
-		})
-	if panicWrapErr != nil {
-		log.Fatalf("Error setting up panic wrapper: %v", panicWrapErr)
-	} else {
-		// If exitStatus >= 0, then we're the parent process.
-		if exitStatus >= 0 {
-			os.Exit(exitStatus)
-		}
-	}
-
-	// We're in the child (wrapped) process now
-
-	// Capture signals and exit normally because when relying on the default
-	// behavior, exit status -1 would confuse the parent process into thinking
-	// it's the child process and keeps running.
-	c := make(chan os.Signal, 1)
-	signal.Notify(c,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
-	go func() {
-		for range c {
-			log.Debug("Stopping server")
-			os.Exit(0)
-		}
-	}()
 
 	if (*lampshadeAddr != "") && !*https {
 		log.Fatal("Use of lampshade requires https flag to be true")

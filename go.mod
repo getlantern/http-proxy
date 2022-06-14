@@ -34,7 +34,6 @@ require (
 	github.com/getlantern/withtimeout v0.0.0-20160829163843-511f017cd913
 	github.com/gonum/stat v0.0.0-20180125090729-ec9c8a1062f4
 	github.com/juju/ratelimit v1.0.1
-	github.com/mitchellh/panicwrap v1.0.0
 	github.com/refraction-networking/utls v0.0.0-20200729012536-186025ac7b77
 	github.com/stretchr/testify v1.7.0
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
@@ -136,12 +135,6 @@ require (
 )
 
 replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20220215050330-93bd217f5741
-
-// git.apache.org isn't working at the moment, use mirror (should probably switch back once we can)
-replace git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999
-
-// Waiting on https://github.com/mitchellh/panicwrap/pull/27 to be merged upstream
-replace github.com/mitchellh/panicwrap v1.0.0 => github.com/getlantern/panicwrap v0.0.0-20200707191944-9ba45baf8e51
 
 replace github.com/refraction-networking/utls => github.com/getlantern/utls v0.0.0-20200903013459-0c02248f7ce1
 
