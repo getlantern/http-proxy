@@ -5,7 +5,7 @@ go 1.18
 require (
 	cloud.google.com/go/errorreporting v0.2.0
 	git.torproject.org/pluggable-transports/goptlib.git v1.2.0
-	github.com/anacrolix/go-libutp v1.0.1
+	github.com/anacrolix/go-libutp v1.2.0
 	github.com/blang/semver v0.0.0-20180723201105-3c1074078d32
 	github.com/dustin/go-humanize v1.0.0
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
@@ -66,12 +66,13 @@ require (
 	cloud.google.com/go/compute v0.1.0 // indirect
 	filippo.io/edwards25519 v1.0.0-rc.1.0.20210721174708-390f27c3be20 // indirect
 	github.com/Yawning/chacha20 v0.0.0-20170904085104-e3b1f968fc63 // indirect
-	github.com/anacrolix/envpprof v1.0.0 // indirect
-	github.com/anacrolix/missinggo v1.1.1 // indirect
+	github.com/anacrolix/log v0.10.0 // indirect
+	github.com/anacrolix/missinggo v1.2.1 // indirect
+	github.com/anacrolix/missinggo/perf v1.0.0 // indirect
 	github.com/anacrolix/mmsg v0.0.0-20180515031531-a4a3ba1fc8bb // indirect
 	github.com/anacrolix/sync v0.0.0-20180808010631-44578de4e778 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect
-	github.com/bradfitz/iter v0.0.0-20190303215204-33e6a9893b0c // indirect
+	github.com/bradfitz/iter v0.0.0-20191230175014-e8f45d346db8 // indirect
 	github.com/cespare/xxhash/v2 v2.1.1 // indirect
 	github.com/cheekybits/genny v1.0.0 // indirect
 	github.com/codahale/hdrhistogram v0.0.0-20161010025455-3a0bb77429bd // indirect
@@ -181,8 +182,6 @@ require (
 )
 
 replace github.com/lucas-clemente/quic-go => github.com/getlantern/quic-go v0.7.1-0.20220215050330-93bd217f5741
-
-replace github.com/anacrolix/go-libutp => github.com/getlantern/go-libutp v1.0.3
 
 // git.apache.org isn't working at the moment, use mirror (should probably switch back once we can)
 replace git.apache.org/thrift.git => github.com/apache/thrift v0.0.0-20180902110319-2566ecd5d999
