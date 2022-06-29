@@ -80,7 +80,7 @@ dist-on-linux: $(DIST_DIR)
 
 dist-on-docker: $(DIST_DIR) docker-builder
 	GO111MODULE=on go mod vendor && \
-	docker run -e GIT_REVISION='$(GIT_REVISION)' -e BUILD_TYPE='$(BUILD_TYPE)' \
+	docker run --platform=linux/amd64 -e GIT_REVISION='$(GIT_REVISION)' -e BUILD_TYPE='$(BUILD_TYPE)' \
 	-v $$PWD:/src -t $(DOCKER_IMAGE_TAG) /bin/bash -c \
 	'cd /src && go build -o $(DIST_DIR)/http-proxy -ldflags="-X main.revision=$$GIT_REVISION -X main.build_type=$$BUILD_TYPE" -mod=vendor ./http-proxy'
 

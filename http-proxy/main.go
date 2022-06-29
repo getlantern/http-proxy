@@ -46,19 +46,16 @@ var (
 
 	hostname, _ = os.Hostname()
 
-	addr             = flag.String("addr", "", "Address to listen with HTTP(S)")
-	multiplexAddr    = flag.String("multiplexaddr", "", "Multiplexed address at which to listen with HTTP(S)")
-	utpAddr          = flag.String("utpaddr", "", "Address at which to listen with HTTP(S) over utp")
-	lampshadeAddr    = flag.String("lampshade-addr", "", "Address at which to listen for lampshade connections with tcp. Requires https to be true.")
-	lampshadeUTPAddr = flag.String("lampshade-utpaddr", "", "Address at which to listen for lampshade connections with utp. Requires https to be true.")
-	quicIETFAddr     = flag.String("quic-ietf-addr", "", "Address at which to listen for IETF QUIC connections.")
-	quicBBR          = flag.Bool("quic-bbr", false, "Should quic-go use BBR instead of CUBIC")
-	wssAddr          = flag.String("wss-addr", "", "Address at which to listen for WSS connections.")
-	kcpConf          = flag.String("kcpconf", "", "Path to file configuring kcp")
+	addr          = flag.String("addr", "", "Address to listen with HTTP(S)")
+	multiplexAddr = flag.String("multiplexaddr", "", "Multiplexed address at which to listen with HTTP(S)")
+	lampshadeAddr = flag.String("lampshade-addr", "", "Address at which to listen for lampshade connections with tcp. Requires https to be true.")
+	quicIETFAddr  = flag.String("quic-ietf-addr", "", "Address at which to listen for IETF QUIC connections.")
+	quicBBR       = flag.Bool("quic-bbr", false, "Should quic-go use BBR instead of CUBIC")
+	wssAddr       = flag.String("wss-addr", "", "Address at which to listen for WSS connections.")
+	kcpConf       = flag.String("kcpconf", "", "Path to file configuring kcp")
 
 	obfs4Addr                          = flag.String("obfs4-addr", "", "Provide an address here in order to listen with obfs4")
 	obfs4MultiplexAddr                 = flag.String("obfs4-multiplexaddr", "", "Provide an address here in order to listen with multiplexed obfs4")
-	obfs4UTPAddr                       = flag.String("obfs4-utpaddr", "", "Provide an address here in order to listen with obfs4 over utp")
 	obfs4Dir                           = flag.String("obfs4-dir", ".", "Directory where obfs4 can store its files")
 	obfs4HandshakeConcurrency          = flag.Int("obfs4-handshake-concurrency", obfs4listener.DefaultHandshakeConcurrency, "How many concurrent OBFS4 handshakes to process")
 	obfs4MaxPendingHandshakesPerClient = flag.Int("obfs4-max-pending-handshakes-per-client", obfs4listener.DefaultMaxPendingHandshakesPerClient, "How many pending OBFS4 handshakes to allow per client")
@@ -103,7 +100,7 @@ var (
 
 	pro = flag.Bool("pro", false, "Set to true to make this a pro proxy (no bandwidth limiting unless forced throttling)")
 
-	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0.01, "The percentage of requests to sample (0.01 = 1%)")
+	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0, "The percentage of requests to sample (0.01 = 1%)")
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
 
 	reportingRedisAddr = flag.String("reportingredis", "", "The address of the reporting Redis instance in \"redis[s]://host:port\" format")
@@ -130,7 +127,7 @@ var (
 	blacklistAllowedFailures    = flag.Int("blacklist-allowed-failures", blacklist.DefaultAllowedFailures, "The number of failed connection attempts we tolerate before blacklisting an IP address")
 	blacklistExpiration         = flag.Duration("blacklist-expiration", blacklist.DefaultExpiration, "How long to wait before removing an ip from the blacklist")
 
-	stackdriverProjectID        = flag.String("stackdriver-project-id", "lantern-http-proxy", "Optional project ID for stackdriver error reporting as in http-proxy-lantern")
+	stackdriverProjectID        = flag.String("stackdriver-project-id", "", "Optional project ID for stackdriver error reporting as in http-proxy-lantern")
 	stackdriverCreds            = flag.String("stackdriver-creds", "/home/lantern/lantern-stackdriver.json", "Optional full json file path containing stackdriver credentials")
 	stackdriverSamplePercentage = flag.Float64("stackdriver-sample-percentage", 0.003, "The percentage of devices to report to Stackdriver (0.01 = 1%)")
 
@@ -254,7 +251,7 @@ func main() {
 		}
 	}()
 
-	if (*lampshadeAddr != "" || *lampshadeUTPAddr != "") && !*https {
+	if *lampshadeAddr != "" && !*https {
 		log.Fatal("Use of lampshade requires https flag to be true")
 	}
 
@@ -332,9 +329,6 @@ func main() {
 	if *packetForwardIntf != "" {
 		*externalIntf = *packetForwardIntf
 	}
-	if *maxmindLicenseKey == "" {
-		log.Fatal("maxmindlicensekey should not be empty")
-	}
 	mux := *multiplexProtocol
 	if mux != "smux" && mux != "psmux" {
 		log.Fatalf("unsupported multiplex protocol %v", mux)
@@ -354,7 +348,6 @@ func main() {
 	p := &proxy.Proxy{
 		HTTPAddr:                           *addr,
 		HTTPMultiplexAddr:                  *multiplexAddr,
-		HTTPUTPAddr:                        *utpAddr,
 		CertFile:                           *certfile,
 		CfgSvrAuthToken:                    *cfgSvrAuthToken,
 		ConnectOKWaitsForUpstream:          *connectOKWaitsForUpstream,
@@ -377,7 +370,6 @@ func main() {
 		TunnelPorts:                        *tunnelPorts,
 		Obfs4Addr:                          *obfs4Addr,
 		Obfs4MultiplexAddr:                 *obfs4MultiplexAddr,
-		Obfs4UTPAddr:                       *obfs4UTPAddr,
 		Obfs4Dir:                           *obfs4Dir,
 		Obfs4HandshakeConcurrency:          *obfs4HandshakeConcurrency,
 		Obfs4MaxPendingHandshakesPerClient: *obfs4MaxPendingHandshakesPerClient,
@@ -389,7 +381,6 @@ func main() {
 		Benchmark:                          *bench,
 		DiffServTOS:                        *tos,
 		LampshadeAddr:                      *lampshadeAddr,
-		LampshadeUTPAddr:                   *lampshadeUTPAddr,
 		LampshadeKeyCacheSize:              *lampshadeKeyCacheSize,
 		LampshadeMaxClientInitAge:          *lampshadeMaxClientInitAge,
 		VersionCheck:                       *versionCheck != "",
@@ -446,9 +437,12 @@ func main() {
 		PsmuxAggressivePadding:             *psmuxAggressivePadding,
 		PsmuxAggressivePaddingRatio:        *psmuxAggressivePaddingRatio,
 	}
-	p.CountryLookup = geo.FromWeb(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), "GeoLite2-Country.mmdb", 24*time.Hour, "GeoLite2-Country.mmdb")
-	p.ISPLookup = geo.FromWeb(fmt.Sprintf(geoip2_isp_url, *maxmindLicenseKey), "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile)
-	
+	if *maxmindLicenseKey != "" {
+		log.Debug("Will use Maxmind for geolocating clients")
+		p.CountryLookup = geo.FromWeb(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), "GeoLite2-Country.mmdb", 24*time.Hour, "GeoLite2-Country.mmdb")
+		p.ISPLookup = geo.FromWeb(fmt.Sprintf(geoip2_isp_url, *maxmindLicenseKey), "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile)
+	}
+
 	log.Fatal(p.ListenAndServe())
 }
 

@@ -1,6 +1,6 @@
 # This docker machine is able to compile http-proxy-lantern for Ubuntu Linux
 
-FROM ubuntu:20.04
+FROM --platform=linux/amd64 ubuntu:20.04
 
 # Avoids the build hanging on anything that might expect user interaction.
 ARG DEBIAN_FRONTEND=noninteractive
