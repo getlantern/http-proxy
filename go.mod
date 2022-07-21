@@ -16,7 +16,7 @@ require (
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v1.0.1
 	github.com/getlantern/geo v0.0.0-20210511192032-f563c52422c5
-	github.com/getlantern/golog v0.0.0-20210606115803-bce9f9fe5a5f
+	github.com/getlantern/golog v0.0.0-20211223150227-d4d95a44d873
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
 	github.com/getlantern/hidden v0.0.0-20201229170000-e66e7f878730
 	github.com/getlantern/http-proxy v0.0.3-0.20211022035117-86faba795750
@@ -27,7 +27,7 @@ require (
 	github.com/getlantern/measured v0.0.0-20210507000559-ec5307b2b8be
 	github.com/getlantern/mockconn v0.0.0-20200818071412-cb30d065a848
 	github.com/getlantern/mtime v0.0.0-20200417132445-23682092d1f7
-	github.com/getlantern/multipath v0.0.0-20211105161347-48cd80ec7050
+	github.com/getlantern/multipath v0.0.0-20220721104633-92b6c4b27b91
 	github.com/getlantern/netx v0.0.0-20211206143627-7ccfeb739cbd
 	github.com/getlantern/ops v0.0.0-20200403153110-8476b16edcd6
 	github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360
@@ -160,6 +160,9 @@ require (
 	go.opentelemetry.io/otel v0.20.0 // indirect
 	go.opentelemetry.io/otel/metric v0.20.0 // indirect
 	go.opentelemetry.io/otel/trace v0.20.0 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/zap v1.19.1 // indirect
 	golang.org/x/crypto v0.0.0-20210711020723-a769d52b0f97 // indirect
 	golang.org/x/mod v0.4.2 // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
