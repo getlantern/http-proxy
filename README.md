@@ -79,7 +79,7 @@ Run a Lantern client accordingly from `lantern-desktop`, as in:
 
 If you're developing a new transport, you can also add new versions of those files for that transport as you're testing.
 
-You have two options to test it: the Lantern client or [checkfallbacks](https://github.com/getlantern/lantern/tree/valencia/src/github.com/getlantern/checkfallbacks).
+You have two options to test it: the Lantern client or [checkfallbacks](https://github.com/getlantern/checkfallbacks).
 
 Keep in mind that they will need to send some headers in order to avoid receiving 404 messages (the chained server response if you aren't providing them).
 
@@ -155,4 +155,3 @@ To view proxy logs on a given machine, run:
 ```
 journalctl -e -u http-proxy
 ```
-
