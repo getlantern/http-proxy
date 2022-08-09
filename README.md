@@ -20,6 +20,8 @@ All pushes to the `main` branch are automatically deployed to production via CI 
 
 All pushes to the `canary` branch are automatically deployed to the canary binary distribution URL for any proxies running the canary version.
 
+See `.github/workflows/go.yml`, which uses the `make build` Makefile target **NOT THE LEGACY `make dist-on-docker`**.
+
 ### Building
 
 Currently, http-proxy-lantern will only build on Linux hosts. You need to have
