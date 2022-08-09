@@ -6,6 +6,7 @@ GIT_REVISION := $(shell git rev-parse --short HEAD)
 # Binaries compiles for distribution will be output to DIST_DIR.
 BUILD_DIR   := bin
 DIST_DIR    := dist-bin
+BINARY      := $(DIST_DIR)/http-proxy
 
 SRCS := $(shell find . -name "*.go" -not -path "*_test.go" -not -path "./vendor/*") go.mod go.sum
 
@@ -80,7 +81,7 @@ dist-on-docker: $(DIST_DIR) docker-builder
 	GO111MODULE=on go mod vendor && \
 	docker run --platform=linux/amd64 -e GIT_REVISION='$(GIT_REVISION)' -e BUILD_TYPE='$(BUILD_TYPE)' \
 	-v $$PWD:/src -t $(DOCKER_IMAGE_TAG) /bin/bash -c \
-	'cd /src && CGO_ENABLED=1 go build -o $(DIST_DIR)/http-proxy -ldflags="-X main.revision=$$GIT_REVISION -X main.build_type=$$BUILD_TYPE" -mod=vendor ./http-proxy' && \
+	'cd /src && CGO_ENABLED=1 go build -o $(BINARY) -ldflags="-X main.revision=$$GIT_REVISION -X main.build_type=$$BUILD_TYPE" -mod=vendor ./http-proxy' && \
 	file $(BINARY) && ls -lh $(BINARY)
 
 $(DIST_DIR)/http-proxy: $(SRCS)
