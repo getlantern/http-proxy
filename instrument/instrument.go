@@ -1,6 +1,7 @@
 package instrument
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"strconv"
@@ -10,6 +11,9 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/getlantern/geo"
 	"github.com/getlantern/multipath"
@@ -27,7 +31,7 @@ type Instrument interface {
 	XBQHeaderSent()
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
-	ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP)
+	ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID string)
 	quicSentPacket()
 	quicLostPacket()
 }
@@ -53,7 +57,7 @@ func (i NoInstrument) Throttle(m bool, reason string) {}
 func (i NoInstrument) XBQHeaderSent()                                    {}
 func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
 func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
-func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP) {
+func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID string) {
 }
 func (i NoInstrument) quicSentPacket() {}
 func (i NoInstrument) quicLostPacket() {}
@@ -347,11 +351,12 @@ func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP) {
+func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID string) {
 	labels := prometheus.Labels{"app_platform": platform, "app_version": version, "app": app, "datacap_cohort": dataCapCohort}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
 	country := p.countryLookup.CountryCode(clientIP)
+	isp := p.ispLookup.ISP(clientIP)
 	by_isp := prometheus.Labels{"country": country, "isp": "omitted"}
 	// We care about ISPs within these countries only, to reduce cardinality of the metrics
 	if country == "CN" || country == "IR" || country == "AE" || country == "TK" {
@@ -359,6 +364,18 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	}
 	p.bytesSentByISP.With(by_isp).Add(float64(sent))
 	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
+
+	_, span := otel.Tracer("").
+		Start(context.Background(), "proxied_bytes", trace.WithAttributes(
+			attribute.Int("bytes_sent", sent),
+			attribute.Int("bytes_recv", recv),
+			attribute.Int("bytes_total", sent+recv),
+			attribute.String("os_name", platform),
+			attribute.String("app_version", app),
+			attribute.String("device_id", deviceID),
+			attribute.String("geo_country", country),
+			attribute.String("isp", isp)))
+	span.End()
 }
 
 // quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.
