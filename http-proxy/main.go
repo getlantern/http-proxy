@@ -82,13 +82,10 @@ var (
 
 	throttleRefreshInterval = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
 
-	enableMultipath       = flag.Bool("enablemultipath", false, "Enable multipath. Only clients support multipath can communicate with it.")
-	enableReports         = flag.Bool("enablereports", false, "Enable stats reporting")
-	bordaReportInterval   = flag.Duration("borda-report-interval", 0*time.Second, "How frequently to report errors to borda. Set to 0 to disable reporting.")
-	bordaSamplePercentage = flag.Float64("borda-sample-percentage", 0.0001, "The percentage of devices to report to Borda (0.01 = 1%)")
-	bordaBufferSize       = flag.Int("borda-buffer-size", 10000, "Size of borda buffer, caps how many distinct measurements to keep during each submit interval")
+	enableMultipath = flag.Bool("enablemultipath", false, "Enable multipath. Only clients support multipath can communicate with it.")
+	enableReports   = flag.Bool("enablereports", false, "Enable stats reporting")
 
-	externalIP = flag.String("externalip", "", "The external IP of this proxy, used for reporting to Borda")
+	externalIP = flag.String("externalip", "", "The external IP of this proxy, used for reporting")
 	https      = flag.Bool("https", false, "Use TLS for client to proxy communication")
 	idleClose  = flag.Uint64("idleclose", 70, "Time in seconds that an idle connection will be allowed before closing it")
 	_          = flag.Uint64("maxconns", 0, "Max number of simultaneous allowed connections, unused")
@@ -166,6 +163,9 @@ var (
 	shadowsocksReplayHistory = flag.Int("shadowsocks-replay-history", shadowsocks.DefaultReplayHistory, "Replay buffer size (# of handshakes)")
 	shadowsocksSecret        = flag.String("shadowsocks-secret", "", "shadowsocks secret")
 	shadowsocksCipher        = flag.String("shadowsocks-cipher", shadowsocks.DefaultCipher, "shadowsocks cipher")
+
+	honeycombKey        = flag.String("honeycomb-key", "9MJkkcYrlmWx0HwlE5K6RD", "honeycomb key (if unspecified, will not report traces to Honeycomb")
+	honeycombSampleRate = flag.Int("honeycomb-sample-rate", 1, "rate at which to sample data for honeycomb")
 
 	track = flag.String("track", "", "The track this proxy is running on")
 )
@@ -348,14 +348,14 @@ func main() {
 		EnableReports:                      *enableReports,
 		EnableMultipath:                    *enableMultipath,
 		ThrottleRefreshInterval:            *throttleRefreshInterval,
-		BordaReportInterval:                *bordaReportInterval,
-		BordaSamplePercentage:              0.0001, // hardcoded to ignore what's in config.ini
-		BordaBufferSize:                    *bordaBufferSize,
+		HoneycombKey:                       *honeycombKey,
+		HoneycombSampleRate:                *honeycombSampleRate,
 		ExternalIP:                         *externalIP,
 		HTTPS:                              *https,
 		IdleTimeout:                        time.Duration(*idleClose) * time.Second,
 		KeyFile:                            *keyfile,
 		SessionTicketKeyFile:               *sessionTicketKeyFile,
+		Track:                              *track,
 		Pro:                                *pro,
 		ProxiedSitesSamplePercentage:       *proxiedSitesSamplePercentage,
 		ProxiedSitesTrackingID:             *proxiedSitesTrackingId,
