@@ -56,12 +56,17 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 		if _client_ip != nil {
 			client_ip = net.ParseIP(_client_ip.(string))
 		}
+		_deviceID := ctx["deviceid"]
+		deviceID := ""
+		if _deviceID != nil {
+			deviceID = _deviceID.(string)
+		}
 		dataCapCohort := ""
 		throttleSettings, hasThrottleSettings := ctx["throttle_settings"]
 		if hasThrottleSettings {
 			dataCapCohort = throttleSettings.(*throttle.Settings).Label
 		}
-		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, app, dataCapCohort, client_ip)
+		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, app, dataCapCohort, client_ip, deviceID)
 	}
 
 	var reporter listeners.MeasuredReportFN

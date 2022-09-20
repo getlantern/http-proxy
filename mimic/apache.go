@@ -17,7 +17,6 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
-	"github.com/getlantern/pcapper"
 )
 
 var (
@@ -58,7 +57,7 @@ func Apache(conn net.Conn, req *http.Request) {
 	ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
 	log.Tracef("Mimicking apache to client at %v", ip)
 	ops.Begin("mimic_apache").Set("client_ip", ip).End()
-	pcapper.Dump(ip, "Mimicking apache")
+	// pcapper.Dump(ip, "Mimicking apache")
 	path := req.URL.Path
 	// remove extra leading slash
 	if len(path) > 0 && path[0] == '/' {
