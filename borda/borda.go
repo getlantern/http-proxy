@@ -33,6 +33,11 @@ func Enable(bordaReportInterval time.Duration, bordaSamplePercentage float64, ma
 
 		// For some ops, we don't randomly sample, we include all of them
 		op := ctx["op"]
+		if op == "proxied_bytes" {
+			// don't send this to borda
+			return false
+		}
+
 		switch t := op.(type) {
 		case string:
 			for _, fullyReportedOp := range fullyReportedOps {

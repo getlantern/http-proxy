@@ -13,6 +13,7 @@ import (
 
 	"github.com/getlantern/geo"
 	"github.com/getlantern/multipath"
+	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy/v2/filters"
 )
 
@@ -27,7 +28,7 @@ type Instrument interface {
 	XBQHeaderSent()
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
-	ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP)
+	ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID string)
 	TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int)
 	quicSentPacket()
 	quicLostPacket()
@@ -54,7 +55,7 @@ func (i NoInstrument) Throttle(m bool, reason string) {}
 func (i NoInstrument) XBQHeaderSent()                                    {}
 func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
 func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
-func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP) {
+func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID string) {
 }
 func (i NoInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int) {
 }
@@ -350,11 +351,12 @@ func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP) {
+func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID string) {
 	labels := prometheus.Labels{"app_platform": platform, "app_version": version, "app": app, "datacap_cohort": dataCapCohort}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
 	country := p.countryLookup.CountryCode(clientIP)
+	isp := p.ispLookup.ISP(clientIP)
 	by_isp := prometheus.Labels{"country": country, "isp": "omitted"}
 	// We care about ISPs within these countries only, to reduce cardinality of the metrics
 	if country == "CN" || country == "IR" || country == "AE" || country == "TK" {
@@ -362,6 +364,18 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	}
 	p.bytesSentByISP.With(by_isp).Add(float64(sent))
 	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
+
+	ops.
+		Begin("proxied_bytes").
+		Set("bytes_sent", sent).
+		Set("bytes_recv", recv).
+		Set("bytes_total", sent+recv).
+		Set("os_name", platform).
+		Set("app_version", app).
+		Set("device_id", deviceID).
+		Set("geo_country", country).
+		Set("isp", isp).
+		End()
 }
 
 // TCPPackets records the number/rate of TCP data packets and retransmissions

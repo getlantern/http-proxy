@@ -27,6 +27,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
 	"github.com/getlantern/http-proxy-lantern/v2/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
+	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	lanternredis "github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/stackdrivererror"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
@@ -173,6 +174,9 @@ var (
 	shadowsocksSecret        = flag.String("shadowsocks-secret", "", "shadowsocks secret")
 	shadowsocksCipher        = flag.String("shadowsocks-cipher", shadowsocks.DefaultCipher, "shadowsocks cipher")
 
+	honeycombKey        = flag.String("honeycomb-key", "Lm9rYjSW4HAhdY9hLxwhuD", "honeycomb key (if unspecified, will not report traces to Honeycomb")
+	honeycombSampleRate = flag.Int("honeycomb-sample-rate", 100, "rate at which to sample data for honeycomb")
+
 	track = flag.String("track", "", "The track this proxy is running on")
 )
 
@@ -250,6 +254,14 @@ func main() {
 			os.Exit(0)
 		}
 	}()
+
+	if *honeycombKey != "" {
+		log.Debug("Configuring OpenTelemetry")
+		otel.Configure(*honeycombKey, *honeycombSampleRate)
+		defer otel.Stop()
+	} else {
+		log.Debug("Not configuring OpenTelemetry")
+	}
 
 	if *lampshadeAddr != "" && !*https {
 		log.Fatal("Use of lampshade requires https flag to be true")
