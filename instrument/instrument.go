@@ -1,6 +1,7 @@
 package instrument
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"strconv"
@@ -10,10 +11,17 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/getlantern/geo"
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/proxy/v2/filters"
+)
+
+const (
+	otelReportingInterval = 30 * time.Minute
 )
 
 // Instrument is the common interface about what can be instrumented.
@@ -27,7 +35,8 @@ type Instrument interface {
 	XBQHeaderSent()
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
-	ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP)
+	ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID string)
+	Close() error
 	quicSentPacket()
 	quicLostPacket()
 }
@@ -53,8 +62,9 @@ func (i NoInstrument) Throttle(m bool, reason string) {}
 func (i NoInstrument) XBQHeaderSent()                                    {}
 func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
 func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
-func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP) {
+func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID string) {
 }
+func (i NoInstrument) Close() error    { return nil }
 func (i NoInstrument) quicSentPacket() {}
 func (i NoInstrument) quicLostPacket() {}
 
@@ -105,6 +115,8 @@ type PromInstrument struct {
 	commonLabelNames []string
 	filters          map[string]*instrumentedFilter
 	errorHandlers    map[string]func(conn net.Conn, err error)
+	clientStats      map[clientDetails]*clientUsage
+	clientStatsMx    sync.Mutex
 
 	blacklistChecked, blacklisted, mimicryChecked, mimicked, quicLostPackets, quicSentPackets, tcpConsecRetransmissions, tcpSentDataPackets, throttlingChecked, xbqSent prometheus.Counter
 
@@ -123,13 +135,14 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		commonLabelNames[i] = k
 		i++
 	}
-	return &PromInstrument{
+	p := &PromInstrument{
 		countryLookup:    countryLookup,
 		ispLookup:        ispLookup,
 		commonLabels:     commonLabels,
 		commonLabelNames: commonLabelNames,
 		filters:          make(map[string]*instrumentedFilter),
 		errorHandlers:    make(map[string]func(conn net.Conn, err error)),
+		clientStats:      make(map[clientDetails]*clientUsage),
 		blacklistChecked: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_blacklist_checked_requests_total",
 		}, commonLabelNames).With(commonLabels),
@@ -223,6 +236,9 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 			Name: "proxy_version_check_total",
 		}, append(commonLabelNames, "method", "redirected", "reason")).MustCurryWith(commonLabels),
 	}
+
+	go p.reportToOTELPeriodically()
+	return p
 }
 
 // Run runs the PromInstrument exporter on the given address. The
@@ -347,18 +363,30 @@ func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP) {
+func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID string) {
 	labels := prometheus.Labels{"app_platform": platform, "app_version": version, "app": app, "datacap_cohort": dataCapCohort}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
 	country := p.countryLookup.CountryCode(clientIP)
+	isp := p.ispLookup.ISP(clientIP)
 	by_isp := prometheus.Labels{"country": country, "isp": "omitted"}
 	// We care about ISPs within these countries only, to reduce cardinality of the metrics
 	if country == "CN" || country == "IR" || country == "AE" || country == "TK" {
-		by_isp["isp"] = p.ispLookup.ISP(clientIP)
+		by_isp["isp"] = isp
 	}
 	p.bytesSentByISP.With(by_isp).Add(float64(sent))
 	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
+
+	key := clientDetails{
+		deviceID: deviceID,
+		platform: platform,
+		version:  version,
+		country:  country,
+		isp:      isp,
+	}
+	p.clientStatsMx.Lock()
+	p.clientStats[key] = p.clientStats[key].add(sent, recv)
+	p.clientStatsMx.Unlock()
 }
 
 // quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.
@@ -407,4 +435,61 @@ func (prom *PromInstrument) MultipathStats(protocols []string) (trackers []multi
 		})
 	}
 	return
+}
+
+type clientDetails struct {
+	deviceID string
+	platform string
+	version  string
+	country  string
+	isp      string
+}
+
+type clientUsage struct {
+	sent int
+	recv int
+}
+
+func (u *clientUsage) add(sent int, recv int) *clientUsage {
+	if u == nil {
+		u = &clientUsage{}
+	}
+	u.sent += sent
+	u.recv += recv
+	return u
+}
+
+func (p *PromInstrument) reportToOTELPeriodically() {
+	for {
+		time.Sleep(otelReportingInterval)
+		p.reportToOTEL()
+	}
+}
+
+func (p *PromInstrument) reportToOTEL() {
+	p.clientStatsMx.Lock()
+	stats := p.clientStats
+	p.clientStats = make(map[clientDetails]*clientUsage)
+	p.clientStatsMx.Unlock()
+	for key, value := range stats {
+		_, span := otel.Tracer("").
+			Start(
+				context.Background(),
+				"proxied_bytes",
+				trace.WithAttributes(
+					attribute.Int("bytes_sent", value.sent),
+					attribute.Int("bytes_recv", value.recv),
+					attribute.Int("bytes_total", value.sent+value.recv),
+					attribute.String("client_platform", key.platform),
+					attribute.String("client_version", key.version),
+					attribute.String("device_id", key.deviceID),
+					attribute.String("client_country", key.country),
+					attribute.String("client_isp", key.isp)))
+		span.End()
+	}
+}
+
+func (p *PromInstrument) Close() error {
+	p.reportToOTEL()
+	return nil
 }

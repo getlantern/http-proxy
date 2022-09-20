@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	bordaClient "github.com/getlantern/borda/client"
 	"github.com/getlantern/cmux/v2"
 	"github.com/getlantern/cmuxprivate"
 	"github.com/getlantern/enhttp"
@@ -26,7 +25,6 @@ import (
 	rclient "github.com/go-redis/redis/v8"
 
 	"github.com/getlantern/multipath"
-	"github.com/getlantern/ops"
 	packetforward "github.com/getlantern/packetforward/server"
 	"github.com/getlantern/proxy/v2"
 	"github.com/getlantern/proxy/v2/filters"
@@ -43,7 +41,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/analytics"
 	"github.com/getlantern/http-proxy-lantern/v2/bbr"
 	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
-	"github.com/getlantern/http-proxy-lantern/v2/borda"
 	"github.com/getlantern/http-proxy-lantern/v2/cleanheadersfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/devicefilter"
 	"github.com/getlantern/http-proxy-lantern/v2/diffserv"
@@ -56,6 +53,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
+	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	"github.com/getlantern/http-proxy-lantern/v2/ping"
 	"github.com/getlantern/http-proxy-lantern/v2/quic"
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
@@ -82,9 +80,8 @@ type Proxy struct {
 	TestingLocal                       bool
 	HTTPAddr                           string
 	HTTPMultiplexAddr                  string
-	BordaReportInterval                time.Duration
-	BordaSamplePercentage              float64
-	BordaBufferSize                    int
+	HoneycombKey                       string
+	HoneycombSampleRate                int
 	ExternalIP                         string
 	CertFile                           string
 	CfgSvrAuthToken                    string
@@ -98,6 +95,7 @@ type Proxy struct {
 	HTTPS                              bool
 	IdleTimeout                        time.Duration
 	KeyFile                            string
+	Track                              string
 	Pro                                bool
 	ProxiedSitesSamplePercentage       float64
 	ProxiedSitesTrackingID             string
@@ -175,7 +173,7 @@ type Proxy struct {
 	instrument     instrument.Instrument
 }
 
-type listenerBuilderFN func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error)
+type listenerBuilderFN func(addr string) (net.Listener, error)
 
 type addresses struct {
 	obfs4          string
@@ -220,12 +218,12 @@ func (p *Proxy) ListenAndServe() error {
 		}()
 		p.instrument = prom
 	}
+	defer p.instrument.Close()
 	var onServerError func(conn net.Conn, err error)
 	var onListenerError func(conn net.Conn, err error)
 	if err := p.setupPacketForward(); err != nil {
 		log.Errorf("Unable to set up packet forwarding, will continue to start up: %v", err)
 	}
-	p.setupOpsContext()
 	p.setBenchmarkMode()
 	p.bm = bbr.New()
 	if p.BBRUpstreamProbeURL != "" {
@@ -261,7 +259,8 @@ func (p *Proxy) ListenAndServe() error {
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  p.instrument.WrapConnErrorHandler("proxy_serve", onServerError),
 	})
-	bwReporting, bordaReporter := p.configureBandwidthReporting()
+	bwReporting, stopOTEL := p.configureBandwidthReporting()
+	defer stopOTEL()
 	// Throttle connections when signaled
 	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
 
@@ -271,7 +270,7 @@ func (p *Proxy) ListenAndServe() error {
 		if addr == "" {
 			return nil
 		}
-		l, err := fn(addr, bordaReporter)
+		l, err := fn(addr)
 		if err != nil {
 			return err
 		}
@@ -373,8 +372,8 @@ func (p *Proxy) ListenAndServeENHTTP() error {
 }
 
 func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
-	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
-		l, err := fn(addr, bordaReporter)
+	return func(addr string) (net.Listener, error) {
+		l, err := fn(addr)
 		if err != nil {
 			return nil, err
 		}
@@ -393,8 +392,8 @@ func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
 }
 
 func (p *Proxy) wrapMultiplexing(fn listenerBuilderFN) listenerBuilderFN {
-	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
-		l, err := fn(addr, bordaReporter)
+	return func(addr string) (net.Listener, error) {
+		l, err := fn(addr)
 		if err != nil {
 			return nil, err
 		}
@@ -478,23 +477,6 @@ func (p *Proxy) buildPsmuxProtocol() (cmux.Protocol, error) {
 		}
 	}
 	return cmuxprivate.NewPsmuxProtocol(config), nil
-}
-
-func (p *Proxy) setupOpsContext() {
-	ops.SetGlobal("app", "http-proxy")
-	if p.ExternalIP != "" {
-		log.Debugf("Will report with proxy_host: %v", p.ExternalIP)
-		ops.SetGlobal("proxy_host", p.ExternalIP)
-	}
-	proxyName, dc := proxyName(p.ProxyName)
-	// Only set proxy name if it follows our naming convention
-	if proxyName != "" {
-		log.Debugf("Will report with proxy_name %v in dc %v", proxyName, dc)
-		ops.SetGlobal("proxy_name", proxyName)
-		ops.SetGlobal("dc", dc)
-	}
-	ops.SetGlobal("proxy_protocol", p.proxyProtocol())
-	ops.SetGlobal("is_pro", p.Pro)
 }
 
 func proxyName(hostname string) (proxyName string, dc string) {
@@ -597,29 +579,16 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	// Prefer IPv4 to mitigate, see issue #97
 	_dialer := preferIPV4Dialer(timeoutToDialOriginSite)
 	dialer := func(ctx context.Context, network, addr string) (net.Conn, error) {
-		op := ops.Begin("dial_origin")
-		defer op.End()
-
-		start := time.Now()
-
 		// resolve separately so that we can track the DNS resolution time
-		resolveOp := ops.Begin("resolve_origin")
 		resolvedAddr, resolveErr := net.ResolveTCPAddr(network, addr)
 		if resolveErr != nil {
-			resolveOp.FailIf(resolveErr)
-			op.FailIf(resolveErr)
-			resolveOp.End()
 			return nil, resolveErr
 		}
-		op.Set("resolve_origin_time", bordaClient.Avg(time.Now().Sub(start).Seconds()))
-		resolveOp.End()
 
 		conn, dialErr := _dialer(ctx, network, resolvedAddr.String())
 		if dialErr != nil {
-			op.FailIf(dialErr)
 			return nil, dialErr
 		}
-		op.Set("dial_origin_time", bordaClient.Avg(time.Now().Sub(start).Seconds()))
 
 		return conn, nil
 	}
@@ -669,15 +638,28 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}, nil
 }
 
-func (p *Proxy) configureBandwidthReporting() (*reportingConfig, listeners.MeasuredReportFN) {
-	var bordaReporter listeners.MeasuredReportFN
-	if p.BordaReportInterval > 0 {
-		log.Debug("Enabling reporting to borda")
-		bordaReporter = borda.Enable(p.BordaReportInterval, p.BordaSamplePercentage, p.BordaBufferSize)
+func (p *Proxy) configureBandwidthReporting() (*reportingConfig, func()) {
+	stop := func() {}
+	if p.HoneycombKey != "" {
+		log.Debug("Configuring OpenTelemetry")
+		proxyName, dc := proxyName(p.ProxyName)
+		opts := &otel.Opts{
+			HoneycombKey:  p.HoneycombKey,
+			SampleRate:    p.HoneycombSampleRate,
+			ExternalIP:    p.ExternalIP,
+			ProxyName:     proxyName,
+			Track:         p.Track,
+			DC:            dc,
+			ProxyProtocol: p.proxyProtocol(),
+			IsPro:         p.Pro,
+		}
+		otel.Configure(opts)
+		stop = otel.Stop
 	} else {
-		log.Debug("Not reporting to borda")
+		log.Debug("Not configuring OpenTelemetry")
 	}
-	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.EnableReports, bordaReporter, p.instrument, p.throttleConfig), bordaReporter
+
+	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.EnableReports, p.instrument, p.throttleConfig), stop
 }
 
 func (p *Proxy) loadThrottleConfig() {
@@ -702,7 +684,7 @@ func (p *Proxy) allowedTunnelPorts() []int {
 }
 
 func (p *Proxy) listenHTTP(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
-	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	return func(addr string) (net.Listener, error) {
 		l, err := baseListen(addr, true)
 		if err != nil {
 			return nil, errors.New("Unable to listen for HTTP: %v", err)
@@ -713,7 +695,7 @@ func (p *Proxy) listenHTTP(baseListen func(string, bool) (net.Listener, error)) 
 }
 
 func (p *Proxy) listenOBFS4(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
-	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	return func(addr string) (net.Listener, error) {
 		l, err := baseListen(addr, true)
 		if err != nil {
 			return nil, errors.New("Unable to listen for OBFS4: %v", err)
@@ -729,16 +711,10 @@ func (p *Proxy) listenOBFS4(baseListen func(string, bool) (net.Listener, error))
 }
 
 func (p *Proxy) listenLampshade(trackBBR bool, onListenerError func(net.Conn, error), baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
-	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	return func(addr string) (net.Listener, error) {
 		l, err := baseListen(addr, false)
 		if err != nil {
 			return nil, err
-		}
-		if bordaReporter != nil {
-			log.Debug("Wrapping lampshade's TCP listener with measured reporting")
-			l = listeners.NewMeasuredListener(l,
-				measuredReportingInterval,
-				borda.ConnectionTypedBordaReporter("physical", bordaReporter))
 		}
 		wrapped, wrapErr := lampshade.Wrap(l, p.CertFile, p.KeyFile, p.LampshadeKeyCacheSize, p.LampshadeMaxClientInitAge, onListenerError)
 		if wrapErr != nil {
@@ -760,7 +736,7 @@ func (p *Proxy) listenLampshade(trackBBR bool, onListenerError func(net.Conn, er
 }
 
 func (p *Proxy) listenTLSMasq(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
-	return func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	return func(addr string) (net.Listener, error) {
 		l, err := baseListen(addr, false)
 		if err != nil {
 			return nil, err
@@ -804,7 +780,7 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 	return l, nil
 }
 
-func (p *Proxy) listenKCP(kcpConf string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+func (p *Proxy) listenKCP(kcpConf string) (net.Listener, error) {
 	cfg := &kcpwrapper.ListenerConfig{}
 	file, err := os.Open(kcpConf) // For read access.
 	if err != nil {
@@ -826,7 +802,7 @@ func (p *Proxy) listenKCP(kcpConf string, bordaReporter listeners.MeasuredReport
 	})
 }
 
-func (p *Proxy) listenQUICIETF(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+func (p *Proxy) listenQUICIETF(addr string) (net.Listener, error) {
 	tlsConf, err := tlsdefaults.BuildListenerConfig(addr, p.KeyFile, p.CertFile)
 	if err != nil {
 		return nil, err
@@ -848,7 +824,7 @@ func (p *Proxy) listenQUICIETF(addr string, bordaReporter listeners.MeasuredRepo
 	return l, err
 }
 
-func (p *Proxy) listenShadowsocks(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
 	// This is not using p.ListenTCP on purpose to avoid additional wrapping with idle timing.
 	// The idea here is to be as close to what outline shadowsocks does without any intervention,
 	// especially with respect to draining connections and the timing of closures.
@@ -873,7 +849,7 @@ func (p *Proxy) listenShadowsocks(addr string, bordaReporter listeners.MeasuredR
 	return l, nil
 }
 
-func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+func (p *Proxy) listenWSS(addr string) (net.Listener, error) {
 	l, err := p.listenTCP(addr, true)
 	if err != nil {
 		return nil, errors.New("Unable to listen for wss: %v", err)
