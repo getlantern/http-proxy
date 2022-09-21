@@ -174,7 +174,7 @@ var (
 	shadowsocksSecret        = flag.String("shadowsocks-secret", "", "shadowsocks secret")
 	shadowsocksCipher        = flag.String("shadowsocks-cipher", shadowsocks.DefaultCipher, "shadowsocks cipher")
 
-	honeycombKey        = flag.String("honeycomb-key", "Lm9rYjSW4HAhdY9hLxwhuD", "honeycomb key (if unspecified, will not report traces to Honeycomb")
+	honeycombKey        = flag.String("honeycomb-key", "eqpEOa7ZgxI9TvIfcNE3yC", "honeycomb key (if unspecified, will not report traces to Honeycomb")
 	honeycombSampleRate = flag.Int("honeycomb-sample-rate", 100, "rate at which to sample data for honeycomb")
 
 	track = flag.String("track", "", "The track this proxy is running on")
@@ -242,18 +242,10 @@ func main() {
 	// Capture signals and exit normally because when relying on the default
 	// behavior, exit status -1 would confuse the parent process into thinking
 	// it's the child process and keeps running.
-	c := make(chan os.Signal, 1)
-	signal.Notify(c,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
-	go func() {
-		for range c {
-			log.Debug("Stopping server")
-			os.Exit(0)
-		}
-	}()
+	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGHUP,
+		syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
 
 	if *honeycombKey != "" {
 		log.Debug("Configuring OpenTelemetry")
@@ -455,7 +447,19 @@ func main() {
 		p.ISPLookup = geo.FromWeb(fmt.Sprintf(geoip2_isp_url, *maxmindLicenseKey), "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile)
 	}
 
-	log.Fatal(p.ListenAndServe())
+	go func() {
+		if err := p.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Errorf("Error listening and serving: %v", err)
+		}
+	}()
+	// Listen for the interrupt signal.
+	<-ctx.Done()
+
+	log.Debug("Shutting down gracefully, press Ctrl+C again to force")
+
+	if err := p.Close(); err != nil {
+		log.Errorf("Error closing server: %v", err)
+	}
 }
 
 func periodicallyForceGC() {

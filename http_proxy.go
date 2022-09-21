@@ -178,6 +178,8 @@ type Proxy struct {
 	bm             bbr.Middleware
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
+
+	allListeners []net.Listener
 }
 
 type listenerBuilderFN func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error)
@@ -191,7 +193,7 @@ type addresses struct {
 	tlsmasq        string
 }
 
-// ListenAndServe listens, serves and blocks.
+// ListenAndServe listens and serves clients with the appropriate protocols
 func (p *Proxy) ListenAndServe() error {
 	if p.CountryLookup == nil {
 		log.Debugf("Maxmind not configured, will not report country data to prometheus or in bandwidth data")
@@ -217,6 +219,7 @@ func (p *Proxy) ListenAndServe() error {
 				RequireTLSResumption:  p.RequireSessionTickets,
 				MissingTicketReaction: p.MissingTicketReaction.Action(),
 			})
+		defer prom.Close()
 		go func() {
 			log.Debugf("Running Prometheus exporter at http://%s/metrics", p.PromExporterAddr)
 			if err := prom.Run(p.PromExporterAddr); err != nil {
@@ -294,7 +297,7 @@ func (p *Proxy) ListenAndServe() error {
 	// Throttle connections when signaled
 	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
 
-	allListeners := make([]net.Listener, 0)
+	p.allListeners = make([]net.Listener, 0)
 	listenerProtocols := make([]string, 0)
 	addListenerIfNecessary := func(proto, addr string, fn listenerBuilderFN) error {
 		if addr == "" {
@@ -307,7 +310,7 @@ func (p *Proxy) ListenAndServe() error {
 		listenerProtocols = append(listenerProtocols, proto)
 		// Although we include blacklist functionality, it's currently only used to
 		// track potential blacklisting ad doesn't actually blacklist anyone.
-		allListeners = append(allListeners, lanternlisteners.NewAllowingListener(l, blacklist.OnConnect))
+		p.allListeners = append(p.allListeners, lanternlisteners.NewAllowingListener(l, blacklist.OnConnect))
 		return nil
 	}
 
@@ -368,15 +371,18 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if p.EnableMultipath {
-		mpl := multipath.NewListener(allListeners, p.instrument.MultipathStats(listenerProtocols))
+		mpl := multipath.NewListener(p.allListeners, p.instrument.MultipathStats(listenerProtocols))
 		log.Debug("Serving multipath at:")
-		for i, l := range allListeners {
+		for i, l := range p.allListeners {
 			log.Debugf("  %-20s:  %v", listenerProtocols[i], l.Addr())
 		}
+
+		// Make sure to add the multipath listener so that it is also closed, and make sure it's at the beginning.
+		p.allListeners = append([]net.Listener{mpl}, p.allListeners...)
 		return srv.Serve(mpl, nil)
 	} else {
-		errCh := make(chan error, len(allListeners))
-		for _, _l := range allListeners {
+		errCh := make(chan error, len(p.allListeners))
+		for _, _l := range p.allListeners {
 			l := _l
 			go func() {
 				log.Debugf("Serving at: %v", l.Addr())
@@ -385,6 +391,17 @@ func (p *Proxy) ListenAndServe() error {
 		}
 		return <-errCh
 	}
+}
+
+func (p *Proxy) Close() error {
+	var err error
+	for _, l := range p.allListeners {
+		e := l.Close()
+		if err == nil && e != nil {
+			err = e
+		}
+	}
+	return err
 }
 
 func (p *Proxy) ListenAndServeENHTTP() error {

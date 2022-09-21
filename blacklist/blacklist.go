@@ -209,12 +209,12 @@ func (bl *Blacklist) checkForIdlers() {
 			msg := fmt.Sprintf("%v connected but failed to successfully send an HTTP request within %v", ip, bl.maxIdleTime)
 			log.Trace(msg)
 			delete(bl.firstConnectionTime, ip)
-			ops.Begin("connect_without_request").Set("client_ip", ip).End()
+			ops.Begin("connect_without_request").End()
 
 			count := bl.failureCounts[ip] + 1
 			bl.failureCounts[ip] = count
 			if count >= bl.allowedFailures {
-				ops.Begin("blacklist").Set("client_ip", ip).End()
+				ops.Begin("blacklist").End()
 				_ = log.Errorf("Blacklisting %v", ip)
 				blacklistAdditions = append(blacklistAdditions, ip)
 			}
