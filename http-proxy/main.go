@@ -27,7 +27,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
 	"github.com/getlantern/http-proxy-lantern/v2/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
-	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	lanternredis "github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/stackdrivererror"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
@@ -248,9 +247,9 @@ func main() {
 	defer stop()
 
 	if *honeycombKey != "" {
-		log.Debug("Configuring OpenTelemetry")
-		otel.Configure(*honeycombKey, *honeycombSampleRate)
-		defer otel.Stop()
+		log.Debug("Not configuring OpenTelemetry")
+		// otel.Configure(*honeycombKey, *honeycombSampleRate)
+		// defer otel.Stop()
 	} else {
 		log.Debug("Not configuring OpenTelemetry")
 	}
