@@ -178,6 +178,8 @@ type Proxy struct {
 	bm             bbr.Middleware
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
+
+	allListeners []net.Listener
 }
 
 type listenerBuilderFN func(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error)
@@ -191,13 +193,8 @@ type addresses struct {
 	tlsmasq        string
 }
 
-type Server struct {
-	Serve func() error
-	Close func() error
-}
-
-// PrepareServer prepares a Server by listening with the appropriate protocols
-func (p *Proxy) PrepareServer() (*Server, error) {
+// ListenAndServe listens and serves clients with the appropriate protocols
+func (p *Proxy) ListenAndServe() error {
 	if p.CountryLookup == nil {
 		log.Debugf("Maxmind not configured, will not report country data to prometheus or in bandwidth data")
 		p.CountryLookup = geo.NoLookup{}
@@ -269,14 +266,14 @@ func (p *Proxy) PrepareServer() (*Server, error) {
 	p.loadThrottleConfig()
 
 	if p.ENHTTPAddr != "" {
-		return p.prepareENHTTPServer()
+		return p.ListenAndServeENHTTP()
 	}
 
 	// Only allow connections from remote IPs that are not blacklisted
 	blacklist := p.createBlacklist()
 	filterChain, dial, err := p.createFilterChain(blacklist)
 	if err != nil {
-		return nil, err
+		return nil
 	}
 
 	if p.QUICIETFAddr != "" {
@@ -300,7 +297,7 @@ func (p *Proxy) PrepareServer() (*Server, error) {
 	// Throttle connections when signaled
 	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
 
-	allListeners := make([]net.Listener, 0)
+	p.allListeners = make([]net.Listener, 0)
 	listenerProtocols := make([]string, 0)
 	addListenerIfNecessary := func(proto, addr string, fn listenerBuilderFN) error {
 		if addr == "" {
@@ -313,7 +310,7 @@ func (p *Proxy) PrepareServer() (*Server, error) {
 		listenerProtocols = append(listenerProtocols, proto)
 		// Although we include blacklist functionality, it's currently only used to
 		// track potential blacklisting ad doesn't actually blacklist anyone.
-		allListeners = append(allListeners, lanternlisteners.NewAllowingListener(l, blacklist.OnConnect))
+		p.allListeners = append(p.allListeners, lanternlisteners.NewAllowingListener(l, blacklist.OnConnect))
 		return nil
 	}
 
@@ -347,19 +344,19 @@ func (p *Proxy) PrepareServer() (*Server, error) {
 	}
 
 	if err := addListenerIfNecessary("kcp", p.KCPConf, p.wrapTLSIfNecessary(p.listenKCP)); err != nil {
-		return nil, err
+		return nil
 	}
 	if err := addListenerIfNecessary("quic_ietf", p.QUICIETFAddr, p.listenQUICIETF); err != nil {
-		return nil, err
+		return nil
 	}
 	if err := addListenerIfNecessary("shadowsocks", p.ShadowsocksAddr, p.listenShadowsocks); err != nil {
-		return nil, err
+		return nil
 	}
 	if err := addListenerIfNecessary("shadowsocks_multiplex", p.ShadowsocksMultiplexAddr, p.wrapMultiplexing(p.listenShadowsocks)); err != nil {
-		return nil, err
+		return nil
 	}
 	if err := addListenerIfNecessary("wss", p.WSSAddr, p.listenWSS); err != nil {
-		return nil, err
+		return nil
 	}
 
 	if err := addListenersForBaseTransport(p.listenTCP, &addresses{
@@ -370,56 +367,47 @@ func (p *Proxy) PrepareServer() (*Server, error) {
 		httpMultiplex:  p.HTTPMultiplexAddr,
 		tlsmasq:        p.TLSMasqAddr,
 	}); err != nil {
-		return nil, err
+		return nil
 	}
 
 	if p.EnableMultipath {
-		mpl := multipath.NewListener(allListeners, p.instrument.MultipathStats(listenerProtocols))
+		mpl := multipath.NewListener(p.allListeners, p.instrument.MultipathStats(listenerProtocols))
 		log.Debug("Serving multipath at:")
-		for i, l := range allListeners {
+		for i, l := range p.allListeners {
 			log.Debugf("  %-20s:  %v", listenerProtocols[i], l.Addr())
 		}
-		return &Server{
-			Serve: func() error { return srv.Serve(mpl, nil) },
-			Close: func() error {
-				err := mpl.Close()
-				for _, l := range allListeners {
-					_ = l.Close()
-				}
-				return err
-			},
-		}, nil
+
+		// Make sure to add the multipath listener so that it is also closed.
+		p.allListeners = append(p.allListeners, mpl)
+		return srv.Serve(mpl, nil)
 	} else {
-		errCh := make(chan error, len(allListeners))
-		return &Server{
-			Serve: func() error {
-				for _, _l := range allListeners {
-					l := _l
-					go func() {
-						log.Debugf("Serving at: %v", l.Addr())
-						errCh <- srv.Serve(l, mimic.SetServerAddr)
-					}()
-				}
-				return <-errCh
-			},
-			Close: func() error {
-				var err error
-				for _, l := range allListeners {
-					e := l.Close()
-					if err == nil && e != nil {
-						err = e
-					}
-				}
-				return err
-			},
-		}, nil
+		errCh := make(chan error, len(p.allListeners))
+		for _, _l := range p.allListeners {
+			l := _l
+			go func() {
+				log.Debugf("Serving at: %v", l.Addr())
+				errCh <- srv.Serve(l, mimic.SetServerAddr)
+			}()
+		}
+		return <-errCh
 	}
 }
 
-func (p *Proxy) prepareENHTTPServer() (*Server, error) {
+func (p *Proxy) Close() error {
+	var err error
+	for _, l := range p.allListeners {
+		e := l.Close()
+		if err == nil && e != nil {
+			err = e
+		}
+	}
+	return err
+}
+
+func (p *Proxy) ListenAndServeENHTTP() error {
 	el, err := net.Listen("tcp", p.ENHTTPAddr)
 	if err != nil {
-		return nil, errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
+		return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
 	}
 	log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
 	filterChain := filters.Join(tokenfilter.New(p.Token, p.instrument), p.instrument.WrapFilter("proxy_http_ping", ping.New(0)))
@@ -427,10 +415,7 @@ func (p *Proxy) prepareENHTTPServer() (*Server, error) {
 	server := &http.Server{
 		Handler: filters.Intercept(enhttpHandler, p.instrument.WrapFilter("proxy", filterChain)),
 	}
-	return &Server{
-		Serve: func() error { return server.Serve(el) },
-		Close: func() error { return el.Close() },
-	}, nil
+	return server.Serve(el)
 }
 
 func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
