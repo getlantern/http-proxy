@@ -455,7 +455,6 @@ func main() {
 	// Listen for the interrupt signal.
 	<-ctx.Done()
 
-	stop()
 	log.Debug("Shutting down gracefully, press Ctrl+C again to force")
 
 	if err := p.Close(); err != nil {
