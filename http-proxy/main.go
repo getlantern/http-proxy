@@ -242,25 +242,10 @@ func main() {
 	// Capture signals and exit normally because when relying on the default
 	// behavior, exit status -1 would confuse the parent process into thinking
 	// it's the child process and keeps running.
-	var s *proxy.Server
-	c := make(chan os.Signal, 1)
-	signal.Notify(c,
-		syscall.SIGHUP,
-		syscall.SIGINT,
-		syscall.SIGTERM,
-		syscall.SIGQUIT)
-	go func() {
-		for range c {
-			log.Debug("Stopping server")
-			if s != nil {
-				err := s.Close()
-				if err != nil {
-					log.Errorf("Encountered error while closing server: %v", err)
-				}
-			}
-			os.Exit(0)
-		}
-	}()
+	ctx := context.Background()
+	ctx, stop := signal.NotifyContext(ctx, syscall.SIGHUP,
+		syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	defer stop()
 
 	if *honeycombKey != "" {
 		log.Debug("Configuring OpenTelemetry")
@@ -462,11 +447,19 @@ func main() {
 		p.ISPLookup = geo.FromWeb(fmt.Sprintf(geoip2_isp_url, *maxmindLicenseKey), "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile)
 	}
 
-	s, err = p.PrepareServer()
-	if err != nil {
-		log.Fatalf("Unable to prepare server: %v", err)
+	go func() {
+		if err := p.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			log.Errorf("Error listening and serving: %v", err)
+		}
+	}()
+	// Listen for the interrupt signal.
+	<-ctx.Done()
+
+	log.Debug("Shutting down gracefully, press Ctrl+C again to force")
+
+	if err := p.Close(); err != nil {
+		log.Errorf("Error closing server: %v", err)
 	}
-	log.Fatal(s.Serve())
 }
 
 func periodicallyForceGC() {
