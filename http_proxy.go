@@ -273,7 +273,7 @@ func (p *Proxy) ListenAndServe() error {
 	blacklist := p.createBlacklist()
 	filterChain, dial, err := p.createFilterChain(blacklist)
 	if err != nil {
-		return nil
+		return err
 	}
 
 	if p.QUICIETFAddr != "" {
@@ -344,19 +344,19 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if err := addListenerIfNecessary("kcp", p.KCPConf, p.wrapTLSIfNecessary(p.listenKCP)); err != nil {
-		return nil
+		return err
 	}
 	if err := addListenerIfNecessary("quic_ietf", p.QUICIETFAddr, p.listenQUICIETF); err != nil {
-		return nil
+		return err
 	}
 	if err := addListenerIfNecessary("shadowsocks", p.ShadowsocksAddr, p.listenShadowsocks); err != nil {
-		return nil
+		return err
 	}
 	if err := addListenerIfNecessary("shadowsocks_multiplex", p.ShadowsocksMultiplexAddr, p.wrapMultiplexing(p.listenShadowsocks)); err != nil {
-		return nil
+		return err
 	}
 	if err := addListenerIfNecessary("wss", p.WSSAddr, p.listenWSS); err != nil {
-		return nil
+		return err
 	}
 
 	if err := addListenersForBaseTransport(p.listenTCP, &addresses{
@@ -367,7 +367,7 @@ func (p *Proxy) ListenAndServe() error {
 		httpMultiplex:  p.HTTPMultiplexAddr,
 		tlsmasq:        p.TLSMasqAddr,
 	}); err != nil {
-		return nil
+		return err
 	}
 
 	if p.EnableMultipath {
