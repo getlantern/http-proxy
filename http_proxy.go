@@ -191,8 +191,13 @@ type addresses struct {
 	tlsmasq        string
 }
 
-// ListenAndServe listens, serves and blocks.
-func (p *Proxy) ListenAndServe() error {
+type Server struct {
+	Serve func() error
+	Close func() error
+}
+
+// PrepareServer prepares a Server by listening with the appropriate protocols
+func (p *Proxy) PrepareServer() (*Server, error) {
 	if p.CountryLookup == nil {
 		log.Debugf("Maxmind not configured, will not report country data to prometheus or in bandwidth data")
 		p.CountryLookup = geo.NoLookup{}
@@ -217,6 +222,7 @@ func (p *Proxy) ListenAndServe() error {
 				RequireTLSResumption:  p.RequireSessionTickets,
 				MissingTicketReaction: p.MissingTicketReaction.Action(),
 			})
+		defer prom.Close()
 		go func() {
 			log.Debugf("Running Prometheus exporter at http://%s/metrics", p.PromExporterAddr)
 			if err := prom.Run(p.PromExporterAddr); err != nil {
@@ -263,14 +269,14 @@ func (p *Proxy) ListenAndServe() error {
 	p.loadThrottleConfig()
 
 	if p.ENHTTPAddr != "" {
-		return p.ListenAndServeENHTTP()
+		return p.prepareENHTTPServer()
 	}
 
 	// Only allow connections from remote IPs that are not blacklisted
 	blacklist := p.createBlacklist()
 	filterChain, dial, err := p.createFilterChain(blacklist)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	if p.QUICIETFAddr != "" {
@@ -341,19 +347,19 @@ func (p *Proxy) ListenAndServe() error {
 	}
 
 	if err := addListenerIfNecessary("kcp", p.KCPConf, p.wrapTLSIfNecessary(p.listenKCP)); err != nil {
-		return err
+		return nil, err
 	}
 	if err := addListenerIfNecessary("quic_ietf", p.QUICIETFAddr, p.listenQUICIETF); err != nil {
-		return err
+		return nil, err
 	}
 	if err := addListenerIfNecessary("shadowsocks", p.ShadowsocksAddr, p.listenShadowsocks); err != nil {
-		return err
+		return nil, err
 	}
 	if err := addListenerIfNecessary("shadowsocks_multiplex", p.ShadowsocksMultiplexAddr, p.wrapMultiplexing(p.listenShadowsocks)); err != nil {
-		return err
+		return nil, err
 	}
 	if err := addListenerIfNecessary("wss", p.WSSAddr, p.listenWSS); err != nil {
-		return err
+		return nil, err
 	}
 
 	if err := addListenersForBaseTransport(p.listenTCP, &addresses{
@@ -364,7 +370,7 @@ func (p *Proxy) ListenAndServe() error {
 		httpMultiplex:  p.HTTPMultiplexAddr,
 		tlsmasq:        p.TLSMasqAddr,
 	}); err != nil {
-		return err
+		return nil, err
 	}
 
 	if p.EnableMultipath {
@@ -373,24 +379,47 @@ func (p *Proxy) ListenAndServe() error {
 		for i, l := range allListeners {
 			log.Debugf("  %-20s:  %v", listenerProtocols[i], l.Addr())
 		}
-		return srv.Serve(mpl, nil)
+		return &Server{
+			Serve: func() error { return srv.Serve(mpl, nil) },
+			Close: func() error {
+				err := mpl.Close()
+				for _, l := range allListeners {
+					_ = l.Close()
+				}
+				return err
+			},
+		}, nil
 	} else {
 		errCh := make(chan error, len(allListeners))
-		for _, _l := range allListeners {
-			l := _l
-			go func() {
-				log.Debugf("Serving at: %v", l.Addr())
-				errCh <- srv.Serve(l, mimic.SetServerAddr)
-			}()
-		}
-		return <-errCh
+		return &Server{
+			Serve: func() error {
+				for _, _l := range allListeners {
+					l := _l
+					go func() {
+						log.Debugf("Serving at: %v", l.Addr())
+						errCh <- srv.Serve(l, mimic.SetServerAddr)
+					}()
+				}
+				return <-errCh
+			},
+			Close: func() error {
+				var err error
+				for _, l := range allListeners {
+					e := l.Close()
+					if err == nil && e != nil {
+						err = e
+					}
+				}
+				return err
+			},
+		}, nil
 	}
 }
 
-func (p *Proxy) ListenAndServeENHTTP() error {
+func (p *Proxy) prepareENHTTPServer() (*Server, error) {
 	el, err := net.Listen("tcp", p.ENHTTPAddr)
 	if err != nil {
-		return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
+		return nil, errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
 	}
 	log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
 	filterChain := filters.Join(tokenfilter.New(p.Token, p.instrument), p.instrument.WrapFilter("proxy_http_ping", ping.New(0)))
@@ -398,7 +427,10 @@ func (p *Proxy) ListenAndServeENHTTP() error {
 	server := &http.Server{
 		Handler: filters.Intercept(enhttpHandler, p.instrument.WrapFilter("proxy", filterChain)),
 	}
-	return server.Serve(el)
+	return &Server{
+		Serve: func() error { return server.Serve(el) },
+		Close: func() error { return el.Close() },
+	}, nil
 }
 
 func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {

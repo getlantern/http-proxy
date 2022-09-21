@@ -174,7 +174,7 @@ var (
 	shadowsocksSecret        = flag.String("shadowsocks-secret", "", "shadowsocks secret")
 	shadowsocksCipher        = flag.String("shadowsocks-cipher", shadowsocks.DefaultCipher, "shadowsocks cipher")
 
-	honeycombKey        = flag.String("honeycomb-key", "Lm9rYjSW4HAhdY9hLxwhuD", "honeycomb key (if unspecified, will not report traces to Honeycomb")
+	honeycombKey        = flag.String("honeycomb-key", "eqpEOa7ZgxI9TvIfcNE3yC", "honeycomb key (if unspecified, will not report traces to Honeycomb")
 	honeycombSampleRate = flag.Int("honeycomb-sample-rate", 100, "rate at which to sample data for honeycomb")
 
 	track = flag.String("track", "", "The track this proxy is running on")
@@ -242,6 +242,7 @@ func main() {
 	// Capture signals and exit normally because when relying on the default
 	// behavior, exit status -1 would confuse the parent process into thinking
 	// it's the child process and keeps running.
+	var s *proxy.Server
 	c := make(chan os.Signal, 1)
 	signal.Notify(c,
 		syscall.SIGHUP,
@@ -251,6 +252,12 @@ func main() {
 	go func() {
 		for range c {
 			log.Debug("Stopping server")
+			if s != nil {
+				err := s.Close()
+				if err != nil {
+					log.Errorf("Encountered error while closing server: %v", err)
+				}
+			}
 			os.Exit(0)
 		}
 	}()
@@ -455,7 +462,11 @@ func main() {
 		p.ISPLookup = geo.FromWeb(fmt.Sprintf(geoip2_isp_url, *maxmindLicenseKey), "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile)
 	}
 
-	log.Fatal(p.ListenAndServe())
+	s, err = p.PrepareServer()
+	if err != nil {
+		log.Fatalf("Unable to prepare server: %v", err)
+	}
+	log.Fatal(s.Serve())
 }
 
 func periodicallyForceGC() {

@@ -44,9 +44,6 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 
 	op := ops.Begin("proxy").
 		Set("device_id", deviceID).
-		Set("origin", req.Host).
-		Set("origin_host", originHost).
-		Set("origin_port", originPort).
 		Set("proxy_dial_timeout", req.Header.Get(proxy.DialTimeoutHeader)).
 		Set("app_platform", platform).
 		Set("app_version", version).
@@ -84,7 +81,6 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	if err != nil {
 		clientIP = req.RemoteAddr
 	}
-	op.Set("client_ip", clientIP)
 	measuredCtx["client_ip"] = clientIP
 
 	// Send the same context data to measured as well

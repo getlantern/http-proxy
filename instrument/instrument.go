@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/getlantern/golog"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -15,6 +16,10 @@ import (
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy/v2/filters"
+)
+
+var (
+	log = golog.LoggerFor("instrument")
 )
 
 // Instrument is the common interface about what can be instrumented.
@@ -32,6 +37,7 @@ type Instrument interface {
 	TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int)
 	quicSentPacket()
 	quicLostPacket()
+	Close() error
 }
 
 // NoInstrument is an implementation of Instrument which does nothing
@@ -61,6 +67,7 @@ func (i NoInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmiss
 }
 func (i NoInstrument) quicSentPacket() {}
 func (i NoInstrument) quicLostPacket() {}
+func (i NoInstrument) Close() error    { return nil }
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
@@ -100,9 +107,22 @@ func (f *instrumentedFilter) Apply(cs *filters.ConnectionState, req *http.Reques
 	return res, cs, err
 }
 
-// PromInstrument is an implementation of Instrument which exports Prometheus
+type proxiedBytes struct {
+	sent int
+	recv int
+}
+
+type proxiedBytesKey struct {
+	platform   string
+	appVersion string
+	deviceID   string
+	geoCountry string
+	isp        string
+}
+
+// promInstrument is an implementation of Instrument which exports Prometheus
 // metrics.
-type PromInstrument struct {
+type promInstrument struct {
 	countryLookup    geo.CountryLookup
 	ispLookup        geo.ISPLookup
 	commonLabels     prometheus.Labels
@@ -117,9 +137,12 @@ type PromInstrument struct {
 	mpFramesSent, mpBytesSent, mpFramesReceived, mpBytesReceived, mpFramesRetransmitted, mpBytesRetransmitted *prometheus.CounterVec
 
 	tcpRetransmissionRate prometheus.Observer
+
+	proxiedBytes   map[proxiedBytesKey]*proxiedBytes
+	proxiedBytesMX sync.Mutex
 }
 
-func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c CommonLabels) *PromInstrument {
+func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c CommonLabels) *promInstrument {
 	commonLabels := c.PromLabels()
 	commonLabelNames := make([]string, len(commonLabels))
 	i := 0
@@ -127,7 +150,7 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		commonLabelNames[i] = k
 		i++
 	}
-	return &PromInstrument{
+	p := &promInstrument{
 		countryLookup:    countryLookup,
 		ispLookup:        ispLookup,
 		commonLabels:     commonLabels,
@@ -226,12 +249,16 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		versionCheck: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_version_check_total",
 		}, append(commonLabelNames, "method", "redirected", "reason")).MustCurryWith(commonLabels),
+
+		proxiedBytes: make(map[proxiedBytesKey]*proxiedBytes, 0),
 	}
+	go p.reportProxiedBytes()
+	return p
 }
 
 // Run runs the PromInstrument exporter on the given address. The
 // path is /metrics.
-func (p *PromInstrument) Run(addr string) error {
+func (p *promInstrument) Run(addr string) error {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	server := http.Server{
@@ -243,7 +270,7 @@ func (p *PromInstrument) Run(addr string) error {
 
 // WrapFilter wraps a filter to instrument the requests/errors/duration
 // (so-called RED) of processed requests.
-func (p *PromInstrument) WrapFilter(prefix string, f filters.Filter) filters.Filter {
+func (p *promInstrument) WrapFilter(prefix string, f filters.Filter) filters.Filter {
 	wrapped := p.filters[prefix]
 	if wrapped == nil {
 		wrapped = &instrumentedFilter{
@@ -264,7 +291,7 @@ func (p *PromInstrument) WrapFilter(prefix string, f filters.Filter) filters.Fil
 }
 
 // WrapConnErrorHandler wraps an error handler to instrument the error count.
-func (p *PromInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error) {
+func (p *promInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error) {
 	h := p.errorHandlers[prefix]
 	if h == nil {
 		errors := promauto.NewCounterVec(prometheus.CounterOpts{
@@ -304,7 +331,7 @@ func (p *PromInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Con
 }
 
 // Blacklist instruments the blacklist checking.
-func (p *PromInstrument) Blacklist(b bool) {
+func (p *promInstrument) Blacklist(b bool) {
 	p.blacklistChecked.Inc()
 	if b {
 		p.blacklisted.Inc()
@@ -312,7 +339,7 @@ func (p *PromInstrument) Blacklist(b bool) {
 }
 
 // Mimic instruments the Apache mimicry.
-func (p *PromInstrument) Mimic(m bool) {
+func (p *promInstrument) Mimic(m bool) {
 	p.mimicryChecked.Inc()
 	if m {
 		p.mimicked.Inc()
@@ -320,7 +347,7 @@ func (p *PromInstrument) Mimic(m bool) {
 }
 
 // Throttle instruments the device based throttling.
-func (p *PromInstrument) Throttle(m bool, reason string) {
+func (p *promInstrument) Throttle(m bool, reason string) {
 	p.throttlingChecked.Inc()
 	if m {
 		p.throttled.With(prometheus.Labels{"reason": reason}).Inc()
@@ -331,27 +358,27 @@ func (p *PromInstrument) Throttle(m bool, reason string) {
 
 // XBQHeaderSent counts the number of times XBQ header is sent along with the
 // response.
-func (p *PromInstrument) XBQHeaderSent() {
+func (p *promInstrument) XBQHeaderSent() {
 	p.xbqSent.Inc()
 }
 
 // SuspectedProbing records the number of visits which looks like active
 // probing.
-func (p *PromInstrument) SuspectedProbing(fromIP net.IP, reason string) {
+func (p *promInstrument) SuspectedProbing(fromIP net.IP, reason string) {
 	fromCountry := p.countryLookup.CountryCode(fromIP)
 	p.suspectedProbing.With(prometheus.Labels{"country": fromCountry, "reason": reason}).Inc()
 }
 
 // VersionCheck records the number of times the Lantern version header is
 // checked and if redirecting to the upgrade page is required.
-func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
+func (p *promInstrument) VersionCheck(redirect bool, method, reason string) {
 	labels := prometheus.Labels{"method": method, "redirected": strconv.FormatBool(redirect), "reason": reason}
 	p.versionCheck.With(labels).Inc()
 }
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID string) {
+func (p *promInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID string) {
 	labels := prometheus.Labels{"app_platform": platform, "app_version": version, "app": app, "datacap_cohort": dataCapCohort}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
@@ -365,33 +392,73 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	p.bytesSentByISP.With(by_isp).Add(float64(sent))
 	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
 
-	ops.
-		Begin("proxied_bytes").
-		Set("bytes_sent", sent).
-		Set("bytes_recv", recv).
-		Set("bytes_total", sent+recv).
-		Set("os_name", platform).
-		Set("app_version", app).
-		Set("device_id", deviceID).
-		Set("geo_country", country).
-		Set("isp", isp).
-		End()
+	// Record the proxied bytes for later reporting
+	p.proxiedBytesMX.Lock()
+	k := proxiedBytesKey{
+		platform:   platform,
+		appVersion: version,
+		deviceID:   deviceID,
+		geoCountry: country,
+		isp:        isp,
+	}
+	v := p.proxiedBytes[k]
+	if v == nil {
+		v = &proxiedBytes{}
+	}
+	v.sent += sent
+	v.recv += recv
+	p.proxiedBytes[k] = v
+	p.proxiedBytesMX.Unlock()
+}
+
+func (p *promInstrument) reportProxiedBytes() {
+	log.Debug("Will report proxied_bytes every 5 minutes")
+	for {
+		time.Sleep(5 * time.Minute)
+		p.doReportProxiedBytes()
+	}
+}
+
+func (p *promInstrument) doReportProxiedBytes() {
+	p.proxiedBytesMX.Lock()
+	pb := p.proxiedBytes
+	p.proxiedBytes = make(map[proxiedBytesKey]*proxiedBytes, 0)
+	p.proxiedBytesMX.Unlock()
+
+	for k, v := range pb {
+		ops.Begin("proxied_bytes").
+			Set("bytes_sent", v.sent).
+			Set("bytes_recv", v.recv).
+			Set("bytes_total", v.sent+v.recv).
+			Set("os_name", k.platform).
+			Set("app_version", k.appVersion).
+			Set("device_id", k.deviceID).
+			Set("geo_country", k.geoCountry).
+			Set("isp", k.isp).
+			End()
+	}
 }
 
 // TCPPackets records the number/rate of TCP data packets and retransmissions
 // mainly for block detection.
-func (p *PromInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int) {
+func (p *promInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int) {
 	p.tcpRetransmissionRate.Observe(float64(retransmissions) / float64(sentDataPackets))
 	p.tcpSentDataPackets.Add(float64(sentDataPackets))
 	p.tcpConsecRetransmissions.Add(float64(consecRetransmissions))
 }
 
 // quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.
-func (p *PromInstrument) quicSentPacket() {
+func (p *promInstrument) quicSentPacket() {
 	p.quicSentPackets.Inc()
 }
-func (p *PromInstrument) quicLostPacket() {
+func (p *promInstrument) quicLostPacket() {
 	p.quicLostPackets.Inc()
+}
+
+func (p *promInstrument) Close() error {
+	log.Debug("Reporting proxied_bytes before exiting")
+	p.doReportProxiedBytes()
+	return nil
 }
 
 type stats struct {
@@ -419,7 +486,7 @@ func (s *stats) UpdateRTT(time.Duration) {
 	// do nothing as the RTT from different clients can vary significantly
 }
 
-func (prom *PromInstrument) MultipathStats(protocols []string) (trackers []multipath.StatsTracker) {
+func (prom *promInstrument) MultipathStats(protocols []string) (trackers []multipath.StatsTracker) {
 	for _, p := range protocols {
 		path_protocol := prometheus.Labels{"path_protocol": p}
 		trackers = append(trackers, &stats{

@@ -95,7 +95,9 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string, redisIsUp bool,
 		GoogleCaptchaRegex:      "bequiet",
 	}
 	go func() {
-		assert.NoError(t, proxy.ListenAndServe())
+		s, err := proxy.PrepareServer()
+		require.NoError(t, err)
+		assert.NoError(t, s.Serve())
 	}()
 
 	require.NoError(t, WaitForServer("tcp", serverAddr, 10*time.Second))

@@ -1,3 +1,4 @@
+//go:build linux
 // +build linux
 
 package bbr
@@ -98,10 +99,6 @@ func (bm *middleware) track(reportToBorda bool, s *stats, remoteAddr net.Addr, b
 			// We do this inside a goroutine because we explicitly don't want to inherit
 			// the existing context (to reduce data volumes to borda)
 			op := ops.Begin("tcpinfo")
-			clientIP, _, err := net.SplitHostPort(remoteAddr.String())
-			if err == nil {
-				op.Set("client_ip", clientIP)
-			}
 			op.Set("tcp_bytes_sent", borda.Sum(bytesSent))
 			op.Set("tcp_sender_mss", borda.Avg(float64(info.SenderMSS)))
 			op.Set("tcp_rtt", borda.Avg(float64(info.RTT/nanosPerMilli)))

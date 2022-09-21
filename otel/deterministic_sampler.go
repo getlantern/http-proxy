@@ -37,10 +37,10 @@ func (ds *deterministicSampler) ShouldSample(p sdktrace.SamplingParameters) sdkt
 	psc := trace.SpanContextFromContext(p.ParentContext)
 
 	rate := uint32(ds.sampleRate)
-	// if p.Name == "proxied_bytes" {
-	// 	// always report proxied_bytes
-	// 	rate = 1
-	// }
+	if p.Name == "proxied_bytes" {
+		// always report proxied_bytes
+		rate = 1
+	}
 
 	if rate < 1 {
 		rate = 1
