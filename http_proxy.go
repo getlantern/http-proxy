@@ -377,8 +377,8 @@ func (p *Proxy) ListenAndServe() error {
 			log.Debugf("  %-20s:  %v", listenerProtocols[i], l.Addr())
 		}
 
-		// Make sure to add the multipath listener so that it is also closed.
-		p.allListeners = append(p.allListeners, mpl)
+		// Make sure to add the multipath listener so that it is also closed, and make sure it's at the beginning.
+		p.allListeners = append([]net.Listener{mpl}, p.allListeners...)
 		return srv.Serve(mpl, nil)
 	} else {
 		errCh := make(chan error, len(p.allListeners))
