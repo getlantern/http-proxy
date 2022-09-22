@@ -387,28 +387,28 @@ func (p *promInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	by_isp := prometheus.Labels{"country": country, "isp": "omitted"}
 	// We care about ISPs within these countries only, to reduce cardinality of the metrics
 	if country == "CN" || country == "IR" || country == "AE" || country == "TK" {
-		by_isp["isp"] = p.ispLookup.ISP(clientIP)
+		by_isp["isp"] = isp
 	}
 	p.bytesSentByISP.With(by_isp).Add(float64(sent))
 	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
 
 	// Record the proxied bytes for later reporting
-	p.proxiedBytesMX.Lock()
-	k := proxiedBytesKey{
-		platform:   platform,
-		appVersion: version,
-		deviceID:   deviceID,
-		geoCountry: country,
-		isp:        isp,
-	}
-	v := p.proxiedBytes[k]
-	if v == nil {
-		v = &proxiedBytes{}
-	}
-	v.sent += sent
-	v.recv += recv
-	p.proxiedBytes[k] = v
-	p.proxiedBytesMX.Unlock()
+	// p.proxiedBytesMX.Lock()
+	// k := proxiedBytesKey{
+	// 	platform:   platform,
+	// 	appVersion: version,
+	// 	deviceID:   deviceID,
+	// 	geoCountry: country,
+	// 	isp:        isp,
+	// }
+	// v := p.proxiedBytes[k]
+	// if v == nil {
+	// 	v = &proxiedBytes{}
+	// }
+	// v.sent += sent
+	// v.recv += recv
+	// p.proxiedBytes[k] = v
+	// p.proxiedBytesMX.Unlock()
 }
 
 func (p *promInstrument) reportProxiedBytes() {
