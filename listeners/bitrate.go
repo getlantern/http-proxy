@@ -38,6 +38,10 @@ func NewRateLimiter(rate int64) *RateLimiter {
 	return l
 }
 
+func (l *RateLimiter) GetRate() int64 {
+	return l.rate
+}
+
 // Acquire up to max read tokens. Will return as soon as
 // between min and max reads are acquired. Returns number
 // of tokens acquired and boolean indicating whether they
@@ -170,7 +174,7 @@ func (c *bitrateConn) OnState(s http.ConnState) {
 }
 
 func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
-	// pro-user message always overrides the active flag
+	// per user message always overrides the active flag
 	if msgType == "throttle" {
 		c.limiter = data.(*RateLimiter)
 	}
