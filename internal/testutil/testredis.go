@@ -2,7 +2,6 @@ package testutil
 
 import (
 	"context"
-	"crypto/tls"
 	"fmt"
 	"testing"
 
@@ -19,8 +18,7 @@ const (
 // the current highest database number.
 func getNextDatabaseNumber() (int64, error) {
 	c := redis.NewClient(&redis.Options{
-		Addr:      redisAddr,
-		TLSConfig: &tls.Config{InsecureSkipVerify: true},
+		Addr: redisAddr,
 	})
 	nextDB, err := c.Incr(context.Background(), maxDBKey).Result()
 	if err != nil {
@@ -31,7 +29,7 @@ func getNextDatabaseNumber() (int64, error) {
 
 // TestRedis returns a client pointed at the local testing setup. This assumes the same setup
 // specified in this project's test.bash file. Specifically, a Redis server should be listening on
-// localhost:6379. The master name should be "mymaster" and TLS should be in use.
+// localhost:6379. The master name should be "mymaster" and TLS should be disabled.
 //
 // The database will be wiped before this function returns. The client will be closed when the test
 // completes.
@@ -42,9 +40,8 @@ func TestRedis(t *testing.T) *redis.Client {
 	require.NoError(t, err)
 
 	c := redis.NewClient(&redis.Options{
-		Addr:      redisAddr,
-		TLSConfig: &tls.Config{InsecureSkipVerify: true},
-		DB:        int(nextDB),
+		Addr: redisAddr,
+		DB:   int(nextDB),
 	})
 	t.Cleanup(func() { c.Close() })
 	return c
