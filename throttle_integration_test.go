@@ -43,7 +43,7 @@ func TestThrottling(t *testing.T) {
 	}()
 
 	throttleThreshold := 10485760
-	throttleRate := 1024
+	throttleRate := 10240
 	t.Run("free_config_when_redis_is_down", func(t *testing.T) {
 		doTestThrottling(t, false, "127.0.0.1:18707", false, throttleThreshold, throttleRate)
 	})
