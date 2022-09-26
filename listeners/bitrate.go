@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/getlantern/http-proxy/listeners"
-	"github.com/juju/ratelimit"
+	"github.com/getlantern/ratelimit"
 )
 
 type RateLimiter struct {

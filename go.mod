@@ -34,6 +34,7 @@ require (
 	github.com/getlantern/proxy/v2 v2.0.1-0.20220303164029-b34b76e0e581
 	github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683
 	github.com/getlantern/quicwrapper v0.0.0-20211104133553-140f96139f9f
+	github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
 	github.com/getlantern/tlsmasq v0.4.6
@@ -43,7 +44,6 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang/groupcache v0.0.0-20200121045136-8c9f03a8e57e
 	github.com/gonum/stat v0.0.0-20180125090729-ec9c8a1062f4
-	github.com/juju/ratelimit v1.0.1
 	github.com/lucas-clemente/quic-go v0.7.1-0.20190207125157-7dc4be2ce994
 	github.com/mitchellh/panicwrap v1.0.0
 	github.com/prometheus/client_golang v1.7.1
