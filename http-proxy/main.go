@@ -355,7 +355,7 @@ func main() {
 		EnableMultipath:                    *enableMultipath,
 		ThrottleRefreshInterval:            *throttleRefreshInterval,
 		BordaReportInterval:                *bordaReportInterval,
-		BordaSamplePercentage:              *bordaSamplePercentage,
+		BordaSamplePercentage:              0.0001, // hardcoded to ignore what's in config.ini
 		BordaBufferSize:                    *bordaBufferSize,
 		ExternalIP:                         *externalIP,
 		HTTPS:                              *https,
