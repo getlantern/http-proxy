@@ -267,8 +267,6 @@ github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360 h1:pijUoo
 github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360/go.mod h1:nsJPNYUSY96xB+p7uiDW8O4uiKea+KjeUdS5d6tf9IU=
 github.com/getlantern/panicwrap v0.0.0-20200707191944-9ba45baf8e51 h1:MNDmhQwPAeX1tOxDvAI4Dwxh90SuDgmRzrTVJNhraoU=
 github.com/getlantern/panicwrap v0.0.0-20200707191944-9ba45baf8e51/go.mod h1:pKvZHwWrZowLUzftuFq7coarnxbBXU4aQh3N0BJOeeA=
-github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde h1:AOVE4+PXPV/DCUtXSqWkz3GEeaUzxlHROoruiaB/qqA=
-github.com/getlantern/pcapper v0.0.0-20181212174440-a8b1a3ff0cde/go.mod h1:x9UkLzamASuFKTLV0iSoeJs0IKZawGO1PDhx+7hC2OE=
 github.com/getlantern/preconn v0.0.0-20180328114929-0b5766010efe/go.mod h1:FvIxQD61iYA42UjaJyzGl9DNne8jbowbgicdeNk/7kE=
 github.com/getlantern/preconn v1.0.0 h1:DsY3l/y/BJUj86WyaxXylbJnCC9QbKcc3D6js6rFL60=
 github.com/getlantern/preconn v1.0.0/go.mod h1:i/AnXvx715Fq7HgZLlmQlw3sGfEkku8BQT5hLHMK4+k=
@@ -287,8 +285,6 @@ github.com/getlantern/quicwrapper v0.0.0-20211104133553-140f96139f9f h1:Ixj+JVre
 github.com/getlantern/quicwrapper v0.0.0-20211104133553-140f96139f9f/go.mod h1:wlL9u6eUd/sS38+mPBgLq2zSE4hWpigpDzodN9IwDFA=
 github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c h1:IkjF+RwRs8B/RsuD638eUFO2K/227OO2B1FLXGp17Ro=
 github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c/go.mod h1:kExwbqTx1krUnT9ohmXG3jayDTEBfxUKeoRzU6XucLw=
-github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01 h1:JyXEChj4lHy5w3hlQVnYpcH4QrBXmhEJgkxb0FPkFlM=
-github.com/getlantern/ring v0.0.0-20181206150603-dd46ce8faa01/go.mod h1:mnw3NsM0/oiJdZDMujNx+Kg60o72UClHB1UNqrEWqOM=
 github.com/getlantern/rotator v0.0.0-20160829164113-013d4f8e36a2/go.mod h1:Ap+QTDJeA24+0jjPHReq/LyP3ugEEDYvncluEgsm60A=
 github.com/getlantern/sqlparser v0.0.0-20171012210704-a879d8035f3c h1:+N/dste38K0oW/1/p4ixoFM0JxJFnFKIf2onc0PMpAI=
 github.com/getlantern/sqlparser v0.0.0-20171012210704-a879d8035f3c/go.mod h1:wGjYYh1vSkRes1bNy+zio7cmmI9cLbST+H8eqnt5Mg4=

@@ -131,12 +131,6 @@ var (
 	stackdriverCreds            = flag.String("stackdriver-creds", "/home/lantern/lantern-stackdriver.json", "Optional full json file path containing stackdriver credentials")
 	stackdriverSamplePercentage = flag.Float64("stackdriver-sample-percentage", 0.003, "The percentage of devices to report to Stackdriver (0.01 = 1%)")
 
-	pcapDir     = flag.String("pcap-dir", "/tmp", "Directory in which to save pcaps")
-	pcapIPs     = flag.Int("pcap-ips", 0, "The number of IP addresses for which to capture packets")
-	pcapsPerIP  = flag.Int("pcaps-per-ip", 0, "The number of packets to capture for each IP address")
-	pcapSnapLen = flag.Int("pcap-snap-len", 1600, "The maximum size packet to capture")
-	pcapTimeout = flag.Duration("pcap-timeout", 30*time.Millisecond, "Timeout for capturing packets")
-
 	requireSessionTickets      = flag.Bool("require-session-tickets", true, "Specifies whether or not to require TLS session tickets in ClientHellos")
 	missingTicketReaction      = flag.String("missing-session-ticket-reaction", "None", "Specifies the reaction when seeing ClientHellos without TLS session tickets. Apply only if require-session-tickets is set")
 	missingTicketReactionDelay = flag.Duration("missing-session-ticket-reaction-delay", 0, "Specifies the delay before reaction to ClientHellos without TLS session tickets. Apply only if require-session-tickets is set.")
@@ -400,11 +394,6 @@ func main() {
 		QUICIETFAddr:                       *quicIETFAddr,
 		QUICUseBBR:                         *quicBBR,
 		WSSAddr:                            *wssAddr,
-		PCAPDir:                            *pcapDir,
-		PCAPIPs:                            *pcapIPs,
-		PCAPSPerIP:                         *pcapsPerIP,
-		PCAPSnapLen:                        *pcapSnapLen,
-		PCAPTimeout:                        *pcapTimeout,
 		PacketForwardAddr:                  *packetForwardAddr,
 		ExternalIntf:                       *externalIntf,
 		RequireSessionTickets:              *requireSessionTickets,
