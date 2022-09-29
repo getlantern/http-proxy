@@ -10,33 +10,19 @@ BINARY      := $(DIST_DIR)/http-proxy
 
 SRCS := $(shell find . -name "*.go" -not -path "*_test.go" -not -path "./vendor/*") go.mod go.sum
 
-DOCKER_IMAGE_TAG := http-proxy-builder
-DOCKER_VOLS = "-v $$PWD/../../..:/src"
-
 get-command = $(shell which="$$(which $(1) 2> /dev/null)" && if [[ ! -z "$$which" ]]; then printf %q "$$which"; fi)
 
-DOCKER    := $(call get-command,docker)
 GO        := $(call get-command,go)
-
-# We can only build natively on Linux. This is because we cross-compile for Linux and some
-# dependencies rely on C libraries like libpcap-dev.
-BUILD_WITH_DOCKER = false
 
 # Controls whether logs from Redis are included in test output.
 REDIS_LOGS ?= false
-
-ifeq ($(OS),Windows)
-	BUILD_WITH_DOCKER = true
-else ifeq ($(shell uname -s),Darwin)
-	BUILD_WITH_DOCKER = true
-endif
 
 BUILD_TYPE = stable
 ifeq ($(BUILD_CANARY),true)
 	BUILD_TYPE = canary
 endif
 
-.PHONY: build dist distnochange dist-on-linux dist-on-docker clean test system-checks
+.PHONY: build dist distnochange clean test system-checks
 
 guard-%:
 	 @ if [ -z '${${*}}' ]; then echo 'Environment variable $* not set' && exit 1; fi
@@ -71,25 +57,11 @@ local-rts: build
 
 local-proxy: local-rts
 
-dist-on-linux: $(DIST_DIR)
+$(DIST_DIR)/http-proxy: $(SRCS)
 	GOOS=linux GOARCH=amd64 GO111MODULE=on GOPRIVATE="github.com/getlantern" \
 	go build -o $(DIST_DIR)/http-proxy \
 	-ldflags="-X main.revision=$(GIT_REVISION) -X main.build_type=$(BUILD_TYPE)" \
 	./http-proxy
-
-dist-on-docker: $(DIST_DIR) docker-builder
-	GO111MODULE=on go mod vendor && \
-	docker run --platform=linux/amd64 -e GIT_REVISION='$(GIT_REVISION)' -e BUILD_TYPE='$(BUILD_TYPE)' \
-	-v $$PWD:/src -t $(DOCKER_IMAGE_TAG) /bin/bash -c \
-	'cd /src && CGO_ENABLED=1 go build -o $(BINARY) -ldflags="-X main.revision=$$GIT_REVISION -X main.build_type=$$BUILD_TYPE" -mod=vendor ./http-proxy' && \
-	file $(BINARY) && ls -lh $(BINARY)
-
-$(DIST_DIR)/http-proxy: $(SRCS)
-	@if [ "$(BUILD_WITH_DOCKER)" = "true" ]; then \
-		$(MAKE) dist-on-docker; \
-	else \
-		$(MAKE) dist-on-linux; \
-	fi
 
 distnochange: $(DIST_DIR)/http-proxy
 
@@ -119,14 +91,7 @@ clean:
 	rm -rf $(BUILD_DIR) $(DIST_DIR)
 
 system-checks:
-	@if [[ -z "$(DOCKER)" ]]; then echo 'Missing "docker" command.'; exit 1; fi && \
-	if [[ -z "$(GO)" ]]; then echo 'Missing "go" command.'; exit 1; fi
-
-docker-builder: system-checks
-	DOCKER_CONTEXT=.$(DOCKER_IMAGE_TAG)-context && \
-	mkdir -p $$DOCKER_CONTEXT && \
-	cp Dockerfile $$DOCKER_CONTEXT && \
-	docker build -t $(DOCKER_IMAGE_TAG) $$DOCKER_CONTEXT
+	@if [[ -z "$(GO)" ]]; then echo 'Missing "go" command.'; exit 1; fi
 
 test:
 	./test.bash $(REDIS_LOGS)
