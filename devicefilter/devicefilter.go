@@ -126,7 +126,7 @@ func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, 
 	}
 
 	if f.throttleConfig == nil {
-		throttleDefault("no-config")
+		f.instrument.Throttle(false, "no-config")
 		return next(cs, req)
 	}
 
