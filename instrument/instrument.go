@@ -11,11 +11,10 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/getlantern/geo"
+	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/proxy/v2/filters"
 )
@@ -365,17 +364,17 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	p.bytesSentByISP.With(by_isp).Add(float64(sent))
 	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
 
-	_, span := otel.Tracer("").
-		Start(context.Background(), "proxied_bytes", trace.WithAttributes(
-			attribute.Int("bytes_sent", sent),
-			attribute.Int("bytes_recv", recv),
-			attribute.Int("bytes_total", sent+recv),
-			attribute.String("os_name", platform),
-			attribute.String("app_version", app),
-			attribute.String("device_id", deviceID),
-			attribute.String("geo_country", country),
-			attribute.String("isp", isp)))
-	span.End()
+	attributes := []attribute.KeyValue{
+		attribute.String("os_name", platform),
+		attribute.String("app_version", app),
+		attribute.String("device_id", deviceID),
+		attribute.String("geo_country", country),
+		attribute.String("isp", isp),
+	}
+	ctx := context.Background()
+	otel.CounterAdd(ctx, "bytes_recv", recv, attributes...)
+	otel.CounterAdd(ctx, "bytes_sent", sent, attributes...)
+	otel.CounterAdd(ctx, "bytes_total", sent+recv, attributes...)
 }
 
 // quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.
