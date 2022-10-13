@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/OperatorFoundation/Starbridge-go/Starbridge/v3"
 	bordaClient "github.com/getlantern/borda/client"
 	"github.com/getlantern/cmux/v2"
 	"github.com/getlantern/cmuxprivate"
@@ -169,6 +170,7 @@ type Proxy struct {
 	PsmuxDisableAggressivePadding bool
 	PsmuxAggressivePadding        int
 	PsmuxAggressivePaddingRatio   float64
+	StarbridgeAddr                string
 
 	bm             bbr.Middleware
 	throttleConfig throttle.Config
@@ -324,6 +326,9 @@ func (p *Proxy) ListenAndServe() error {
 		return err
 	}
 	if err := addListenerIfNecessary("wss", p.WSSAddr, p.listenWSS); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary("starbridge", p.StarbridgeAddr, p.listenStarbridge); err != nil {
 		return err
 	}
 
@@ -854,7 +859,7 @@ func (p *Proxy) listenShadowsocks(addr string, bordaReporter listeners.MeasuredR
 	// especially with respect to draining connections and the timing of closures.
 
 	configs := []shadowsocks.CipherConfig{
-		shadowsocks.CipherConfig{
+		{
 			ID:     "default",
 			Secret: p.ShadowsocksSecret,
 			Cipher: p.ShadowsocksCipher,
@@ -871,6 +876,12 @@ func (p *Proxy) listenShadowsocks(addr string, bordaReporter listeners.MeasuredR
 
 	log.Debugf("Listening for shadowsocks at %v", l.Addr())
 	return l, nil
+}
+func (p *Proxy) listenStarbridge(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
+	serverConfig := Starbridge.ServerConfig{
+		ServerPersistentPrivateKey: "",
+	}
+	return serverConfig.Listen(addr)
 }
 
 func (p *Proxy) listenWSS(addr string, bordaReporter listeners.MeasuredReportFN) (net.Listener, error) {
