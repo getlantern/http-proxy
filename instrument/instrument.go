@@ -28,6 +28,7 @@ type Instrument interface {
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
 	ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP)
+	TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int)
 	quicSentPacket()
 	quicLostPacket()
 }
@@ -54,6 +55,8 @@ func (i NoInstrument) XBQHeaderSent()                                    {}
 func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
 func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
 func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP) {
+}
+func (i NoInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int) {
 }
 func (i NoInstrument) quicSentPacket() {}
 func (i NoInstrument) quicLostPacket() {}
@@ -359,6 +362,14 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	}
 	p.bytesSentByISP.With(by_isp).Add(float64(sent))
 	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
+}
+
+// TCPPackets records the number/rate of TCP data packets and retransmissions
+// mainly for block detection.
+func (p *PromInstrument) TCPPackets(clientAddr string, sentDataPackets, retransmissions, consecRetransmissions int) {
+	p.tcpRetransmissionRate.Observe(float64(retransmissions) / float64(sentDataPackets))
+	p.tcpSentDataPackets.Add(float64(sentDataPackets))
+	p.tcpConsecRetransmissions.Add(float64(consecRetransmissions))
 }
 
 // quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.

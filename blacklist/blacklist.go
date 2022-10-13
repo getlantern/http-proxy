@@ -10,6 +10,7 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
+	"github.com/getlantern/pcapper"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 )
@@ -210,6 +211,7 @@ func (bl *Blacklist) checkForIdlers() {
 			log.Trace(msg)
 			delete(bl.firstConnectionTime, ip)
 			ops.Begin("connect_without_request").Set("client_ip", ip).End()
+			pcapper.Dump(ip, fmt.Sprintf("Blacklist Check: %v", msg))
 
 			count := bl.failureCounts[ip] + 1
 			bl.failureCounts[ip] = count

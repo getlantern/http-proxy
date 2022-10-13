@@ -37,7 +37,7 @@ func server(t *testing.T, ready *chan struct{}, bytesReadChan *chan int) *bitrat
 		t.Fatal("Error creating listener")
 	}
 	bl := NewBitrateListener(ln)
-	assert.NotNil(t, bl, "Should be created successfully")
+	assert.NotNil(t, bl, "Should be created succesfully")
 
 	*ready <- struct{}{}
 
@@ -60,7 +60,7 @@ func TestLimited(t *testing.T) {
 		t.Fatalf("Error connecting to local server: %v", err)
 	}
 
-	b := make([]byte, 101)
+	b := make([]byte, 2048)
 	for i := range b {
 		b[i] = '#'
 	}
