@@ -22,11 +22,6 @@ All pushes to the `canary` branch are automatically deployed to the canary binar
 
 See `.github/workflows/go.yml`, which uses the `make build` Makefile target **NOT THE LEGACY `make dist-on-docker`**.
 
-### Building
-
-Currently, http-proxy-lantern will only build on Linux hosts. You need to have
-the package `libpcap-dev` installed.
-
 ### Usage
 
 Build it with `go build` or with `make build`.

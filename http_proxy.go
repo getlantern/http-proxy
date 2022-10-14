@@ -56,7 +56,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
-	"github.com/getlantern/http-proxy-lantern/v2/packetcounter"
 	"github.com/getlantern/http-proxy-lantern/v2/ping"
 	"github.com/getlantern/http-proxy-lantern/v2/quic"
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
@@ -135,11 +134,6 @@ type Proxy struct {
 	QUICIETFAddr                       string
 	QUICUseBBR                         bool
 	WSSAddr                            string
-	PCAPDir                            string
-	PCAPIPs                            int
-	PCAPSPerIP                         int
-	PCAPSnapLen                        int
-	PCAPTimeout                        time.Duration
 	PacketForwardAddr                  string
 	ExternalIntf                       string
 	SessionTicketKeyFile               string
@@ -228,30 +222,6 @@ func (p *Proxy) ListenAndServe() error {
 	}
 	var onServerError func(conn net.Conn, err error)
 	var onListenerError func(conn net.Conn, err error)
-	/*
-
-		if p.PCAPDir != "" && p.PCAPIPs > 0 && p.PCAPSPerIP > 0 {
-			log.Debugf("Enabling packet capture, capturing the %d packets for each of the %d most recent IPs into %v", p.PCAPSPerIP, p.PCAPIPs, p.PCAPDir)
-			pcapper.StartCapturing("http-proxy", p.ExternalIntf, "/tmp", p.PCAPIPs, p.PCAPSPerIP, p.PCAPSnapLen, p.PCAPTimeout)
-			onServerError = func(conn net.Conn, err error) {
-				ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-				pcapper.Dump(ip, log.Errorf("Unexpected error handling traffic from %v: %v", ip, err).Error())
-			}
-			onListenerError = func(conn net.Conn, err error) {
-				ip, _, _ := net.SplitHostPort(conn.RemoteAddr().String())
-				pcapper.Dump(ip, log.Errorf("Unexpected error handling new connection from %v: %v", ip, err).Error())
-			}
-
-			c := make(chan os.Signal, 1)
-			signal.Notify(c, syscall.SIGUSR1)
-			go func() {
-				for range c {
-					pcapper.DumpAll("Full Dump")
-				}
-			}()
-		}
-
-	*/
 	if err := p.setupPacketForward(); err != nil {
 		log.Errorf("Unable to set up packet forwarding, will continue to start up: %v", err)
 	}
@@ -321,7 +291,7 @@ func (p *Proxy) ListenAndServe() error {
 		}
 
 		// We pass onListenerError to lampshade so that we can count errors in its
-		// internal connection handling and dump pcaps in response to them.
+		// internal connection handling.
 		onListenerError = p.instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
 		if err := addListenerIfNecessary("lampshade", addrs.lampshade, p.listenLampshade(true, onListenerError, baseListen)); err != nil {
 			return err
@@ -830,12 +800,6 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 	}
 	if wrapBBR {
 		l = p.bm.Wrap(l)
-	}
-	_, port, err := net.SplitHostPort(addr)
-	if err != nil {
-		log.Errorf("Error extracting port from addr %v, skip counting TCP packets: %v", addr, err)
-	} else {
-		go packetcounter.Track(p.ExternalIntf, port, p.instrument.TCPPackets)
 	}
 	return l, nil
 }
