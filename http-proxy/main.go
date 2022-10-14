@@ -428,8 +428,8 @@ func main() {
 	}
 	if *maxmindLicenseKey != "" {
 		log.Debug("Will use Maxmind for geolocating clients")
-		p.CountryLookup = geo.FromWeb(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), "GeoLite2-Country.mmdb", 24*time.Hour, "GeoLite2-Country.mmdb")
-		p.ISPLookup = geo.FromWeb(fmt.Sprintf(geoip2_isp_url, *maxmindLicenseKey), "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile)
+		p.CountryLookup = geo.FromWeb(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), "GeoLite2-Country.mmdb", 24*time.Hour, "GeoLite2-Country.mmdb", geo.CountryCode)
+		p.ISPLookup = geo.FromWeb(fmt.Sprintf(geoip2_isp_url, *maxmindLicenseKey), "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile, geo.ISP)
 	}
 
 	log.Fatal(p.ListenAndServe())
