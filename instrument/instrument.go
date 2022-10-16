@@ -2,6 +2,7 @@ package instrument
 
 import (
 	"context"
+	"math/rand"
 	"net"
 	"net/http"
 	"strconv"
@@ -461,7 +462,12 @@ func (u *clientUsage) add(sent int, recv int) *clientUsage {
 
 func (p *PromInstrument) reportToOTELPeriodically() {
 	for {
-		time.Sleep(otelReportingInterval)
+		// We randomize the sleep time to avoid bursty submission to Honeycomb.
+		// Even though each proxy sends relatively little data, proxies often run fairly
+		// closely synchronized since they all update to a new binary and restart around the same
+		// time. By randomizing each proxy's interval, we smooth out the pattern of submissions.
+		sleepInterval := rand.Int63n(int64(otelReportingInterval * 2))
+		time.Sleep(time.Duration(sleepInterval))
 		p.reportToOTEL()
 	}
 }
