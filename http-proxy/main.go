@@ -11,6 +11,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime"
+	"runtime/debug"
 	"strings"
 	"syscall"
 	"time"
@@ -326,6 +327,7 @@ func main() {
 	if mux != "smux" && mux != "psmux" {
 		log.Fatalf("unsupported multiplex protocol %v", mux)
 	}
+	go periodicallyForceGC()
 
 	var reportingRedisClient *redis.Client
 	if *reportingRedisAddr != "" {
@@ -431,6 +433,13 @@ func main() {
 	}
 
 	log.Fatal(p.ListenAndServe())
+}
+
+func periodicallyForceGC() {
+	for {
+		time.Sleep(1 * time.Minute)
+		debug.FreeOSMemory()
+	}
 }
 
 func decodeUint16(s string) (uint16, error) {
