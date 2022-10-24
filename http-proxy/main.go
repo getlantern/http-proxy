@@ -124,7 +124,7 @@ var (
 	blacklistAllowedFailures    = flag.Int("blacklist-allowed-failures", blacklist.DefaultAllowedFailures, "The number of failed connection attempts we tolerate before blacklisting an IP address")
 	blacklistExpiration         = flag.Duration("blacklist-expiration", blacklist.DefaultExpiration, "How long to wait before removing an ip from the blacklist")
 
-	stackdriverProjectID        = flag.String("stackdriver-project-id", "", "Optional project ID for stackdriver error reporting as in http-proxy-lantern")
+	stackdriverProjectID        = flag.String("stackdriver-project-id", "lantern-http-proxy", "Optional project ID for stackdriver error reporting as in http-proxy-lantern")
 	stackdriverCreds            = flag.String("stackdriver-creds", "/home/lantern/lantern-stackdriver.json", "Optional full json file path containing stackdriver credentials")
 	stackdriverSamplePercentage = flag.Float64("stackdriver-sample-percentage", 0.003, "The percentage of devices to report to Stackdriver (0.01 = 1%)")
 
