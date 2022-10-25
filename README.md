@@ -22,6 +22,10 @@ All pushes to the `canary` branch are automatically deployed to the canary binar
 
 See `.github/workflows/go.yml`, which uses the `make build` Makefile target **NOT THE LEGACY `make dist-on-docker`**.
 
+## Rolling back a Deployment
+
+The http-proxy binary is distributed through S3 as [this object](https://s3.console.aws.amazon.com/s3/object/http-proxy?region=ap-northeast-1&prefix=http-proxy). This object is versioned in S3, so if you need to roll back to a prior deployed version, you can simply delete the currently deployed version from [here](https://s3.console.aws.amazon.com/s3/object/http-proxy?region=ap-northeast-1&prefix=http-proxy&tab=versions).
+
 ### Usage
 
 Build it with `go build` or with `make build`.
