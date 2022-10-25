@@ -141,6 +141,11 @@ var (
 	tlsmasqMinVersionStr = flag.String("tlsmasq-tls-min-version", "0x0303", "hex-encoded TLS version")
 	tlsmasqSuitesStr     = flag.String("tlsmasq-tls-cipher-suites", "0x1301,0x1302,0x1303,0xcca8,0xcca9,0xc02b,0xc030,0xc02c", "hex-encoded TLS cipher suites")
 
+	http2StreamAddr = flag.String("http2stream-addr", "", "Address at which to listen for h/2 connections.")
+	http2StreamPath = flag.String("http2stream-path", "", "Path to accept h/2 streams")
+	http3StreamAddr = flag.String("http3stream-addr", "", "Address at which to listen for h/3 connections.")
+	http3StreamPath = flag.String("http3stream-path", "", "Path to accept h/3 streams")
+
 	multiplexProtocol    = flag.String("multiplexprotocol", "smux", "multiplexing protocol to use")
 	smuxVersion          = flag.Int("smux-version", 0, "smux protocol version")
 	smuxMaxFrameSize     = flag.Int("smux-max-frame-size", 0, "smux maximum frame size")
@@ -404,6 +409,10 @@ func main() {
 		TLSMasqSecret:                      *tlsmasqSecret,
 		TLSMasqTLSMinVersion:               tlsmasqTLSMinVersion,
 		TLSMasqTLSCipherSuites:             tlsmasqTLSSuites,
+		HTTP2StreamAddr:                    *http2StreamAddr,
+		HTTP2StreamPath:                    *http2StreamPath,
+		HTTP3StreamAddr:                    *http3StreamAddr,
+		HTTP3StreamPath:                    *http3StreamPath,
 		ShadowsocksAddr:                    *shadowsocksAddr,
 		ShadowsocksMultiplexAddr:           *shadowsocksMultiplexAddr,
 		ShadowsocksSecret:                  *shadowsocksSecret,

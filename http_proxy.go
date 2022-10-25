@@ -20,6 +20,7 @@ import (
 	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
+	"github.com/getlantern/httpstreams"
 	"github.com/getlantern/kcpwrapper"
 	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
 	rclient "github.com/go-redis/redis/v8"
@@ -132,6 +133,10 @@ type Proxy struct {
 	QUICIETFAddr                       string
 	QUICUseBBR                         bool
 	WSSAddr                            string
+	HTTP2StreamAddr                    string
+	HTTP2StreamPath                    string
+	HTTP3StreamAddr                    string
+	HTTP3StreamPath                    string
 	PacketForwardAddr                  string
 	ExternalIntf                       string
 	SessionTicketKeyFile               string
@@ -323,6 +328,12 @@ func (p *Proxy) ListenAndServe() error {
 		return err
 	}
 	if err := addListenerIfNecessary("wss", p.WSSAddr, p.listenWSS); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary("http2", p.HTTP2StreamAddr, p.listenHTTP2Stream); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary("http3", p.HTTP3StreamAddr, p.listenHTTP3Stream); err != nil {
 		return err
 	}
 
@@ -847,6 +858,42 @@ func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
 
 	log.Debugf("Listening for shadowsocks at %v", l.Addr())
 	return l, nil
+}
+
+func (p *Proxy) listenHTTP2Stream(addr string) (net.Listener, error) {
+
+	tlsConf, err := tlsdefaults.BuildListenerConfig(addr, p.KeyFile, p.CertFile)
+	if err != nil {
+		return nil, err
+	}
+
+	options := &httpstreams.ListenOptions{
+		Addr:      addr,
+		Path:      p.HTTP2StreamPath,
+		TLSConfig: tlsConf,
+	}
+
+	return httpstreams.ListenH2(options)
+}
+
+func (p *Proxy) listenHTTP3Stream(addr string) (net.Listener, error) {
+	tlsConf, err := tlsdefaults.BuildListenerConfig(addr, p.KeyFile, p.CertFile)
+	if err != nil {
+		return nil, err
+	}
+
+	quicConfig := &quicwrapper.Config{
+		MaxIncomingStreams: 1000,
+	}
+
+	options := &httpstreams.ListenOptions{
+		Addr:       addr,
+		Path:       p.HTTP3StreamPath,
+		TLSConfig:  tlsConf,
+		QuicConfig: quicConfig,
+	}
+
+	return httpstreams.ListenH3(options)
 }
 
 func (p *Proxy) listenWSS(addr string) (net.Listener, error) {
