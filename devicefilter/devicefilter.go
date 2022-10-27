@@ -30,7 +30,7 @@ var (
 
 	epoch = time.Date(2016, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	alwaysThrottle = lanternlisteners.NewRateLimiter(10)
+	alwaysThrottle = lanternlisteners.NewRateLimiter(10, 10) // this is basically unusably slow, only used for malicious or really old/broken clients
 
 	defaultThrottleRate = int64(5000 * 1024 / 8) // 5 Mbps
 )
@@ -96,7 +96,7 @@ func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, 
 		if defaultThrottleRate <= 0 {
 			f.instrument.Throttle(false, message)
 		}
-		limiter := f.rateLimiterForDevice(lanternDeviceID, defaultThrottleRate)
+		limiter := f.rateLimiterForDevice(lanternDeviceID, defaultThrottleRate, defaultThrottleRate)
 		if log.IsTraceEnabled() {
 			log.Tracef("Throttling connection to %v per second by default",
 				humanize.Bytes(uint64(defaultThrottleRate)))
@@ -158,7 +158,9 @@ func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, 
 
 	if capOn && u.Bytes > settings.Threshold {
 		// per connection limiter
-		limiter := f.rateLimiterForDevice(lanternDeviceID, settings.Rate)
+		// Note - when people hit the data cap, we only throttle writes back to the client, not reads.
+		// This way, they can continue to upload videos or other bandwidth intensive content for sharing.
+		limiter := f.rateLimiterForDevice(lanternDeviceID, 0, settings.Rate)
 		if log.IsTraceEnabled() {
 			log.Tracef("Throttling connection from device %s to %v per second", lanternDeviceID,
 				humanize.Bytes(uint64(settings.Rate)))
@@ -191,13 +193,13 @@ func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, 
 	return resp, nextCtx, err
 }
 
-func (f *deviceFilterPre) rateLimiterForDevice(deviceID string, rateLimit int64) *lanternlisteners.RateLimiter {
+func (f *deviceFilterPre) rateLimiterForDevice(deviceID string, rateLimitRead, rateLimitWrite int64) *lanternlisteners.RateLimiter {
 	f.limitersByDeviceMx.Lock()
 	defer f.limitersByDeviceMx.Unlock()
 
 	limiter := f.limitersByDevice[deviceID]
-	if limiter == nil || limiter.GetRate() != rateLimit {
-		limiter = lanternlisteners.NewRateLimiter(rateLimit)
+	if limiter == nil || limiter.GetRateRead() != rateLimitRead || limiter.GetRateWrite() != rateLimitWrite {
+		limiter = lanternlisteners.NewRateLimiter(rateLimitRead, rateLimitWrite)
 		f.limitersByDevice[deviceID] = limiter
 	}
 	return limiter
