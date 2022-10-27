@@ -36,7 +36,7 @@ type Instrument interface {
 	XBQHeaderSent()
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
-	ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID string)
+	ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID, originHost string)
 	Close() error
 	quicSentPacket()
 	quicLostPacket()
@@ -63,7 +63,7 @@ func (i NoInstrument) Throttle(m bool, reason string) {}
 func (i NoInstrument) XBQHeaderSent()                                    {}
 func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
 func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
-func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID string) {
+func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
 }
 func (i NoInstrument) Close() error    { return nil }
 func (i NoInstrument) quicSentPacket() {}
@@ -116,8 +116,9 @@ type PromInstrument struct {
 	commonLabelNames []string
 	filters          map[string]*instrumentedFilter
 	errorHandlers    map[string]func(conn net.Conn, err error)
-	clientStats      map[clientDetails]*clientUsage
-	clientStatsMx    sync.Mutex
+	clientStats      map[clientDetails]*usage
+	originStats      map[originDetails]*usage
+	statsMx          sync.Mutex
 
 	blacklistChecked, blacklisted, mimicryChecked, mimicked, quicLostPackets, quicSentPackets, tcpConsecRetransmissions, tcpSentDataPackets, throttlingChecked, xbqSent prometheus.Counter
 
@@ -143,7 +144,8 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		commonLabelNames: commonLabelNames,
 		filters:          make(map[string]*instrumentedFilter),
 		errorHandlers:    make(map[string]func(conn net.Conn, err error)),
-		clientStats:      make(map[clientDetails]*clientUsage),
+		clientStats:      make(map[clientDetails]*usage),
+		originStats:      make(map[originDetails]*usage),
 		blacklistChecked: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_blacklist_checked_requests_total",
 		}, commonLabelNames).With(commonLabels),
@@ -364,7 +366,7 @@ func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID string) {
+func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
 	labels := prometheus.Labels{"app_platform": platform, "app_version": version, "app": app, "datacap_cohort": dataCapCohort}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
@@ -378,16 +380,25 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	p.bytesSentByISP.With(by_isp).Add(float64(sent))
 	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
 
-	key := clientDetails{
+	clientKey := clientDetails{
 		deviceID: deviceID,
 		platform: platform,
 		version:  version,
 		country:  country,
 		isp:      isp,
 	}
-	p.clientStatsMx.Lock()
-	p.clientStats[key] = p.clientStats[key].add(sent, recv)
-	p.clientStatsMx.Unlock()
+	p.statsMx.Lock()
+	p.clientStats[clientKey] = p.clientStats[clientKey].add(sent, recv)
+	if originHost != "" {
+		originKey := originDetails{
+			origin:   originHost,
+			platform: platform,
+			version:  version,
+			country:  country,
+		}
+		p.originStats[originKey] = p.originStats[originKey].add(sent, recv)
+	}
+	p.statsMx.Unlock()
 }
 
 // quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.
@@ -446,14 +457,21 @@ type clientDetails struct {
 	isp      string
 }
 
-type clientUsage struct {
+type originDetails struct {
+	origin   string
+	platform string
+	version  string
+	country  string
+}
+
+type usage struct {
 	sent int
 	recv int
 }
 
-func (u *clientUsage) add(sent int, recv int) *clientUsage {
+func (u *usage) add(sent int, recv int) *usage {
 	if u == nil {
-		u = &clientUsage{}
+		u = &usage{}
 	}
 	u.sent += sent
 	u.recv += recv
@@ -473,11 +491,13 @@ func (p *PromInstrument) reportToOTELPeriodically() {
 }
 
 func (p *PromInstrument) reportToOTEL() {
-	p.clientStatsMx.Lock()
-	stats := p.clientStats
-	p.clientStats = make(map[clientDetails]*clientUsage)
-	p.clientStatsMx.Unlock()
-	for key, value := range stats {
+	p.statsMx.Lock()
+	clientStats := p.clientStats
+	originStats := p.originStats
+	p.clientStats = make(map[clientDetails]*usage)
+	p.originStats = make(map[originDetails]*usage)
+	p.statsMx.Unlock()
+	for key, value := range clientStats {
 		_, span := otel.Tracer("").
 			Start(
 				context.Background(),
@@ -486,11 +506,26 @@ func (p *PromInstrument) reportToOTEL() {
 					attribute.Int("bytes_sent", value.sent),
 					attribute.Int("bytes_recv", value.recv),
 					attribute.Int("bytes_total", value.sent+value.recv),
+					attribute.String("device_id", key.deviceID),
 					attribute.String("client_platform", key.platform),
 					attribute.String("client_version", key.version),
-					attribute.String("device_id", key.deviceID),
 					attribute.String("client_country", key.country),
 					attribute.String("client_isp", key.isp)))
+		span.End()
+	}
+	for key, value := range originStats {
+		_, span := otel.Tracer("").
+			Start(
+				context.Background(),
+				"origin_bytes",
+				trace.WithAttributes(
+					attribute.Int("origin_bytes_sent", value.sent),
+					attribute.Int("origin_bytes_recv", value.recv),
+					attribute.Int("origin_bytes_total", value.sent+value.recv),
+					attribute.String("origin", key.origin),
+					attribute.String("client_platform", key.platform),
+					attribute.String("client_version", key.version),
+					attribute.String("client_country", key.country)))
 		span.End()
 	}
 }
