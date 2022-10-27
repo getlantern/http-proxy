@@ -14,24 +14,32 @@ const (
 )
 
 type RateLimiter struct {
-	r    *ratelimit.Bucket
-	w    *ratelimit.Bucket
-	rate int64
+	r         *ratelimit.Bucket
+	w         *ratelimit.Bucket
+	rateRead  int64
+	rateWrite int64
 }
 
-func NewRateLimiter(rate int64) *RateLimiter {
+func NewRateLimiter(rateRead, rateWrite int64) *RateLimiter {
 	l := &RateLimiter{
-		rate: rate,
+		rateRead:  rateRead,
+		rateWrite: rateWrite,
 	}
-	if rate > 0 {
-		l.r = ratelimit.NewBucketWithRate(float64(rate), rate)
-		l.w = ratelimit.NewBucketWithRate(float64(rate), rate)
+	if rateRead > 0 {
+		l.r = ratelimit.NewBucketWithRate(float64(rateRead), rateRead)
+	}
+	if rateWrite > 0 {
+		l.w = ratelimit.NewBucketWithRate(float64(rateWrite), rateWrite)
 	}
 	return l
 }
 
-func (l *RateLimiter) GetRate() int64 {
-	return l.rate
+func (l *RateLimiter) GetRateRead() int64 {
+	return l.rateRead
+}
+
+func (l *RateLimiter) GetRateWrite() int64 {
+	return l.rateWrite
 }
 
 func (l *RateLimiter) waitRead(n int) {
@@ -79,7 +87,7 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 	return &bitrateConn{
 		WrapConnEmbeddable: wc,
 		Conn:               c,
-		limiter:            NewRateLimiter(0),
+		limiter:            NewRateLimiter(0, 0),
 	}, err
 }
 
@@ -91,7 +99,7 @@ type bitrateConn struct {
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	if c.limiter.rate == 0 {
+	if c.limiter.rateRead == 0 {
 		return c.Conn.Read(p)
 	}
 
@@ -103,7 +111,7 @@ func (c *bitrateConn) Read(p []byte) (n int, err error) {
 }
 
 func (c *bitrateConn) Write(p []byte) (n int, err error) {
-	if c.limiter.rate == 0 {
+	if c.limiter.rateWrite == 0 {
 		return c.Conn.Write(p)
 	}
 
