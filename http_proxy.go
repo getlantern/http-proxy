@@ -185,7 +185,7 @@ type addresses struct {
 }
 
 // ListenAndServe listens, serves and blocks.
-func (p *Proxy) ListenAndServe() error {
+func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	if p.CountryLookup == nil {
 		log.Debugf("Maxmind not configured, will not report country data to prometheus or in bandwidth data")
 		p.CountryLookup = geo.NoLookup{}
@@ -218,7 +218,6 @@ func (p *Proxy) ListenAndServe() error {
 		}()
 		p.instrument = prom
 	}
-	defer p.instrument.Close()
 	var onServerError func(conn net.Conn, err error)
 	var onListenerError func(conn net.Conn, err error)
 	if err := p.setupPacketForward(); err != nil {
@@ -261,6 +260,7 @@ func (p *Proxy) ListenAndServe() error {
 	})
 	bwReporting, stopOTEL := p.configureBandwidthReporting()
 	defer stopOTEL()
+	defer p.instrument.Close()
 	// Throttle connections when signaled
 	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
 
@@ -337,15 +337,17 @@ func (p *Proxy) ListenAndServe() error {
 		return err
 	}
 
+	errCh := make(chan error, len(allListeners))
 	if p.EnableMultipath {
 		mpl := multipath.NewListener(allListeners, p.instrument.MultipathStats(listenerProtocols))
 		log.Debug("Serving multipath at:")
 		for i, l := range allListeners {
 			log.Debugf("  %-20s:  %v", listenerProtocols[i], l.Addr())
 		}
-		return srv.Serve(mpl, nil)
+		go func() {
+			errCh <- srv.Serve(mpl, nil)
+		}()
 	} else {
-		errCh := make(chan error, len(allListeners))
 		for _, _l := range allListeners {
 			l := _l
 			go func() {
@@ -353,7 +355,13 @@ func (p *Proxy) ListenAndServe() error {
 				errCh <- srv.Serve(l, mimic.SetServerAddr)
 			}()
 		}
-		return <-errCh
+	}
+	select {
+	case err := <-errCh:
+		return err
+	case <-ctx.Done():
+		// this is an expected path for closing, no error
+		return err
 	}
 }
 
