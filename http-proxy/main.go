@@ -232,6 +232,7 @@ func main() {
 	// Capture signals and exit normally because when relying on the default
 	// behavior, exit status -1 would confuse the parent process into thinking
 	// it's the child process and keeps running.
+	ctx, cancel := context.WithCancel(context.Background())
 	c := make(chan os.Signal, 1)
 	signal.Notify(c,
 		syscall.SIGHUP,
@@ -241,7 +242,7 @@ func main() {
 	go func() {
 		for range c {
 			log.Debug("Stopping server")
-			os.Exit(0)
+			cancel()
 		}
 	}()
 
@@ -432,7 +433,10 @@ func main() {
 		p.ISPLookup = geo.FromWeb(fmt.Sprintf(geoip2_isp_url, *maxmindLicenseKey), "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile, geo.ISP)
 	}
 
-	log.Fatal(p.ListenAndServe())
+	err = p.ListenAndServe(ctx)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func periodicallyForceGC() {
