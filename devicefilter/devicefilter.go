@@ -160,7 +160,7 @@ func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, 
 		// per connection limiter
 		// Note - when people hit the data cap, we only throttle writes back to the client, not reads.
 		// This way, they can continue to upload videos or other bandwidth intensive content for sharing.
-		limiter := f.rateLimiterForDevice(lanternDeviceID, 0, settings.Rate)
+		limiter := f.rateLimiterForDevice(lanternDeviceID, defaultThrottleRate, settings.Rate)
 		if log.IsTraceEnabled() {
 			log.Tracef("Throttling connection from device %s to %v per second", lanternDeviceID,
 				humanize.Bytes(uint64(settings.Rate)))
