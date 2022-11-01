@@ -5,7 +5,9 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -16,13 +18,18 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
+	"github.com/getlantern/errors"
 	"github.com/getlantern/geo"
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/proxy/v2/filters"
 )
 
 const (
-	otelReportingInterval = 30 * time.Minute
+	otelReportingInterval = 60 * time.Minute
+)
+
+var (
+	originRootRegex = regexp.MustCompile(`([^\.]+\.[^\.]+$)`)
 )
 
 // Instrument is the common interface about what can be instrumented.
@@ -514,6 +521,11 @@ func (p *PromInstrument) reportToOTEL() {
 		span.End()
 	}
 	for key, value := range originStats {
+		originRoot, err := p.originRoot(key.origin)
+		if err != nil {
+			// couldn't extract originRoot, skip
+			continue
+		}
 		_, span := otel.Tracer("").
 			Start(
 				context.Background(),
@@ -522,7 +534,7 @@ func (p *PromInstrument) reportToOTEL() {
 					attribute.Int("origin_bytes_sent", value.sent),
 					attribute.Int("origin_bytes_recv", value.recv),
 					attribute.Int("origin_bytes_total", value.sent+value.recv),
-					attribute.String("origin", key.origin),
+					attribute.String("origin", originRoot),
 					attribute.String("client_platform", key.platform),
 					attribute.String("client_version", key.version),
 					attribute.String("client_country", key.country)))
@@ -533,4 +545,31 @@ func (p *PromInstrument) reportToOTEL() {
 func (p *PromInstrument) Close() error {
 	p.reportToOTEL()
 	return nil
+}
+
+func (p *PromInstrument) originRoot(origin string) (string, error) {
+	ip := net.ParseIP(origin)
+	if ip != nil {
+		// origin is an IP address, try to get domain name
+		origins, err := net.LookupAddr(origin)
+		if err != nil || net.ParseIP(origins[0]) != nil {
+			// failed to reverse lookup, try to get ASN
+			asn := p.ispLookup.ASN(ip)
+			if asn != "" {
+				return asn, nil
+			}
+			return "", errors.New("unable to lookup ip %v", ip)
+		}
+		return p.originRoot(stripTrailingDot(origins[0]))
+	}
+	matches := originRootRegex.FindStringSubmatch(origin)
+	if matches == nil {
+		// regex didn't match, return origin as is
+		return origin, nil
+	}
+	return matches[1], nil
+}
+
+func stripTrailingDot(s string) string {
+	return strings.TrimRight(s, ".")
 }
