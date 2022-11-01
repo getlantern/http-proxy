@@ -397,13 +397,17 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	p.statsMx.Lock()
 	p.clientStats[clientKey] = p.clientStats[clientKey].add(sent, recv)
 	if originHost != "" {
-		originKey := originDetails{
-			origin:   originHost,
-			platform: platform,
-			version:  version,
-			country:  country,
+		originRoot, err := p.originRoot(originHost)
+		if err == nil {
+			// only record if we could extract originRoot
+			originKey := originDetails{
+				origin:   originRoot,
+				platform: platform,
+				version:  version,
+				country:  country,
+			}
+			p.originStats[originKey] = p.originStats[originKey].add(sent, recv)
 		}
-		p.originStats[originKey] = p.originStats[originKey].add(sent, recv)
 	}
 	p.statsMx.Unlock()
 }
@@ -521,11 +525,6 @@ func (p *PromInstrument) reportToOTEL() {
 		span.End()
 	}
 	for key, value := range originStats {
-		originRoot, err := p.originRoot(key.origin)
-		if err != nil {
-			// couldn't extract originRoot, skip
-			continue
-		}
 		_, span := otel.Tracer("").
 			Start(
 				context.Background(),
@@ -534,7 +533,7 @@ func (p *PromInstrument) reportToOTEL() {
 					attribute.Int("origin_bytes_sent", value.sent),
 					attribute.Int("origin_bytes_recv", value.recv),
 					attribute.Int("origin_bytes_total", value.sent+value.recv),
-					attribute.String("origin", originRoot),
+					attribute.String("origin", key.origin),
 					attribute.String("client_platform", key.platform),
 					attribute.String("client_version", key.version),
 					attribute.String("client_country", key.country)))
