@@ -13,7 +13,7 @@ require (
 	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v1.0.1
-	github.com/getlantern/geo v0.0.0-20221014183819-f3127660bcb3
+	github.com/getlantern/geo v0.0.0-20221101125300-c661769d5822
 	github.com/getlantern/golog v0.0.0-20221014032422-49749a7176cf
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
 	github.com/getlantern/http-proxy v0.0.3-0.20211022035117-86faba795750

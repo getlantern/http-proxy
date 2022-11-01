@@ -183,6 +183,12 @@ github.com/getlantern/framed v0.0.0-20190601192238-ceb6431eeede h1:yrU6Px3ZkvCsD
 github.com/getlantern/framed v0.0.0-20190601192238-ceb6431eeede/go.mod h1:nhnoiS6DE6zfe+BaCMU4YI01UpsuiXnDqM5S8jxHuuI=
 github.com/getlantern/geo v0.0.0-20221014183819-f3127660bcb3 h1:4dGjLrDktQWRcC2G0hSufj0wChKzwEqoLGzyO2WcJXE=
 github.com/getlantern/geo v0.0.0-20221014183819-f3127660bcb3/go.mod h1:Xw0BLEMmlFOQ1FCBqqWfYEhc2Ss6V4S/56U0oKH/QFU=
+github.com/getlantern/geo v0.0.0-20221101124406-a59c17350a2c h1:SvyguSc67LRk5uG2xnz7+ccaPrMvC5crWdFnRpEBDqs=
+github.com/getlantern/geo v0.0.0-20221101124406-a59c17350a2c/go.mod h1:Xw0BLEMmlFOQ1FCBqqWfYEhc2Ss6V4S/56U0oKH/QFU=
+github.com/getlantern/geo v0.0.0-20221101124618-fd3b36989a67 h1:8ye07PokljzGwmxFuH5By6OTLWoxKxgPvmvHLkg8Es4=
+github.com/getlantern/geo v0.0.0-20221101124618-fd3b36989a67/go.mod h1:Xw0BLEMmlFOQ1FCBqqWfYEhc2Ss6V4S/56U0oKH/QFU=
+github.com/getlantern/geo v0.0.0-20221101125300-c661769d5822 h1:DhGGljbbvnXmBhh11b2MLTrkdkSIROy5Op1eylsM74U=
+github.com/getlantern/geo v0.0.0-20221101125300-c661769d5822/go.mod h1:Xw0BLEMmlFOQ1FCBqqWfYEhc2Ss6V4S/56U0oKH/QFU=
 github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467 h1:10ez8C+7zyHzmnIiYybx9Qji/zO2tAAde69DfJMbUKY=
 github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467/go.mod h1:IQND0fl/mdTYNICpN/eDYKX+j90TqQYXdpNFWkJpCPs=
 github.com/getlantern/golog v0.0.0-20190809085441-26e09e6dd330/go.mod h1:zx/1xUUeYPy3Pcmet8OSXLbF47l+3y6hIPpyLWoR9oc=
