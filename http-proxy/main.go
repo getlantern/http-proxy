@@ -164,7 +164,7 @@ var (
 	shadowsocksSecret        = flag.String("shadowsocks-secret", "", "shadowsocks secret")
 	shadowsocksCipher        = flag.String("shadowsocks-cipher", shadowsocks.DefaultCipher, "shadowsocks cipher")
 
-	honeycombKey        = flag.String("honeycomb-key", "9MJkkcYrlmWx0HwlE5K6RD", "honeycomb key (if unspecified, will not report traces to Honeycomb")
+	honeycombKey        = flag.String("honeycomb-key", "jskJrfYyNNp2lcJ0WQ8JfD", "honeycomb key (if unspecified, will not report traces to Honeycomb")
 	honeycombSampleRate = flag.Int("honeycomb-sample-rate", 1000, "rate at which to sample data for honeycomb")
 
 	track = flag.String("track", "", "The track this proxy is running on")
