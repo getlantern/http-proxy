@@ -93,7 +93,6 @@ type Proxy struct {
 	ENHTTPServerURL                    string
 	ENHTTPReapIdleTime                 time.Duration
 	EnableMultipath                    bool
-	EnableReports                      bool
 	HTTPS                              bool
 	IdleTimeout                        time.Duration
 	KeyFile                            string
@@ -776,7 +775,7 @@ func (p *Proxy) buildOTELOpts(endpoint string, headers map[string]string, includ
 }
 
 func (p *Proxy) configureBandwidthReporting() *reportingConfig {
-	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.EnableReports, p.instrument, p.throttleConfig)
+	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.instrument, p.throttleConfig)
 }
 
 func (p *Proxy) loadThrottleConfig() {
