@@ -38,7 +38,6 @@ loader
 obfs4_bridgeline.txt
 obfs4_state.json
 
-vendor
 .vendor-new
 bin
 dist-bin
