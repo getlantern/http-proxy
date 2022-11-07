@@ -90,7 +90,6 @@ var (
 	throttleRefreshInterval = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
 
 	enableMultipath = flag.Bool("enablemultipath", false, "Enable multipath. Only clients support multipath can communicate with it.")
-	enableReports   = flag.Bool("enablereports", false, "Enable stats reporting")
 
 	externalIP = flag.String("externalip", "", "The external IP of this proxy, used for reporting")
 	https      = flag.Bool("https", false, "Use TLS for client to proxy communication")
@@ -367,7 +366,6 @@ func main() {
 		CertFile:                           *certfile,
 		CfgSvrAuthToken:                    *cfgSvrAuthToken,
 		ConnectOKWaitsForUpstream:          *connectOKWaitsForUpstream,
-		EnableReports:                      *enableReports,
 		EnableMultipath:                    *enableMultipath,
 		ThrottleRefreshInterval:            *throttleRefreshInterval,
 		HoneycombSampleRate:                *honeycombSampleRate,
