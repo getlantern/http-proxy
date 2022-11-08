@@ -27,9 +27,10 @@ type reportingConfig struct {
 }
 
 func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, enabled bool, instrument instrument.Instrument, throttleConfig throttle.Config) *reportingConfig {
-	if !enabled || rc == nil {
+	if !enabled {
 		return noReport
 	}
+
 	proxiedBytesReporter := func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 		if deltaStats.SentTotal == 0 && deltaStats.RecvTotal == 0 {
 			// nothing to report
@@ -75,15 +76,14 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 	}
 
 	var reporter listeners.MeasuredReportFN
-	if throttleConfig == nil {
-		log.Debug("No throttling configured, don't bother reporting bandwidth usage to Redis")
-		reporter = func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats,
-			final bool) {
+	if throttleConfig != nil && rc != nil {
+		reporter = redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval, throttleConfig)
+	} else {
+		reporter = func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 			// noop
 		}
-	} else {
-		reporter = redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval, throttleConfig)
 	}
+
 	reporter = combineReporter(reporter, proxiedBytesReporter)
 	wrapper := func(ls net.Listener) net.Listener {
 		return listeners.NewMeasuredListener(ls, measuredReportingInterval, reporter)
