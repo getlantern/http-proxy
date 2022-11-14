@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	otelReportingInterval = 1 * time.Minute
+	otelReportingInterval = 5 * time.Minute
 )
 
 var (
