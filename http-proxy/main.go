@@ -108,6 +108,14 @@ var (
 	proxyProtocol       = flag.String("proxyprotocol", "", "The protocol of this proxy, for information only")
 	bbrUpstreamProbeURL = flag.String("bbrprobeurl", "", "optional URL to probe for upstream BBR bandwidth estimates")
 
+	// This is closely tied to our short-term approach to triangle routing. We use the iptables
+	// TPROXY target to redirect packets to the proxy process. The process must be listening on a
+	// socket with IP_TRANSPARENT to receive the redirected packets. The process must be run with
+	// CAP_NET_RAW capabilities.
+	//
+	// This flag should be ripped out when we move to a better solution for triangle routing.
+	ipTransparent = flag.Bool("iptransparent", false, "whether to set the IP_TRANSPARENT socket option")
+
 	bench   = flag.Bool("bench", false, "Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.")
 	version = flag.Bool("version", false, "shows the version of the binary")
 	help    = flag.Bool("help", false, "Get usage help")
@@ -363,6 +371,7 @@ func main() {
 		ReportingRedisClient:               reportingRedisClient,
 		Token:                              *token,
 		TunnelPorts:                        *tunnelPorts,
+		IPTransparent:                      *ipTransparent,
 		Obfs4Addr:                          *obfs4Addr,
 		Obfs4MultiplexAddr:                 *obfs4MultiplexAddr,
 		Obfs4Dir:                           *obfs4Dir,

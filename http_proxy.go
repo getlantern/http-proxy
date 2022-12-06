@@ -11,7 +11,10 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"syscall"
 	"time"
+
+	"golang.org/x/sys/unix"
 
 	"github.com/getlantern/cmux/v2"
 	"github.com/getlantern/cmuxprivate"
@@ -151,6 +154,14 @@ type Proxy struct {
 	PromExporterAddr                   string
 	CountryLookup                      geo.CountryLookup
 	ISPLookup                          geo.ISPLookup
+
+	// IPTransparent indicates whether the IP_TRANSPARENT socket option should be used. This flag is
+	// tied closely to our short-term approach to triangle routing. We use the iptables TPROXY
+	// target to redirect packets to the proxy process. The process must be listening on a socket
+	// with IP_TRANSPARENT to receive the redirected packets.
+	//
+	// This flag should be ripped out when we move to a better solution for triangle routing.
+	IPTransparent bool
 
 	MultiplexProtocol             string
 	SmuxVersion                   int
@@ -767,7 +778,24 @@ func (p *Proxy) listenTLSMasq(baseListen func(string, bool) (net.Listener, error
 }
 
 func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
-	l, err := net.Listen("tcp", addr)
+	lc := net.ListenConfig{}
+	if p.IPTransparent {
+		lc.Control = func(network, addr string, conn syscall.RawConn) error {
+			var setOptErr error
+			err := conn.Control(func(fd uintptr) {
+				setOptErr = syscall.SetsockoptInt(int(fd), unix.IPPROTO_IP, unix.IP_TRANSPARENT, 1)
+				if setOptErr != nil {
+					return
+				}
+			})
+			if err != nil {
+				return err
+			}
+			return setOptErr
+		}
+	}
+
+	l, err := lc.Listen(context.Background(), "tcp", addr)
 	if err != nil {
 		return nil, err
 	}
