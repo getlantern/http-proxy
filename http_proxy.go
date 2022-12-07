@@ -20,8 +20,8 @@ import (
 	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
+	shadowsocks "github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/kcpwrapper"
-	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
 	rclient "github.com/go-redis/redis/v8"
 
 	"github.com/getlantern/multipath"
