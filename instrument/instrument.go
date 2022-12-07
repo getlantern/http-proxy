@@ -388,6 +388,7 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
 
 	clientKey := clientDetails{
+		deviceID: deviceID,
 		platform: platform,
 		version:  version,
 		country:  country,
@@ -460,6 +461,7 @@ func (prom *PromInstrument) MultipathStats(protocols []string) (trackers []multi
 }
 
 type clientDetails struct {
+	deviceID string
 	platform string
 	version  string
 	country  string
@@ -515,6 +517,7 @@ func (p *PromInstrument) reportToOTEL() {
 					attribute.Int("bytes_sent", value.sent),
 					attribute.Int("bytes_recv", value.recv),
 					attribute.Int("bytes_total", value.sent+value.recv),
+					attribute.String("device_id", key.deviceID),
 					attribute.String("client_platform", key.platform),
 					attribute.String("client_version", key.version),
 					attribute.String("client_country", key.country),
