@@ -28,7 +28,6 @@ var (
 )
 
 type Opts struct {
-	HoneycombKey  string
 	SampleRate    int
 	ExternalIP    string
 	ProxyName     string

@@ -80,8 +80,7 @@ type Proxy struct {
 	TestingLocal                       bool
 	HTTPAddr                           string
 	HTTPMultiplexAddr                  string
-	HoneycombKey                       string
-	HoneycombSampleRate                int
+	OTELSampleRate                     int
 	ExternalIP                         string
 	CertFile                           string
 	CfgSvrAuthToken                    string
@@ -649,12 +648,11 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 
 func (p *Proxy) configureBandwidthReporting() (*reportingConfig, func()) {
 	stop := func() {}
-	if p.HoneycombKey != "" {
+	if p.OTELSampleRate > 0 {
 		log.Debug("Configuring OpenTelemetry")
 		proxyName, dc := proxyName(p.ProxyName)
 		opts := &otel.Opts{
-			HoneycombKey:  p.HoneycombKey,
-			SampleRate:    p.HoneycombSampleRate,
+			SampleRate:    p.OTELSampleRate,
 			ExternalIP:    p.ExternalIP,
 			ProxyName:     proxyName,
 			Track:         p.Track,
