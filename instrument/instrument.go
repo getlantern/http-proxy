@@ -491,7 +491,7 @@ func (u *usage) add(sent int, recv int) *usage {
 
 func (p *PromInstrument) reportToOTELPeriodically() {
 	for {
-		// We randomize the sleep time to avoid bursty submission to Honeycomb.
+		// We randomize the sleep time to avoid bursty submission to OpenTelemetry.
 		// Even though each proxy sends relatively little data, proxies often run fairly
 		// closely synchronized since they all update to a new binary and restart around the same
 		// time. By randomizing each proxy's interval, we smooth out the pattern of submissions.
