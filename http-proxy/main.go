@@ -28,10 +28,10 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
 	lanternredis "github.com/getlantern/http-proxy-lantern/v2/redis"
+	"github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/http-proxy-lantern/v2/stackdrivererror"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
-	shadowsocks "github.com/getlantern/lantern-shadowsocks/lantern"
 )
 
 var (
@@ -163,6 +163,8 @@ var (
 	shadowsocksReplayHistory = flag.Int("shadowsocks-replay-history", shadowsocks.DefaultReplayHistory, "Replay buffer size (# of handshakes)")
 	shadowsocksSecret        = flag.String("shadowsocks-secret", "", "shadowsocks secret")
 	shadowsocksCipher        = flag.String("shadowsocks-cipher", shadowsocks.DefaultCipher, "shadowsocks cipher")
+	shadowsocksUseDNSOverTCP = flag.Bool("shadowsocks-use-dnsovertcp", false,
+		"Use DNS-over-TCP prefix for all shadowsocks packets. See https://github.com/getlantern/lantern-internal/issues/4428#issuecomment-1337979698 for more info")
 
 	honeycombKey        = flag.String("honeycomb-key", "jskJrfYyNNp2lcJ0WQ8JfD", "honeycomb key (if unspecified, will not report traces to Honeycomb")
 	honeycombSampleRate = flag.Int("honeycomb-sample-rate", 1000, "rate at which to sample data for honeycomb")
@@ -410,6 +412,7 @@ func main() {
 		ShadowsocksSecret:                  *shadowsocksSecret,
 		ShadowsocksCipher:                  *shadowsocksCipher,
 		ShadowsocksReplayHistory:           *shadowsocksReplayHistory,
+		ShadowsocksUseDNSOverTCP:           *shadowsocksUseDNSOverTCP,
 		PromExporterAddr:                   *promExporterAddr,
 		MultiplexProtocol:                  *multiplexProtocol,
 		SmuxVersion:                        *smuxVersion,

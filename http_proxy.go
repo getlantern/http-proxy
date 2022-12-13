@@ -148,6 +148,7 @@ type Proxy struct {
 	ShadowsocksSecret                  string
 	ShadowsocksCipher                  string
 	ShadowsocksReplayHistory           int
+	ShadowsocksUseDNSOverTCP           bool
 	PromExporterAddr                   string
 	CountryLookup                      geo.CountryLookup
 	ISPLookup                          geo.ISPLookup
@@ -848,7 +849,10 @@ func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
 	if err != nil {
 		return nil, errors.New("Unable to create shadowsocks cipher: %v", err)
 	}
-	l, err := shadowsocks.ListenLocalTCP(addr, ciphers, p.ShadowsocksReplayHistory)
+	l, err := shadowsocks.ListenLocalTCP(
+		addr, ciphers,
+		p.ShadowsocksReplayHistory, p.ShadowsocksUseDNSOverTCP,
+	)
 	if err != nil {
 		return nil, errors.New("Unable to listen for shadowsocks: %v", err)
 	}

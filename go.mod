@@ -23,7 +23,6 @@ require (
 	github.com/getlantern/kcpwrapper v0.0.0-20220503142841-b0e764933966
 	github.com/getlantern/keyman v0.0.0-20210218183930-5e48f8ced961
 	github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9
-	github.com/getlantern/lantern-shadowsocks v1.3.6-0.20210601195915-e04471aa4920
 	github.com/getlantern/measured v0.0.0-20210507000559-ec5307b2b8be
 	github.com/getlantern/mockconn v0.0.0-20200818071412-cb30d065a848
 	github.com/getlantern/mtime v0.0.0-20200417132445-23682092d1f7
@@ -168,7 +167,7 @@ require (
 	golang.org/x/mod v0.6.0-dev.0.20220419223038-86c51ed26bb4 // indirect
 	golang.org/x/oauth2 v0.0.0-20220722155238-128564f6959c // indirect
 	golang.org/x/sync v0.0.0-20220722155255-886fb9371eb4 // indirect
-	golang.org/x/sys v0.1.0 // indirect
+	golang.org/x/sys v0.3.0 // indirect
 	golang.org/x/text v0.4.0 // indirect
 	golang.org/x/tools v0.1.12 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
@@ -193,4 +192,4 @@ replace github.com/refraction-networking/utls => github.com/getlantern/utls v0.0
 // over 'require' to fully remove references to 0.5.6 in go.sum
 replace github.com/ulikunitz/xz => github.com/ulikunitz/xz v0.5.8
 
-replace github.com/Jigsaw-Code/outline-ss-server => github.com/getlantern/lantern-shadowsocks v1.3.6-0.20221213082547-460cac4407f7
+replace github.com/Jigsaw-Code/outline-ss-server => github.com/getlantern/lantern-shadowsocks v1.3.6-0.20221213095213-6d5f9409039d
