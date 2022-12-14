@@ -9,7 +9,6 @@ import (
 	"github.com/prometheus/client_golang/prometheus"
 
 	outlineShadowsocksNet "github.com/Jigsaw-Code/outline-ss-server/net"
-	"github.com/Jigsaw-Code/outline-ss-server/prefix"
 	"github.com/Jigsaw-Code/outline-ss-server/service"
 	"github.com/Jigsaw-Code/outline-ss-server/service/metrics"
 )
@@ -57,7 +56,6 @@ type ListenerOptions struct {
 	ShouldHandleLocally   HandleLocalPredicate                    // determines whether an upstream should be handled by the listener locally or dial upstream
 	TargetIPValidator     outlineShadowsocksNet.TargetIPValidator // determines validity of non-local upstream dials
 	MaxPendingConnections int                                     // defaults to 1000
-	UseDNSOverTCPPrefix   bool                                    // defaults to false
 }
 
 // GetDefaultMetrics returns the singleton metrics.ShadowsocksMetrics instance
@@ -81,14 +79,9 @@ type llistener struct {
 // ListenLocalTCP creates a net.Listener that returns all inbound shadowsocks connections to the
 // returned listener rather than dialing upstream. Any upstream or local handling should be handled by the
 // caller of Accept().
-//
-// If useDNSOverTCPPrefix is true, all TCP PSH/ACK packets from client to
-// server are expected to include a DNS-over-TCP prefix header.
-// See here for more info: https://github.com/getlantern/lantern-internal/issues/4428#issuecomment-1337979698
-// And see https://github.com/getlantern/lantern-shadowsocks/blob/00ff726/prefix/dnsovertcp.go for generation/absorption code
 func ListenLocalTCP(
 	addr string, ciphers service.CipherList,
-	replayHistory int, useDNSOverTCPPrefix bool,
+	replayHistory int,
 ) (net.Listener, error) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
@@ -102,10 +95,9 @@ func ListenLocalTCP(
 	replayCache := service.NewReplayCache(replayHistory)
 
 	options := &ListenerOptions{
-		Listener:            l,
-		Ciphers:             ciphers,
-		ReplayCache:         &replayCache,
-		UseDNSOverTCPPrefix: useDNSOverTCPPrefix,
+		Listener:    l,
+		Ciphers:     ciphers,
+		ReplayCache: &replayCache,
 	}
 
 	return ListenLocalTCPOptions(options), nil
@@ -147,11 +139,6 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 		isLocal = AlwaysLocal
 	}
 
-	var absorbPrefixFunc prefix.AbsorbPrefixFunc = nil
-	if options.UseDNSOverTCPPrefix {
-		absorbPrefixFunc = prefix.AbsorbDNSOverTCPPrefix
-	}
-
 	dialer := maybeLocalDialer(isLocal, l.dialPipe, service.DefaultDialTarget)
 	l.TCPService = service.NewTCPService(
 		options.Ciphers, options.ReplayCache,
@@ -159,7 +146,6 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 		&service.TCPServiceOptions{
 			DialTarget:        dialer,
 			TargetIPValidator: validator,
-			AbsorbPrefixFunc:  absorbPrefixFunc,
 		},
 	)
 
