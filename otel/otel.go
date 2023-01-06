@@ -5,7 +5,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlantern/golog"
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
@@ -13,6 +12,8 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
+
+	"github.com/getlantern/golog"
 )
 
 const (
@@ -53,7 +54,7 @@ func Configure(opts *Opts) {
 		// Create a TracerProvider that uses the above exporter
 		attributes := []attribute.KeyValue{
 			semconv.ServiceNameKey.String("http-proxy-lantern"),
-			attribute.String("proxy_protocol", opts.ProxyProtocol),
+			attribute.String("protocol", opts.ProxyProtocol),
 			attribute.Bool("pro", opts.IsPro),
 		}
 		if opts.Track != "" {

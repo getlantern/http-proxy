@@ -13,6 +13,8 @@ import (
 	"strings"
 	"time"
 
+	rclient "github.com/go-redis/redis/v8"
+
 	"github.com/getlantern/cmux/v2"
 	"github.com/getlantern/cmuxprivate"
 	"github.com/getlantern/enhttp"
@@ -22,7 +24,8 @@ import (
 	"github.com/getlantern/gonat"
 	shadowsocks "github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/kcpwrapper"
-	rclient "github.com/go-redis/redis/v8"
+
+	"github.com/xtaci/smux"
 
 	"github.com/getlantern/multipath"
 	packetforward "github.com/getlantern/packetforward/server"
@@ -32,7 +35,6 @@ import (
 	"github.com/getlantern/quicwrapper"
 	"github.com/getlantern/tinywss"
 	"github.com/getlantern/tlsdefaults"
-	"github.com/xtaci/smux"
 
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/http-proxy/proxyfilters"
@@ -495,22 +497,6 @@ func proxyName(hostname string) (proxyName string, dc string) {
 	return match[1], match[3]
 }
 
-func (p *Proxy) proxyProtocol() string {
-	if p.LampshadeAddr != "" {
-		return "lampshade"
-	}
-	if p.KCPConf != "" {
-		return "kcp"
-	}
-	if p.QUICIETFAddr != "" {
-		return "quic_ietf"
-	}
-	if p.WSSAddr != "" {
-		return "wss"
-	}
-	return "https"
-}
-
 func (p *Proxy) setBenchmarkMode() {
 	if p.Benchmark {
 		log.Debug("Putting proxy into benchmarking mode. Only a limited rate of requests to a specific set of domains will be allowed, no authentication token required.")
@@ -656,7 +642,7 @@ func (p *Proxy) configureBandwidthReporting() (*reportingConfig, func()) {
 			ProxyName:     proxyName,
 			Track:         p.Track,
 			DC:            dc,
-			ProxyProtocol: p.proxyProtocol(),
+			ProxyProtocol: p.ProxyProtocol,
 			IsPro:         p.Pro,
 		}
 		otel.Configure(opts)
