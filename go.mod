@@ -19,7 +19,7 @@ require (
 	github.com/getlantern/golog v0.0.0-20221014032422-49749a7176cf
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
 	github.com/getlantern/grtrack v0.0.0-20160824195228-cbf67d3fa0fd
-	github.com/getlantern/http-proxy v0.0.3-0.20211022035117-86faba795750
+	github.com/getlantern/http-proxy v0.0.3-0.20230112154909-69209a6e2049
 	github.com/getlantern/kcpwrapper v0.0.0-20220503142841-b0e764933966
 	github.com/getlantern/keyman v0.0.0-20210218183930-5e48f8ced961
 	github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9
@@ -92,7 +92,7 @@ require (
 	github.com/getlantern/hex v0.0.0-20190417191902-c6586a6fe0b7 // indirect
 	github.com/getlantern/hidden v0.0.0-20201229170000-e66e7f878730 // indirect
 	github.com/getlantern/idletiming v0.0.0-20200228204104-10036786eac5 // indirect
-	github.com/getlantern/iptool v0.0.0-20210721034953-519bf8ce0147 // indirect
+	github.com/getlantern/iptool v0.0.0-20230112135223-c00e863b2696 // indirect
 	github.com/getlantern/kcp-go/v5 v5.0.0-20220503142114-f0c1cd6e1b54 // indirect
 	github.com/getlantern/keepcurrent v0.0.0-20221014183517-fcee77376b89 // indirect
 	github.com/getlantern/mitm v0.0.0-20180205214248-4ce456bae650 // indirect
