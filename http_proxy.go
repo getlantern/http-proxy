@@ -82,7 +82,9 @@ type Proxy struct {
 	TestingLocal                       bool
 	HTTPAddr                           string
 	HTTPMultiplexAddr                  string
-	OTELSampleRate                     int
+	HoneycombKey                       string
+	HoneycombSampleRate                int
+	TeleportSampleRate                 int
 	ExternalIP                         string
 	CertFile                           string
 	CfgSvrAuthToken                    string
@@ -259,11 +261,13 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  p.instrument.WrapConnErrorHandler("proxy_serve", onServerError),
 	})
-	bwReporting, stopOTEL := p.configureBandwidthReporting()
-	defer stopOTEL()
+	honeycombReporting, stopHoneycomb := p.configureHoneycombReporting()
+	teleportReporting, stopTeleport := p.configureTeleportReporting()
+	defer stopHoneycomb()
+	defer stopTeleport()
 	defer p.instrument.Close()
 	// Throttle connections when signaled
-	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
+	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, honeycombReporting.wrapper, teleportReporting.wrapper)
 
 	allListeners := make([]net.Listener, 0)
 	listenerProtocols := make([]string, 0)
@@ -631,24 +635,48 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}, nil
 }
 
-func (p *Proxy) configureBandwidthReporting() (*reportingConfig, func()) {
+func (p *Proxy) configureHoneycombReporting() (*reportingConfig, func()) {
 	stop := func() {}
-	if p.OTELSampleRate > 0 {
-		log.Debug("Configuring OpenTelemetry")
+	if p.HoneycombKey != "" && p.HoneycombSampleRate > 0 {
+		log.Debug("Configuring Honeycomb")
 		proxyName, dc := proxyName(p.ProxyName)
-		opts := &otel.Opts{
-			SampleRate:    p.OTELSampleRate,
-			ExternalIP:    p.ExternalIP,
-			ProxyName:     proxyName,
-			Track:         p.Track,
-			DC:            dc,
-			ProxyProtocol: p.ProxyProtocol,
-			IsPro:         p.Pro,
+		opts := &otel.HoneycombOpts{
+			HoneycombKey:        p.HoneycombKey,
+			HoneycombSampleRate: p.HoneycombSampleRate,
+			ExternalIP:          p.ExternalIP,
+			ProxyName:           proxyName,
+			Track:               p.Track,
+			DC:                  dc,
+			ProxyProtocol:       p.ProxyProtocol,
+			IsPro:               p.Pro,
 		}
-		otel.Configure(opts)
+		otel.ConfigureHoneycomb(opts)
 		stop = otel.Stop
 	} else {
-		log.Debug("Not configuring OpenTelemetry")
+		log.Debug("Not configuring Open Telemetry for Honeycomb")
+	}
+
+	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.EnableReports, p.instrument, p.throttleConfig), stop
+}
+
+func (p *Proxy) configureTeleportReporting() (*reportingConfig, func()) {
+	stop := func() {}
+	if p.TeleportSampleRate > 0 {
+		log.Debug("Configuring Open Telemetry for Teleport")
+		proxyName, dc := proxyName(p.ProxyName)
+		opts := &otel.TeleportOpts{
+			TeleportSampleRate: p.TeleportSampleRate,
+			ExternalIP:         p.ExternalIP,
+			ProxyName:          proxyName,
+			Track:              p.Track,
+			DC:                 dc,
+			ProxyProtocol:      p.ProxyProtocol,
+			IsPro:              p.Pro,
+		}
+		otel.ConfigureTeleport(opts)
+		stop = otel.Stop
+	} else {
+		log.Debug("Not configuring Open Telemetry for Teleport")
 	}
 
 	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.EnableReports, p.instrument, p.throttleConfig), stop
