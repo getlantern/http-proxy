@@ -163,7 +163,8 @@ var (
 	shadowsocksSecret        = flag.String("shadowsocks-secret", "", "shadowsocks secret")
 	shadowsocksCipher        = flag.String("shadowsocks-cipher", shadowsocks.DefaultCipher, "shadowsocks cipher")
 
-	otelSampleRate = flag.Int("otel-sample-rate", 1, "rate at which to sample data for OpenTelemetry")
+	honeycombKey        = flag.String("honeycomb-key", "jskJrfYyNNp2lcJ0WQ8JfD", "honeycomb key (if unspecified, will not report traces to Honeycomb")
+	honeycombSampleRate = flag.Int("honeycomb-sample-rate", 1000, "rate at which to sample data for honeycomb")
 
 	track = flag.String("track", "", "The track this proxy is running on")
 )
@@ -343,7 +344,8 @@ func main() {
 		EnableReports:                      *enableReports,
 		EnableMultipath:                    *enableMultipath,
 		ThrottleRefreshInterval:            *throttleRefreshInterval,
-		OTELSampleRate:                     *otelSampleRate,
+		HoneycombKey:                       *honeycombKey,
+		HoneycombSampleRate:                *honeycombSampleRate,
 		ExternalIP:                         *externalIP,
 		HTTPS:                              *https,
 		IdleTimeout:                        time.Duration(*idleClose) * time.Second,

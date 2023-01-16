@@ -25,7 +25,7 @@ import (
 )
 
 const (
-	otelReportingInterval = 60 * time.Minute
+	otelReportingInterval = 1 * time.Minute
 )
 
 var (
@@ -124,8 +124,8 @@ type PromInstrument struct {
 	filters          map[string]*instrumentedFilter
 	errorHandlers    map[string]func(conn net.Conn, err error)
 	clientStats      map[clientDetails]*usage
-	// originStats      map[originDetails]*usage
-	statsMx sync.Mutex
+	originStats      map[originDetails]*usage
+	statsMx          sync.Mutex
 
 	blacklistChecked, blacklisted, mimicryChecked, mimicked, quicLostPackets, quicSentPackets, tcpConsecRetransmissions, tcpSentDataPackets, throttlingChecked, xbqSent prometheus.Counter
 
@@ -152,7 +152,7 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		filters:          make(map[string]*instrumentedFilter),
 		errorHandlers:    make(map[string]func(conn net.Conn, err error)),
 		clientStats:      make(map[clientDetails]*usage),
-		// originStats:      make(map[originDetails]*usage),
+		originStats:      make(map[originDetails]*usage),
 		blacklistChecked: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_blacklist_checked_requests_total",
 		}, commonLabelNames).With(commonLabels),
@@ -388,7 +388,6 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
 
 	clientKey := clientDetails{
-		deviceID: deviceID,
 		platform: platform,
 		version:  version,
 		country:  country,
@@ -396,19 +395,19 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	}
 	p.statsMx.Lock()
 	p.clientStats[clientKey] = p.clientStats[clientKey].add(sent, recv)
-	// if originHost != "" {
-	// 	originRoot, err := p.originRoot(originHost)
-	// 	if err == nil {
-	// 		// only record if we could extract originRoot
-	// 		originKey := originDetails{
-	// 			origin:   originRoot,
-	// 			platform: platform,
-	// 			version:  version,
-	// 			country:  country,
-	// 		}
-	// 		p.originStats[originKey] = p.originStats[originKey].add(sent, recv)
-	// 	}
-	// }
+	if originHost != "" {
+		originRoot, err := p.originRoot(originHost)
+		if err == nil {
+			// only record if we could extract originRoot
+			originKey := originDetails{
+				origin:   originRoot,
+				platform: platform,
+				version:  version,
+				country:  country,
+			}
+			p.originStats[originKey] = p.originStats[originKey].add(sent, recv)
+		}
+	}
 	p.statsMx.Unlock()
 }
 
@@ -461,7 +460,6 @@ func (prom *PromInstrument) MultipathStats(protocols []string) (trackers []multi
 }
 
 type clientDetails struct {
-	deviceID string
 	platform string
 	version  string
 	country  string
@@ -491,7 +489,7 @@ func (u *usage) add(sent int, recv int) *usage {
 
 func (p *PromInstrument) reportToOTELPeriodically() {
 	for {
-		// We randomize the sleep time to avoid bursty submission to OpenTelemetry.
+		// We randomize the sleep time to avoid bursty submission to Honeycomb.
 		// Even though each proxy sends relatively little data, proxies often run fairly
 		// closely synchronized since they all update to a new binary and restart around the same
 		// time. By randomizing each proxy's interval, we smooth out the pattern of submissions.
@@ -504,9 +502,9 @@ func (p *PromInstrument) reportToOTELPeriodically() {
 func (p *PromInstrument) reportToOTEL() {
 	p.statsMx.Lock()
 	clientStats := p.clientStats
-	// originStats := p.originStats
+	originStats := p.originStats
 	p.clientStats = make(map[clientDetails]*usage)
-	// p.originStats = make(map[originDetails]*usage)
+	p.originStats = make(map[originDetails]*usage)
 	p.statsMx.Unlock()
 	for key, value := range clientStats {
 		_, span := otel.Tracer("").
@@ -517,28 +515,27 @@ func (p *PromInstrument) reportToOTEL() {
 					attribute.Int("bytes_sent", value.sent),
 					attribute.Int("bytes_recv", value.recv),
 					attribute.Int("bytes_total", value.sent+value.recv),
-					attribute.String("device_id", key.deviceID),
 					attribute.String("client_platform", key.platform),
 					attribute.String("client_version", key.version),
 					attribute.String("client_country", key.country),
 					attribute.String("client_isp", key.isp)))
 		span.End()
 	}
-	// for key, value := range originStats {
-	// 	_, span := otel.Tracer("").
-	// 		Start(
-	// 			context.Background(),
-	// 			"origin_bytes",
-	// 			trace.WithAttributes(
-	// 				attribute.Int("origin_bytes_sent", value.sent),
-	// 				attribute.Int("origin_bytes_recv", value.recv),
-	// 				attribute.Int("origin_bytes_total", value.sent+value.recv),
-	// 				attribute.String("origin", key.origin),
-	// 				attribute.String("client_platform", key.platform),
-	// 				attribute.String("client_version", key.version),
-	// 				attribute.String("client_country", key.country)))
-	// 	span.End()
-	// }
+	for key, value := range originStats {
+		_, span := otel.Tracer("").
+			Start(
+				context.Background(),
+				"origin_bytes",
+				trace.WithAttributes(
+					attribute.Int("origin_bytes_sent", value.sent),
+					attribute.Int("origin_bytes_recv", value.recv),
+					attribute.Int("origin_bytes_total", value.sent+value.recv),
+					attribute.String("origin", key.origin),
+					attribute.String("client_platform", key.platform),
+					attribute.String("client_version", key.version),
+					attribute.String("client_country", key.country)))
+		span.End()
+	}
 }
 
 func (p *PromInstrument) Close() error {

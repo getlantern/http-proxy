@@ -8,7 +8,7 @@ import (
 	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
-	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracegrpc"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
@@ -29,6 +29,7 @@ var (
 )
 
 type Opts struct {
+	HoneycombKey  string
 	SampleRate    int
 	ExternalIP    string
 	ProxyName     string
@@ -40,8 +41,11 @@ type Opts struct {
 
 func Configure(opts *Opts) {
 	// Create HTTP client to talk to OTEL collector
-	client := otlptracehttp.NewClient(
-		otlptracehttp.WithEndpoint("telemetry.iantem.io:443"),
+	client := otlptracegrpc.NewClient(
+		otlptracegrpc.WithEndpoint("api.honeycomb.io:443"),
+		otlptracegrpc.WithHeaders(map[string]string{
+			"x-honeycomb-team": opts.HoneycombKey,
+		}),
 	)
 
 	// Create an exporter that exports to the OTEL collector
