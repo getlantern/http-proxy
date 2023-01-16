@@ -25,7 +25,8 @@ import (
 )
 
 const (
-	otelReportingInterval = 1 * time.Minute
+	otelReportingInterval     = 1 * time.Minute
+	teleportReportingInterval = 60 * time.Minute
 )
 
 var (
@@ -117,15 +118,16 @@ func (f *instrumentedFilter) Apply(cs *filters.ConnectionState, req *http.Reques
 // PromInstrument is an implementation of Instrument which exports Prometheus
 // metrics.
 type PromInstrument struct {
-	countryLookup    geo.CountryLookup
-	ispLookup        geo.ISPLookup
-	commonLabels     prometheus.Labels
-	commonLabelNames []string
-	filters          map[string]*instrumentedFilter
-	errorHandlers    map[string]func(conn net.Conn, err error)
-	clientStats      map[clientDetails]*usage
-	originStats      map[originDetails]*usage
-	statsMx          sync.Mutex
+	countryLookup       geo.CountryLookup
+	ispLookup           geo.ISPLookup
+	commonLabels        prometheus.Labels
+	commonLabelNames    []string
+	filters             map[string]*instrumentedFilter
+	errorHandlers       map[string]func(conn net.Conn, err error)
+	clientStats         map[clientDetails]*usage
+	originStats         map[originDetails]*usage
+	clientStatsTeleport map[clientDetailsTeleport]*usage
+	statsMx             sync.Mutex
 
 	blacklistChecked, blacklisted, mimicryChecked, mimicked, quicLostPackets, quicSentPackets, tcpConsecRetransmissions, tcpSentDataPackets, throttlingChecked, xbqSent prometheus.Counter
 
@@ -145,14 +147,15 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		i++
 	}
 	p := &PromInstrument{
-		countryLookup:    countryLookup,
-		ispLookup:        ispLookup,
-		commonLabels:     commonLabels,
-		commonLabelNames: commonLabelNames,
-		filters:          make(map[string]*instrumentedFilter),
-		errorHandlers:    make(map[string]func(conn net.Conn, err error)),
-		clientStats:      make(map[clientDetails]*usage),
-		originStats:      make(map[originDetails]*usage),
+		countryLookup:       countryLookup,
+		ispLookup:           ispLookup,
+		commonLabels:        commonLabels,
+		commonLabelNames:    commonLabelNames,
+		filters:             make(map[string]*instrumentedFilter),
+		errorHandlers:       make(map[string]func(conn net.Conn, err error)),
+		clientStats:         make(map[clientDetails]*usage),
+		originStats:         make(map[originDetails]*usage),
+		clientStatsTeleport: make(map[clientDetailsTeleport]*usage),
 		blacklistChecked: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_blacklist_checked_requests_total",
 		}, commonLabelNames).With(commonLabels),
@@ -248,6 +251,7 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 	}
 
 	go p.reportToOTELPeriodically()
+	go p.reportToTeleportPeriodically()
 	return p
 }
 
@@ -393,8 +397,16 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 		country:  country,
 		isp:      isp,
 	}
+	clientKeyTeleport := clientDetailsTeleport{
+		platform: platform,
+		version:  version,
+		country:  country,
+		isp:      isp,
+		deviceID: deviceID,
+	}
 	p.statsMx.Lock()
 	p.clientStats[clientKey] = p.clientStats[clientKey].add(sent, recv)
+	p.clientStatsTeleport[clientKeyTeleport] = p.clientStatsTeleport[clientKeyTeleport].add(sent, recv)
 	if originHost != "" {
 		originRoot, err := p.originRoot(originHost)
 		if err == nil {
@@ -466,6 +478,14 @@ type clientDetails struct {
 	isp      string
 }
 
+type clientDetailsTeleport struct {
+	platform string
+	version  string
+	country  string
+	isp      string
+	deviceID string
+}
+
 type originDetails struct {
 	origin   string
 	platform string
@@ -496,6 +516,18 @@ func (p *PromInstrument) reportToOTELPeriodically() {
 		sleepInterval := rand.Int63n(int64(otelReportingInterval * 2))
 		time.Sleep(time.Duration(sleepInterval))
 		p.reportToOTEL()
+	}
+}
+
+func (p *PromInstrument) reportToTeleportPeriodically() {
+	for {
+		// We randomize the sleep time to avoid bursty submission to Honeycomb.
+		// Even though each proxy sends relatively little data, proxies often run fairly
+		// closely synchronized since they all update to a new binary and restart around the same
+		// time. By randomizing each proxy's interval, we smooth out the pattern of submissions.
+		sleepInterval := rand.Int63n(int64(teleportReportingInterval * 2))
+		time.Sleep(time.Duration(sleepInterval))
+		p.reportToTeleport()
 	}
 }
 
@@ -538,8 +570,32 @@ func (p *PromInstrument) reportToOTEL() {
 	}
 }
 
+func (p *PromInstrument) reportToTeleport() {
+	p.statsMx.Lock()
+	clientStatsTeleport := p.clientStatsTeleport
+	p.clientStatsTeleport = make(map[clientDetailsTeleport]*usage)
+	p.statsMx.Unlock()
+	for key, value := range clientStatsTeleport {
+		_, span := otel.Tracer("").
+			Start(
+				context.Background(),
+				"proxied_bytes",
+				trace.WithAttributes(
+					attribute.Int("bytes_sent", value.sent),
+					attribute.Int("bytes_recv", value.recv),
+					attribute.Int("bytes_total", value.sent+value.recv),
+					attribute.String("client_platform", key.platform),
+					attribute.String("client_version", key.version),
+					attribute.String("client_country", key.country),
+					attribute.String("client_isp", key.isp),
+					attribute.String("device_id", key.deviceID)))
+		span.End()
+	}
+}
+
 func (p *PromInstrument) Close() error {
 	p.reportToOTEL()
+	p.reportToTeleport()
 	return nil
 }
 

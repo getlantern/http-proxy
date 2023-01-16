@@ -165,6 +165,7 @@ var (
 
 	honeycombKey        = flag.String("honeycomb-key", "jskJrfYyNNp2lcJ0WQ8JfD", "honeycomb key (if unspecified, will not report traces to Honeycomb")
 	honeycombSampleRate = flag.Int("honeycomb-sample-rate", 1000, "rate at which to sample data for honeycomb")
+	teleportSampleRate  = flag.Int("teleport-sample-rate", 1, "rate at which to sample data for teleport")
 
 	track = flag.String("track", "", "The track this proxy is running on")
 )
@@ -346,6 +347,7 @@ func main() {
 		ThrottleRefreshInterval:            *throttleRefreshInterval,
 		HoneycombKey:                       *honeycombKey,
 		HoneycombSampleRate:                *honeycombSampleRate,
+		TeleportSampleRate:                 *teleportSampleRate,
 		ExternalIP:                         *externalIP,
 		HTTPS:                              *https,
 		IdleTimeout:                        time.Duration(*idleClose) * time.Second,

@@ -84,6 +84,7 @@ type Proxy struct {
 	HTTPMultiplexAddr                  string
 	HoneycombKey                       string
 	HoneycombSampleRate                int
+	TeleportSampleRate                 int
 	ExternalIP                         string
 	CertFile                           string
 	CfgSvrAuthToken                    string
@@ -261,10 +262,11 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		OnError:                  p.instrument.WrapConnErrorHandler("proxy_serve", onServerError),
 	})
 	bwReporting, stopOTEL := p.configureBandwidthReporting()
+	teleportReporting, stopOTEL := p.configureTeleportReporting()
 	defer stopOTEL()
 	defer p.instrument.Close()
 	// Throttle connections when signaled
-	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
+	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper, teleportReporting.wrapper)
 
 	allListeners := make([]net.Listener, 0)
 	listenerProtocols := make([]string, 0)
@@ -651,6 +653,29 @@ func (p *Proxy) configureBandwidthReporting() (*reportingConfig, func()) {
 		stop = otel.Stop
 	} else {
 		log.Debug("Not configuring OpenTelemetry")
+	}
+
+	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.EnableReports, p.instrument, p.throttleConfig), stop
+}
+
+func (p *Proxy) configureTeleportReporting() (*reportingConfig, func()) {
+	stop := func() {}
+	if p.TeleportSampleRate > 0 {
+		log.Debug("Configuring OpenTelemetry for Teleport")
+		proxyName, dc := proxyName(p.ProxyName)
+		opts := &otel.OptsTeleport{
+			TeleportSampleRate: p.TeleportSampleRate,
+			ExternalIP:         p.ExternalIP,
+			ProxyName:          proxyName,
+			Track:              p.Track,
+			DC:                 dc,
+			ProxyProtocol:      p.ProxyProtocol,
+			IsPro:              p.Pro,
+		}
+		otel.ConfigureTeleport(opts)
+		stop = otel.Stop
+	} else {
+		log.Debug("Not configuring OpenTelemetry for Teleport")
 	}
 
 	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.EnableReports, p.instrument, p.throttleConfig), stop
