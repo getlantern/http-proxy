@@ -406,7 +406,7 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	}
 	p.statsMx.Lock()
 	p.clientStats[clientKey] = p.clientStats[clientKey].add(sent, recv)
-	p.clientStatsWithDeviceID[clientKeyWithDeviceID] = p.clientStats[clientKeyWithDeviceID].add(sent, recv)
+	p.clientStatsWithDeviceID[clientKeyWithDeviceID] = p.clientStatsWithDeviceID[clientKeyWithDeviceID].add(sent, recv)
 	if originHost != "" {
 		originRoot, err := p.originRoot(originHost)
 		if err == nil {
