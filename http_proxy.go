@@ -690,10 +690,10 @@ func (p *Proxy) configureOTEL(
 	}
 	tp, stop := otel.BuildTracerProvider(opts)
 	if tp != nil {
-		go p.instrument.ReportToOTELPeriodically(reportingInterval, tp, false)
+		go p.instrument.ReportToOTELPeriodically(reportingInterval, tp, includeDeviceIDs)
 		ogStop := stop
 		stop = func() {
-			p.instrument.ReportToOTEL(tp, false)
+			p.instrument.ReportToOTEL(tp, includeDeviceIDs)
 			ogStop()
 		}
 	}

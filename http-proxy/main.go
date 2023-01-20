@@ -164,7 +164,7 @@ var (
 	shadowsocksCipher        = flag.String("shadowsocks-cipher", shadowsocks.DefaultCipher, "shadowsocks cipher")
 
 	honeycombSampleRate = flag.Int("honeycomb-sample-rate", 1000, "rate at which to sample data for Honeycomb")
-	teleportSampleRate  = flag.Int("otel-sample-rate", 1, "rate at which to sample data for Teleport")
+	teleportSampleRate  = flag.Int("teleport-sample-rate", 1, "rate at which to sample data for Teleport")
 
 	track = flag.String("track", "", "The track this proxy is running on")
 )
