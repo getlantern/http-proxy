@@ -36,7 +36,9 @@ func TestAbortOnHello(t *testing.T) {
 		t.Run(tc.response.action, func(t *testing.T) {
 			l, _ := net.Listen("tcp", ":0")
 			defer l.Close()
-			hl, err := Wrap(l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", true, tc.response, false, instrument.NoInstrument{})
+			hl, err := Wrap(
+				l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", "",
+				true, tc.response, false, instrument.NoInstrument{})
 			assert.NoError(t, err)
 			defer hl.Close()
 
@@ -76,7 +78,9 @@ func TestAbortOnHello(t *testing.T) {
 			rawConn, err := net.Dial("tcp", l.Addr().String())
 			assert.NoError(t, err)
 			ucfg := &utls.Config{ServerName: "microsoft.com"}
-			maintainSessionTicketKey(&tls.Config{}, "../test/testtickets", func(keys [][32]byte) { ucfg.SetSessionTicketKeys(keys) })
+			maintainSessionTicketKey(
+				&tls.Config{}, "../test/testtickets", nil,
+				func(keys [][32]byte) { ucfg.SetSessionTicketKeys(keys) })
 			ss := &utls.ClientSessionState{}
 			ticket := make([]byte, 120)
 			rand.Read(ticket)
