@@ -10,14 +10,14 @@ import (
 
 	"github.com/getlantern/geo"
 	"github.com/getlantern/mockconn"
-	"github.com/prometheus/client_golang/prometheus"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 func TestWrapConnErrorHandler(t *testing.T) {
 	var wg sync.WaitGroup
-	f := NewPrometheus(geo.NoLookup{}, geo.NoLookup{}, CommonLabels{}).WrapConnErrorHandler("test", func(conn net.Conn, err error) {
+	instrument := NewPrometheus(geo.NoLookup{}, geo.NoLookup{}, CommonLabels{})
+	f := instrument.WrapConnErrorHandler("test", func(conn net.Conn, err error) {
 		time.Sleep(100 * time.Millisecond)
 		wg.Done()
 	})
@@ -28,7 +28,7 @@ func TestWrapConnErrorHandler(t *testing.T) {
 		go f(mockconn.New(&buf, response), errors.New("abc"))
 	}
 	wg.Wait()
-	result, err := prometheus.DefaultRegisterer.(*prometheus.Registry).Gather()
+	result, err := instrument.registry.Gather()
 	assert.NoError(t, err)
 	var errors, consec_errors float64
 	for _, metric := range result {

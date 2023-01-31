@@ -12,6 +12,7 @@ import (
 	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 	"github.com/prometheus/client_golang/prometheus/promauto"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"go.opentelemetry.io/otel/attribute"
@@ -41,13 +42,16 @@ type Instrument interface {
 	MultipathStats([]string) []multipath.StatsTracker
 	Throttle(m bool, reason string)
 	XBQHeaderSent()
-	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
 	ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID, originHost string)
 	ReportToOTELPeriodically(interval time.Duration, tp *sdktrace.TracerProvider, includeDeviceID bool)
 	ReportToOTEL(tp *sdktrace.TracerProvider, includeDeviceID bool)
 	quicSentPacket()
 	quicLostPacket()
+	TLSMalformedHello()
+	TLSNoSupportSessionTickets()
+	TLSMissingSessionTicket()
+	TLSInvalidSessionTicket()
 }
 
 // NoInstrument is an implementation of Instrument which does nothing
@@ -73,16 +77,24 @@ func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
 func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
 func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
 }
+func (i NoInstrument) quicSentPacket() {}
+func (i NoInstrument) quicLostPacket() {}
+
+func (i NoInstrument) TLSMalformedHello()          {}
+func (i NoInstrument) TLSNoSupportSessionTickets() {}
+func (i NoInstrument) TLSMissingSessionTicket()    {}
+func (i NoInstrument) TLSInvalidSessionTicket()    {}
+
 func (i NoInstrument) ReportToOTELPeriodically(interval time.Duration, tp *sdktrace.TracerProvider, includeDeviceID bool) {
 }
 func (i NoInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeDeviceID bool) {}
-func (i NoInstrument) quicSentPacket()                                                {}
-func (i NoInstrument) quicLostPacket()                                                {}
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
 	Protocol              string
+	BuildRevision         string
 	BuildType             string
+	BuildGoVersion        string
 	SupportTLSResumption  bool
 	RequireTLSResumption  bool
 	MissingTicketReaction string
@@ -93,6 +105,8 @@ func (c *CommonLabels) PromLabels() prometheus.Labels {
 	return map[string]string{
 		"protocol":                c.Protocol,
 		"build_type":              c.BuildType,
+		"build_version":           c.BuildGoVersion,
+		"build_revision":          c.BuildRevision,
 		"support_tls_resumption":  strconv.FormatBool(c.SupportTLSResumption),
 		"require_tls_resumption":  strconv.FormatBool(c.RequireTLSResumption),
 		"missing_ticket_reaction": c.MissingTicketReaction,
@@ -120,10 +134,9 @@ func (f *instrumentedFilter) Apply(cs *filters.ConnectionState, req *http.Reques
 // PromInstrument is an implementation of Instrument which exports Prometheus
 // metrics.
 type PromInstrument struct {
+	registry                *prometheus.Registry
 	countryLookup           geo.CountryLookup
 	ispLookup               geo.ISPLookup
-	commonLabels            prometheus.Labels
-	commonLabelNames        []string
 	filters                 map[string]*instrumentedFilter
 	errorHandlers           map[string]func(conn net.Conn, err error)
 	clientStats             map[clientDetails]*usage
@@ -131,125 +144,136 @@ type PromInstrument struct {
 	originStats             map[originDetails]*usage
 	statsMx                 sync.Mutex
 
-	blacklistChecked, blacklisted, mimicryChecked, mimicked, quicLostPackets, quicSentPackets, tcpConsecRetransmissions, tcpSentDataPackets, throttlingChecked, xbqSent prometheus.Counter
+	bytesSent, bytesRecv prometheus.Counter
 
-	bytesSent, bytesRecv, bytesSentByISP, bytesRecvByISP, throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
+	blacklisted, blacklistChecked, mimicked, mimicryChecked prometheus.Counter
+
+	quicLostPackets, quicSentPackets prometheus.Counter
+
+	tcpConsecRetransmissions, tcpSentDataPackets, xbqSent prometheus.Counter
+	tcpRetransmissionRate                                 prometheus.Observer
+
+	tlsMalformedHello, tlsNoSupportSessionTickets, tlsMissingSessionTicket, tlsInvalidSessionTicket prometheus.Counter
+
+	throttlingChecked                     prometheus.Counter
+	throttled, notThrottled, versionCheck *prometheus.CounterVec
 
 	mpFramesSent, mpBytesSent, mpFramesReceived, mpBytesReceived, mpFramesRetransmitted, mpBytesRetransmitted *prometheus.CounterVec
-
-	tcpRetransmissionRate prometheus.Observer
 }
 
 func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c CommonLabels) *PromInstrument {
-	commonLabels := c.PromLabels()
-	commonLabelNames := make([]string, len(commonLabels))
-	i := 0
-	for k := range commonLabels {
-		commonLabelNames[i] = k
-		i++
-	}
+	reg := prometheus.NewRegistry()
+	reg.MustRegister(
+		collectors.NewGoCollector(),
+		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
+	)
+
+	factory := promauto.With(reg)
+	promauto.NewGaugeFunc(prometheus.GaugeOpts{
+		Name:        "proxy_info",
+		ConstLabels: c.PromLabels(),
+	}, func() float64 { return 1.0 })
+
 	p := &PromInstrument{
+		registry:                reg,
 		countryLookup:           countryLookup,
 		ispLookup:               ispLookup,
-		commonLabels:            commonLabels,
-		commonLabelNames:        commonLabelNames,
 		filters:                 make(map[string]*instrumentedFilter),
 		errorHandlers:           make(map[string]func(conn net.Conn, err error)),
 		clientStats:             make(map[clientDetails]*usage),
 		clientStatsWithDeviceID: make(map[clientDetails]*usage),
 		originStats:             make(map[originDetails]*usage),
-		blacklistChecked: promauto.NewCounterVec(prometheus.CounterOpts{
+		blacklistChecked: factory.NewCounter(prometheus.CounterOpts{
 			Name: "proxy_blacklist_checked_requests_total",
-		}, commonLabelNames).With(commonLabels),
-		blacklisted: promauto.NewCounterVec(prometheus.CounterOpts{
+		}),
+		blacklisted: factory.NewCounter(prometheus.CounterOpts{
 			Name: "proxy_blacklist_blacklisted_requests_total",
-		}, commonLabelNames).With(commonLabels),
-		bytesSent: promauto.NewCounterVec(prometheus.CounterOpts{
+		}),
+		bytesSent: factory.NewCounter(prometheus.CounterOpts{
 			Name: "proxy_downstream_sent_bytes_total",
 			Help: "Bytes sent to the client connections. Pluggable transport overhead excluded",
-		}, append(commonLabelNames, "app_platform", "app_version", "app", "datacap_cohort")).MustCurryWith(commonLabels),
-		bytesRecv: promauto.NewCounterVec(prometheus.CounterOpts{
+		}),
+		bytesRecv: factory.NewCounter(prometheus.CounterOpts{
 			Name: "proxy_downstream_received_bytes_total",
 			Help: "Bytes received from the client connections. Pluggable transport overhead excluded",
-		}, append(commonLabelNames, "app_platform", "app_version", "app", "datacap_cohort")).MustCurryWith(commonLabels),
-		bytesSentByISP: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "proxy_downstream_by_isp_sent_bytes_total",
-			Help: "Bytes sent to the client connections, by country and isp. Pluggable transport overhead excluded",
-		}, append(commonLabelNames, "country", "isp")).MustCurryWith(commonLabels),
-		bytesRecvByISP: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "proxy_downstream_by_isp_received_bytes_total",
-			Help: "Bytes received from the client connections, by country and isp. Pluggable transport overhead excluded",
-		}, append(commonLabelNames, "country", "isp")).MustCurryWith(commonLabels),
-
-		quicLostPackets: promauto.NewCounterVec(prometheus.CounterOpts{
+		}),
+		quicLostPackets: factory.NewCounter(prometheus.CounterOpts{
 			Name: "proxy_downstream_quic_lost_packets_total",
 			Help: "Number of QUIC packets lost and effectively resent to the client connections.",
-		}, commonLabelNames).With(commonLabels),
-		quicSentPackets: promauto.NewCounterVec(prometheus.CounterOpts{
+		}),
+		quicSentPackets: factory.NewCounter(prometheus.CounterOpts{
 			Name: "proxy_downstream_quic_sent_packets_total",
 			Help: "Number of QUIC packets sent to the client connections.",
-		}, commonLabelNames).With(commonLabels),
+		}),
 
-		mimicryChecked: promauto.NewCounterVec(prometheus.CounterOpts{
+		mimicryChecked: factory.NewCounter(prometheus.CounterOpts{
 			Name: "proxy_apache_mimicry_checked_total",
-		}, commonLabelNames).With(commonLabels),
-		mimicked: promauto.NewCounterVec(prometheus.CounterOpts{
+		}),
+		mimicked: factory.NewCounter(prometheus.CounterOpts{
 			Name: "proxy_apache_mimicry_mimicked_total",
-		}, commonLabelNames).With(commonLabels),
-
-		mpFramesSent: promauto.NewCounterVec(prometheus.CounterOpts{
+		}),
+		mpFramesSent: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_multipath_sent_frames_total",
-		}, append(commonLabelNames, "path_protocol")).MustCurryWith(commonLabels),
-		mpBytesSent: promauto.NewCounterVec(prometheus.CounterOpts{
+		}, []string{"path_protocol"}),
+		mpBytesSent: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_multipath_sent_bytes_total",
-		}, append(commonLabelNames, "path_protocol")).MustCurryWith(commonLabels),
-		mpFramesReceived: promauto.NewCounterVec(prometheus.CounterOpts{
+		}, []string{"path_protocol"}),
+		mpFramesReceived: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_multipath_received_frames_total",
-		}, append(commonLabelNames, "path_protocol")).MustCurryWith(commonLabels),
-		mpBytesReceived: promauto.NewCounterVec(prometheus.CounterOpts{
+		}, []string{"path_protocol"}),
+		mpBytesReceived: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_multipath_received_bytes_total",
-		}, append(commonLabelNames, "path_protocol")).MustCurryWith(commonLabels),
-		mpFramesRetransmitted: promauto.NewCounterVec(prometheus.CounterOpts{
+		}, []string{"path_protocol"}),
+		mpFramesRetransmitted: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_multipath_retransmissions_total",
-		}, append(commonLabelNames, "path_protocol")).MustCurryWith(commonLabels),
-		mpBytesRetransmitted: promauto.NewCounterVec(prometheus.CounterOpts{
+		}, []string{"path_protocol"}),
+		mpBytesRetransmitted: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_multipath_retransmission_bytes_total",
-		}, append(commonLabelNames, "path_protocol")).MustCurryWith(commonLabels),
+		}, []string{"path_protocol"}),
 
-		tcpConsecRetransmissions: promauto.NewCounterVec(prometheus.CounterOpts{
+		tcpConsecRetransmissions: factory.NewCounter(prometheus.CounterOpts{
 			Name: "proxy_downstream_tcp_consec_retransmissions_before_terminates_total",
 			Help: "Number of TCP retransmissions happen before the connection gets terminated, as a measure of blocking in the form of continuously dropped packets.",
-		}, commonLabelNames).With(commonLabels),
-		tcpRetransmissionRate: promauto.NewHistogramVec(prometheus.HistogramOpts{
+		}),
+		tcpRetransmissionRate: factory.NewHistogram(prometheus.HistogramOpts{
 			Name:    "proxy_tcp_retransmission_rate",
 			Buckets: []float64{0.01, 0.1, 0.5},
-		}, commonLabelNames).With(commonLabels),
-		tcpSentDataPackets: promauto.NewCounterVec(prometheus.CounterOpts{
+		}),
+		tcpSentDataPackets: factory.NewCounter(prometheus.CounterOpts{
 			Name: "proxy_downstream_tcp_sent_data_packets_total",
 			Help: "Number of TCP data packets (packets with non-zero data length) sent to the client connections.",
-		}, commonLabelNames).With(commonLabels),
+		}),
 
-		xbqSent: promauto.NewCounterVec(prometheus.CounterOpts{
+		xbqSent: factory.NewCounter(prometheus.CounterOpts{
 			Name: "proxy_xbq_header_sent_total",
-		}, commonLabelNames).With(commonLabels),
+		}),
 
-		throttlingChecked: promauto.NewCounterVec(prometheus.CounterOpts{
+		throttlingChecked: factory.NewCounter(prometheus.CounterOpts{
 			Name: "proxy_device_throttling_checked_total",
-		}, commonLabelNames).With(commonLabels),
-		throttled: promauto.NewCounterVec(prometheus.CounterOpts{
+		}),
+		throttled: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_device_throttling_throttled_total",
-		}, append(commonLabelNames, "reason")).MustCurryWith(commonLabels),
-		notThrottled: promauto.NewCounterVec(prometheus.CounterOpts{
+		}, []string{"reason"}),
+		notThrottled: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_device_throttling_not_throttled_total",
-		}, append(commonLabelNames, "reason")).MustCurryWith(commonLabels),
+		}, []string{"reason"}),
 
-		suspectedProbing: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "proxy_suspected_probing_total",
-		}, append(commonLabelNames, "country", "reason")).MustCurryWith(commonLabels),
+		tlsMalformedHello: factory.NewCounter(prometheus.CounterOpts{
+			Name: "proxy_tls_malformed_hello_total",
+		}),
+		tlsNoSupportSessionTickets: factory.NewCounter(prometheus.CounterOpts{
+			Name: "proxy_tls_no_support_for_session_tickets_total",
+		}),
+		tlsMissingSessionTicket: factory.NewCounter(prometheus.CounterOpts{
+			Name: "proxy_tls_missing_session_ticket_total",
+		}),
+		tlsInvalidSessionTicket: factory.NewCounter(prometheus.CounterOpts{
+			Name: "proxy_tls_invalid_session_ticket_total",
+		}),
 
-		versionCheck: promauto.NewCounterVec(prometheus.CounterOpts{
+		versionCheck: factory.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_version_check_total",
-		}, append(commonLabelNames, "method", "redirected", "reason")).MustCurryWith(commonLabels),
+		}, []string{"method", "redirected", "reason"}),
 	}
 
 	return p
@@ -259,7 +283,7 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 // path is /metrics.
 func (p *PromInstrument) Run(addr string) error {
 	mux := http.NewServeMux()
-	mux.Handle("/metrics", promhttp.Handler())
+	mux.Handle("/metrics", promhttp.HandlerFor(p.registry, promhttp.HandlerOpts{}))
 	server := http.Server{
 		Addr:    addr,
 		Handler: mux,
@@ -273,16 +297,16 @@ func (p *PromInstrument) WrapFilter(prefix string, f filters.Filter) filters.Fil
 	wrapped := p.filters[prefix]
 	if wrapped == nil {
 		wrapped = &instrumentedFilter{
-			promauto.NewCounterVec(prometheus.CounterOpts{
+			promauto.With(p.registry).NewCounter(prometheus.CounterOpts{
 				Name: prefix + "_requests_total",
-			}, p.commonLabelNames).With(p.commonLabels),
-			promauto.NewCounterVec(prometheus.CounterOpts{
+			}),
+			promauto.With(p.registry).NewCounter(prometheus.CounterOpts{
 				Name: prefix + "_request_errors_total",
-			}, p.commonLabelNames).With(p.commonLabels),
-			promauto.NewHistogramVec(prometheus.HistogramOpts{
+			}),
+			promauto.With(p.registry).NewHistogram(prometheus.HistogramOpts{
 				Name:    prefix + "_request_duration_seconds",
 				Buckets: []float64{0.001, 0.01, 0.1, 1},
-			}, p.commonLabelNames).With(p.commonLabels),
+			}),
 			f}
 		p.filters[prefix] = wrapped
 	}
@@ -293,12 +317,12 @@ func (p *PromInstrument) WrapFilter(prefix string, f filters.Filter) filters.Fil
 func (p *PromInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error) {
 	h := p.errorHandlers[prefix]
 	if h == nil {
-		errors := promauto.NewCounterVec(prometheus.CounterOpts{
+		errors := promauto.With(p.registry).NewCounter(prometheus.CounterOpts{
 			Name: prefix + "_errors_total",
-		}, p.commonLabelNames).With(p.commonLabels)
-		consec_errors := promauto.NewCounterVec(prometheus.CounterOpts{
+		})
+		consec_errors := promauto.With(p.registry).NewCounter(prometheus.CounterOpts{
 			Name: prefix + "_consec_per_client_ip_errors_total",
-		}, p.commonLabelNames).With(p.commonLabels)
+		})
 		if f == nil {
 			f = func(conn net.Conn, err error) {}
 		}
@@ -361,11 +385,20 @@ func (p *PromInstrument) XBQHeaderSent() {
 	p.xbqSent.Inc()
 }
 
-// SuspectedProbing records the number of visits which looks like active
-// probing.
-func (p *PromInstrument) SuspectedProbing(fromIP net.IP, reason string) {
-	fromCountry := p.countryLookup.CountryCode(fromIP)
-	p.suspectedProbing.With(prometheus.Labels{"country": fromCountry, "reason": reason}).Inc()
+func (p *PromInstrument) TLSMalformedHello() {
+	p.tlsMalformedHello.Inc()
+}
+
+func (p *PromInstrument) TLSNoSupportSessionTickets() {
+	p.tlsNoSupportSessionTickets.Inc()
+}
+
+func (p *PromInstrument) TLSMissingSessionTicket() {
+	p.tlsMissingSessionTicket.Inc()
+}
+
+func (p *PromInstrument) TLSInvalidSessionTicket() {
+	p.tlsInvalidSessionTicket.Inc()
 }
 
 // VersionCheck records the number of times the Lantern version header is
@@ -378,9 +411,8 @@ func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
 func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
-	labels := prometheus.Labels{"app_platform": platform, "app_version": version, "app": app, "datacap_cohort": dataCapCohort}
-	p.bytesSent.With(labels).Add(float64(sent))
-	p.bytesRecv.With(labels).Add(float64(recv))
+	p.bytesSent.Add(float64(sent))
+	p.bytesRecv.Add(float64(recv))
 	country := p.countryLookup.CountryCode(clientIP)
 	isp := p.ispLookup.ISP(clientIP)
 	asn := p.ispLookup.ASN(clientIP)
@@ -389,8 +421,6 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	if country == "CN" || country == "IR" || country == "AE" || country == "TK" {
 		by_isp["isp"] = isp
 	}
-	p.bytesSentByISP.With(by_isp).Add(float64(sent))
-	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
 
 	clientKey := clientDetails{
 		platform: platform,

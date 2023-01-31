@@ -9,6 +9,7 @@ import (
 	"os"
 	"regexp"
 	"runtime"
+	"runtime/debug"
 	"strconv"
 	"strings"
 	"time"
@@ -202,16 +203,35 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		log.Debugf("Not enabling prometheus export")
 	} else {
 		log.Debugf("Enabling prometheus export at %v", p.PromExporterAddr)
+
+		labels := instrument.CommonLabels{
+			BuildType:             p.BuildType,
+			Protocol:              p.ProxyProtocol,
+			SupportTLSResumption:  p.SessionTicketKeyFile != "",
+			RequireTLSResumption:  p.RequireSessionTickets,
+			MissingTicketReaction: p.MissingTicketReaction.Action(),
+		}
+
+		if bi, ok := debug.ReadBuildInfo(); ok {
+			labels.BuildGoVersion = bi.GoVersion
+
+			var rev, dirty string
+			for _, setting := range bi.Settings {
+				if setting.Key == "vcs.revision" {
+					rev = setting.Value
+				} else if setting.Key == "vcs.modified" && setting.Value == "true" {
+					dirty = "+dirty"
+				}
+			}
+
+			labels.BuildRevision = rev + dirty
+		}
+
 		prom := instrument.NewPrometheus(
 			p.CountryLookup,
 			p.ISPLookup,
-			instrument.CommonLabels{
-				BuildType:             p.BuildType,
-				Protocol:              p.ProxyProtocol,
-				SupportTLSResumption:  p.SessionTicketKeyFile != "",
-				RequireTLSResumption:  p.RequireSessionTickets,
-				MissingTicketReaction: p.MissingTicketReaction.Action(),
-			})
+			labels,
+		)
 		go func() {
 			log.Debugf("Running Prometheus exporter at http://%s/metrics", p.PromExporterAddr)
 			if err := prom.Run(p.PromExporterAddr); err != nil {

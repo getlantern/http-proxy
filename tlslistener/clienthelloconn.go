@@ -19,6 +19,11 @@ import (
 
 var (
 	reflectBufferSize = 2 << 11 // 4K
+
+	errMalformedClientHello    = errors.New("malformed ClientHello")
+	errNoSupportSessionTickets = errors.New("ClientHello does not support session tickets")
+	errMissingSessionTicket    = errors.New("ClientHello has no session ticket")
+	errInvalidSessionTicket    = errors.New("ClientHello has invalid session ticket")
 )
 
 // HandshakeReaction represents various reactions after seeing certain type of
@@ -186,7 +191,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	helloMsg, err := utls.UnmarshalClientHello(hello)
 
 	if err != nil {
-		return rrc.helloError("malformed ClientHello")
+		return rrc.helloError(errMalformedClientHello)
 	}
 
 	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
@@ -200,24 +205,33 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	// pre-defined tickets. If it doesn't we should again return some sort of error or just
 	// close the connection.
 	if !helloMsg.TicketSupported {
-		return rrc.helloError("ClientHello does not support session tickets")
+		return rrc.helloError(errNoSupportSessionTickets)
 	}
 
 	if len(helloMsg.SessionTicket) == 0 {
-		return rrc.helloError("ClientHello has no session ticket")
+		return rrc.helloError(errMissingSessionTicket)
 	}
 
 	plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, rrc.utlsCfg)
 	if plainText == nil || len(plainText) == 0 {
-		return rrc.helloError("ClientHello has invalid session ticket")
+		return rrc.helloError(errInvalidSessionTicket)
 	}
 
 	return nil, nil
 }
 
-func (rrc *clientHelloRecordingConn) helloError(errStr string) (*tls.Config, error) {
-	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
-	rrc.instrument.SuspectedProbing(sourceIP, errStr)
+func (rrc *clientHelloRecordingConn) helloError(err error) (*tls.Config, error) {
+	switch err {
+	case errMalformedClientHello:
+		rrc.instrument.TLSMalformedHello()
+	case errNoSupportSessionTickets:
+		rrc.instrument.TLSNoSupportSessionTickets()
+	case errMissingSessionTicket:
+		rrc.instrument.TLSMissingSessionTicket()
+	case errInvalidSessionTicket:
+		rrc.instrument.TLSInvalidSessionTicket()
+	}
+
 	if rrc.missingTicketReaction.handleConn != nil {
 		rrc.missingTicketReaction.handleConn(rrc)
 		// at this point the connection has already been closed, returning
