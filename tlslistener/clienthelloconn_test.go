@@ -38,7 +38,7 @@ func TestAbortOnHello(t *testing.T) {
 			defer l.Close()
 			hl, err := Wrap(
 				l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", "",
-				true, tc.response, false, instrument.NoInstrument{})
+				true, tc.response, false, instrument.NoInstrument{}, 0)
 			assert.NoError(t, err)
 			defer hl.Close()
 

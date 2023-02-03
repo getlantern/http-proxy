@@ -18,10 +18,12 @@ import (
 )
 
 // Wrap wraps the specified listener in our default TLS listener.
-func Wrap(wrapped net.Listener, keyFile, certFile, sessionTicketKeyFile, firstSessionTicketKey string,
-	requireSessionTickets bool, missingTicketReaction HandshakeReaction, allowTLS13 bool,
-	instrument instrument.Instrument) (net.Listener, error) {
-
+func Wrap(
+	wrapped net.Listener,
+	keyFile, certFile, sessionTicketKeyFile, firstSessionTicketKey string,
+	requireSessionTickets,
+	missingTicketReaction HandshakeReaction, allowTLS13 bool,
+	instrument instrument.Instrument, prefixSize int) (net.Listener, error) {
 	cfg, err := tlsdefaults.BuildListenerConfig(wrapped.Addr().String(), keyFile, certFile)
 	if err != nil {
 		return nil, err
@@ -63,7 +65,17 @@ func Wrap(wrapped net.Listener, keyFile, certFile, sessionTicketKeyFile, firstSe
 		maintainSessionTicketKey(cfg, sessionTicketKeyFile, firstKey, onKeys)
 	}
 
-	listener := &tlslistener{wrapped, cfg, log, expectTickets, requireSessionTickets, utlsConfig, missingTicketReaction, instrument}
+	listener := &tlslistener{
+		wrapped:               wrapped,
+		cfg:                   cfg,
+		log:                   log,
+		expectTickets:         expectTickets,
+		requireTickets:        requireSessionTickets,
+		utlsCfg:               utlsConfig,
+		missingTicketReaction: missingTicketReaction,
+		instrument:            instrument,
+		prefixSize:            prefixSize,
+	}
 	return listener, nil
 }
 
@@ -76,6 +88,7 @@ type tlslistener struct {
 	utlsCfg               *utls.Config
 	missingTicketReaction HandshakeReaction
 	instrument            instrument.Instrument
+	prefixSize            int
 }
 
 func (l *tlslistener) Accept() (net.Conn, error) {
@@ -83,6 +96,9 @@ func (l *tlslistener) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
+	// if l.prefixSize > 0 {
+	// 	conn = prefix.NewReadPrefixConn("tlsListener", conn, l.prefixSize)
+	// }
 	if !l.expectTickets || !l.requireTickets {
 		return &tlsconn{tls.Server(conn, l.cfg), conn}, nil
 	}

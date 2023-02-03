@@ -155,6 +155,8 @@ type Proxy struct {
 	CountryLookup                      geo.CountryLookup
 	ISPLookup                          geo.ISPLookup
 
+	PrefixSize int
+
 	MultiplexProtocol             string
 	SmuxVersion                   int
 	SmuxMaxFrameSize              int
@@ -270,6 +272,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	bwReporting := p.configureBandwidthReporting()
 	// Throttle connections when signaled
 	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
+	log.Debugf("Running with prefix-size %d", p.PrefixSize)
 
 	allListeners := make([]net.Listener, 0)
 	listenerProtocols := make([]string, 0)
@@ -397,7 +400,7 @@ func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
 			l, err = tlslistener.Wrap(
 				l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.FirstSessionTicketKey,
 				p.RequireSessionTickets, p.MissingTicketReaction, p.TLSListenerAllowTLS13,
-				p.instrument)
+				p.instrument, p.PrefixSize)
 			if err != nil {
 				return nil, err
 			}
@@ -889,6 +892,7 @@ func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
 	l, err := shadowsocks.ListenLocalTCP(
 		addr, ciphers,
 		p.ShadowsocksReplayHistory,
+		p.PrefixSize,
 	)
 	if err != nil {
 		return nil, errors.New("Unable to listen for shadowsocks: %v", err)
@@ -907,7 +911,7 @@ func (p *Proxy) listenWSS(addr string) (net.Listener, error) {
 	if p.HTTPS {
 		l, err = tlslistener.Wrap(
 			l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.FirstSessionTicketKey,
-			p.RequireSessionTickets, p.MissingTicketReaction, p.TLSListenerAllowTLS13, p.instrument)
+			p.RequireSessionTickets, p.MissingTicketReaction, p.TLSListenerAllowTLS13, p.instrument, 0)
 		if err != nil {
 			return nil, err
 		}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/binary"
 	"encoding/hex"
-	"errors"
 	"flag"
 	"fmt"
 	"net/http"
@@ -17,7 +16,6 @@ import (
 	"time"
 
 	"github.com/go-redis/redis/v8"
-	"github.com/mitchellh/panicwrap"
 	"github.com/vharitonsky/iniflags"
 
 	"github.com/getlantern/geo"
@@ -173,6 +171,8 @@ var (
 	teleportSampleRate  = flag.Int("teleport-sample-rate", 1, "rate at which to sample data for Teleport")
 
 	track = flag.String("track", "", "The track this proxy is running on")
+
+	prefixSize = flag.Int("prefix-size", 0, "The size of the prefix to use for the proxy")
 )
 
 func main() {
@@ -197,40 +197,40 @@ func main() {
 
 	// panicwrap works by re-executing the running program (retaining arguments,
 	// environmental variables, etc.) and monitoring the stderr of the program.
-	exitStatus, panicWrapErr := panicwrap.Wrap(
-		&panicwrap.WrapConfig{
-			DetectDuration: time.Second,
-			Handler: func(msg string) {
-				if reporter != nil {
-					// heuristically separate the error message from the stack trace
-					separator := "\ngoroutine "
-					splitted := strings.SplitN(msg, separator, 2)
-					err := errors.New(splitted[0])
-					var maybeStack []byte
-					if len(splitted) > 1 {
-						maybeStack = []byte(separator + splitted[1])
-					}
-					reporter.Report(golog.FATAL, err, maybeStack)
-				}
-				os.Exit(1)
-			},
-			// Just forward signals to the child process
-			ForwardSignals: []os.Signal{
-				syscall.SIGHUP,
-				syscall.SIGTERM,
-				syscall.SIGQUIT,
-				syscall.SIGINT,
-				syscall.SIGUSR1,
-			},
-		})
-	if panicWrapErr != nil {
-		log.Fatalf("Error setting up panic wrapper: %v", panicWrapErr)
-	} else {
-		// If exitStatus >= 0, then we're the parent process.
-		if exitStatus >= 0 {
-			os.Exit(exitStatus)
-		}
-	}
+	// exitStatus, panicWrapErr := panicwrap.Wrap(
+	// 	&panicwrap.WrapConfig{
+	// 		DetectDuration: time.Second,
+	// 		Handler: func(msg string) {
+	// 			if reporter != nil {
+	// 				// heuristically separate the error message from the stack trace
+	// 				separator := "\ngoroutine "
+	// 				splitted := strings.SplitN(msg, separator, 2)
+	// 				err := errors.New(splitted[0])
+	// 				var maybeStack []byte
+	// 				if len(splitted) > 1 {
+	// 					maybeStack = []byte(separator + splitted[1])
+	// 				}
+	// 				reporter.Report(golog.FATAL, err, maybeStack)
+	// 			}
+	// 			os.Exit(1)
+	// 		},
+	// 		// Just forward signals to the child process
+	// 		ForwardSignals: []os.Signal{
+	// 			syscall.SIGHUP,
+	// 			syscall.SIGTERM,
+	// 			syscall.SIGQUIT,
+	// 			syscall.SIGINT,
+	// 			syscall.SIGUSR1,
+	// 		},
+	// 	})
+	// if panicWrapErr != nil {
+	// 	log.Fatalf("Error setting up panic wrapper: %v", panicWrapErr)
+	// } else {
+	// 	// If exitStatus >= 0, then we're the parent process.
+	// 	if exitStatus >= 0 {
+	// 		os.Exit(exitStatus)
+	// 	}
+	// }
 
 	// We're in the child (wrapped) process now
 
@@ -428,6 +428,7 @@ func main() {
 		PsmuxDisableAggressivePadding:      *psmuxDisableAggressivePadding,
 		PsmuxAggressivePadding:             *psmuxAggressivePadding,
 		PsmuxAggressivePaddingRatio:        *psmuxAggressivePaddingRatio,
+		PrefixSize:                         *prefixSize,
 	}
 	if *maxmindLicenseKey != "" {
 		log.Debug("Will use Maxmind for geolocating clients")

@@ -56,6 +56,7 @@ type ListenerOptions struct {
 	ShouldHandleLocally   HandleLocalPredicate                    // determines whether an upstream should be handled by the listener locally or dial upstream
 	TargetIPValidator     outlineShadowsocksNet.TargetIPValidator // determines validity of non-local upstream dials
 	MaxPendingConnections int                                     // defaults to 1000
+	PrefixSize            int
 }
 
 // GetDefaultMetrics returns the singleton metrics.ShadowsocksMetrics instance
@@ -82,6 +83,7 @@ type llistener struct {
 func ListenLocalTCP(
 	addr string, ciphers service.CipherList,
 	replayHistory int,
+	prefixSize int,
 ) (net.Listener, error) {
 	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
 	if err != nil {
@@ -98,6 +100,7 @@ func ListenLocalTCP(
 		Listener:    l,
 		Ciphers:     ciphers,
 		ReplayCache: &replayCache,
+		PrefixSize:  prefixSize,
 	}
 
 	return ListenLocalTCPOptions(options), nil
@@ -146,6 +149,7 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 		&service.TCPServiceOptions{
 			DialTarget:        dialer,
 			TargetIPValidator: validator,
+			PrefixSize:        options.PrefixSize,
 		},
 	)
 
