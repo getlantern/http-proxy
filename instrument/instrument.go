@@ -24,10 +24,6 @@ import (
 	"github.com/getlantern/proxy/v2/filters"
 )
 
-const (
-	otelReportingInterval = 60 * time.Minute
-)
-
 var (
 	originRootRegex = regexp.MustCompile(`([^\.]+\.[^\.]+$)`)
 )
@@ -129,6 +125,7 @@ type PromInstrument struct {
 	clientStats             map[clientDetails]*usage
 	clientStatsWithDeviceID map[clientDetails]*usage
 	originStats             map[originDetails]*usage
+	uniqueDeviceIDs         map[string]bool
 	statsMx                 sync.Mutex
 
 	blacklistChecked, blacklisted, mimicryChecked, mimicked, quicLostPackets, quicSentPackets, tcpConsecRetransmissions, tcpSentDataPackets, throttlingChecked, xbqSent prometheus.Counter
@@ -158,6 +155,7 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		clientStats:             make(map[clientDetails]*usage),
 		clientStatsWithDeviceID: make(map[clientDetails]*usage),
 		originStats:             make(map[originDetails]*usage),
+		uniqueDeviceIDs:         make(map[string]bool),
 		blacklistChecked: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_blacklist_checked_requests_total",
 		}, commonLabelNames).With(commonLabels),
@@ -420,6 +418,7 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 			p.originStats[originKey] = p.originStats[originKey].add(sent, recv)
 		}
 	}
+	p.uniqueDeviceIDs[deviceID] = true
 	p.statsMx.Unlock()
 }
 
@@ -518,13 +517,15 @@ func (p *PromInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeDevice
 	p.statsMx.Lock()
 	if includeDeviceID {
 		clientStats = p.clientStatsWithDeviceID
-		p.clientStatsWithDeviceID = make(map[clientDetails]*usage)
+		p.clientStatsWithDeviceID = make(map[clientDetails]*usage, len(clientStats))
 	} else {
 		clientStats = p.clientStats
-		p.clientStats = make(map[clientDetails]*usage)
+		p.clientStats = make(map[clientDetails]*usage, len(clientStats))
 	}
 	originStats := p.originStats
-	p.originStats = make(map[originDetails]*usage)
+	p.originStats = make(map[originDetails]*usage, len(originStats))
+	uniqueDeviceIDs := p.uniqueDeviceIDs
+	p.uniqueDeviceIDs = make(map[string]bool, len(uniqueDeviceIDs))
 	p.statsMx.Unlock()
 
 	for key, value := range clientStats {
@@ -556,6 +557,15 @@ func (p *PromInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeDevice
 					attribute.String("client_platform", key.platform),
 					attribute.String("client_version", key.version),
 					attribute.String("client_country", key.country)))
+		span.End()
+	}
+	if !includeDeviceID {
+		_, span := tp.Tracer("").
+			Start(
+				context.Background(),
+				"unique_device_ids",
+				trace.WithAttributes(
+					attribute.Int("unique_device_ids", len(p.uniqueDeviceIDs))))
 		span.End()
 	}
 }
