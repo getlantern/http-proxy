@@ -24,15 +24,16 @@ var (
 )
 
 type Opts struct {
-	Endpoint      string
-	Headers       map[string]string
-	SampleRate    int
-	ExternalIP    string
-	ProxyName     string
-	Track         string
-	DC            string
-	ProxyProtocol string
-	IsPro         bool
+	Endpoint             string
+	Headers              map[string]string
+	SampleRate           int
+	ExternalIP           string
+	ProxyName            string
+	Track                string
+	DC                   string
+	ProxyProtocol        string
+	IsPro                bool
+	IncludeProxyIdentity bool
 }
 
 func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {

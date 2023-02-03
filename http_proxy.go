@@ -654,6 +654,7 @@ func (p *Proxy) configureHoneycomb() func() {
 		p.HoneycombSampleRate,
 		1*time.Minute,
 		false,
+		true,
 	)
 }
 
@@ -670,6 +671,7 @@ func (p *Proxy) configureTeleport() func() {
 		p.TeleportSampleRate,
 		1*time.Hour,
 		true,
+		false, // don't include proxy identity in Teleport data to avoid tying device IDs to specific proxy IP addresses
 	)
 }
 
@@ -679,18 +681,21 @@ func (p *Proxy) configureOTEL(
 	sampleRate int,
 	reportingInterval time.Duration,
 	includeDeviceIDs bool,
+	includeProxyIdentity bool,
 ) func() {
 	proxyName, dc := proxyNameAndDC(p.ProxyName)
 	opts := &otel.Opts{
 		Endpoint:      endpoint,
 		Headers:       headers,
 		SampleRate:    sampleRate,
-		ExternalIP:    p.ExternalIP,
-		ProxyName:     proxyName,
 		Track:         p.Track,
 		DC:            dc,
 		ProxyProtocol: p.ProxyProtocol,
 		IsPro:         p.Pro,
+	}
+	if includeProxyIdentity {
+		opts.ExternalIP = p.ExternalIP
+		opts.ProxyName = proxyName
 	}
 	tp, stop := otel.BuildTracerProvider(opts)
 	if tp != nil {

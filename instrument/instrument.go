@@ -543,20 +543,24 @@ func (p *PromInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeDevice
 					attribute.String("client_isp", key.isp)))
 		span.End()
 	}
-	for key, value := range originStats {
-		_, span := tp.Tracer("").
-			Start(
-				context.Background(),
-				"origin_bytes",
-				trace.WithAttributes(
-					attribute.Int("origin_bytes_sent", value.sent),
-					attribute.Int("origin_bytes_recv", value.recv),
-					attribute.Int("origin_bytes_total", value.sent+value.recv),
-					attribute.String("origin", key.origin),
-					attribute.String("client_platform", key.platform),
-					attribute.String("client_version", key.version),
-					attribute.String("client_country", key.country)))
-		span.End()
+	if !includeDeviceID {
+		// In order to prevent associating origins with device IDs, only report
+		// origin stats if we're not including device IDs.
+		for key, value := range originStats {
+			_, span := tp.Tracer("").
+				Start(
+					context.Background(),
+					"origin_bytes",
+					trace.WithAttributes(
+						attribute.Int("origin_bytes_sent", value.sent),
+						attribute.Int("origin_bytes_recv", value.recv),
+						attribute.Int("origin_bytes_total", value.sent+value.recv),
+						attribute.String("origin", key.origin),
+						attribute.String("client_platform", key.platform),
+						attribute.String("client_version", key.version),
+						attribute.String("client_country", key.country)))
+			span.End()
+		}
 	}
 }
 
