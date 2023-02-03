@@ -43,7 +43,6 @@ require (
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/gonum/stat v0.0.0-20180125090729-ec9c8a1062f4
 	github.com/lucas-clemente/quic-go v0.31.1
-	github.com/mitchellh/panicwrap v1.0.0
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/prometheus/client_golang v1.13.0
 	github.com/refraction-networking/utls v0.0.0-20200729012536-186025ac7b77

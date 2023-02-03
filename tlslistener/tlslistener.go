@@ -21,7 +21,7 @@ import (
 func Wrap(
 	wrapped net.Listener,
 	keyFile, certFile, sessionTicketKeyFile, firstSessionTicketKey string,
-	requireSessionTickets,
+	requireSessionTickets bool,
 	missingTicketReaction HandshakeReaction, allowTLS13 bool,
 	instrument instrument.Instrument, prefixSize int) (net.Listener, error) {
 	cfg, err := tlsdefaults.BuildListenerConfig(wrapped.Addr().String(), keyFile, certFile)
