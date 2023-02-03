@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -176,6 +177,7 @@ type Proxy struct {
 	bm             bbr.Middleware
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
+	listeners      map[string]net.Listener
 }
 
 type listenerBuilderFN func(addr string) (net.Listener, error)
@@ -274,8 +276,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
 	log.Debugf("Running with prefix-size %d", p.PrefixSize)
 
-	allListeners := make([]net.Listener, 0)
-	listenerProtocols := make([]string, 0)
+	p.listeners = make(map[string]net.Listener)
 	addListenerIfNecessary := func(proto, addr string, fn listenerBuilderFN) error {
 		if addr == "" {
 			return nil
@@ -284,10 +285,9 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		listenerProtocols = append(listenerProtocols, proto)
 		// Although we include blacklist functionality, it's currently only used to
 		// track potential blacklisting ad doesn't actually blacklist anyone.
-		allListeners = append(allListeners, lanternlisteners.NewAllowingListener(l, blacklist.OnConnect))
+		p.listeners[proto] = lanternlisteners.NewAllowingListener(l, blacklist.OnConnect)
 		return nil
 	}
 
@@ -347,23 +347,24 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		return err
 	}
 
-	errCh := make(chan error, len(allListeners))
+	errCh := make(chan error, len(p.listeners))
 	if p.EnableMultipath {
-		mpl := multipath.NewListener(allListeners, p.instrument.MultipathStats(listenerProtocols))
+		mpl := multipath.NewListener(
+			getValuesFromMap[string, net.Listener](p.listeners),
+			p.instrument.MultipathStats(getKeysFromMap[string, net.Listener](p.listeners)))
 		log.Debug("Serving multipath at:")
-		for i, l := range allListeners {
-			log.Debugf("  %-20s:  %v", listenerProtocols[i], l.Addr())
+		for name, ln := range p.listeners {
+			log.Debugf("  %-20s:  %v", name, ln.Addr())
 		}
 		go func() {
 			errCh <- srv.Serve(mpl, nil)
 		}()
 	} else {
-		for _, _l := range allListeners {
-			l := _l
-			go func() {
-				log.Debugf("Serving at: %v", l.Addr())
-				errCh <- srv.Serve(l, mimic.SetServerAddr)
-			}()
+		for _, ln := range p.listeners {
+			go func(ln net.Listener) {
+				log.Debugf("Serving at: %v", ln.Addr())
+				errCh <- srv.Serve(ln, mimic.SetServerAddr)
+			}(ln)
 		}
 	}
 	select {
@@ -373,6 +374,15 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		// this is an expected path for closing, no error
 		return err
 	}
+}
+
+func (p *Proxy) Close() error {
+	for name, ln := range p.listeners {
+		if err := ln.Close(); err != nil {
+			return fmt.Errorf("while closing %s listener: %s", name, err)
+		}
+	}
+	return nil
 }
 
 func (p *Proxy) ListenAndServeENHTTP() error {
@@ -975,4 +985,20 @@ func portsFromCSV(csv string) ([]int, error) {
 		ports[i] = p
 	}
 	return ports, nil
+}
+
+func getKeysFromMap[K comparable, V any](m map[K]V) []K {
+	keys := make([]K, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	return keys
+}
+
+func getValuesFromMap[K comparable, V any](m map[K]V) []V {
+	values := make([]V, 0, len(m))
+	for _, v := range m {
+		values = append(values, v)
+	}
+	return values
 }
