@@ -134,15 +134,18 @@ func (f *instrumentedFilter) Apply(cs *filters.ConnectionState, req *http.Reques
 // PromInstrument is an implementation of Instrument which exports Prometheus
 // metrics.
 type PromInstrument struct {
-	registry                *prometheus.Registry
-	countryLookup           geo.CountryLookup
-	ispLookup               geo.ISPLookup
+	registry      *prometheus.Registry
+	countryLookup geo.CountryLookup
+	ispLookup     geo.ISPLookup
+	statsMx       sync.Mutex
+
 	filters                 map[string]*instrumentedFilter
 	errorHandlers           map[string]func(conn net.Conn, err error)
 	clientStats             map[clientDetails]*usage
 	clientStatsWithDeviceID map[clientDetails]*usage
 	originStats             map[originDetails]*usage
-	statsMx                 sync.Mutex
+
+	activeClients1m, activeClients10m, activeClients1h *slidingWindowDistinctCount
 
 	bytesSent, bytesRecv prometheus.Counter
 
@@ -183,6 +186,17 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		clientStats:             make(map[clientDetails]*usage),
 		clientStatsWithDeviceID: make(map[clientDetails]*usage),
 		originStats:             make(map[originDetails]*usage),
+
+		activeClients1m: newSlidingWindowDistinctCount(prometheus.Opts{
+			Name: "proxy_active_clients_1m",
+		}, time.Minute, time.Second),
+		activeClients10m: newSlidingWindowDistinctCount(prometheus.Opts{
+			Name: "proxy_active_clients_10m",
+		}, 10*time.Minute, 10*time.Second),
+		activeClients1h: newSlidingWindowDistinctCount(prometheus.Opts{
+			Name: "proxy_active_clients_1h",
+		}, time.Hour, time.Minute),
+
 		blacklistChecked: factory.NewCounter(prometheus.CounterOpts{
 			Name: "proxy_blacklist_checked_requests_total",
 		}),
@@ -276,6 +290,9 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		}, []string{"method", "redirected", "reason"}),
 	}
 
+	reg.MustRegister(p.activeClients1m)
+	reg.MustRegister(p.activeClients10m)
+	reg.MustRegister(p.activeClients1h)
 	return p
 }
 
@@ -413,6 +430,12 @@ func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
 	p.bytesSent.Add(float64(sent))
 	p.bytesRecv.Add(float64(recv))
+
+	// Track the cardinality of clients.
+	p.activeClients1m.Add(deviceID)
+	p.activeClients10m.Add(deviceID)
+	p.activeClients1h.Add(deviceID)
+
 	country := p.countryLookup.CountryCode(clientIP)
 	isp := p.ispLookup.ISP(clientIP)
 	asn := p.ispLookup.ASN(clientIP)
