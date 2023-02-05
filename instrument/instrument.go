@@ -410,6 +410,12 @@ func (p *prominstrument) ProxiedBytes(ctx context.Context, sent, recv int, platf
 	labels := prometheus.Labels{"app_platform": platform, "app_version": version, "app": app, "datacap_cohort": dataCapCohort}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
+
+	// Track the cardinality of clients.
+	otelinstrument.DistinctClients1m.Add(deviceID)
+	otelinstrument.DistinctClients10m.Add(deviceID)
+	otelinstrument.DistinctClients1h.Add(deviceID)
+
 	country := p.countryLookup.CountryCode(clientIP)
 	isp := p.ispLookup.ISP(clientIP)
 	asn := p.ispLookup.ASN(clientIP)
