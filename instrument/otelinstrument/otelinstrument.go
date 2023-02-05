@@ -6,30 +6,35 @@
 package otelinstrument
 
 import (
+	"context"
 	"net/http"
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	"go.opentelemetry.io/otel/metric/global"
 	"go.opentelemetry.io/otel/metric/instrument"
 
+	"github.com/getlantern/http-proxy-lantern/v2/instrument/distinct"
 	"github.com/getlantern/proxy/v2/filters"
 )
 
 var (
-	initOnce         sync.Once
-	meter            metric.Meter
-	Blacklist        instrument.Int64Counter
-	ProxyIO          instrument.Int64Counter
-	QuicPackets      instrument.Int64Counter
-	Mimicked         instrument.Int64Counter
-	MultipathFrames  instrument.Int64Counter
-	MultipathIO      instrument.Int64Counter
-	XBQ              instrument.Int64Counter
-	Throttling       instrument.Int64Counter
-	SuspectedProbing instrument.Int64Counter
-	VersionCheck     instrument.Int64Counter
+	initOnce                                                 sync.Once
+	meter                                                    metric.Meter
+	Blacklist                                                instrument.Int64Counter
+	ProxyIO                                                  instrument.Int64Counter
+	QuicPackets                                              instrument.Int64Counter
+	Mimicked                                                 instrument.Int64Counter
+	MultipathFrames                                          instrument.Int64Counter
+	MultipathIO                                              instrument.Int64Counter
+	XBQ                                                      instrument.Int64Counter
+	Throttling                                               instrument.Int64Counter
+	SuspectedProbing                                         instrument.Int64Counter
+	VersionCheck                                             instrument.Int64Counter
+	DistinctClients1m, DistinctClients10m, DistinctClients1h *distinct.SlidingWindowDistinctCount
+	distinctClients                                          instrument.Int64ObservableGauge
 )
 
 // Note - we don't use package-level init() because we want to defer initialization of
@@ -73,6 +78,21 @@ func initialize() error {
 		return err
 	}
 	if VersionCheck, err = meter.Int64Counter("proxy.version.checked"); err != nil {
+		return err
+	}
+
+	DistinctClients1m = distinct.NewSlidingWindowDistinctCount(time.Minute, time.Second)
+	DistinctClients10m = distinct.NewSlidingWindowDistinctCount(10*time.Minute, 10*time.Second)
+	DistinctClients1h = distinct.NewSlidingWindowDistinctCount(time.Hour, time.Minute)
+
+	if distinctClients, err = meter.Int64ObservableGauge(
+		"proxy.clients.active",
+		instrument.WithInt64Callback(func(ctx context.Context, io instrument.Int64Observer) error {
+			io.Observe(int64(DistinctClients1m.Cardinality()), attribute.String("window", "1m"))
+			io.Observe(int64(DistinctClients10m.Cardinality()), attribute.String("window", "10m"))
+			io.Observe(int64(DistinctClients1h.Cardinality()), attribute.String("window", "1h"))
+			return nil
+		})); err != nil {
 		return err
 	}
 	return nil
