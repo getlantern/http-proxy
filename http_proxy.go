@@ -377,6 +377,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 }
 
 func (p *Proxy) Close() error {
+	log.Debug("Closing proxy")
 	for name, ln := range p.listeners {
 		if err := ln.Close(); err != nil {
 			return fmt.Errorf("while closing %s listener: %s", name, err)
