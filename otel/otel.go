@@ -64,8 +64,13 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 	if err == nil {
 		port, err := strconv.Atoi(_port)
 		if err == nil {
+			log.Debugf("will report with proxy_port %d", port)
 			attributes = append(attributes, attribute.Int("proxy_port", port))
+		} else {
+			log.Errorf("Unable to parse proxy_port %v: %v", _port, err)
 		}
+	} else {
+		log.Errorf("Unable to split proxy address %v: %v", opts.Addr, err)
 	}
 	if opts.Track != "" {
 		attributes = append(attributes, attribute.String("track", opts.Track))
