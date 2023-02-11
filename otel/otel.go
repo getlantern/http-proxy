@@ -2,8 +2,8 @@ package otel
 
 import (
 	"context"
-	"net"
 	"strconv"
+	"strings"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -60,8 +60,9 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 		attribute.String("protocol", opts.ProxyProtocol),
 		attribute.Bool("pro", opts.IsPro),
 	}
-	_, _port, err := net.SplitHostPort(opts.Addr)
-	if err == nil {
+	parts := strings.Split(opts.Addr, ":")
+	if len(parts) == 2 {
+		_port := parts[1]
 		port, err := strconv.Atoi(_port)
 		if err == nil {
 			log.Debugf("will report with proxy_port %d", port)
@@ -70,7 +71,7 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 			log.Errorf("Unable to parse proxy_port %v: %v", _port, err)
 		}
 	} else {
-		log.Errorf("Unable to split proxy address %v: %v", opts.Addr, err)
+		log.Errorf("Unable to split proxy address %v into two pieces", opts.Addr)
 	}
 	if opts.Track != "" {
 		attributes = append(attributes, attribute.String("track", opts.Track))
