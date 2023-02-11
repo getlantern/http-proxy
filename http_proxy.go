@@ -693,6 +693,25 @@ func (p *Proxy) configureOTEL(
 		ProxyProtocol: p.ProxyProtocol,
 		IsPro:         p.Pro,
 	}
+	if p.ShadowsocksMultiplexAddr != "" {
+		opts.Addr = p.ShadowsocksMultiplexAddr
+	} else if p.ShadowsocksAddr != "" {
+		opts.Addr = p.ShadowsocksAddr
+	} else if p.QUICIETFAddr != "" {
+		opts.Addr = p.QUICIETFAddr
+	} else if p.LampshadeAddr != "" {
+		opts.Addr = p.LampshadeAddr
+	} else if p.Obfs4MultiplexAddr != "" {
+		opts.Addr = p.Obfs4MultiplexAddr
+	} else if p.Obfs4Addr != "" {
+		opts.Addr = p.Obfs4Addr
+	} else if p.TLSMasqAddr != "" {
+		opts.Addr = p.TLSMasqAddr
+	} else if p.HTTPMultiplexAddr != "" {
+		opts.Addr = p.HTTPMultiplexAddr
+	} else if p.HTTPAddr != "" {
+		opts.Addr = p.HTTPAddr
+	}
 	if includeProxyIdentity {
 		opts.ExternalIP = p.ExternalIP
 		opts.ProxyName = proxyName

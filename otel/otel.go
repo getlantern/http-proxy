@@ -2,6 +2,8 @@ package otel
 
 import (
 	"context"
+	"net"
+	"strconv"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -32,6 +34,7 @@ type Opts struct {
 	Track                string
 	DC                   string
 	ProxyProtocol        string
+	Addr                 string
 	IsPro                bool
 	IncludeProxyIdentity bool
 }
@@ -56,6 +59,13 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 		semconv.ServiceNameKey.String("http-proxy-lantern"),
 		attribute.String("protocol", opts.ProxyProtocol),
 		attribute.Bool("pro", opts.IsPro),
+	}
+	_, _port, err := net.SplitHostPort(opts.Addr)
+	if err == nil {
+		port, err := strconv.Atoi(_port)
+		if err == nil {
+			attributes = append(attributes, attribute.Int("proxy_port", port))
+		}
 	}
 	if opts.Track != "" {
 		attributes = append(attributes, attribute.String("track", opts.Track))
