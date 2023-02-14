@@ -5,7 +5,7 @@ go 1.18
 require (
 	cloud.google.com/go/errorreporting v0.2.0
 	git.torproject.org/pluggable-transports/goptlib.git v1.2.0
-	github.com/Jigsaw-Code/outline-ss-server v0.0.0-00010101000000-000000000000
+	github.com/Jigsaw-Code/outline-ss-server v1.4.0
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
@@ -192,4 +192,4 @@ replace github.com/refraction-networking/utls => github.com/getlantern/utls v0.0
 // over 'require' to fully remove references to 0.5.6 in go.sum
 replace github.com/ulikunitz/xz => github.com/ulikunitz/xz v0.5.8
 
-replace github.com/Jigsaw-Code/outline-ss-server => github.com/getlantern/lantern-shadowsocks v1.3.6-0.20221214082121-805a0ddbe9c1
+replace github.com/Jigsaw-Code/outline-ss-server => github.com/getlantern/lantern-shadowsocks v1.3.6-0.20230114153732-0193919d4860
