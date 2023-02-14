@@ -383,6 +383,7 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	p.bytesRecv.With(labels).Add(float64(recv))
 	country := p.countryLookup.CountryCode(clientIP)
 	isp := p.ispLookup.ISP(clientIP)
+	asn := p.ispLookup.ASN(clientIP)
 	by_isp := prometheus.Labels{"country": country, "isp": "omitted"}
 	// We care about ISPs within these countries only, to reduce cardinality of the metrics
 	if country == "CN" || country == "IR" || country == "AE" || country == "TK" {
@@ -396,6 +397,7 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 		version:  version,
 		country:  country,
 		isp:      isp,
+		asn:      asn,
 	}
 	clientKeyWithDeviceID := clientDetails{
 		deviceID: deviceID,
@@ -478,6 +480,7 @@ type clientDetails struct {
 	version  string
 	country  string
 	isp      string
+	asn      string
 }
 
 type originDetails struct {
@@ -540,7 +543,8 @@ func (p *PromInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeDevice
 					attribute.String("client_platform", key.platform),
 					attribute.String("client_version", key.version),
 					attribute.String("client_country", key.country),
-					attribute.String("client_isp", key.isp)))
+					attribute.String("client_isp", key.isp),
+					attribute.String("client_asn", key.asn)))
 		span.End()
 	}
 	if !includeDeviceID {
