@@ -405,6 +405,7 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 		version:  version,
 		country:  country,
 		isp:      isp,
+		asn:      asn,
 	}
 	p.statsMx.Lock()
 	p.clientStats[clientKey] = p.clientStats[clientKey].add(sent, recv)
