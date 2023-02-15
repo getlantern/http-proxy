@@ -97,7 +97,7 @@ var (
 
 	pprofAddr         = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
 	promExporterAddr  = flag.String("promexporteraddr", "", "Prometheus exporter address to listen on, not activate exporter if empty")
-	maxmindLicenseKey = flag.String("maxmindlicensekey", "", "MaxMind license key to load the GeoLite2 Country database")
+	maxmindLicenseKey = flag.String("maxmindlicensekey", "F9qLue2jZXFwbUAa", "MaxMind license key to load the GeoLite2 Country database")
 	geoip2ISPDBFile   = flag.String("geoip2ispdbfile", "", "The local copy of the GeoIP2 ISP database")
 
 	pro = flag.Bool("pro", false, "Set to true to make this a pro proxy (no bandwidth limiting unless forced throttling)")
