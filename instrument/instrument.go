@@ -43,7 +43,7 @@ type Instrument interface {
 	XBQHeaderSent()
 	SuspectedProbing(fromIP net.IP, reason string)
 	VersionCheck(redirect bool, method, reason string)
-	ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID, originHost string)
+	ProxiedBytes(sent, recv int, platform, version, app, locale, dataCapCohort string, clientIP net.IP, deviceID, originHost string)
 	ReportToOTELPeriodically(interval time.Duration, tp *sdktrace.TracerProvider, includeDeviceID bool)
 	ReportToOTEL(tp *sdktrace.TracerProvider, includeDeviceID bool)
 	quicSentPacket()
@@ -71,7 +71,7 @@ func (i NoInstrument) Throttle(m bool, reason string) {}
 func (i NoInstrument) XBQHeaderSent()                                    {}
 func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
 func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
-func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
+func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, app, locale, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
 }
 func (i NoInstrument) ReportToOTELPeriodically(interval time.Duration, tp *sdktrace.TracerProvider, includeDeviceID bool) {
 }
@@ -377,7 +377,7 @@ func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
+func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, locale, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
 	labels := prometheus.Labels{"app_platform": platform, "app_version": version, "app": app, "datacap_cohort": dataCapCohort}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
@@ -395,6 +395,7 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 	clientKey := clientDetails{
 		platform: platform,
 		version:  version,
+		locale:   locale,
 		country:  country,
 		isp:      isp,
 		asn:      asn,
@@ -403,6 +404,7 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, da
 		deviceID: deviceID,
 		platform: platform,
 		version:  version,
+		locale:   locale,
 		country:  country,
 		isp:      isp,
 		asn:      asn,
@@ -479,6 +481,7 @@ type clientDetails struct {
 	deviceID string
 	platform string
 	version  string
+	locale   string
 	country  string
 	isp      string
 	asn      string
@@ -543,6 +546,7 @@ func (p *PromInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeDevice
 					attribute.String("device_id", key.deviceID),
 					attribute.String("client_platform", key.platform),
 					attribute.String("client_version", key.version),
+					attribute.String("client_locale", key.locale),
 					attribute.String("client_country", key.country),
 					attribute.String("client_isp", key.isp),
 					attribute.String("client_asn", key.asn)))
