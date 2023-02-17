@@ -39,6 +39,7 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	platform := req.Header.Get(common.PlatformHeader)
 	version := req.Header.Get(common.VersionHeader)
 	app := req.Header.Get(common.AppHeader)
+	locale := req.Header.Get(common.LocaleHeader)
 
 	measuredCtx := map[string]interface{}{
 		"origin":      req.Host,
@@ -63,6 +64,7 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	addMeasuredHeader("app_version", version)
 	addMeasuredHeader("app_platform", platform)
 	addMeasuredHeader("app", app)
+	addMeasuredHeader("locale", locale)
 	addMeasuredHeader("supported_data_caps", req.Header[common.SupportedDataCaps])
 	addMeasuredHeader("time_zone", req.Header.Get(common.TimeZoneHeader))
 

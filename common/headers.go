@@ -14,6 +14,7 @@ const (
 	ProTokenHeader                      = "X-Lantern-Pro-Token"
 	CfgSvrAuthTokenHeader               = "X-Lantern-Config-Auth-Token"
 	CfgSvrClientIPHeader                = "X-Lantern-Config-Client-IP"
+	LocaleHeader                        = "X-Lantern-Locale"
 	BBRRequested                        = "X-BBR"
 	BBRAvailableBandwidthEstimateHeader = "X-BBR-ABE"
 	XBQHeader                           = "XBQ"

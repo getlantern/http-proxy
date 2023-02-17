@@ -5,10 +5,11 @@ import (
 	"strings"
 	"time"
 
+	rclient "github.com/go-redis/redis/v8"
+
 	"github.com/getlantern/geo"
 	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/measured"
-	rclient "github.com/go-redis/redis/v8"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
@@ -51,6 +52,11 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 		if _app != nil {
 			app = strings.ToLower(_app.(string))
 		}
+		locale := ""
+		_locale := ctx["locale"]
+		if _locale != nil {
+			locale = strings.ToLower(_locale.(string))
+		}
 		var client_ip net.IP
 		_client_ip := ctx["client_ip"]
 		if _client_ip != nil {
@@ -71,7 +77,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 		if _originHost != nil {
 			originHost = _originHost.(string)
 		}
-		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, app, dataCapCohort, client_ip, deviceID, originHost)
+		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, app, locale, dataCapCohort, client_ip, deviceID, originHost)
 	}
 
 	var reporter listeners.MeasuredReportFN
