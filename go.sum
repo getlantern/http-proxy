@@ -148,10 +148,11 @@ github.com/getlantern/bytecounting v0.0.0-20190530140808-3b3f10d3b9ab h1:bKsTXN1
 github.com/getlantern/bytecounting v0.0.0-20190530140808-3b3f10d3b9ab/go.mod h1:O/UvKlcgUd/tsplTbFesvYtqGENHVE/yO8DJ1sd+x+g=
 github.com/getlantern/byteexec v0.0.0-20170405023437-4cfb26ec74f4 h1:Nqmy8i81dzokjNHpyOg24gnQBeGRF7D51m8HmBRNn0Y=
 github.com/getlantern/byteexec v0.0.0-20170405023437-4cfb26ec74f4/go.mod h1:4WCQkaCIwta0KlF9bQZA1jYqp8bzIS2PeCqjnef8nZ8=
-github.com/getlantern/cmux v0.0.0-20200905031936-c55b16ee8462 h1:eJkOdQpAgT9/v9KJD0UdQ90CGb7m8nXL33Qhk0AQ4x4=
-github.com/getlantern/cmux v0.0.0-20200905031936-c55b16ee8462/go.mod h1:48COjs7jITfhkdw82LeMDQtrISx0CQG3/W0Ycr2UafM=
-github.com/getlantern/cmux/v2 v2.0.0-20200905031936-c55b16ee8462 h1:i5/Pd2raSQs59f0twxO/Fm3FaxpEsSSZKC0mxWnXumM=
+github.com/getlantern/cmux v0.0.0-20230301223233-dac79088a4c0 h1:JlVdpDQThkcqlMoqpn89ZfNUpxNTUNqUrTFacBJvIqU=
+github.com/getlantern/cmux v0.0.0-20230301223233-dac79088a4c0/go.mod h1:48COjs7jITfhkdw82LeMDQtrISx0CQG3/W0Ycr2UafM=
 github.com/getlantern/cmux/v2 v2.0.0-20200905031936-c55b16ee8462/go.mod h1:oJz1ghfzM796DpGP0et6Gbc3si2Zn3/7l7KxxK/KXQ0=
+github.com/getlantern/cmux/v2 v2.0.0-20230228131144-addc208d233b h1:wdB3MA0/9x0Z0cwmQWx3oJjPF0T2+E0gS9vtZzT1tic=
+github.com/getlantern/cmux/v2 v2.0.0-20230228131144-addc208d233b/go.mod h1:oJz1ghfzM796DpGP0et6Gbc3si2Zn3/7l7KxxK/KXQ0=
 github.com/getlantern/cmuxprivate v0.0.0-20200905032931-afb63438e40b h1:yBspzs66rMnW1KuXUoXGvW2WVUQ2+r4IBsTLM0dQrbU=
 github.com/getlantern/cmuxprivate v0.0.0-20200905032931-afb63438e40b/go.mod h1:WIunQ/nFvkQAP89tY2CX4R5kj9A1OJhjA3KmP6nj4o4=
 github.com/getlantern/context v0.0.0-20190109183933-c447772a6520/go.mod h1:L+mq6/vvYHKjCX2oez0CgEAJmbq1fbb/oNJIWQkBybY=
@@ -217,8 +218,8 @@ github.com/getlantern/keyman v0.0.0-20210218183930-5e48f8ced961 h1:FEBpsJqYoGfiO
 github.com/getlantern/keyman v0.0.0-20210218183930-5e48f8ced961/go.mod h1:VMD668wW8As25Yb7/m9CqnsOk4zKrvFM/2eJgP6HAXE=
 github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9 h1:n2t63QvweEs53Kpy7QbXv6JRSfXpDTTgPMT4cNTOt8g=
 github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9/go.mod h1:Zqiq4op+E689yjuJACMLURzE9XUGj48UDZP7h8aN+kk=
-github.com/getlantern/lantern-shadowsocks v1.3.6-0.20230114153732-0193919d4860 h1:eMJ05nKDxgglPGWvAqcs4e23RRB3NoofVCtD0DDOV/Q=
-github.com/getlantern/lantern-shadowsocks v1.3.6-0.20230114153732-0193919d4860/go.mod h1:YCEW57ujbWaUeGRMhRjF0OgMBqUTNb3QsErbaQZq5K8=
+github.com/getlantern/lantern-shadowsocks v1.3.6-0.20230301223223-150b18ac427d h1:YwH3hgY1qtp1J1V8iBx58wB+mAY6L7N1s+qYqNJgDjM=
+github.com/getlantern/lantern-shadowsocks v1.3.6-0.20230301223223-150b18ac427d/go.mod h1:Wwa1uDdu6LxVRANcN2dQ+aNI0rY+km+dqHW2G9Qm34k=
 github.com/getlantern/measured v0.0.0-20170302221919-0582bf799783/go.mod h1:5OW2WJitCKExpSw2bploW2fM7PjOd6QnLqyp+IqToqU=
 github.com/getlantern/measured v0.0.0-20210507000559-ec5307b2b8be h1:rfdOTeKew6zcpf5BQ566WInLINdZARimtWVLcgP/a4I=
 github.com/getlantern/measured v0.0.0-20210507000559-ec5307b2b8be/go.mod h1:QG6d9+nAxD1PjVjgGLUUHPZBQUp20/h7j8a3kxd/8Rc=
@@ -275,8 +276,8 @@ github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7 h1:wVcJbQS7pf4h
 github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7/go.mod h1:ZLyPOKtNWU4vWnAiRiNQ7hbfLMqCEuj1DgQWBtHp7tQ=
 github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4 h1:73U3J4msGw3cXeKtCEbY7hbOdD6aX8gJv8BOu+VagF8=
 github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4/go.mod h1:f8WmDYKFOaC5/y0d3GWl6UKf1ZbSlIoMzkuC8x7pUhg=
-github.com/getlantern/tlsmasq v0.4.6 h1:yk+XnAgB9XofhJ9leFR/SotRlLLtS2vElvjB43Xjn7E=
-github.com/getlantern/tlsmasq v0.4.6/go.mod h1:If80SpH0K1QvlZ5xeLlp3Vba73s8r1aCZzSmQNKN/pY=
+github.com/getlantern/tlsmasq v0.4.7-0.20230302000139-6e479a593298 h1:GxhCQ6zLnIeaIw2gtZsM7hSlpXHdd8DoXSEPObSHMuk=
+github.com/getlantern/tlsmasq v0.4.7-0.20230302000139-6e479a593298/go.mod h1:vcDVZe3TGEqd0nD0tVvqKoyGHY+5bPxCa+IklxroKd0=
 github.com/getlantern/tlsutil v0.5.1 h1:Cn19aDidw4+yufrQaCAYjZir3g1QaObs1xf4qzez3CA=
 github.com/getlantern/tlsutil v0.5.1/go.mod h1:lVgvr4nxuQ1ocOho90UB6LnHFlpP16TXAGpHR8Z0QnI=
 github.com/getlantern/utls v0.0.0-20200903013459-0c02248f7ce1 h1:+Egmu6VMMPm8/FHz8TOtQ1Usn3zg0gkS7ZHrLFycyok=

@@ -23,7 +23,7 @@ type middleware struct {
 }
 
 func New() Middleware {
-	log.Debug("Tracking bbr metrics on Linux")
+	log.Debug("Running on linux, bbr metrics available (but not necessarily enabled)")
 	return &middleware{
 		statsByClient: make(map[string]*stats),
 	}

@@ -299,7 +299,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		// We pass onListenerError to lampshade so that we can count errors in its
 		// internal connection handling.
 		onListenerError = p.instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
-		if err := addListenerIfNecessary("lampshade", addrs.lampshade, p.listenLampshade(true, onListenerError, baseListen)); err != nil {
+		if err := addListenerIfNecessary("lampshade", addrs.lampshade, p.listenLampshade(onListenerError, baseListen)); err != nil {
 			return err
 		}
 
@@ -780,7 +780,7 @@ func (p *Proxy) listenOBFS4(baseListen func(string, bool) (net.Listener, error))
 	}
 }
 
-func (p *Proxy) listenLampshade(trackBBR bool, onListenerError func(net.Conn, error), baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
+func (p *Proxy) listenLampshade(onListenerError func(net.Conn, error), baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
 		l, err := baseListen(addr, false)
 		if err != nil {
@@ -792,11 +792,9 @@ func (p *Proxy) listenLampshade(trackBBR bool, onListenerError func(net.Conn, er
 		}
 		log.Debugf("Listening for lampshade at %v", wrapped.Addr())
 
-		if trackBBR {
-			// We wrap the lampshade listener itself so that we record BBR metrics on
-			// close of virtual streams rather than the physical connection.
-			wrapped = p.bm.Wrap(wrapped)
-		}
+		// We wrap the lampshade listener itself so that we record BBR metrics on
+		// close of virtual streams rather than the physical connection.
+		wrapped = p.bm.Wrap(wrapped)
 
 		// Wrap lampshade streams with idletiming as well
 		wrapped = listeners.NewIdleConnListener(wrapped, p.IdleTimeout)
@@ -807,7 +805,7 @@ func (p *Proxy) listenLampshade(trackBBR bool, onListenerError func(net.Conn, er
 
 func (p *Proxy) listenTLSMasq(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
-		l, err := baseListen(addr, false)
+		l, err := baseListen(addr, true)
 		if err != nil {
 			return nil, err
 		}
@@ -900,7 +898,7 @@ func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
 	// especially with respect to draining connections and the timing of closures.
 
 	configs := []shadowsocks.CipherConfig{
-		shadowsocks.CipherConfig{
+		{
 			ID:     "default",
 			Secret: p.ShadowsocksSecret,
 			Cipher: p.ShadowsocksCipher,
@@ -910,8 +908,14 @@ func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
 	if err != nil {
 		return nil, errors.New("Unable to create shadowsocks cipher: %v", err)
 	}
+	base, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+	base = p.bm.Wrap(base)
+
 	l, err := shadowsocks.ListenLocalTCP(
-		addr, ciphers,
+		base, ciphers,
 		p.ShadowsocksReplayHistory,
 	)
 	if err != nil {

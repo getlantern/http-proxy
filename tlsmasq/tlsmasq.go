@@ -73,7 +73,7 @@ func (l loggingListener) Accept() (net.Conn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return loggingConn{Conn: conn.(tlsmasq.Conn)}, nil
+	return &loggingConn{Conn: conn.(tlsmasq.Conn)}, nil
 }
 
 func (l loggingListener) Addr() net.Addr { return l.tlsmasqListener.Addr() }
@@ -84,10 +84,10 @@ type loggingConn struct {
 	handshakeOnce sync.Once
 }
 
-func (conn loggingConn) Read(b []byte) (n int, err error)  { return conn.doIO(b, conn.Conn.Read) }
-func (conn loggingConn) Write(b []byte) (n int, err error) { return conn.doIO(b, conn.Conn.Write) }
+func (conn *loggingConn) Read(b []byte) (n int, err error)  { return conn.doIO(b, conn.Conn.Read) }
+func (conn *loggingConn) Write(b []byte) (n int, err error) { return conn.doIO(b, conn.Conn.Write) }
 
-func (conn loggingConn) doIO(b []byte, io func([]byte) (int, error)) (n int, err error) {
+func (conn *loggingConn) doIO(b []byte, io func([]byte) (int, error)) (n int, err error) {
 	conn.handshakeOnce.Do(func() {
 		var alertErr tlsutil.UnexpectedAlertError
 		if err = conn.Handshake(); err != nil && errors.As(err, &alertErr) {
@@ -98,4 +98,8 @@ func (conn loggingConn) doIO(b []byte, io func([]byte) (int, error)) (n int, err
 		return 0, err
 	}
 	return io(b)
+}
+
+func (conn *loggingConn) Wrapped() net.Conn {
+	return conn.Conn
 }
