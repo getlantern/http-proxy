@@ -8,7 +8,10 @@ import (
 
 	"github.com/prometheus/client_golang/prometheus"
 
-	outlineShadowsocksNet "github.com/Jigsaw-Code/outline-ss-server/net"
+	"github.com/getlantern/golog"
+	"github.com/getlantern/netx"
+
+	onet "github.com/Jigsaw-Code/outline-ss-server/net"
 	"github.com/Jigsaw-Code/outline-ss-server/service"
 	"github.com/Jigsaw-Code/outline-ss-server/service/metrics"
 )
@@ -18,6 +21,8 @@ import (
 // have shadowsocks behave like other transports we use in Lantern.
 
 var (
+	log = golog.LoggerFor("shadowsocks")
+
 	ErrListenerClosed = errors.New("listener closed")
 
 	defaultMetrics  metrics.ShadowsocksMetrics
@@ -38,24 +43,24 @@ type HandleLocalPredicate func(addr string) bool
 func AlwaysLocal(addr string) bool { return true }
 
 func maybeLocalDialer(isLocal HandleLocalPredicate, handleLocal service.TargetDialer, handleUpstream service.TargetDialer) service.TargetDialer {
-	return func(tgtAddr string, clientAddr net.Addr, proxyMetrics *metrics.ProxyMetrics, targetIPValidator outlineShadowsocksNet.TargetIPValidator) (outlineShadowsocksNet.DuplexConn, *outlineShadowsocksNet.ConnectionError) {
+	return func(tgtAddr string, clientTCPConn onet.TCPConn, proxyMetrics *metrics.ProxyMetrics, targetIPValidator onet.TargetIPValidator) (onet.TCPConn, *onet.ConnectionError) {
 		if isLocal(tgtAddr) {
-			return handleLocal(tgtAddr, clientAddr, proxyMetrics, targetIPValidator)
+			return handleLocal(tgtAddr, clientTCPConn, proxyMetrics, targetIPValidator)
 		} else {
-			return handleUpstream(tgtAddr, clientAddr, proxyMetrics, targetIPValidator)
+			return handleUpstream(tgtAddr, clientTCPConn, proxyMetrics, targetIPValidator)
 		}
 	}
 }
 
 type ListenerOptions struct {
-	Listener              *net.TCPListener
+	Listener              onet.TCPListener
 	Ciphers               service.CipherList
 	ReplayCache           *service.ReplayCache
 	Metrics               metrics.ShadowsocksMetrics
 	Timeout               time.Duration
-	ShouldHandleLocally   HandleLocalPredicate                    // determines whether an upstream should be handled by the listener locally or dial upstream
-	TargetIPValidator     outlineShadowsocksNet.TargetIPValidator // determines validity of non-local upstream dials
-	MaxPendingConnections int                                     // defaults to 1000
+	ShouldHandleLocally   HandleLocalPredicate   // determines whether an upstream should be handled by the listener locally or dial upstream
+	TargetIPValidator     onet.TargetIPValidator // determines validity of non-local upstream dials
+	MaxPendingConnections int                    // defaults to 1000
 }
 
 // GetDefaultMetrics returns the singleton metrics.ShadowsocksMetrics instance
@@ -80,22 +85,14 @@ type llistener struct {
 // returned listener rather than dialing upstream. Any upstream or local handling should be handled by the
 // caller of Accept().
 func ListenLocalTCP(
-	addr string, ciphers service.CipherList,
+	l net.Listener,
+	ciphers service.CipherList,
 	replayHistory int,
 ) (net.Listener, error) {
-	tcpAddr, err := net.ResolveTCPAddr("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
-	l, err := net.ListenTCP("tcp", tcpAddr)
-	if err != nil {
-		return nil, err
-	}
-
 	replayCache := service.NewReplayCache(replayHistory)
 
 	options := &ListenerOptions{
-		Listener:    l,
+		Listener:    &tcpListenerAdapter{l},
 		Ciphers:     ciphers,
 		ReplayCache: &replayCache,
 	}
@@ -131,7 +128,7 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 
 	validator := options.TargetIPValidator
 	if validator == nil {
-		validator = outlineShadowsocksNet.RequirePublicIP
+		validator = onet.RequirePublicIP
 	}
 
 	isLocal := options.ShouldHandleLocally
@@ -141,8 +138,10 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 
 	dialer := maybeLocalDialer(isLocal, l.dialPipe, service.DefaultDialTarget)
 	l.TCPService = service.NewTCPService(
-		options.Ciphers, options.ReplayCache,
-		m, timeout,
+		options.Ciphers,
+		options.ReplayCache,
+		m,
+		timeout,
 		&service.TCPServiceOptions{
 			DialTarget:        dialer,
 			TargetIPValidator: validator,
@@ -152,7 +151,7 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 	go func() {
 		err := l.Serve(options.Listener)
 		if err != nil {
-			logger.Errorf("serving on %s: %v", l.Addr(), err)
+			log.Errorf("serving on %s: %v", l.Addr(), err)
 		}
 		l.Close()
 	}()
@@ -190,39 +189,86 @@ func (l *llistener) Addr() net.Addr {
 // dialPipe is the dialer used by the shadowsocks tcp service when handling the upstream locally.
 // When the shadowsocks TcpService dials upstream, one end of a duplex Pipe is returned to it
 // and the other end is issued to the consumer of the Listener.
-func (l *llistener) dialPipe(addr string, clientAddr net.Addr, proxyMetrics *metrics.ProxyMetrics, targetIPValidator outlineShadowsocksNet.TargetIPValidator) (outlineShadowsocksNet.DuplexConn, *outlineShadowsocksNet.ConnectionError) {
+func (l *llistener) dialPipe(addr string, clientTCPConn onet.TCPConn, proxyMetrics *metrics.ProxyMetrics, targetIPValidator onet.TargetIPValidator) (onet.TCPConn, *onet.ConnectionError) {
 	c1, c2 := net.Pipe()
 
 	// this is returned to the shadowsocks handler as the upstream connection
-	a := metrics.MeasureConn(&lduplex{c1}, &proxyMetrics.ProxyTarget, &proxyMetrics.TargetProxy)
+	a := metrics.MeasureConn(&tcpConnAdapter{c1}, &proxyMetrics.ProxyTarget, &proxyMetrics.TargetProxy)
 
 	// this is returned via the Listener as a client connection
-	b := &lfwd{c2, clientAddr, addr}
+	b := &lfwd{c2, clientTCPConn, clientTCPConn.RemoteAddr(), addr}
 
 	l.connections <- b
 
 	return a, nil
 }
 
-// this is an adapter that fulfils the expectation
+// this is an adapter that fulfills the expectation
 // of the shadowsocks handler that it can independently
 // close the read and write on it's upstream side.
-type lduplex struct {
+type tcpConnAdapter struct {
 	net.Conn
+}
+
+func (c *tcpConnAdapter) Wrapped() net.Conn {
+	return c.Conn
 }
 
 // this is triggered when the remote end is finished.
 // This triggers a close of both ends.
-func (l *lduplex) CloseRead() error {
-	return l.Conn.Close()
+func (c *tcpConnAdapter) CloseRead() error {
+	tcpConn, ok := c.asTCPConn()
+	if ok {
+		return tcpConn.CloseRead()
+	}
+	return c.Conn.Close()
 }
 
 // this is triggered when a client finishes writing,
 // it is handled as a no-op, we just ignore it since
 // we don't depend on half closing the connection to
 // signal anything.
-func (l *lduplex) CloseWrite() error {
+func (c *tcpConnAdapter) CloseWrite() error {
+	tcpConn, ok := c.asTCPConn()
+	if ok {
+		return tcpConn.CloseWrite()
+	}
 	return nil
+}
+
+func (c *tcpConnAdapter) SetKeepAlive(keepAlive bool) error {
+	tcpConn, ok := c.asTCPConn()
+	if ok {
+		return tcpConn.SetKeepAlive(keepAlive)
+	}
+	return nil
+}
+
+func (c *tcpConnAdapter) asTCPConn() (*net.TCPConn, bool) {
+	var tcpConn *net.TCPConn
+	netx.WalkWrapped(c.Conn, func(conn net.Conn) bool {
+		switch t := conn.(type) {
+		case *net.TCPConn:
+			tcpConn = t
+			return false
+		}
+
+		// Keep looking
+		return true
+	})
+	return tcpConn, tcpConn != nil
+}
+
+type tcpListenerAdapter struct {
+	net.Listener
+}
+
+func (l *tcpListenerAdapter) AcceptTCP() (onet.TCPConn, error) {
+	conn, err := l.Listener.Accept()
+	if err != nil {
+		return nil, err
+	}
+	return &tcpConnAdapter{conn}, nil
 }
 
 // this is an adapter that forwards the remote address
@@ -231,6 +277,7 @@ func (l *lduplex) CloseWrite() error {
 // is also available if needed.
 type lfwd struct {
 	net.Conn
+	clientTCPConn  onet.TCPConn
 	remoteAddr     net.Addr
 	upstreamTarget string
 }
@@ -241,4 +288,8 @@ func (l *lfwd) RemoteAddr() net.Addr {
 
 func (l *lfwd) UpstreamTarget() string {
 	return l.upstreamTarget
+}
+
+func (l *lfwd) Wrapped() net.Conn {
+	return l.clientTCPConn.(*tcpConnAdapter).Wrapped()
 }

@@ -11,11 +11,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/getlantern/http-proxy-lantern/v2/bbr"
 	"github.com/getlantern/keyman"
 	"github.com/getlantern/tlsmasq"
 	"github.com/getlantern/tlsmasq/ptlshs"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 func TestWrap(t *testing.T) {
@@ -77,8 +79,12 @@ func TestWrap(t *testing.T) {
 		assert.NoError(t, err, "got error from nonFatalErrorsHandler")
 	}
 
+	// Wrap with BBR listener to make sure that doesn't cause problems for tlsmasq
+	b := bbr.New()
+	wl := b.Wrap(l)
+
 	tlsmasqListener, err := Wrap(
-		l, proxyCertFile, proxyKeyFile, proxiedListener.Addr().String(), secretString,
+		wl, proxyCertFile, proxyKeyFile, proxiedListener.Addr().String(), secretString,
 		tls.VersionTLS12, []uint16{tls.TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA}, nonFatalErrorsHandler)
 	require.NoError(t, err)
 	defer tlsmasqListener.Close()

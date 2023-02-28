@@ -9,9 +9,10 @@ import (
 	"testing"
 	"time"
 
+	logging "github.com/op/go-logging"
+
 	"github.com/getlantern/fdcount"
 	"github.com/getlantern/grtrack"
-	logging "github.com/op/go-logging"
 
 	"github.com/Jigsaw-Code/outline-ss-server/client"
 	"github.com/Jigsaw-Code/outline-ss-server/service"
@@ -52,7 +53,7 @@ func TestLocalUpstreamHandling(t *testing.T) {
 	testMetrics := &metrics.NoOpMetrics{}
 
 	options := &ListenerOptions{
-		Listener: l0,
+		Listener: &tcpListenerAdapter{l0},
 		Ciphers:  cipherList,
 		Metrics:  testMetrics,
 		Timeout:  200 * time.Millisecond,
@@ -73,12 +74,12 @@ func TestLocalUpstreamHandling(t *testing.T) {
 				buf := make([]byte, 2*len(req))
 				n, err := c.Read(buf)
 				if err != nil {
-					logger.Errorf("error reading: %v", err)
+					log.Errorf("error reading: %v", err)
 					return
 				}
 				buf = buf[:n]
 				if !bytes.Equal(buf, req) {
-					logger.Errorf("unexpected request %v %v", buf, req)
+					log.Errorf("unexpected request %v %v", buf, req)
 					return
 				}
 				c.Write(res)
@@ -138,7 +139,7 @@ func TestConcurrentLocalUpstreamHandling(t *testing.T) {
 	testMetrics := &metrics.NoOpMetrics{}
 
 	options := &ListenerOptions{
-		Listener: l0,
+		Listener: &tcpListenerAdapter{l0},
 		Ciphers:  cipherList,
 		Metrics:  testMetrics,
 		Timeout:  200 * time.Millisecond,
@@ -158,14 +159,14 @@ func TestConcurrentLocalUpstreamHandling(t *testing.T) {
 				buf := make([]byte, 2*reqLen)
 				n, err := c.Read(buf)
 				if err != nil {
-					logger.Errorf("error reading: %v", err)
+					log.Errorf("error reading: %v", err)
 					return
 				}
 				buf = buf[:n]
 
 				res := ress[string(buf)]
 				if res == "" {
-					logger.Errorf("unexpected request %v", buf)
+					log.Errorf("unexpected request %v", buf)
 					return
 				}
 				c.Write([]byte(res))
