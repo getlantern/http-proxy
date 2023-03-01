@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"net"
 	"strings"
 	"time"
@@ -77,7 +78,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 		if _originHost != nil {
 			originHost = _originHost.(string)
 		}
-		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, app, locale, dataCapCohort, client_ip, deviceID, originHost)
+		instrument.ProxiedBytes(context.Background(), deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, app, locale, dataCapCohort, client_ip, deviceID, originHost)
 	}
 
 	var reporter listeners.MeasuredReportFN
