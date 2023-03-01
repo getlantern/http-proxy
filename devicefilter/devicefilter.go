@@ -94,14 +94,14 @@ func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, 
 	// which don't use the devicefilter at all.
 	throttleDefault := func(message string) {
 		if defaultThrottleRate <= 0 {
-			f.instrument.Throttle(false, message)
+			f.instrument.Throttle(req.Context(), false, message)
 		}
 		limiter := f.rateLimiterForDevice(lanternDeviceID, defaultThrottleRate, defaultThrottleRate)
 		if log.IsTraceEnabled() {
 			log.Tracef("Throttling connection to %v per second by default",
 				humanize.Bytes(uint64(defaultThrottleRate)))
 		}
-		f.instrument.Throttle(true, "default")
+		f.instrument.Throttle(req.Context(), true, "default")
 		wc.ControlMessage("throttle", limiter)
 	}
 
@@ -115,18 +115,18 @@ func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, 
 	if lanternDeviceID == "" {
 		// Old lantern versions and possible cracks do not include the device
 		// ID. Just throttle them.
-		f.instrument.Throttle(true, "no-device-id")
+		f.instrument.Throttle(req.Context(), true, "no-device-id")
 		wc.ControlMessage("throttle", alwaysThrottle)
 		return next(cs, req)
 	}
 	if lanternDeviceID == "~~~~~~" {
 		// This is checkfallbacks, don't throttle it
-		f.instrument.Throttle(false, "checkfallbacks")
+		f.instrument.Throttle(req.Context(), false, "checkfallbacks")
 		return next(cs, req)
 	}
 
 	if f.throttleConfig == nil {
-		f.instrument.Throttle(false, "no-config")
+		f.instrument.Throttle(req.Context(), false, "no-config")
 		return next(cs, req)
 	}
 
@@ -165,7 +165,7 @@ func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, 
 			log.Tracef("Throttling connection from device %s to %v per second", lanternDeviceID,
 				humanize.Bytes(uint64(settings.Rate)))
 		}
-		f.instrument.Throttle(true, "datacap")
+		f.instrument.Throttle(req.Context(), true, "datacap")
 		wc.ControlMessage("throttle", limiter)
 		measuredCtx["throttled"] = true
 	} else {
@@ -189,7 +189,7 @@ func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, 
 	xbqv2 := fmt.Sprintf("%s/%d", xbq, u.TTLSeconds)
 	resp.Header.Set(common.XBQHeader, xbq)     // for backward compatibility with older clients
 	resp.Header.Set(common.XBQHeaderv2, xbqv2) // for new clients that support different bandwidth cap expirations
-	f.instrument.XBQHeaderSent()
+	f.instrument.XBQHeaderSent(req.Context())
 	return resp, nextCtx, err
 }
 

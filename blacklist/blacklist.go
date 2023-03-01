@@ -4,6 +4,7 @@
 package blacklist
 
 import (
+	"context"
 	"fmt"
 	"sync"
 	"time"
@@ -137,7 +138,7 @@ func (bl *Blacklist) Succeed(ip string) {
 // blacklisted, this returns false.
 func (bl *Blacklist) OnConnect(ip string) bool {
 	if !blacklistingEnabled {
-		bl.instrument.Blacklist(false)
+		bl.instrument.Blacklist(context.Background(), false)
 		return true
 	}
 	bl.mutex.RLock()
@@ -145,10 +146,10 @@ func (bl *Blacklist) OnConnect(ip string) bool {
 	_, blacklisted := bl.blacklist[ip]
 	if blacklisted {
 		log.Errorf("%v is blacklisted", ip)
-		bl.instrument.Blacklist(true)
+		bl.instrument.Blacklist(context.Background(), true)
 		return false
 	}
-	bl.instrument.Blacklist(false)
+	bl.instrument.Blacklist(context.Background(), false)
 	select {
 	case bl.connections <- ip:
 		// ip submitted as connected

@@ -38,11 +38,11 @@ type QuicConnTracer struct {
 }
 
 func (t *QuicConnTracer) SentPacket(hdr *qlog.ExtendedHeader, size qlog.ByteCount, ack *qlog.AckFrame, frames []qlog.Frame) {
-	t.inst.quicSentPacket()
+	t.inst.quicSentPacket(context.Background())
 }
 
 func (t *QuicConnTracer) LostPacket(level qlog.EncryptionLevel, pn qlog.PacketNumber, reason qlog.PacketLossReason) {
-	t.inst.quicLostPacket()
+	t.inst.quicLostPacket(context.Background())
 }
 
 func (t *QuicConnTracer) StartedConnection(local, remote net.Addr, srcConnID, destConnID qlog.ConnectionID) {

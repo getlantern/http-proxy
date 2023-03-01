@@ -203,7 +203,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		log.Debugf("Not enabling prometheus export")
 	} else {
 		log.Debugf("Enabling prometheus export at %v", p.PromExporterAddr)
-		prom := instrument.NewPrometheus(
+		prom, err := instrument.NewPrometheus(
 			p.CountryLookup,
 			p.ISPLookup,
 			instrument.CommonLabels{
@@ -213,6 +213,9 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 				RequireTLSResumption:  p.RequireSessionTickets,
 				MissingTicketReaction: p.MissingTicketReaction.Action(),
 			})
+		if err != nil {
+			return errors.New("Unable to configure prometheus: %v", err)
+		}
 		go func() {
 			log.Debugf("Running Prometheus exporter at http://%s/metrics", p.PromExporterAddr)
 			if err := prom.Run(p.PromExporterAddr); err != nil {
@@ -252,20 +255,34 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	}
 	filterChain = filterChain.Prepend(opsfilter.New(p.bm))
 
+	instrumentedFilter, err := p.instrument.WrapFilter("proxy", filterChain)
+	if err != nil {
+		return errors.New("unable to instrument filter: %v", err)
+	}
+	instrumentedErrorHandler, err := p.instrument.WrapConnErrorHandler("proxy_serve", onServerError)
+	if err != nil {
+		return errors.New("unable to instrument error handler: %v", err)
+	}
 	srv := server.New(&server.Opts{
 		IdleTimeout: p.IdleTimeout,
 		// Use the same buffer pool as lampshade for now but need to optimize later.
 		BufferSource:             lampshade.BufferPool,
 		Dial:                     dial,
-		Filter:                   p.instrument.WrapFilter("proxy", filterChain),
+		Filter:                   instrumentedFilter,
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
-		OnError:                  p.instrument.WrapConnErrorHandler("proxy_serve", onServerError),
+		OnError:                  instrumentedErrorHandler,
 	})
 	stopHoneycomb := p.configureHoneycomb()
 	defer stopHoneycomb()
 
 	stopTeleport := p.configureTeleport()
 	defer stopTeleport()
+
+	stopMetrics, err := p.configureOTELMetrics()
+	if err != nil {
+		return errors.New("unable to initialize global meter provider: %v", err)
+	}
+	defer stopMetrics()
 
 	bwReporting := p.configureBandwidthReporting()
 	// Throttle connections when signaled
@@ -298,7 +315,11 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 
 		// We pass onListenerError to lampshade so that we can count errors in its
 		// internal connection handling.
-		onListenerError = p.instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
+		var err error
+		onListenerError, err = p.instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
+		if err != nil {
+			return err
+		}
 		if err := addListenerIfNecessary("lampshade", addrs.lampshade, p.listenLampshade(onListenerError, baseListen)); err != nil {
 			return err
 		}
@@ -378,10 +399,18 @@ func (p *Proxy) ListenAndServeENHTTP() error {
 		return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
 	}
 	log.Debugf("Listening for encapsulated HTTP at %v", el.Addr())
-	filterChain := filters.Join(tokenfilter.New(p.Token, p.instrument), p.instrument.WrapFilter("proxy_http_ping", ping.New(0)))
+	instrumentedPingFilter, err := p.instrument.WrapFilter("proxy_http_ping", ping.New(0))
+	if err != nil {
+		return errors.New("unable to instrument ping filter: %v", err)
+	}
+	filterChain := filters.Join(tokenfilter.New(p.Token, p.instrument), instrumentedPingFilter)
 	enhttpHandler := enhttp.NewServerHandler(p.ENHTTPReapIdleTime, p.ENHTTPServerURL)
+	instrumentedProxyFilter, err := p.instrument.WrapFilter("proxy", filterChain)
+	if err != nil {
+		return errors.New("unable to instrument proxy filter: %v", err)
+	}
 	server := &http.Server{
-		Handler: filters.Intercept(enhttpHandler, p.instrument.WrapFilter("proxy", filterChain)),
+		Handler: filters.Intercept(enhttpHandler, instrumentedProxyFilter),
 	}
 	return server.Serve(el)
 }
@@ -574,7 +603,11 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		}
 		filterChain = filterChain.Append(proxyfilters.BlockLocal(allowedLocalAddrs))
 	}
-	filterChain = filterChain.Append(p.instrument.WrapFilter("proxy_http_ping", ping.New(0)))
+	instrumentedProxyPingFilter, err := p.instrument.WrapFilter("proxy_http_ping", ping.New(0))
+	if err != nil {
+		return nil, nil, errors.New("unable to instrument proxy ping filter: %v", err)
+	}
+	filterChain = filterChain.Append(instrumentedProxyPingFilter)
 
 	// Google anomaly detection can be triggered very often over IPv6.
 	// Prefer IPv4 to mitigate, see issue #97
@@ -683,11 +716,34 @@ func (p *Proxy) configureOTEL(
 	includeDeviceIDs bool,
 	includeProxyIdentity bool,
 ) func() {
+	opts := p.buildOTELOpts(endpoint, headers, includeProxyIdentity)
+	opts.SampleRate = sampleRate
+	tp, stop := otel.BuildTracerProvider(opts)
+	if tp != nil {
+		go p.instrument.ReportToOTELPeriodically(reportingInterval, tp, includeDeviceIDs)
+		ogStop := stop
+		stop = func() {
+			p.instrument.ReportToOTEL(tp, includeDeviceIDs)
+			ogStop()
+		}
+	}
+	return stop
+}
+
+func (p *Proxy) configureOTELMetrics() (func(), error) {
+	return otel.InitGlobalMeterProvider(
+		p.buildOTELOpts(
+			"ops.iantem.io:443",
+			map[string]string{},
+			true,
+		))
+}
+
+func (p *Proxy) buildOTELOpts(endpoint string, headers map[string]string, includeProxyIdentity bool) *otel.Opts {
 	proxyName, dc := proxyNameAndDC(p.ProxyName)
 	opts := &otel.Opts{
 		Endpoint:      endpoint,
 		Headers:       headers,
-		SampleRate:    sampleRate,
 		Track:         p.Track,
 		DC:            dc,
 		ProxyProtocol: p.ProxyProtocol,
@@ -716,16 +772,7 @@ func (p *Proxy) configureOTEL(
 		opts.ExternalIP = p.ExternalIP
 		opts.ProxyName = proxyName
 	}
-	tp, stop := otel.BuildTracerProvider(opts)
-	if tp != nil {
-		go p.instrument.ReportToOTELPeriodically(reportingInterval, tp, includeDeviceIDs)
-		ogStop := stop
-		stop = func() {
-			p.instrument.ReportToOTEL(tp, includeDeviceIDs)
-			ogStop()
-		}
-	}
-	return stop
+	return opts
 }
 
 func (p *Proxy) configureBandwidthReporting() *reportingConfig {
