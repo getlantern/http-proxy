@@ -123,7 +123,7 @@ func (c *VersionChecker) Apply(cs *filters.ConnectionState, req *http.Request, n
 	var shouldRedirect bool
 	var reason string
 	defer func() {
-		c.instrument.VersionCheck(shouldRedirect, req.Method, reason)
+		c.instrument.VersionCheck(req.Context(), shouldRedirect, req.Method, reason)
 	}()
 	switch req.Method {
 	case http.MethodConnect:

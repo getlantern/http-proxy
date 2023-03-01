@@ -41,7 +41,7 @@ func (f *tokenFilter) Apply(cs *filters.ConnectionState, req *http.Request, next
 	tokens := req.Header[common.TokenHeader]
 	if tokens == nil || len(tokens) == 0 || tokens[0] == "" {
 		log.Errorf("No token provided, mimicking apache")
-		f.instrument.Mimic(true)
+		f.instrument.Mimic(req.Context(), true)
 		return mimicApache(cs, req)
 	}
 	tokenMatched := false
@@ -54,11 +54,11 @@ func (f *tokenFilter) Apply(cs *filters.ConnectionState, req *http.Request, next
 	if tokenMatched {
 		req.Header.Del(common.TokenHeader)
 		log.Tracef("Allowing connection from %v to %v", req.RemoteAddr, req.Host)
-		f.instrument.Mimic(false)
+		f.instrument.Mimic(req.Context(), false)
 		return next(cs, req)
 	}
 	log.Errorf("Mismatched token(s) %v, mimicking apache", strings.Join(tokens, ","))
-	f.instrument.Mimic(true)
+	f.instrument.Mimic(req.Context(), true)
 	return mimicApache(cs, req)
 }
 
