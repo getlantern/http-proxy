@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha1"
 	"encoding/binary"
 	"encoding/hex"
 	"errors"
@@ -431,6 +432,9 @@ func main() {
 	}
 	if *maxmindLicenseKey != "" {
 		log.Debug("Will use Maxmind for geolocating clients")
+		if err := deleteStaleISPDB(); err != nil {
+			log.Errorf("Error deleting stale ISP DB, ignore: %v", err)
+		}
 		p.CountryLookup = geo.FromWeb(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), "GeoLite2-Country.mmdb", 24*time.Hour, "GeoLite2-Country.mmdb", geo.CountryCode)
 		p.ISPLookup = geo.FromWeb(fmt.Sprintf(geoip2_isp_url, *maxmindLicenseKey), "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile, geo.ISP)
 	}
@@ -454,4 +458,32 @@ func decodeUint16(s string) (uint16, error) {
 		return 0, err
 	}
 	return binary.BigEndian.Uint16(b), nil
+}
+
+// Salt has been distributing an out-of-date ISP database. Unfortunately, that database gets a recent timestamp,
+// so the logic that checks to see if there's a newer version available online things there isn't, and so
+// the proxy keeps using a stale database.
+// Deleting the stale database from our thousands of proxies via Salt is time consuming and error prone,
+// so instead we just check for it here and delete it if necessary.
+func deleteStaleISPDB() error {
+	shasum := sha1.New()
+	file, err := os.Open("GeoIP2-ISP.mmdb")
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+	b := make([]byte, 16000)
+	for {
+		n, err := file.Read(b)
+		if err != nil {
+			break
+		}
+		shasum.Write(b[:n])
+	}
+	file.Close()
+	if hex.EncodeToString(shasum.Sum(nil)) == "bc63a41e2418763fbe03b79a7896cea7f4d9b06d" {
+		log.Debug("Deleting stale ISP DB")
+		return os.Remove(file.Name())
+	}
+	return nil
 }
