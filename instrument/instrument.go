@@ -20,6 +20,7 @@ import (
 
 	"github.com/getlantern/errors"
 	"github.com/getlantern/geo"
+	"github.com/getlantern/golog"
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/proxy/v2/filters"
 )
@@ -29,6 +30,8 @@ const (
 )
 
 var (
+	log = golog.LoggerFor("instrument")
+
 	originRootRegex = regexp.MustCompile(`([^\.]+\.[^\.]+$)`)
 )
 
@@ -391,6 +394,9 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, lo
 	}
 	p.bytesSentByISP.With(by_isp).Add(float64(sent))
 	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
+	if asn == "AS34714" && country == "IR" {
+		log.Debugf("Found AS34714 in Iran for IP %v", clientIP)
+	}
 
 	clientKey := clientDetails{
 		platform: platform,
