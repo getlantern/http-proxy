@@ -7,8 +7,12 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	"go.opentelemetry.io/otel/metric/global"
+	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
+	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
@@ -39,22 +43,7 @@ type Opts struct {
 	IncludeProxyIdentity bool
 }
 
-func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
-	// Create HTTP client to talk to OTEL collector
-	client := otlptracehttp.NewClient(
-		otlptracehttp.WithEndpoint(opts.Endpoint),
-		otlptracehttp.WithHeaders(opts.Headers),
-	)
-
-	// Create an exporter that exports to the OTEL collector
-	exporter, err := otlptrace.New(context.Background(), client)
-	if err != nil {
-		log.Errorf("Unable to initialize OpenTelemetry, will not report traces to %v", opts.Endpoint)
-		return nil, func() {}
-	}
-	log.Debugf("Will report traces to OpenTelemetry at %v", opts.Endpoint)
-
-	// Create a TracerProvider that uses the above exporter
+func (opts *Opts) buildResource() *resource.Resource {
 	attributes := []attribute.KeyValue{
 		semconv.ServiceNameKey.String("http-proxy-lantern"),
 		attribute.String("protocol", opts.ProxyProtocol),
@@ -85,8 +74,25 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 		attributes = append(attributes, attribute.String("proxy_name", opts.ProxyName))
 		attributes = append(attributes, attribute.String("dc", opts.DC))
 	}
+	return resource.NewWithAttributes(semconv.SchemaURL, attributes...)
+}
 
-	resource := resource.NewWithAttributes(semconv.SchemaURL, attributes...)
+func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
+	// Create HTTP client to talk to OTEL collector
+	client := otlptracehttp.NewClient(
+		otlptracehttp.WithEndpoint(opts.Endpoint),
+		otlptracehttp.WithHeaders(opts.Headers),
+	)
+
+	// Create an exporter that exports to the OTEL collector
+	exporter, err := otlptrace.New(context.Background(), client)
+	if err != nil {
+		log.Errorf("Unable to initialize OpenTelemetry, will not report traces to %v", opts.Endpoint)
+		return nil, func() {}
+	}
+	log.Debugf("Will report traces to OpenTelemetry at %v", opts.Endpoint)
+
+	// Create a TracerProvider that uses the above exporter
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(
 			exporter,
@@ -94,7 +100,7 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 			sdktrace.WithMaxQueueSize(maxQueueSize),
 			sdktrace.WithBlocking(), // it's okay to use blocking mode right now because we're just submitting bandwidth data in a goroutine that doesn't block real work
 		),
-		sdktrace.WithResource(resource),
+		sdktrace.WithResource(opts.buildResource()),
 		sdktrace.WithSampler(sdktrace.ParentBased(newDeterministicSampler(opts.SampleRate))),
 	)
 
@@ -110,4 +116,44 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 	}
 
 	return tp, stop
+}
+
+func InitGlobalMeterProvider(opts *Opts) (func(), error) {
+	exp, err := otlpmetricgrpc.New(context.Background(),
+		otlpmetricgrpc.WithEndpoint(opts.Endpoint),
+		otlpmetricgrpc.WithHeaders(opts.Headers),
+		otlpmetricgrpc.WithTemporalitySelector(func(kind sdkmetric.InstrumentKind) metricdata.Temporality {
+			switch kind {
+			case
+				sdkmetric.InstrumentKindCounter,
+				sdkmetric.InstrumentKindUpDownCounter,
+				sdkmetric.InstrumentKindObservableCounter,
+				sdkmetric.InstrumentKindObservableUpDownCounter:
+				return metricdata.DeltaTemporality
+			default:
+				return metricdata.CumulativeTemporality
+			}
+		}),
+	)
+	if err != nil {
+		return nil, err
+	}
+
+	// Create a new meter provider
+	mp := sdkmetric.NewMeterProvider(
+		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exp)),
+		sdkmetric.WithResource(opts.buildResource()),
+	)
+
+	// Set the meter provider as global
+	global.SetMeterProvider(mp)
+
+	return func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		err := mp.Shutdown(ctx)
+		if err != nil {
+			log.Errorf("error shutting down meter provider: %v", err)
+		}
+	}, nil
 }

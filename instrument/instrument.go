@@ -20,12 +20,9 @@ import (
 
 	"github.com/getlantern/errors"
 	"github.com/getlantern/geo"
+	"github.com/getlantern/http-proxy-lantern/v2/instrument/otelinstrument"
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/proxy/v2/filters"
-)
-
-const (
-	otelReportingInterval = 60 * time.Minute
 )
 
 var (
@@ -34,50 +31,53 @@ var (
 
 // Instrument is the common interface about what can be instrumented.
 type Instrument interface {
-	WrapFilter(prefix string, f filters.Filter) filters.Filter
-	WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error)
-	Blacklist(b bool)
-	Mimic(m bool)
+	WrapFilter(prefix string, f filters.Filter) (filters.Filter, error)
+	WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) (func(conn net.Conn, err error), error)
+	Blacklist(ctx context.Context, b bool)
+	Mimic(ctx context.Context, m bool)
 	MultipathStats([]string) []multipath.StatsTracker
-	Throttle(m bool, reason string)
-	XBQHeaderSent()
-	SuspectedProbing(fromIP net.IP, reason string)
-	VersionCheck(redirect bool, method, reason string)
-	ProxiedBytes(sent, recv int, platform, version, app, locale, dataCapCohort string, clientIP net.IP, deviceID, originHost string)
+	Throttle(ctx context.Context, m bool, reason string)
+	XBQHeaderSent(ctx context.Context)
+	SuspectedProbing(ctx context.Context, fromIP net.IP, reason string)
+	VersionCheck(ctx context.Context, redirect bool, method, reason string)
+	ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort string, clientIP net.IP, deviceID, originHost string)
 	ReportToOTELPeriodically(interval time.Duration, tp *sdktrace.TracerProvider, includeDeviceID bool)
 	ReportToOTEL(tp *sdktrace.TracerProvider, includeDeviceID bool)
-	quicSentPacket()
-	quicLostPacket()
+	quicSentPacket(ctx context.Context)
+	quicLostPacket(ctx context.Context)
 }
 
 // NoInstrument is an implementation of Instrument which does nothing
 type NoInstrument struct {
 }
 
-func (i NoInstrument) WrapFilter(prefix string, f filters.Filter) filters.Filter { return f }
-func (i NoInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error) {
-	return f
+func (i NoInstrument) WrapFilter(prefix string, f filters.Filter) (filters.Filter, error) {
+	return f, nil
 }
-func (i NoInstrument) Blacklist(b bool) {}
-func (i NoInstrument) Mimic(m bool)     {}
+func (i NoInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) (func(conn net.Conn, err error), error) {
+	return f, nil
+}
+func (i NoInstrument) Blacklist(ctx context.Context, b bool) {}
+func (i NoInstrument) Mimic(ctx context.Context, m bool)     {}
 func (i NoInstrument) MultipathStats(protocols []string) (trackers []multipath.StatsTracker) {
 	for _, _ = range protocols {
 		trackers = append(trackers, multipath.NullTracker{})
 	}
 	return
 }
-func (i NoInstrument) Throttle(m bool, reason string) {}
+func (i NoInstrument) Throttle(ctx context.Context, m bool, reason string) {}
 
-func (i NoInstrument) XBQHeaderSent()                                    {}
-func (i NoInstrument) SuspectedProbing(fromIP net.IP, reason string)     {}
-func (i NoInstrument) VersionCheck(redirect bool, method, reason string) {}
-func (i NoInstrument) ProxiedBytes(sent, recv int, platform, version, app, locale, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
+func (i NoInstrument) XBQHeaderSent(ctx context.Context)                                      {}
+func (i NoInstrument) SuspectedProbing(ctx context.Context, fromIP net.IP, reason string)     {}
+func (i NoInstrument) VersionCheck(ctx context.Context, redirect bool, method, reason string) {}
+func (i NoInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
 }
 func (i NoInstrument) ReportToOTELPeriodically(interval time.Duration, tp *sdktrace.TracerProvider, includeDeviceID bool) {
 }
-func (i NoInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeDeviceID bool) {}
-func (i NoInstrument) quicSentPacket()                                                {}
-func (i NoInstrument) quicLostPacket()                                                {}
+func (i NoInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeDeviceID bool) {
+}
+func (i NoInstrument) quicSentPacket(ctx context.Context) {}
+func (i NoInstrument) quicLostPacket(ctx context.Context) {}
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
@@ -117,30 +117,32 @@ func (f *instrumentedFilter) Apply(cs *filters.ConnectionState, req *http.Reques
 	return res, cs, err
 }
 
-// PromInstrument is an implementation of Instrument which exports Prometheus
+// prominstrument is an implementation of Instrument which exports Prometheus
 // metrics.
-type PromInstrument struct {
+type prominstrument struct {
 	countryLookup           geo.CountryLookup
 	ispLookup               geo.ISPLookup
 	commonLabels            prometheus.Labels
 	commonLabelNames        []string
-	filters                 map[string]*instrumentedFilter
+	filters                 map[string]filters.Filter
 	errorHandlers           map[string]func(conn net.Conn, err error)
 	clientStats             map[clientDetails]*usage
 	clientStatsWithDeviceID map[clientDetails]*usage
 	originStats             map[originDetails]*usage
 	statsMx                 sync.Mutex
 
-	blacklistChecked, blacklisted, mimicryChecked, mimicked, quicLostPackets, quicSentPackets, tcpConsecRetransmissions, tcpSentDataPackets, throttlingChecked, xbqSent prometheus.Counter
+	blacklistChecked, blacklisted, mimicryChecked, mimicked, quicLostPackets, quicSentPackets, throttlingChecked, xbqSent prometheus.Counter
 
 	bytesSent, bytesRecv, bytesSentByISP, bytesRecvByISP, throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
 
 	mpFramesSent, mpBytesSent, mpFramesReceived, mpBytesReceived, mpFramesRetransmitted, mpBytesRetransmitted *prometheus.CounterVec
-
-	tcpRetransmissionRate prometheus.Observer
 }
 
-func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c CommonLabels) *PromInstrument {
+func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c CommonLabels) (*prominstrument, error) {
+	if err := otelinstrument.Initialize(); err != nil {
+		return nil, err
+	}
+
 	commonLabels := c.PromLabels()
 	commonLabelNames := make([]string, len(commonLabels))
 	i := 0
@@ -148,12 +150,12 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		commonLabelNames[i] = k
 		i++
 	}
-	p := &PromInstrument{
+	p := &prominstrument{
 		countryLookup:           countryLookup,
 		ispLookup:               ispLookup,
 		commonLabels:            commonLabels,
 		commonLabelNames:        commonLabelNames,
-		filters:                 make(map[string]*instrumentedFilter),
+		filters:                 make(map[string]filters.Filter),
 		errorHandlers:           make(map[string]func(conn net.Conn, err error)),
 		clientStats:             make(map[clientDetails]*usage),
 		clientStatsWithDeviceID: make(map[clientDetails]*usage),
@@ -216,19 +218,6 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 			Name: "proxy_multipath_retransmission_bytes_total",
 		}, append(commonLabelNames, "path_protocol")).MustCurryWith(commonLabels),
 
-		tcpConsecRetransmissions: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "proxy_downstream_tcp_consec_retransmissions_before_terminates_total",
-			Help: "Number of TCP retransmissions happen before the connection gets terminated, as a measure of blocking in the form of continuously dropped packets.",
-		}, commonLabelNames).With(commonLabels),
-		tcpRetransmissionRate: promauto.NewHistogramVec(prometheus.HistogramOpts{
-			Name:    "proxy_tcp_retransmission_rate",
-			Buckets: []float64{0.01, 0.1, 0.5},
-		}, commonLabelNames).With(commonLabels),
-		tcpSentDataPackets: promauto.NewCounterVec(prometheus.CounterOpts{
-			Name: "proxy_downstream_tcp_sent_data_packets_total",
-			Help: "Number of TCP data packets (packets with non-zero data length) sent to the client connections.",
-		}, commonLabelNames).With(commonLabels),
-
 		xbqSent: promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: "proxy_xbq_header_sent_total",
 		}, commonLabelNames).With(commonLabels),
@@ -252,12 +241,12 @@ func NewPrometheus(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, c C
 		}, append(commonLabelNames, "method", "redirected", "reason")).MustCurryWith(commonLabels),
 	}
 
-	return p
+	return p, nil
 }
 
 // Run runs the PromInstrument exporter on the given address. The
 // path is /metrics.
-func (p *PromInstrument) Run(addr string) error {
+func (p *prominstrument) Run(addr string) error {
 	mux := http.NewServeMux()
 	mux.Handle("/metrics", promhttp.Handler())
 	server := http.Server{
@@ -269,7 +258,7 @@ func (p *PromInstrument) Run(addr string) error {
 
 // WrapFilter wraps a filter to instrument the requests/errors/duration
 // (so-called RED) of processed requests.
-func (p *PromInstrument) WrapFilter(prefix string, f filters.Filter) filters.Filter {
+func (p *prominstrument) WrapFilter(prefix string, f filters.Filter) (filters.Filter, error) {
 	wrapped := p.filters[prefix]
 	if wrapped == nil {
 		wrapped = &instrumentedFilter{
@@ -286,11 +275,17 @@ func (p *PromInstrument) WrapFilter(prefix string, f filters.Filter) filters.Fil
 			f}
 		p.filters[prefix] = wrapped
 	}
-	return wrapped
+
+	var err error
+	wrapped, err = otelinstrument.WrapFilter(prefix, wrapped)
+	if err != nil {
+		return nil, err
+	}
+	return wrapped, nil
 }
 
 // WrapConnErrorHandler wraps an error handler to instrument the error count.
-func (p *PromInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) func(conn net.Conn, err error) {
+func (p *prominstrument) WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) (func(conn net.Conn, err error), error) {
 	h := p.errorHandlers[prefix]
 	if h == nil {
 		errors := promauto.NewCounterVec(prometheus.CounterOpts{
@@ -299,6 +294,14 @@ func (p *PromInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Con
 		consec_errors := promauto.NewCounterVec(prometheus.CounterOpts{
 			Name: prefix + "_consec_per_client_ip_errors_total",
 		}, p.commonLabelNames).With(p.commonLabels)
+		otelCounter, err := otelinstrument.ConnErrorHandlerCounter(prefix)
+		if err != nil {
+			return nil, err
+		}
+		otelConsecCounter, err := otelinstrument.ConnConsecErrorHandlerCounter(prefix)
+		if err != nil {
+			return nil, err
+		}
 		if f == nil {
 			f = func(conn net.Conn, err error) {}
 		}
@@ -306,6 +309,7 @@ func (p *PromInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Con
 		var lastRemoteIP string
 		h = func(conn net.Conn, err error) {
 			errors.Inc()
+			otelCounter.Add(context.Background(), 1)
 			addr := conn.RemoteAddr()
 			if addr == nil {
 				return
@@ -319,6 +323,7 @@ func (p *PromInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Con
 				lastRemoteIP = host
 				mu.Unlock()
 				consec_errors.Inc()
+				otelConsecCounter.Add(context.Background(), 1)
 			} else {
 				mu.Unlock()
 			}
@@ -326,58 +331,79 @@ func (p *PromInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Con
 		}
 		p.errorHandlers[prefix] = h
 	}
-	return h
+	return h, nil
 }
 
 // Blacklist instruments the blacklist checking.
-func (p *PromInstrument) Blacklist(b bool) {
+func (p *prominstrument) Blacklist(ctx context.Context, b bool) {
 	p.blacklistChecked.Inc()
+	otelinstrument.BlacklistChecked.Add(ctx, 1)
 	if b {
 		p.blacklisted.Inc()
+		otelinstrument.Blacklisted.Add(ctx, 1)
 	}
 }
 
 // Mimic instruments the Apache mimicry.
-func (p *PromInstrument) Mimic(m bool) {
+func (p *prominstrument) Mimic(ctx context.Context, m bool) {
 	p.mimicryChecked.Inc()
+	otelinstrument.MimicryChecked.Add(ctx, 1)
 	if m {
 		p.mimicked.Inc()
+		otelinstrument.Mimicked.Add(ctx, 1)
 	}
 }
 
 // Throttle instruments the device based throttling.
-func (p *PromInstrument) Throttle(m bool, reason string) {
+func (p *prominstrument) Throttle(ctx context.Context, m bool, reason string) {
 	p.throttlingChecked.Inc()
+	otelinstrument.ThrottlingChecked.Add(ctx, 1)
 	if m {
 		p.throttled.With(prometheus.Labels{"reason": reason}).Inc()
+		otelinstrument.Throttled.Add(ctx, 1, attribute.KeyValue{"reason", attribute.StringValue(reason)})
 	} else {
 		p.notThrottled.With(prometheus.Labels{"reason": reason}).Inc()
+		otelinstrument.NotThrottled.Add(ctx, 1, attribute.KeyValue{"reason", attribute.StringValue(reason)})
 	}
 }
 
 // XBQHeaderSent counts the number of times XBQ header is sent along with the
 // response.
-func (p *PromInstrument) XBQHeaderSent() {
+func (p *prominstrument) XBQHeaderSent(ctx context.Context) {
 	p.xbqSent.Inc()
+	otelinstrument.XBQSent.Add(ctx, 1)
 }
 
 // SuspectedProbing records the number of visits which looks like active
 // probing.
-func (p *PromInstrument) SuspectedProbing(fromIP net.IP, reason string) {
+func (p *prominstrument) SuspectedProbing(ctx context.Context, fromIP net.IP, reason string) {
 	fromCountry := p.countryLookup.CountryCode(fromIP)
 	p.suspectedProbing.With(prometheus.Labels{"country": fromCountry, "reason": reason}).Inc()
+	otelinstrument.SuspectedProbing.Add(
+		ctx,
+		1,
+		attribute.KeyValue{"country", attribute.StringValue(fromCountry)},
+		attribute.KeyValue{"reason", attribute.StringValue(reason)},
+	)
 }
 
 // VersionCheck records the number of times the Lantern version header is
 // checked and if redirecting to the upgrade page is required.
-func (p *PromInstrument) VersionCheck(redirect bool, method, reason string) {
+func (p *prominstrument) VersionCheck(ctx context.Context, redirect bool, method, reason string) {
 	labels := prometheus.Labels{"method": method, "redirected": strconv.FormatBool(redirect), "reason": reason}
 	p.versionCheck.With(labels).Inc()
+	otelinstrument.VersionCheck.Add(
+		ctx,
+		1,
+		attribute.KeyValue{"method", attribute.StringValue(method)},
+		attribute.KeyValue{"redirected", attribute.BoolValue(redirect)},
+		attribute.KeyValue{"reason", attribute.StringValue(reason)},
+	)
 }
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, locale, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
+func (p *prominstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
 	labels := prometheus.Labels{"app_platform": platform, "app_version": version, "app": app, "datacap_cohort": dataCapCohort}
 	p.bytesSent.With(labels).Add(float64(sent))
 	p.bytesRecv.With(labels).Add(float64(recv))
@@ -391,6 +417,30 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, lo
 	}
 	p.bytesSentByISP.With(by_isp).Add(float64(sent))
 	p.bytesRecvByISP.With(by_isp).Add(float64(recv))
+	otelAttributes := []attribute.KeyValue{
+		{"client_platform", attribute.StringValue(platform)},
+		{"client_version", attribute.StringValue(version)},
+		{"client_app", attribute.StringValue(app)},
+		{"datacap_cohort", attribute.StringValue(dataCapCohort)},
+		{"country", attribute.StringValue(country)},
+		{"client_isp", attribute.StringValue(isp)},
+		{"client_asn", attribute.StringValue(asn)},
+	}
+	otelinstrument.BytesSent.Add(
+		ctx,
+		int64(sent),
+		otelAttributes...,
+	)
+	otelinstrument.BytesRecv.Add(
+		ctx,
+		int64(sent),
+		otelAttributes...,
+	)
+	otelinstrument.BytesTotal.Add(
+		ctx,
+		int64(sent+recv),
+		otelAttributes...,
+	)
 
 	clientKey := clientDetails{
 		platform: platform,
@@ -429,15 +479,18 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, lo
 }
 
 // quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.
-func (p *PromInstrument) quicSentPacket() {
+func (p *prominstrument) quicSentPacket(ctx context.Context) {
 	p.quicSentPackets.Inc()
+	otelinstrument.QuicSentPackets.Add(ctx, 1)
 }
 
-func (p *PromInstrument) quicLostPacket() {
+func (p *prominstrument) quicLostPacket(ctx context.Context) {
 	p.quicLostPackets.Inc()
+	otelinstrument.QuicLostPackets.Add(ctx, 1)
 }
 
 type stats struct {
+	otelAttributes      []attribute.KeyValue
 	framesSent          prometheus.Counter
 	bytesSent           prometheus.Counter
 	framesRetransmitted prometheus.Counter
@@ -449,20 +502,26 @@ type stats struct {
 func (s *stats) OnRecv(n uint64) {
 	s.framesReceived.Inc()
 	s.bytesReceived.Add(float64(n))
+	otelinstrument.MPFramesReceived.Add(context.Background(), 1, s.otelAttributes...)
+	otelinstrument.MPBytesReceived.Add(context.Background(), int64(n), s.otelAttributes...)
 }
 func (s *stats) OnSent(n uint64) {
 	s.framesSent.Inc()
 	s.bytesSent.Add(float64(n))
+	otelinstrument.MPFramesSent.Add(context.Background(), 1, s.otelAttributes...)
+	otelinstrument.MPBytesSent.Add(context.Background(), int64(n), s.otelAttributes...)
 }
 func (s *stats) OnRetransmit(n uint64) {
 	s.framesRetransmitted.Inc()
 	s.bytesRetransmitted.Add(float64(n))
+	otelinstrument.MPFramesRetransmitted.Add(context.Background(), 1, s.otelAttributes...)
+	otelinstrument.MPBytesRetransmitted.Add(context.Background(), int64(n), s.otelAttributes...)
 }
 func (s *stats) UpdateRTT(time.Duration) {
 	// do nothing as the RTT from different clients can vary significantly
 }
 
-func (prom *PromInstrument) MultipathStats(protocols []string) (trackers []multipath.StatsTracker) {
+func (prom *prominstrument) MultipathStats(protocols []string) (trackers []multipath.StatsTracker) {
 	for _, p := range protocols {
 		path_protocol := prometheus.Labels{"path_protocol": p}
 		trackers = append(trackers, &stats{
@@ -472,6 +531,7 @@ func (prom *PromInstrument) MultipathStats(protocols []string) (trackers []multi
 			bytesReceived:       prom.mpBytesReceived.With(path_protocol),
 			framesRetransmitted: prom.mpFramesRetransmitted.With(path_protocol),
 			bytesRetransmitted:  prom.mpBytesRetransmitted.With(path_protocol),
+			otelAttributes:      []attribute.KeyValue{attribute.KeyValue{"path_protocol", attribute.StringValue(p)}},
 		})
 	}
 	return
@@ -508,7 +568,7 @@ func (u *usage) add(sent int, recv int) *usage {
 	return u
 }
 
-func (p *PromInstrument) ReportToOTELPeriodically(interval time.Duration, tp *sdktrace.TracerProvider, includeDeviceID bool) {
+func (p *prominstrument) ReportToOTELPeriodically(interval time.Duration, tp *sdktrace.TracerProvider, includeDeviceID bool) {
 	for {
 		// We randomize the sleep time to avoid bursty submission to OpenTelemetry.
 		// Even though each proxy sends relatively little data, proxies often run fairly
@@ -520,7 +580,7 @@ func (p *PromInstrument) ReportToOTELPeriodically(interval time.Duration, tp *sd
 	}
 }
 
-func (p *PromInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeDeviceID bool) {
+func (p *prominstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeDeviceID bool) {
 	var clientStats map[clientDetails]*usage
 	p.statsMx.Lock()
 	if includeDeviceID {
@@ -573,7 +633,7 @@ func (p *PromInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeDevice
 	}
 }
 
-func (p *PromInstrument) originRoot(origin string) (string, error) {
+func (p *prominstrument) originRoot(origin string) (string, error) {
 	ip := net.ParseIP(origin)
 	if ip != nil {
 		// origin is an IP address, try to get domain name
