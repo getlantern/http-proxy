@@ -42,7 +42,6 @@ import (
 	"github.com/getlantern/http-proxy/server"
 
 	"github.com/getlantern/http-proxy-lantern/v2/analytics"
-	"github.com/getlantern/http-proxy-lantern/v2/bbr"
 	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
 	"github.com/getlantern/http-proxy-lantern/v2/cleanheadersfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/devicefilter"
@@ -170,7 +169,6 @@ type Proxy struct {
 	PsmuxAggressivePadding        int
 	PsmuxAggressivePaddingRatio   float64
 
-	bm             bbr.Middleware
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
 }
@@ -229,10 +227,6 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		log.Errorf("Unable to set up packet forwarding, will continue to start up: %v", err)
 	}
 	p.setBenchmarkMode()
-	p.bm = bbr.New()
-	if p.BBRUpstreamProbeURL != "" {
-		go p.bm.ProbeUpstream(p.BBRUpstreamProbeURL)
-	}
 	p.loadThrottleConfig()
 
 	if p.ENHTTPAddr != "" {
@@ -252,7 +246,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	if p.WSSAddr != "" {
 		filterChain = filterChain.Append(wss.NewMiddleware())
 	}
-	filterChain = filterChain.Prepend(opsfilter.New(p.bm))
+	filterChain = filterChain.Prepend(opsfilter.New())
 
 	instrumentedFilter, err := p.instrument.WrapFilter("proxy", filterChain)
 	if err != nil {
@@ -304,7 +298,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		return nil
 	}
 
-	addListenersForBaseTransport := func(baseListen func(string, bool) (net.Listener, error), addrs *addresses) error {
+	addListenersForBaseTransport := func(baseListen func(string) (net.Listener, error), addrs *addresses) error {
 		if err := addListenerIfNecessary("obfs4", addrs.obfs4, p.listenOBFS4(baseListen)); err != nil {
 			return err
 		}
@@ -556,7 +550,7 @@ func (p *Proxy) createBlacklist() *blacklist.Blacklist {
 // work of proxying plain HTTP and CONNECT requests is handled by proxy.Proxy
 // itself.
 func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy.DialFunc, error) {
-	filterChain := filters.Join(p.bm)
+	filterChain := filters.Join()
 
 	if p.Benchmark {
 		filterChain = filterChain.Append(proxyfilters.RateLimit(5000, map[string]time.Duration{
@@ -799,9 +793,9 @@ func (p *Proxy) allowedTunnelPorts() []int {
 	return ports
 }
 
-func (p *Proxy) listenHTTP(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
+func (p *Proxy) listenHTTP(baseListen func(string) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
-		l, err := baseListen(addr, true)
+		l, err := baseListen(addr)
 		if err != nil {
 			return nil, errors.New("Unable to listen for HTTP: %v", err)
 		}
@@ -810,9 +804,9 @@ func (p *Proxy) listenHTTP(baseListen func(string, bool) (net.Listener, error)) 
 	}
 }
 
-func (p *Proxy) listenOBFS4(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
+func (p *Proxy) listenOBFS4(baseListen func(string) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
-		l, err := baseListen(addr, true)
+		l, err := baseListen(addr)
 		if err != nil {
 			return nil, errors.New("Unable to listen for OBFS4: %v", err)
 		}
@@ -826,9 +820,9 @@ func (p *Proxy) listenOBFS4(baseListen func(string, bool) (net.Listener, error))
 	}
 }
 
-func (p *Proxy) listenLampshade(onListenerError func(net.Conn, error), baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
+func (p *Proxy) listenLampshade(onListenerError func(net.Conn, error), baseListen func(string) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
-		l, err := baseListen(addr, false)
+		l, err := baseListen(addr)
 		if err != nil {
 			return nil, err
 		}
@@ -838,10 +832,6 @@ func (p *Proxy) listenLampshade(onListenerError func(net.Conn, error), baseListe
 		}
 		log.Debugf("Listening for lampshade at %v", wrapped.Addr())
 
-		// We wrap the lampshade listener itself so that we record BBR metrics on
-		// close of virtual streams rather than the physical connection.
-		wrapped = p.bm.Wrap(wrapped)
-
 		// Wrap lampshade streams with idletiming as well
 		wrapped = listeners.NewIdleConnListener(wrapped, p.IdleTimeout)
 
@@ -849,9 +839,9 @@ func (p *Proxy) listenLampshade(onListenerError func(net.Conn, error), baseListe
 	}
 }
 
-func (p *Proxy) listenTLSMasq(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
+func (p *Proxy) listenTLSMasq(baseListen func(string) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
-		l, err := baseListen(addr, true)
+		l, err := baseListen(addr)
 		if err != nil {
 			return nil, err
 		}
@@ -872,7 +862,7 @@ func (p *Proxy) listenTLSMasq(baseListen func(string, bool) (net.Listener, error
 	}
 }
 
-func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
+func (p *Proxy) listenTCP(addr string) (net.Listener, error) {
 	l, err := net.Listen("tcp", addr)
 	if err != nil {
 		return nil, err
@@ -887,9 +877,6 @@ func (p *Proxy) listenTCP(addr string, wrapBBR bool) (net.Listener, error) {
 		l = diffserv.Wrap(l, p.DiffServTOS)
 	} else {
 		log.Debugf("Not setting diffserv TOS")
-	}
-	if wrapBBR {
-		l = p.bm.Wrap(l)
 	}
 	return l, nil
 }
@@ -958,7 +945,6 @@ func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
 	if err != nil {
 		return nil, err
 	}
-	base = p.bm.Wrap(base)
 
 	l, err := shadowsocks.ListenLocalTCP(
 		base, ciphers,
@@ -973,7 +959,7 @@ func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
 }
 
 func (p *Proxy) listenWSS(addr string) (net.Listener, error) {
-	l, err := p.listenTCP(addr, true)
+	l, err := p.listenTCP(addr)
 	if err != nil {
 		return nil, errors.New("Unable to listen for wss: %v", err)
 	}
