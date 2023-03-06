@@ -54,10 +54,10 @@ func (opts *Opts) buildResource() *resource.Resource {
 		_port := parts[1]
 		port, err := strconv.Atoi(_port)
 		if err == nil {
-			log.Debugf("will report with proxy_port %d", port)
-			attributes = append(attributes, attribute.Int("proxy_port", port))
+			log.Debugf("will report with proxy.port %d", port)
+			attributes = append(attributes, attribute.Int("proxy.port", port))
 		} else {
-			log.Errorf("Unable to parse proxy_port %v: %v", _port, err)
+			log.Errorf("Unable to parse proxy.port %v: %v", _port, err)
 		}
 	} else {
 		log.Errorf("Unable to split proxy address %v into two pieces", opts.Addr)
@@ -66,12 +66,12 @@ func (opts *Opts) buildResource() *resource.Resource {
 		attributes = append(attributes, attribute.String("track", opts.Track))
 	}
 	if opts.ExternalIP != "" {
-		log.Debugf("Will report with external_ip: %v", opts.ExternalIP)
-		attributes = append(attributes, attribute.String("external_ip", opts.ExternalIP))
+		log.Debugf("Will report with proxy.ip: %v", opts.ExternalIP)
+		attributes = append(attributes, attribute.String("proxy.ip", opts.ExternalIP))
 	}
 	if opts.ProxyName != "" {
-		log.Debugf("Will report with proxy_name %v in dc %v", opts.ProxyName, opts.DC)
-		attributes = append(attributes, attribute.String("proxy_name", opts.ProxyName))
+		log.Debugf("Will report with proxy.name %v in dc %v", opts.ProxyName, opts.DC)
+		attributes = append(attributes, attribute.String("proxy.name", opts.ProxyName))
 		attributes = append(attributes, attribute.String("dc", opts.DC))
 	}
 	return resource.NewWithAttributes(semconv.SchemaURL, attributes...)
