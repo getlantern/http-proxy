@@ -8,7 +8,6 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/v2/filters"
 
-	"github.com/getlantern/http-proxy-lantern/v2/bbr"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy/listeners"
 )
@@ -18,12 +17,11 @@ var (
 )
 
 type opsfilter struct {
-	bm bbr.Middleware
 }
 
 // New constructs a new filter that adds ops context.
-func New(bm bbr.Middleware) filters.Filter {
-	return &opsfilter{bm}
+func New() filters.Filter {
+	return &opsfilter{}
 }
 
 func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {

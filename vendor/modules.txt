@@ -72,9 +72,6 @@ github.com/dvyukov/go-fuzz/go-fuzz-defs
 ## explicit; go 1.13
 # github.com/fsnotify/fsnotify v1.5.4
 ## explicit; go 1.16
-# github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
-## explicit
-github.com/getlantern/bbrconn
 # github.com/getlantern/bufconn v0.0.0-20190625204133-a08544339f8d
 ## explicit
 github.com/getlantern/bufconn
@@ -273,33 +270,6 @@ github.com/golang/protobuf/ptypes/timestamp
 # github.com/golang/snappy v0.0.4
 ## explicit
 github.com/golang/snappy
-# github.com/gonum/blas v0.0.0-20180125090452-e7c5890b24cf
-## explicit
-github.com/gonum/blas
-github.com/gonum/blas/blas64
-github.com/gonum/blas/native
-github.com/gonum/blas/native/internal/math32
-# github.com/gonum/floats v0.0.0-20180125090339-7de1f4ea7ab5
-## explicit
-github.com/gonum/floats
-# github.com/gonum/integrate v0.0.0-20181209220457-a422b5c0fdf2
-## explicit
-# github.com/gonum/internal v0.0.0-20180125090855-fda53f8d2571
-## explicit
-github.com/gonum/internal/asm/f32
-github.com/gonum/internal/asm/f64
-# github.com/gonum/lapack v0.0.0-20180125091020-f0b8b25edece
-## explicit
-github.com/gonum/lapack
-github.com/gonum/lapack/lapack64
-github.com/gonum/lapack/native
-# github.com/gonum/matrix v0.0.0-20180124231301-a41cc49d4c29
-## explicit
-github.com/gonum/matrix
-github.com/gonum/matrix/mat64
-# github.com/gonum/stat v0.0.0-20180125090729-ec9c8a1062f4
-## explicit
-github.com/gonum/stat
 # github.com/google/go-cmp v0.5.9
 ## explicit; go 1.13
 github.com/google/go-cmp/cmp
@@ -388,15 +358,6 @@ github.com/mdlayher/netlink/nlenc
 # github.com/mholt/archiver/v3 v3.5.1
 ## explicit; go 1.13
 github.com/mholt/archiver/v3
-# github.com/mikioh/tcp v0.0.0-20180707144002-02a37043a4f7
-## explicit
-github.com/mikioh/tcp
-# github.com/mikioh/tcpinfo v0.0.0-20180831101334-131b59fef27f
-## explicit
-github.com/mikioh/tcpinfo
-# github.com/mikioh/tcpopt v0.0.0-20180707144150-7178f18b4ea8
-## explicit
-github.com/mikioh/tcpopt
 # github.com/mitchellh/panicwrap v1.0.0 => github.com/getlantern/panicwrap v0.0.0-20200707191944-9ba45baf8e51
 ## explicit; go 1.13
 github.com/mitchellh/panicwrap
