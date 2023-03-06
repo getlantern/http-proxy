@@ -336,18 +336,20 @@ func (p *prominstrument) WrapConnErrorHandler(prefix string, f func(conn net.Con
 
 // Blacklist instruments the blacklist checking.
 func (p *prominstrument) Blacklist(ctx context.Context, b bool) {
+	otelinstrument.Blacklist.Add(ctx, 1,
+		attribute.KeyValue{"blacklisted", attribute.BoolValue(b)})
+
 	p.blacklistChecked.Inc()
-	otelinstrument.BlacklistChecked.Add(ctx, 1)
 	if b {
 		p.blacklisted.Inc()
-		otelinstrument.Blacklisted.Add(ctx, 1)
 	}
 }
 
 // Mimic instruments the Apache mimicry.
 func (p *prominstrument) Mimic(ctx context.Context, m bool) {
+	otelinstrument.Mimicked.Add(ctx, 1, attribute.KeyValue{"mimicked", attribute.BoolValue(m)})
+
 	p.mimicryChecked.Inc()
-	otelinstrument.MimicryChecked.Add(ctx, 1)
 	if m {
 		p.mimicked.Inc()
 		otelinstrument.Mimicked.Add(ctx, 1)
@@ -357,13 +359,14 @@ func (p *prominstrument) Mimic(ctx context.Context, m bool) {
 // Throttle instruments the device based throttling.
 func (p *prominstrument) Throttle(ctx context.Context, m bool, reason string) {
 	p.throttlingChecked.Inc()
-	otelinstrument.ThrottlingChecked.Add(ctx, 1)
+	otelinstrument.Throttling.Add(ctx, 1,
+		attribute.KeyValue{"throttled", attribute.BoolValue(m)},
+		attribute.KeyValue{"reason", attribute.StringValue(reason)})
+
 	if m {
 		p.throttled.With(prometheus.Labels{"reason": reason}).Inc()
-		otelinstrument.Throttled.Add(ctx, 1, attribute.KeyValue{"reason", attribute.StringValue(reason)})
 	} else {
 		p.notThrottled.With(prometheus.Labels{"reason": reason}).Inc()
-		otelinstrument.NotThrottled.Add(ctx, 1, attribute.KeyValue{"reason", attribute.StringValue(reason)})
 	}
 }
 
@@ -371,7 +374,7 @@ func (p *prominstrument) Throttle(ctx context.Context, m bool, reason string) {
 // response.
 func (p *prominstrument) XBQHeaderSent(ctx context.Context) {
 	p.xbqSent.Inc()
-	otelinstrument.XBQSent.Add(ctx, 1)
+	otelinstrument.XBQ.Add(ctx, 1)
 }
 
 // SuspectedProbing records the number of visits which looks like active
@@ -426,20 +429,17 @@ func (p *prominstrument) ProxiedBytes(ctx context.Context, sent, recv int, platf
 		{"client_isp", attribute.StringValue(isp)},
 		{"client_asn", attribute.StringValue(asn)},
 	}
-	otelinstrument.BytesSent.Add(
+
+	otelinstrument.ProxyIO.Add(
 		ctx,
 		int64(sent),
-		otelAttributes...,
+		append(otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("transmit")})...,
 	)
-	otelinstrument.BytesRecv.Add(
+
+	otelinstrument.ProxyIO.Add(
 		ctx,
 		int64(sent),
-		otelAttributes...,
-	)
-	otelinstrument.BytesTotal.Add(
-		ctx,
-		int64(sent+recv),
-		otelAttributes...,
+		append(otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("receive")})...,
 	)
 
 	clientKey := clientDetails{
@@ -481,12 +481,12 @@ func (p *prominstrument) ProxiedBytes(ctx context.Context, sent, recv int, platf
 // quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.
 func (p *prominstrument) quicSentPacket(ctx context.Context) {
 	p.quicSentPackets.Inc()
-	otelinstrument.QuicSentPackets.Add(ctx, 1)
+	otelinstrument.QuicPackets.Add(ctx, 1, attribute.KeyValue{"state", attribute.StringValue("sent")})
 }
 
 func (p *prominstrument) quicLostPacket(ctx context.Context) {
 	p.quicLostPackets.Inc()
-	otelinstrument.QuicLostPackets.Add(ctx, 1)
+	otelinstrument.QuicPackets.Add(ctx, 1, attribute.KeyValue{"state", attribute.StringValue("lost")})
 }
 
 type stats struct {
@@ -502,20 +502,30 @@ type stats struct {
 func (s *stats) OnRecv(n uint64) {
 	s.framesReceived.Inc()
 	s.bytesReceived.Add(float64(n))
-	otelinstrument.MPFramesReceived.Add(context.Background(), 1, s.otelAttributes...)
-	otelinstrument.MPBytesReceived.Add(context.Background(), int64(n), s.otelAttributes...)
+	otelinstrument.MultipathFrames.Add(context.Background(), 1,
+		append(s.otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("receive")})...)
+	otelinstrument.MultipathIO.Add(context.Background(), int64(n),
+		append(s.otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("receive")})...)
 }
 func (s *stats) OnSent(n uint64) {
 	s.framesSent.Inc()
 	s.bytesSent.Add(float64(n))
-	otelinstrument.MPFramesSent.Add(context.Background(), 1, s.otelAttributes...)
-	otelinstrument.MPBytesSent.Add(context.Background(), int64(n), s.otelAttributes...)
+	otelinstrument.MultipathFrames.Add(context.Background(), 1,
+		append(s.otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("transmit")})...)
+	otelinstrument.MultipathIO.Add(context.Background(), int64(n),
+		append(s.otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("transmit")})...)
 }
 func (s *stats) OnRetransmit(n uint64) {
 	s.framesRetransmitted.Inc()
 	s.bytesRetransmitted.Add(float64(n))
-	otelinstrument.MPFramesRetransmitted.Add(context.Background(), 1, s.otelAttributes...)
-	otelinstrument.MPBytesRetransmitted.Add(context.Background(), int64(n), s.otelAttributes...)
+	otelinstrument.MultipathFrames.Add(context.Background(), 1,
+		append(s.otelAttributes,
+			attribute.KeyValue{"direction", attribute.StringValue("transmit")},
+			attribute.KeyValue{"state", attribute.StringValue("retransmit")})...)
+	otelinstrument.MultipathIO.Add(context.Background(), int64(n),
+		append(s.otelAttributes,
+			attribute.KeyValue{"direction", attribute.StringValue("transmit")},
+			attribute.KeyValue{"state", attribute.StringValue("retransmit")})...)
 }
 func (s *stats) UpdateRTT(time.Duration) {
 	// do nothing as the RTT from different clients can vary significantly
