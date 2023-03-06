@@ -1,7 +1,7 @@
 name: docker push
 on:
   push:
-    branches: [colin/dockerize]
+    branches: [colin/dockerize-otel]
 
 jobs:
   docker_push:
@@ -42,5 +42,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            us-docker.pkg.dev/lantern-cloud/containers/http-proxy:latest
             us-docker.pkg.dev/lantern-cloud/containers/http-proxy:${{ github.sha }}
