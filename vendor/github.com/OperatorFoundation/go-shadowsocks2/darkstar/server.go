@@ -11,6 +11,7 @@ import (
 	"encoding/base64"
 	"encoding/binary"
 	"errors"
+	"fmt"
 	"net"
 
 	"github.com/OperatorFoundation/go-shadowsocks2/internal"
@@ -55,7 +56,7 @@ func (a *DarkStarServer) StreamConn(conn net.Conn) (net.Conn, error) {
 	if keyReadError != nil {
 		print("DarkStarServer: Error creating a DarkStar connection: ")
 		println(keyReadError)
-		return nil, keyReadError
+		return nil, keyReadError // ERROR, this means they never send us anything, probably the connection is closed
 	}
 
 	if internal.CheckSalt(clientEphemeralPublicKeyBuffer) {
@@ -69,70 +70,63 @@ func (a *DarkStarServer) StreamConn(conn net.Conn) (net.Conn, error) {
 	clientConfirmationCode := make([]byte, confirmationCodeSize)
 	_, confirmationReadError := conn.Read(clientConfirmationCode)
 	if confirmationReadError != nil {
-		print("DarkStarServer: Error creating a DarkStar connection: ")
-		println(confirmationReadError)
-		return nil, confirmationReadError
+		fmt.Println("DarkStarServer: Error creating a DarkStar connection: ", confirmationReadError)
+		return nil, confirmationReadError // ERROR, probably the connection is closed
 	}
 
 	serverCopyClientConfirmationCode, confirmationError := a.generateClientConfirmationCode()
 	if confirmationError != nil {
-		print("DarkStarServer: Error creating a DarkStar connection: ")
-		println(confirmationError)
-		return nil, confirmationError
+		fmt.Println("DarkStarServer: BlackholeConnection: ", confirmationError)
+		return NewBlackHoleConn(), nil // BLACKHOLE, this means we could not generate the code potentially because we did not receive a valid key
 	}
+
 	if !bytes.Equal(clientConfirmationCode, serverCopyClientConfirmationCode) {
-		return nil, errors.New("clientConfirmationCode and server copy not equal")
+		fmt.Println("DarkStarServer : BlackholeConnection: The client confirmation code and the server copy of the client confirmation code are not equal")
+		return NewBlackHoleConn(), nil // BLACKHOLE
 	}
 
 	serverEphemeralPublicKeyData, pubKeyToBytesError := PublicKeyToBytes(a.serverEphemeralPublicKey)
 	if pubKeyToBytesError != nil {
-		print("DarkStarServer: Error creating a DarkStar connection: ")
-		println(pubKeyToBytesError)
-		return nil, pubKeyToBytesError
+		fmt.Println("DarkStarServer: BlackholeConnection: ", pubKeyToBytesError)
+		return NewBlackHoleConn(), nil // BLACKHOLE, this means the bytes they sent us were not a public key, probably a probe
 	}
 
 	serverConfirmationCode, _ := a.generateServerConfirmationCode()
 
 	_, keyWriteError := conn.Write(serverEphemeralPublicKeyData)
 	if keyWriteError != nil {
-		print("DarkStarServer: Error creating a DarkStar connection: ")
-		println(keyWriteError)
-		return nil, keyWriteError
+		fmt.Println("DarkStarServer: Error creating a DarkStar connection: ", keyWriteError)
+		return nil, keyWriteError // ERROR, the client closed the connection
 	}
 
 	_, confirmationWriteError := conn.Write(serverConfirmationCode)
 	if confirmationWriteError != nil {
-		print("DarkStarServer: Error creating a DarkStar connection: ")
-		println(confirmationWriteError)
-		return nil, confirmationWriteError
+		fmt.Println("DarkStarServer: Error creating a DarkStar connection: ", confirmationWriteError)
+		return nil, confirmationWriteError // ERROR, the client closed the connection
 	}
 
 	sharedKeyServerToClient, sharedKeyServerError := a.createServerToClientSharedKey()
 	if sharedKeyServerError != nil {
-		print("DarkStarServer: Error creating a DarkStar connection: ")
-		println(sharedKeyServerError)
-		return nil, sharedKeyServerError
+		fmt.Println("DarkStarServer: BlackholeConnection: ", sharedKeyServerError)
+		return NewBlackHoleConn(), nil // BLACKHOLE, not sure why this would happen
 	}
 
 	sharedKeyClientToServer, sharedKeyClientError := a.createClientToServerSharedKey()
 	if sharedKeyClientError != nil {
-		print("DarkStarServer: Error creating a DarkStar connection: ")
-		println(sharedKeyClientError)
-		return nil, sharedKeyClientError
+		fmt.Println("DarkStarServer: BlackholeConnection: ", sharedKeyClientError)
+		return NewBlackHoleConn(), nil // BLACKHOLE, not sure why this would happen
 	}
 
 	encryptCipher, encryptKeyError := a.Encrypter(sharedKeyServerToClient)
 	if encryptKeyError != nil {
-		print("DarkStarServer: Error creating a DarkStar connection: ")
-		println(encryptKeyError)
-		return nil, encryptKeyError
+		fmt.Println("DarkStarServer: Error creating a DarkStar connection: ", encryptKeyError)
+		return NewBlackHoleConn(), nil // BLACKHOLE, not sure why this would happen
 	}
 
 	decryptCipher, decryptKeyError := a.Decrypter(sharedKeyClientToServer)
 	if decryptKeyError != nil {
-		print("DarkStarServer: Error creating a DarkStar connection: ")
-		println(decryptKeyError)
-		return nil, decryptKeyError
+		fmt.Println("DarkStarServer: Error creating a DarkStar connection: ", decryptKeyError)
+		return NewBlackHoleConn(), nil // BLACKHOLE, not sure why this would happen
 	}
 
 	return NewDarkStarConn(conn, encryptCipher, decryptCipher), nil
@@ -226,7 +220,15 @@ func (a *DarkStarServer) generateServerConfirmationCode() ([]byte, error) {
 	return hash.Sum(nil), nil
 }
 
-func (a *DarkStarServer) generateClientConfirmationCode() ([]byte, error) {
+func (a *DarkStarServer) generateClientConfirmationCode() (code []byte, codeError error) {
+	defer func() {
+		if err := recover(); err != nil {
+			fmt.Println("Failed to create a ClientConfirmationCode:", err)
+			code = nil
+			codeError = errors.New("failed to create a ClientConfirmationCode")
+		}
+	}()
+
 	p256 := ecdh.Generic(elliptic.P256())
 	if a.serverPersistentPrivateKey == nil {
 		return nil, errors.New("(generateClientConfirmationCode) serverPersistentPrivateKey is nil")
@@ -237,6 +239,7 @@ func (a *DarkStarServer) generateClientConfirmationCode() ([]byte, error) {
 	}
 
 	ecdhSecret := p256.ComputeSecret(a.serverPersistentPrivateKey, a.clientEphemeralPublicKey)
+
 	serverPersistentPublicKeyData, serverKeyError := PublicKeyToBytes(a.serverPersistentPublicKey)
 	if serverKeyError != nil {
 		return nil, serverKeyError

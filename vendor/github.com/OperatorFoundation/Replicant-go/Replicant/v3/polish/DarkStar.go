@@ -16,12 +16,12 @@ import (
 )
 
 type DarkStarPolishServerConfig struct {
-	ServerAddress	 string `json:"serverAddress"`
+	ServerAddress    string `json:"serverAddress"`
 	ServerPrivateKey string `json:"serverPrivateKey"`
 }
 
 type DarkStarPolishClientConfig struct {
-	ServerAddress	string `json:"serverAddress"`
+	ServerAddress   string `json:"serverAddress"`
 	ServerPublicKey string `json:"serverPublicKey"`
 }
 
@@ -66,9 +66,11 @@ func (serverConn *DarkStarPolishServerConnection) Handshake(conn net.Conn) (net.
 	if connError != nil {
 		return nil, connError
 	}
+
 	if streamConn == nil {
 		return nil, errors.New("streamConn in server handshake returned nil")
 	}
+
 	return streamConn, nil
 }
 
@@ -145,7 +147,7 @@ func NewDarkStarServer(config DarkStarPolishServerConfig) DarkStarPolishServer {
 	if stringErr != nil {
 		fmt.Println("Error: failed to make the port string into an int")
 	}
-	
+
 	darkStarServer := darkstar.NewDarkStarServer(config.ServerPrivateKey, host, port)
 	darkStarPolishServer := DarkStarPolishServer{
 		darkStarServer: *darkStarServer,

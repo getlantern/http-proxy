@@ -58,6 +58,7 @@ type websocketPacketConn struct {
 	w         *websocket.Conn
 	addr      net.Addr
 	keepalive time.Duration
+	tcpAddr   *net.TCPAddr
 }
 
 func (q websocketPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error) {
@@ -86,7 +87,7 @@ func (q websocketPacketConn) ReadFrom(p []byte) (n int, addr net.Addr, err error
 	readDone <- struct{}{}
 	copy(p, b)
 	atomic.AddUint64(&nIngressBytes, uint64(len(b)))
-	return len(b), common.DebugAddr("DEBUG NELSON WUZ HERE"), err
+	return len(b), q.tcpAddr, err
 }
 
 func (q websocketPacketConn) WriteTo(p []byte, addr net.Addr) (n int, err error) {
@@ -166,10 +167,17 @@ func (l proxyListener) handleWebsocket(w http.ResponseWriter, r *http.Request) {
 		},
 	)
 
+	tcpAddr, err := net.ResolveTCPAddr("tcp", r.RemoteAddr)
+	if err != nil {
+		log.Printf("Error resolving TCPAddr: %v\n", err)
+		return
+	}
+
 	wspconn := websocketPacketConn{
 		w:         c,
 		addr:      common.DebugAddr(fmt.Sprintf("WebSocket connection %v", uuid.NewString())),
 		keepalive: websocketKeepalive,
+		tcpAddr:   tcpAddr,
 	}
 
 	defer wspconn.Close()
@@ -215,16 +223,21 @@ func (l proxyListener) handleWebsocket(w http.ResponseWriter, r *http.Request) {
 				log.Printf("Accepted a new QUIC stream! (%v total)\n", atomic.AddUint64(&nQUICStreams, 1))
 				nQUICStreamsCounter.Add(context.Background(), 1)
 
-				l.connections <- common.QUICStreamNetConn{Stream: stream, OnClose: func() {
-					defer log.Printf("Closed a QUIC stream! (%v total)\n", atomic.AddUint64(&nQUICStreams, ^uint64(0)))
-					nQUICStreamsCounter.Add(context.Background(), -1)
-				}}
+				l.connections <- common.QUICStreamNetConn{
+					Stream: stream,
+					OnClose: func() {
+						defer log.Printf("Closed a QUIC stream! (%v total)\n", atomic.AddUint64(&nQUICStreams, ^uint64(0)))
+						nQUICStreamsCounter.Add(context.Background(), -1)
+					},
+					AddrLocal:  l.addr,
+					AddrRemote: tcpAddr,
+				}
 			}
 		}()
 	}
 }
 
-func NewListener(ctx context.Context, ll net.Listener) (net.Listener, error) {
+func NewListener(ctx context.Context, ll net.Listener, certPEM, keyPEM string) (net.Listener, error) {
 	closeFuncMetric := telemetry.EnableOTELMetrics(ctx)
 	m := global.Meter("github.com/getlantern/broflake/egress")
 	var err error
@@ -267,11 +280,29 @@ func NewListener(ctx context.Context, ll net.Listener) (net.Listener, error) {
 		return nil, err
 	}
 
+	var tlsConfig *tls.Config
+
+	if certPEM != "" && keyPEM != "" {
+		cert, err := tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
+		if err != nil {
+			return nil, fmt.Errorf("Unable to load cert/key from PEM for broflake: %v", err)
+		}
+
+		log.Printf("Broflake using cert %v and key %v\n", certPEM, keyPEM)
+		tlsConfig = &tls.Config{
+			Certificates: []tls.Certificate{cert},
+			NextProtos:   []string{"broflake"},
+		}
+	} else {
+		log.Printf("!!! WARNING !!! No certfile and/or keyfile specified, generating an insecure TLSConfig!\n")
+		tlsConfig = generateTLSConfig()
+	}
+
 	// We use this wrapped listener to enable our local HTTP proxy to listen for WebSocket connections
 	l := proxyListener{
 		Listener:     &net.TCPListener{},
 		connections:  make(chan net.Conn, 2048),
-		tlsConfig:    generateTLSConfig(),
+		tlsConfig:    tlsConfig,
 		addr:         ll.Addr(),
 		closeMetrics: closeFuncMetric,
 	}

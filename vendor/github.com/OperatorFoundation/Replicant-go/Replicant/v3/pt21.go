@@ -36,7 +36,7 @@ import (
 // Create outgoing transport connection
 func (config ClientConfig) Dial() (net.Conn, error) {
 	// Verify the transport name on the config
-	if config.Transport != "Replicant" {
+	if strings.ToLower(config.Transport) != "replicant" {
 		return nil, errors.New("incorrect transport name")
 	}
 
@@ -60,7 +60,7 @@ func (config ClientConfig) Dial() (net.Conn, error) {
 // Create listener for incoming transport connection
 func (config ServerConfig) Listen() (net.Listener, error) {
 	// Verify the transport name on the config
-	if config.Transport != "Replicant" {
+	if strings.ToLower(config.Transport) != "replicant" {
 		return nil, errors.New("incorrect transport name")
 	}
 
