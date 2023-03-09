@@ -16,7 +16,6 @@
 //
 // The purpose is to show an upgrade notice to the users with outdated Lantern
 // client.
-//
 package versioncheck
 
 import (
@@ -33,6 +32,7 @@ import (
 	"time"
 
 	"github.com/blang/semver"
+
 	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/v2/filters"
 
@@ -211,9 +211,6 @@ func (c *VersionChecker) redirectOnConnect(cs *filters.ConnectionState, req *htt
 func (c *VersionChecker) matchVersion(req *http.Request) (bool, string) {
 	app := req.Header.Get(common.AppHeader)
 	app = strings.ToLower(app)
-	if app != "" && app != "lantern" {
-		return false, "version check only applies to Lantern"
-	}
 	version := req.Header.Get(common.VersionHeader)
 	if version == "" {
 		return false, "no version header"

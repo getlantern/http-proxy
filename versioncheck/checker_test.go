@@ -12,8 +12,9 @@ import (
 	"net/url"
 	"testing"
 
-	"github.com/getlantern/proxy/v2"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/getlantern/proxy/v2"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 )
@@ -60,7 +61,7 @@ func TestRedirectRules(t *testing.T) {
 	req.Header.Set("X-Lantern-Version", "3.0.1")
 	assert.True(t, shouldRedirect(), "should redirect if version is below the min version")
 	req.Header.Set("X-Lantern-App", "not-lantern")
-	assert.False(t, shouldRedirect(), "should not redirect if the request is not from Lantern")
+	assert.True(t, shouldRedirect(), "should redirect even if the request is not from Lantern")
 	req.Header.Set("X-Lantern-App", "Lantern")
 	assert.True(t, shouldRedirect(), "should check app name case-insensitively")
 }
