@@ -122,6 +122,7 @@ func InitGlobalMeterProvider(opts *Opts) (func(), error) {
 	exp, err := otlpmetricgrpc.New(context.Background(),
 		otlpmetricgrpc.WithEndpoint(opts.Endpoint),
 		otlpmetricgrpc.WithHeaders(opts.Headers),
+		otlpmetricgrpc.WithInsecure(),
 		otlpmetricgrpc.WithTemporalitySelector(func(kind sdkmetric.InstrumentKind) metricdata.Temporality {
 			switch kind {
 			case
