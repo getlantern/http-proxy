@@ -90,23 +90,18 @@ func TestMain(m *testing.M) {
 }
 
 func TestProxyNameAndDC(t *testing.T) {
-	runTest := func(expectMatch bool, name string, expectedName, expectedDatacenter string) {
+	runTest := func(name string, expectedName, expectedDatacenter string) {
 		resultName, resultDC := proxyNameAndDC(name)
-		if !expectMatch {
-			assert.Empty(t, resultName)
-			assert.Empty(t, resultDC)
-		} else {
-			assert.Equal(t, expectedName, resultName)
-			assert.Equal(t, expectedDatacenter, resultDC)
-		}
+		assert.Equal(t, expectedName, resultName)
+		assert.Equal(t, expectedDatacenter, resultDC)
 	}
 
-	runTest(true, "fp-https-donyc3-20180101-006-kcp", "fp-https-donyc3-20180101-006", "donyc3")
-	runTest(true, "fp-donyc3-20180101-006-kcp", "fp-donyc3-20180101-006", "donyc3")
-	runTest(true, "fp-donyc3-20180101-006", "fp-donyc3-20180101-006", "donyc3")
-	runTest(true, "fp-obfs4-donyc3-20160715-005", "fp-obfs4-donyc3-20160715-005", "donyc3")
-	runTest(false, "fp-14325-adsfds-006", "fp-14325-adsfds-006", "")
-	runTest(false, "cloudcompile", "cloudcompile", "")
+	runTest("fp-https-donyc3-20180101-006-kcp", "fp-https-donyc3-20180101-006", "donyc3")
+	runTest("fp-donyc3-20180101-006-kcp", "fp-donyc3-20180101-006", "donyc3")
+	runTest("fp-donyc3-20180101-006", "fp-donyc3-20180101-006", "donyc3")
+	runTest("fp-obfs4-donyc3-20160715-005", "fp-obfs4-donyc3-20160715-005", "donyc3")
+	runTest("fp-14325-adsfds-006", "fp-14325-adsfds-006", "")
+	runTest("cloudcompile", "cloudcompile", "")
 }
 
 // Keep this one first to avoid measuring previous connections
