@@ -726,7 +726,7 @@ func (p *Proxy) configureOTEL(
 func (p *Proxy) configureOTELMetrics() (func(), error) {
 	return otel.InitGlobalMeterProvider(
 		p.buildOTELOpts(
-			"ops.iantem.io:443",
+			"172.16.0.88:4317",
 			map[string]string{},
 			true,
 		))
