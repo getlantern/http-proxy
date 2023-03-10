@@ -540,10 +540,10 @@ func (p *Proxy) buildPsmuxProtocol() (cmux.Protocol, error) {
 	return cmuxprivate.NewPsmuxProtocol(config), nil
 }
 
-func proxyNameAndDC(hostname string) (proxyName string, dc string) {
-	match := proxyNameRegex.FindStringSubmatch(hostname)
+func proxyNameAndDC(name string) (proxyName string, dc string) {
+	match := proxyNameRegex.FindStringSubmatch(name)
 	if len(match) != 5 {
-		return proxyName, ""
+		return name, ""
 	}
 	return match[1], match[3]
 }
