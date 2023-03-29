@@ -173,6 +173,8 @@ var (
 	honeycombSampleRate = flag.Int("honeycomb-sample-rate", 1000, "rate at which to sample data for Honeycomb")
 	teleportSampleRate  = flag.Int("teleport-sample-rate", 1, "rate at which to sample data for Teleport")
 
+	broflakeAddr = flag.String("broflake-addr", "", "Address at which to listen for broflake connections.")
+
 	track = flag.String("track", "", "The track this proxy is running on")
 )
 
@@ -429,6 +431,7 @@ func main() {
 		PsmuxDisableAggressivePadding:      *psmuxDisableAggressivePadding,
 		PsmuxAggressivePadding:             *psmuxAggressivePadding,
 		PsmuxAggressivePaddingRatio:        *psmuxAggressivePaddingRatio,
+		BroflakeAddr:                       *broflakeAddr,
 	}
 	if *maxmindLicenseKey != "" {
 		log.Debug("Will use Maxmind for geolocating clients")
