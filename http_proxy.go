@@ -22,6 +22,7 @@ import (
 	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
+	"github.com/getlantern/http-proxy-lantern/v2/broflake"
 	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	shadowsocks "github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/kcpwrapper"
@@ -171,6 +172,8 @@ type Proxy struct {
 	PsmuxAggressivePadding        int
 	PsmuxAggressivePaddingRatio   float64
 
+	BroflakeAddr string
+
 	bm             bbr.Middleware
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
@@ -185,6 +188,7 @@ type addresses struct {
 	httpMultiplex  string
 	lampshade      string
 	tlsmasq        string
+	broflake       string
 }
 
 // ListenAndServe listens, serves and blocks.
@@ -314,6 +318,10 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 			return err
 		}
 
+		if err := addListenerIfNecessary("broflake", addrs.broflake, p.listenBroflake(baseListen)); err != nil {
+			return err
+		}
+
 		return nil
 	}
 
@@ -340,6 +348,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		http:           p.HTTPAddr,
 		httpMultiplex:  p.HTTPMultiplexAddr,
 		tlsmasq:        p.TLSMasqAddr,
+		broflake:       p.BroflakeAddr,
 	}); err != nil {
 		return err
 	}
@@ -711,6 +720,8 @@ func (p *Proxy) configureOTEL(
 		opts.Addr = p.HTTPMultiplexAddr
 	} else if p.HTTPAddr != "" {
 		opts.Addr = p.HTTPAddr
+	} else if p.BroflakeAddr != "" {
+		opts.Addr = p.BroflakeAddr
 	}
 	if includeProxyIdentity {
 		opts.ExternalIP = p.ExternalIP
@@ -952,6 +963,25 @@ func (p *Proxy) listenWSS(addr string) (net.Listener, error) {
 
 	log.Debugf("Listening for wss at %v", l.Addr())
 	return l, err
+}
+
+func (p *Proxy) listenBroflake(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
+	return func(addr string) (net.Listener, error) {
+		l, err := net.Listen("tcp", addr)
+		if err != nil {
+			return nil, err
+		}
+		wrapped, wrapErr := broflake.Wrap(l)
+		if wrapErr != nil {
+			log.Fatalf("Unable to initialize broflake with tcp: %v", wrapErr)
+		}
+		log.Debugf("Listening for broflake at %v", wrapped.Addr())
+
+		// Wrap broflake streams with idletiming as well
+		wrapped = listeners.NewIdleConnListener(wrapped, p.IdleTimeout)
+
+		return wrapped, nil
+	}
 }
 
 func (p *Proxy) setupPacketForward() error {
