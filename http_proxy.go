@@ -178,6 +178,9 @@ type Proxy struct {
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
 	listeners      map[string]net.Listener
+
+	// Channel that is closed when the proxy is ready
+	readyC chan struct{}
 }
 
 type listenerBuilderFN func(addr string) (net.Listener, error)
@@ -367,6 +370,10 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 			}(ln)
 		}
 	}
+
+	// Announce to any callers that we're ready
+	close(p.readyC)
+
 	select {
 	case err := <-errCh:
 		return err
@@ -374,6 +381,10 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		// this is an expected path for closing, no error
 		return err
 	}
+}
+
+func (p *Proxy) Ready() <-chan struct{} {
+	return p.readyC
 }
 
 func (p *Proxy) Close() error {
