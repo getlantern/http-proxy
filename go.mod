@@ -6,6 +6,8 @@ require (
 	cloud.google.com/go/errorreporting v0.2.0
 	git.torproject.org/pluggable-transports/goptlib.git v1.2.0
 	github.com/Jigsaw-Code/outline-ss-server v1.4.0
+	github.com/OperatorFoundation/Replicant-go/Replicant/v3 v3.0.14
+	github.com/OperatorFoundation/Starbridge-go/Starbridge/v3 v3.0.12
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
@@ -68,7 +70,11 @@ require (
 	cloud.google.com/go/compute v1.12.1 // indirect
 	cloud.google.com/go/compute/metadata v0.2.1 // indirect
 	filippo.io/edwards25519 v1.0.0-rc.1.0.20210721174708-390f27c3be20 // indirect
+	github.com/OperatorFoundation/ghostwriter-go v1.0.6 // indirect
+	github.com/OperatorFoundation/go-bloom v1.0.1 // indirect
+	github.com/OperatorFoundation/go-shadowsocks2 v1.1.12 // indirect
 	github.com/Yawning/chacha20 v0.0.0-20170904085104-e3b1f968fc63 // indirect
+	github.com/aead/ecdh v0.2.0 // indirect
 	github.com/andybalholm/brotli v1.0.4 // indirect
 	github.com/benbjohnson/clock v1.3.0 // indirect
 	github.com/beorn7/perks v1.0.1 // indirect

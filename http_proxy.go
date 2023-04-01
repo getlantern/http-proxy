@@ -3,6 +3,7 @@ package proxy
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net"
 	"net/http"
 	_ "net/http/pprof"
@@ -25,6 +26,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/broflake"
 	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	shadowsocks "github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
+	"github.com/getlantern/http-proxy-lantern/v2/starbridge"
 	"github.com/getlantern/kcpwrapper"
 
 	"github.com/xtaci/smux"
@@ -152,6 +154,8 @@ type Proxy struct {
 	ShadowsocksSecret                  string
 	ShadowsocksCipher                  string
 	ShadowsocksReplayHistory           int
+	StarbridgeAddr                     string
+	StarbridgePrivateKey               string
 	PromExporterAddr                   string
 	CountryLookup                      geo.CountryLookup
 	ISPLookup                          geo.ISPLookup
@@ -188,6 +192,7 @@ type addresses struct {
 	httpMultiplex  string
 	lampshade      string
 	tlsmasq        string
+	starbridge     string
 	broflake       string
 }
 
@@ -318,6 +323,10 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 			return err
 		}
 
+		if err := addListenerIfNecessary("starbridge", addrs.starbridge, p.wrapMultiplexing(p.listenStarbridge(baseListen))); err != nil {
+			return err
+		}
+
 		if err := addListenerIfNecessary("broflake", addrs.broflake, p.listenBroflake(baseListen)); err != nil {
 			return err
 		}
@@ -348,6 +357,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		http:           p.HTTPAddr,
 		httpMultiplex:  p.HTTPMultiplexAddr,
 		tlsmasq:        p.TLSMasqAddr,
+		starbridge:     p.StarbridgeAddr,
 		broflake:       p.BroflakeAddr,
 	}); err != nil {
 		return err
@@ -714,6 +724,8 @@ func (p *Proxy) configureOTEL(
 		opts.Addr = p.Obfs4MultiplexAddr
 	} else if p.Obfs4Addr != "" {
 		opts.Addr = p.Obfs4Addr
+	} else if p.StarbridgeAddr != "" {
+		opts.Addr = p.StarbridgeAddr
 	} else if p.TLSMasqAddr != "" {
 		opts.Addr = p.TLSMasqAddr
 	} else if p.HTTPMultiplexAddr != "" {
@@ -935,6 +947,28 @@ func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
 
 	log.Debugf("Listening for shadowsocks at %v", l.Addr())
 	return l, nil
+}
+
+func (p *Proxy) listenStarbridge(baseListen func(string, bool) (net.Listener, error)) listenerBuilderFN {
+	return func(addr string) (net.Listener, error) {
+		if p.StarbridgePrivateKey == "" {
+			return nil, errors.New("starbridge private key is required")
+		}
+
+		base, err := baseListen(addr, true)
+		if err != nil {
+			return nil, err
+		}
+
+		l, err := starbridge.Wrap(base, p.StarbridgePrivateKey)
+		if err != nil {
+			base.Close()
+			return nil, fmt.Errorf("starbridge wrapping error: %w", err)
+		}
+
+		log.Debugf("Listening for starbridge at %v", l.Addr().String())
+		return l, nil
+	}
 }
 
 func (p *Proxy) listenWSS(addr string) (net.Listener, error) {
