@@ -147,6 +147,9 @@ var (
 	tlsmasqMinVersionStr = flag.String("tlsmasq-tls-min-version", "0x0303", "hex-encoded TLS version")
 	tlsmasqSuitesStr     = flag.String("tlsmasq-tls-cipher-suites", "0x1301,0x1302,0x1303,0xcca8,0xcca9,0xc02b,0xc030,0xc02c", "hex-encoded TLS cipher suites")
 
+	starbridgeAddr       = flag.String("starbridge-addr", "", "address at which to listen for starbridge connections")
+	starbridgePrivateKey = flag.String("starbridge-private-key", "", "private key for the starbridge server")
+
 	multiplexProtocol    = flag.String("multiplexprotocol", "smux", "multiplexing protocol to use")
 	smuxVersion          = flag.Int("smux-version", 0, "smux protocol version")
 	smuxMaxFrameSize     = flag.Int("smux-max-frame-size", 0, "smux maximum frame size")
@@ -415,6 +418,8 @@ func main() {
 		ShadowsocksSecret:                  *shadowsocksSecret,
 		ShadowsocksCipher:                  *shadowsocksCipher,
 		ShadowsocksReplayHistory:           *shadowsocksReplayHistory,
+		StarbridgeAddr:                     *starbridgeAddr,
+		StarbridgePrivateKey:               *starbridgePrivateKey,
 		PromExporterAddr:                   *promExporterAddr,
 		MultiplexProtocol:                  *multiplexProtocol,
 		SmuxVersion:                        *smuxVersion,
