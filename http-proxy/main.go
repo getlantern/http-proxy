@@ -109,7 +109,8 @@ var (
 
 	reportingRedisAddr = flag.String("reportingredis", "", "The address of the reporting Redis instance in \"redis[s]://host:port\" format")
 
-	tunnelPorts         = flag.String("tunnelports", "", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
+	// default value of tunnelPorts matches ports in flashlight/client/client.go
+	tunnelPorts         = flag.String("tunnelports", "80,443,22,110,995,143,993,8080,8443,5222,5223,5224,5228,5229,7300,19302,19303,19304,19305,19306,19307,19308,19309", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
 	tos                 = flag.Int("tos", 0, "Specify a diffserv TOS to prioritize traffic. Defaults to 0 (off)")
 	proxyName           = flag.String("proxyname", hostname, "The name of this proxy (defaults to hostname)")
 	proxyProtocol       = flag.String("proxyprotocol", "", "The protocol of this proxy, for information only")
