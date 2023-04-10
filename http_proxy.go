@@ -183,6 +183,8 @@ type Proxy struct {
 	instrument     instrument.Instrument
 }
 
+type ProxyReadyCallback func()
+
 type listenerBuilderFN func(addr string) (net.Listener, error)
 
 type addresses struct {
@@ -197,7 +199,7 @@ type addresses struct {
 }
 
 // ListenAndServe listens, serves and blocks.
-func (p *Proxy) ListenAndServe(ctx context.Context) error {
+func (p *Proxy) ListenAndServe(ctx context.Context, readyCallback ProxyReadyCallback) error {
 	if p.CountryLookup == nil {
 		log.Debugf("Maxmind not configured, will not report country data to prometheus or in bandwidth data")
 		p.CountryLookup = geo.NoLookup{}
@@ -243,7 +245,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	p.loadThrottleConfig()
 
 	if p.ENHTTPAddr != "" {
-		return p.ListenAndServeENHTTP()
+		return p.ListenAndServeENHTTP(nil)
 	}
 
 	// Only allow connections from remote IPs that are not blacklisted
@@ -382,6 +384,11 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 			}()
 		}
 	}
+
+	if readyCallback != nil {
+		readyCallback()
+	}
+
 	select {
 	case err := <-errCh:
 		return err
@@ -392,6 +399,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 }
 
 func (p *Proxy) ListenAndServeENHTTP() error {
+func (p *Proxy) ListenAndServeENHTTP(readyCallback ProxyReadyCallback) error {
 	el, err := net.Listen("tcp", p.ENHTTPAddr)
 	if err != nil {
 		return errors.New("Unable to listen for encapsulated HTTP at %v: %v", p.ENHTTPAddr, err)
@@ -402,6 +410,10 @@ func (p *Proxy) ListenAndServeENHTTP() error {
 	server := &http.Server{
 		Handler: filters.Intercept(enhttpHandler, p.instrument.WrapFilter("proxy", filterChain)),
 	}
+	if readyCallback != nil {
+		readyCallback()
+	}
+
 	return server.Serve(el)
 }
 

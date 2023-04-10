@@ -447,7 +447,7 @@ func main() {
 		p.ISPLookup = geo.FromWeb(fmt.Sprintf(geoip2_isp_url, *maxmindLicenseKey), "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile, geo.ISP)
 	}
 
-	err = p.ListenAndServe(ctx)
+	err = p.ListenAndServe(ctx, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
