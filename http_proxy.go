@@ -1005,7 +1005,7 @@ func (p *Proxy) listenBroflake(baseListen func(string, bool) (net.Listener, erro
 		if err != nil {
 			return nil, err
 		}
-		wrapped, wrapErr := broflake.Wrap(l)
+		wrapped, wrapErr := broflake.Wrap(l, p.CertFile, p.KeyFile)
 		if wrapErr != nil {
 			log.Fatalf("Unable to initialize broflake with tcp: %v", wrapErr)
 		}
