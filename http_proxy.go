@@ -177,6 +177,8 @@ type Proxy struct {
 	PsmuxAggressivePaddingRatio   float64
 
 	BroflakeAddr string
+	BroflakeCert string
+	BroflakeKey  string
 
 	bm             bbr.Middleware
 	throttleConfig throttle.Config
@@ -1005,7 +1007,7 @@ func (p *Proxy) listenBroflake(baseListen func(string, bool) (net.Listener, erro
 		if err != nil {
 			return nil, err
 		}
-		wrapped, wrapErr := broflake.Wrap(l, p.CertFile, p.KeyFile)
+		wrapped, wrapErr := broflake.Wrap(l, p.BroflakeCert, p.BroflakeKey)
 		if wrapErr != nil {
 			log.Fatalf("Unable to initialize broflake with tcp: %v", wrapErr)
 		}
