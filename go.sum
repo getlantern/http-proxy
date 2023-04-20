@@ -150,6 +150,8 @@ github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0 h1:OtUNxwmNp9+m
 github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0/go.mod h1:HMPEgWG0J3goTYFWoTohloqZ3BQywXMElZnd9EROxxU=
 github.com/getlantern/broflake v0.0.0-20230330150844-7307935f5abb h1:LUpwcQ63ub+mLbaledZTUj2+rQlBl1nfux49IE6biVE=
 github.com/getlantern/broflake v0.0.0-20230330150844-7307935f5abb/go.mod h1:SPiKfQMLFzxQIBM2Z8sgp3tg/oP2molr3HsF2vAORpQ=
+github.com/getlantern/broflake v0.0.0-20230419154902-6d21c3a02d8b h1:IaB8nAXENMzr9qDH9gzjOMlushuKwlWlSJhbG4PbrT4=
+github.com/getlantern/broflake v0.0.0-20230419154902-6d21c3a02d8b/go.mod h1:SPiKfQMLFzxQIBM2Z8sgp3tg/oP2molr3HsF2vAORpQ=
 github.com/getlantern/bufconn v0.0.0-20190625204133-a08544339f8d h1:gE5pWSEYfMvSETsTanqINNLmv+nuyUjwcm9jOyqJJZI=
 github.com/getlantern/bufconn v0.0.0-20190625204133-a08544339f8d/go.mod h1:d6O4RY+V87kIt4o9wru4SaNo7C2NAkD3YnmJFXEpODo=
 github.com/getlantern/bytecounting v0.0.0-20190530140808-3b3f10d3b9ab h1:bKsTXN1XgjiWuciuEChVIPFXWD8sTASsvjkMAGMEb/4=

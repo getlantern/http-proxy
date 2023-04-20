@@ -438,6 +438,8 @@ func main() {
 		PsmuxAggressivePadding:             *psmuxAggressivePadding,
 		PsmuxAggressivePaddingRatio:        *psmuxAggressivePaddingRatio,
 		BroflakeAddr:                       *broflakeAddr,
+		BroflakeCert:                       os.Getenv("BROFLAKE_CERT"),
+		BroflakeKey:                        os.Getenv("BROFLAKE_KEY"),
 	}
 	if *maxmindLicenseKey != "" {
 		log.Debug("Will use Maxmind for geolocating clients")
