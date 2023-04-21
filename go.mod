@@ -11,7 +11,7 @@ require (
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/dustin/go-humanize v1.0.0
 	github.com/getlantern/bbrconn v0.0.0-20180619163322-86cf8c16f3d0
-	github.com/getlantern/broflake v0.0.0-20230421184812-e48bf5134a20
+	github.com/getlantern/broflake v0.0.0-20230421204119-e3a7186f4dae
 	github.com/getlantern/cmux/v2 v2.0.0-20230228131144-addc208d233b
 	github.com/getlantern/cmuxprivate v0.0.0-20200905032931-afb63438e40b
 	github.com/getlantern/ema v0.0.0-20190620044903-5943d28f40e4
