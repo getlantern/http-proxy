@@ -60,7 +60,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/ping"
-	"github.com/getlantern/http-proxy-lantern/v2/quic"
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
@@ -255,9 +254,6 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		return err
 	}
 
-	if p.QUICIETFAddr != "" {
-		filterChain = filterChain.Prepend(quic.NewMiddleware())
-	}
 	if p.WSSAddr != "" {
 		filterChain = filterChain.Append(wss.NewMiddleware())
 	}
@@ -904,7 +900,6 @@ func (p *Proxy) listenQUICIETF(addr string) (net.Listener, error) {
 	config := &quicwrapper.Config{
 		MaxIncomingStreams:      1000,
 		Tracer:                  instrument.NewQuicTracer(p.instrument),
-		UseBBR:                  p.QUICUseBBR,
 		DisablePathMTUDiscovery: true,
 	}
 
