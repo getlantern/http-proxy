@@ -24,10 +24,6 @@ import (
 	"github.com/getlantern/proxy/v2/filters"
 )
 
-const (
-	otelReportingInterval = 60 * time.Minute
-)
-
 var (
 	originRootRegex = regexp.MustCompile(`([^\.]+\.[^\.]+$)`)
 )
@@ -47,8 +43,13 @@ type Instrument interface {
 	ReportToOTELPeriodically(interval time.Duration, tp *sdktrace.TracerProvider, includeDeviceID bool)
 	ReportToOTEL(tp *sdktrace.TracerProvider, includeDeviceID bool)
 	quicSentPacket()
+	quicSentLongHeaderPacket()
+	quicSentShortHeaderPacket()
 	quicLostPacket()
 }
+
+var _ Instrument = &NoInstrument{}
+var _ Instrument = &PromInstrument{}
 
 // NoInstrument is an implementation of Instrument which does nothing
 type NoInstrument struct {
@@ -61,7 +62,7 @@ func (i NoInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Conn, 
 func (i NoInstrument) Blacklist(b bool) {}
 func (i NoInstrument) Mimic(m bool)     {}
 func (i NoInstrument) MultipathStats(protocols []string) (trackers []multipath.StatsTracker) {
-	for _, _ = range protocols {
+	for range protocols {
 		trackers = append(trackers, multipath.NullTracker{})
 	}
 	return
@@ -77,6 +78,8 @@ func (i NoInstrument) ReportToOTELPeriodically(interval time.Duration, tp *sdktr
 }
 func (i NoInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeDeviceID bool) {}
 func (i NoInstrument) quicSentPacket()                                                {}
+func (i NoInstrument) quicSentLongHeaderPacket()                                      {}
+func (i NoInstrument) quicSentShortHeaderPacket()                                     {}
 func (i NoInstrument) quicLostPacket()                                                {}
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
@@ -131,7 +134,7 @@ type PromInstrument struct {
 	originStats             map[originDetails]*usage
 	statsMx                 sync.Mutex
 
-	blacklistChecked, blacklisted, mimicryChecked, mimicked, quicLostPackets, quicSentPackets, tcpConsecRetransmissions, tcpSentDataPackets, throttlingChecked, xbqSent prometheus.Counter
+	blacklistChecked, blacklisted, mimicryChecked, mimicked, quicLostPackets, quicSentPackets, quicSentLongHeaderPackets, quicSentShortHeaderPackets, tcpConsecRetransmissions, tcpSentDataPackets, throttlingChecked, xbqSent prometheus.Counter
 
 	bytesSent, bytesRecv, bytesSentByISP, bytesRecvByISP, throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
 
@@ -431,6 +434,14 @@ func (p *PromInstrument) ProxiedBytes(sent, recv int, platform, version, app, lo
 // quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.
 func (p *PromInstrument) quicSentPacket() {
 	p.quicSentPackets.Inc()
+}
+
+func (p *PromInstrument) quicSentLongHeaderPacket() {
+	p.quicSentLongHeaderPackets.Inc()
+}
+
+func (p *PromInstrument) quicSentShortHeaderPacket() {
+	p.quicSentShortHeaderPackets.Inc()
 }
 
 func (p *PromInstrument) quicLostPacket() {
