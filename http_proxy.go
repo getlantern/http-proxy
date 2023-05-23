@@ -24,6 +24,7 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/http-proxy-lantern/v2/broflake"
+	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	shadowsocks "github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/http-proxy-lantern/v2/starbridge"
@@ -250,6 +251,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	if p.WSSAddr != "" {
 		filterChain = filterChain.Append(wss.NewMiddleware())
 	}
+	filterChain = filterChain.Prepend(opsfilter.New())
 
 	srv := server.New(&server.Opts{
 		IdleTimeout: p.IdleTimeout,
