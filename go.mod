@@ -1,6 +1,6 @@
 module github.com/getlantern/http-proxy-lantern/v2
 
-go 1.18
+go 1.20
 
 require (
 	cloud.google.com/go/errorreporting v0.3.0
