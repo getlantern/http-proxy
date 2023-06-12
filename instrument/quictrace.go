@@ -9,7 +9,7 @@ import (
 )
 
 // QuicTracer is a quic-go/logging.Tracer implementation which counts the sent and
-// lost packets and exports the data to Prometheus.
+// lost packets and exports the data to our instrumentation package.
 type QuicTracer struct {
 	inst Instrument
 }

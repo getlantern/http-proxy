@@ -1,4 +1,4 @@
-// Provides an OpenTelemetry version of our Prometheus-based instrumentation.
+// Provides an OpenTelemetry version of our instrumentation.
 // TODO: when we're ready to switch off prometheus and once the OTEL metrics
 // SDK is stable, consider removing the Intrument interface and just
 // using the OTEL metrics API at the point where the relevant metrics are being

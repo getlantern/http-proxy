@@ -59,7 +59,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/ping"
-	"github.com/getlantern/http-proxy-lantern/v2/quic"
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
@@ -154,7 +153,6 @@ type Proxy struct {
 	ShadowsocksReplayHistory           int
 	StarbridgeAddr                     string
 	StarbridgePrivateKey               string
-	PromExporterAddr                   string
 	CountryLookup                      geo.CountryLookup
 	ISPLookup                          geo.ISPLookup
 
@@ -198,40 +196,23 @@ type addresses struct {
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	if p.CountryLookup == nil {
-		log.Debugf("Maxmind not configured, will not report country data to prometheus or in bandwidth data")
+		log.Debugf("Maxmind not configured, will not report country data with telemetry")
 		p.CountryLookup = geo.NoLookup{}
 	}
 	if p.ISPLookup == nil {
-		log.Debugf("Maxmind not configured, will not report ISP data to prometheus")
+		log.Debugf("Maxmind not configured, will not report ISP data with telemetry")
 		p.ISPLookup = geo.NoLookup{}
 	}
 
-	p.instrument = instrument.NoInstrument{}
-	if p.PromExporterAddr == "" {
-		log.Debugf("Not enabling prometheus export")
-	} else {
-		log.Debugf("Enabling prometheus export at %v", p.PromExporterAddr)
-		prom, err := instrument.NewPrometheus(
-			p.CountryLookup,
-			p.ISPLookup,
-			instrument.CommonLabels{
-				BuildType:             p.BuildType,
-				Protocol:              p.ProxyProtocol,
-				SupportTLSResumption:  p.SessionTicketKeyFile != "",
-				RequireTLSResumption:  p.RequireSessionTickets,
-				MissingTicketReaction: p.MissingTicketReaction.Action(),
-			})
-		if err != nil {
-			return errors.New("Unable to configure prometheus: %v", err)
-		}
-		go func() {
-			log.Debugf("Running Prometheus exporter at http://%s/metrics", p.PromExporterAddr)
-			if err := prom.Run(p.PromExporterAddr); err != nil {
-				log.Error(err)
-			}
-		}()
-		p.instrument = prom
+	var err error
+	p.instrument, err = instrument.NewDefault(
+		p.CountryLookup,
+		p.ISPLookup,
+	)
+	if err != nil {
+		return errors.New("Unable to configure instrumentation: %v", err)
 	}
+
 	var onServerError func(conn net.Conn, err error)
 	var onListenerError func(conn net.Conn, err error)
 	if err := p.setupPacketForward(); err != nil {
@@ -251,9 +232,6 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		return err
 	}
 
-	if p.QUICIETFAddr != "" {
-		filterChain = filterChain.Prepend(quic.NewMiddleware())
-	}
 	if p.WSSAddr != "" {
 		filterChain = filterChain.Append(wss.NewMiddleware())
 	}

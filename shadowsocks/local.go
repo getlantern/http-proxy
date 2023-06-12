@@ -6,8 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/prometheus/client_golang/prometheus"
-
 	"github.com/getlantern/golog"
 	"github.com/getlantern/netx"
 
@@ -24,9 +22,6 @@ var (
 	log = golog.LoggerFor("shadowsocks")
 
 	ErrListenerClosed = errors.New("listener closed")
-
-	defaultMetrics  metrics.ShadowsocksMetrics
-	initMetricsOnce sync.Once
 )
 
 // This value is lifted from the the main server.go to match behavior
@@ -61,15 +56,6 @@ type ListenerOptions struct {
 	ShouldHandleLocally   HandleLocalPredicate   // determines whether an upstream should be handled by the listener locally or dial upstream
 	TargetIPValidator     onet.TargetIPValidator // determines validity of non-local upstream dials
 	MaxPendingConnections int                    // defaults to 1000
-}
-
-// GetDefaultMetrics returns the singleton metrics.ShadowsocksMetrics instance
-// (more than one cannot be created in a process without a panic)
-func GetDefaultMetrics() metrics.ShadowsocksMetrics {
-	initMetricsOnce.Do(func() {
-		defaultMetrics = metrics.NewPrometheusShadowsocksMetrics(nil, prometheus.DefaultRegisterer)
-	})
-	return defaultMetrics
 }
 
 type llistener struct {
@@ -122,9 +108,6 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 		timeout = tcpReadTimeout
 	}
 	m := options.Metrics
-	if m == nil {
-		m = GetDefaultMetrics()
-	}
 
 	validator := options.TargetIPValidator
 	if validator == nil {
