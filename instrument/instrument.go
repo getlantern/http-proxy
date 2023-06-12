@@ -134,7 +134,7 @@ type PromInstrument struct {
 	originStats             map[originDetails]*usage
 	statsMx                 sync.Mutex
 
-	blacklistChecked, blacklisted, mimicryChecked, mimicked, quicLostPackets, quicSentPackets, quicSentLongHeaderPackets, quicSentShortHeaderPackets, tcpConsecRetransmissions, tcpSentDataPackets, throttlingChecked, xbqSent prometheus.Counter
+	blacklistChecked, blacklisted, mimicryChecked, mimicked, quicLostPackets, quicSentPackets, tcpConsecRetransmissions, tcpSentDataPackets, throttlingChecked, xbqSent prometheus.Counter
 
 	bytesSent, bytesRecv, bytesSentByISP, bytesRecvByISP, throttled, notThrottled, suspectedProbing, versionCheck *prometheus.CounterVec
 
@@ -437,11 +437,11 @@ func (p *PromInstrument) quicSentPacket() {
 }
 
 func (p *PromInstrument) quicSentLongHeaderPacket() {
-	p.quicSentLongHeaderPackets.Inc()
+	// p.quicSentLongHeaderPackets.Inc()
 }
 
 func (p *PromInstrument) quicSentShortHeaderPacket() {
-	p.quicSentShortHeaderPackets.Inc()
+	// p.quicSentShortHeaderPackets.Inc()
 }
 
 func (p *PromInstrument) quicLostPacket() {
