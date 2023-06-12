@@ -18,7 +18,7 @@ require (
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
 	github.com/getlantern/errors v1.0.1
 	github.com/getlantern/fdcount v0.0.0-20210503151800-5decd65b3731
-	github.com/getlantern/geo v0.0.0-20221101125300-c661769d5822
+	github.com/getlantern/geo v0.0.0-20230612145351-d1374c8f8dec
 	github.com/getlantern/golog v0.0.0-20221014032422-49749a7176cf
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
 	github.com/getlantern/grtrack v0.0.0-20160824195228-cbf67d3fa0fd

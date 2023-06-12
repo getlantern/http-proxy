@@ -182,6 +182,10 @@ var (
 	track = flag.String("track", "", "The track this proxy is running on")
 )
 
+const (
+	countryDBFile = "GeoLite2-Country.mmdb"
+)
+
 func main() {
 	iniflags.SetAllowUnknownFlags(true)
 	iniflags.Parse()
@@ -218,6 +222,15 @@ func main() {
 						maybeStack = []byte(separator + splitted[1])
 					}
 					reporter.Report(golog.FATAL, err, maybeStack)
+				}
+				if strings.Contains(msg, "maxmind") {
+					log.Debugf("Panic possibly related to maxmind, delete maxmind database files")
+					if err := os.Remove(countryDBFile); err != nil {
+						log.Errorf("Unable to delete country DB file %v: %v", countryDBFile, err)
+					}
+					if err := os.Remove(*geoip2ISPDBFile); err != nil {
+						log.Errorf("Unable to delete ISP DB file %v: %v", *geoip2ISPDBFile, err)
+					}
 				}
 				os.Exit(1)
 			},
@@ -446,7 +459,7 @@ func main() {
 		if err := deleteStaleISPDB(); err != nil {
 			log.Errorf("Error deleting stale ISP DB, ignore: %v", err)
 		}
-		p.CountryLookup = geo.FromWeb(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), "GeoLite2-Country.mmdb", 24*time.Hour, "GeoLite2-Country.mmdb", geo.CountryCode)
+		p.CountryLookup = geo.FromWeb(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), "GeoLite2-Country.mmdb", 24*time.Hour, countryDBFile, geo.CountryCode)
 		p.ISPLookup = geo.FromWeb(fmt.Sprintf(geoip2_isp_url, *maxmindLicenseKey), "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile, geo.ISP)
 	}
 
@@ -478,7 +491,7 @@ func decodeUint16(s string) (uint16, error) {
 // so instead we just check for it here and delete it if necessary.
 func deleteStaleISPDB() error {
 	shasum := sha1.New()
-	file, err := os.Open("GeoIP2-ISP.mmdb")
+	file, err := os.Open(*geoip2ISPDBFile)
 	if err != nil {
 		return err
 	}
