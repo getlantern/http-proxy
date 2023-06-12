@@ -122,6 +122,14 @@ to the track's pillar data, mapped to the name specified above. At the time of
 writing, track pillar data is specified in the `track_pillars` structure in
 lantern-infrastructure/etc/current_production_track_config.py
 
+For example:
+
+```
+    'etc-teleport': {
+        'custom_proxy_binary': 'http-proxy-custom-teleport-1',
+    },
+```
+
 ### ssh config
 Most of our proxies have `servermasq` enabled on them.
 This means that you cannot ssh directly into them. Instead you have to use a cloudmaster as a bastion jump host.
