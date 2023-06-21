@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetricgrpc"
+	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
 	"go.opentelemetry.io/otel/metric/global"
@@ -119,11 +119,10 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 }
 
 func InitGlobalMeterProvider(opts *Opts) (func(), error) {
-	exp, err := otlpmetricgrpc.New(context.Background(),
-		otlpmetricgrpc.WithEndpoint(opts.Endpoint),
-		otlpmetricgrpc.WithHeaders(opts.Headers),
-		otlpmetricgrpc.WithInsecure(),
-		otlpmetricgrpc.WithTemporalitySelector(func(kind sdkmetric.InstrumentKind) metricdata.Temporality {
+	exp, err := otlpmetrichttp.New(context.Background(),
+		otlpmetrichttp.WithEndpoint(opts.Endpoint),
+		otlpmetrichttp.WithHeaders(opts.Headers),
+		otlpmetrichttp.WithTemporalitySelector(func(kind sdkmetric.InstrumentKind) metricdata.Temporality {
 			switch kind {
 			case
 				sdkmetric.InstrumentKindCounter,

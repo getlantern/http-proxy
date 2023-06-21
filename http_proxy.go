@@ -70,6 +70,8 @@ import (
 
 const (
 	timeoutToDialOriginSite = 10 * time.Second
+
+	teleportHost = "telemetry.iantem.io:443"
 )
 
 var (
@@ -83,7 +85,7 @@ type Proxy struct {
 	TestingLocal                       bool
 	HTTPAddr                           string
 	HTTPMultiplexAddr                  string
-	HoneycombSampleRate                int
+	TracesSampleRate                   int
 	TeleportSampleRate                 int
 	ExternalIP                         string
 	CertFile                           string
@@ -254,8 +256,8 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  instrumentedErrorHandler,
 	})
-	stopHoneycomb := p.configureHoneycomb()
-	defer stopHoneycomb()
+	stopTraces := p.configureTraces()
+	defer stopTraces()
 
 	stopTeleport := p.configureTeleport()
 	defer stopTeleport()
@@ -664,19 +666,21 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}, nil
 }
 
-func (p *Proxy) configureHoneycomb() func() {
-	if p.HoneycombSampleRate <= 0 {
-		log.Debug("Not configuring Honeycomb")
+func (p *Proxy) configureTraces() func() {
+	if true {
+		log.Debug("Tracing currently disabled until we figure out how to handle traces in the centralized OTEL collector")
 		return func() {}
 	}
 
-	log.Debug("Configuring Honeycomb")
+	if p.TracesSampleRate <= 0 {
+		log.Debug("Not configuring tracing")
+		return func() {}
+	}
+
+	log.Debug("Configuring tracing")
 	return p.configureOTEL(
-		"api.honeycomb.io:443",
-		map[string]string{
-			"x-honeycomb-team": "jskJrfYyNNp2lcJ0WQ8JfD",
-		},
-		p.HoneycombSampleRate,
+		teleportHost,
+		p.TracesSampleRate,
 		1*time.Minute,
 		false,
 		true,
@@ -691,8 +695,7 @@ func (p *Proxy) configureTeleport() func() {
 
 	log.Debug("Configuring Teleport")
 	return p.configureOTEL(
-		"telemetry.iantem.io:443",
-		map[string]string{},
+		teleportHost,
 		p.TeleportSampleRate,
 		1*time.Hour,
 		true,
@@ -702,13 +705,12 @@ func (p *Proxy) configureTeleport() func() {
 
 func (p *Proxy) configureOTEL(
 	endpoint string,
-	headers map[string]string,
 	sampleRate int,
 	reportingInterval time.Duration,
 	includeDeviceIDs bool,
 	includeProxyIdentity bool,
 ) func() {
-	opts := p.buildOTELOpts(endpoint, headers, includeProxyIdentity)
+	opts := p.buildOTELOpts(endpoint, includeProxyIdentity)
 	opts.SampleRate = sampleRate
 	tp, stop := otel.BuildTracerProvider(opts)
 	if tp != nil {
@@ -725,17 +727,15 @@ func (p *Proxy) configureOTEL(
 func (p *Proxy) configureOTELMetrics() (func(), error) {
 	return otel.InitGlobalMeterProvider(
 		p.buildOTELOpts(
-			"172.16.0.88:4317",
-			map[string]string{},
+			teleportHost,
 			true,
 		))
 }
 
-func (p *Proxy) buildOTELOpts(endpoint string, headers map[string]string, includeProxyIdentity bool) *otel.Opts {
+func (p *Proxy) buildOTELOpts(endpoint string, includeProxyIdentity bool) *otel.Opts {
 	proxyName, dc := proxyNameAndDC(p.ProxyName)
 	opts := &otel.Opts{
 		Endpoint:      endpoint,
-		Headers:       headers,
 		Track:         p.Track,
 		DC:            dc,
 		ProxyProtocol: p.ProxyProtocol,

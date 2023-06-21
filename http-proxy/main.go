@@ -172,8 +172,8 @@ var (
 	shadowsocksSecret        = flag.String("shadowsocks-secret", "", "shadowsocks secret")
 	shadowsocksCipher        = flag.String("shadowsocks-cipher", shadowsocks.DefaultCipher, "shadowsocks cipher")
 
-	honeycombSampleRate = flag.Int("honeycomb-sample-rate", 1000, "rate at which to sample data for Honeycomb")
-	teleportSampleRate  = flag.Int("teleport-sample-rate", 1, "rate at which to sample data for Teleport")
+	tracesSampleRate   = flag.Int("traces-sample-rate", 1000, "rate at which to sample trace data")
+	teleportSampleRate = flag.Int("teleport-sample-rate", 1, "rate at which to sample data for Teleport")
 
 	broflakeAddr = flag.String("broflake-addr", "", "Address at which to listen for broflake connections.")
 
@@ -367,7 +367,7 @@ func main() {
 		ConnectOKWaitsForUpstream:          *connectOKWaitsForUpstream,
 		EnableMultipath:                    *enableMultipath,
 		ThrottleRefreshInterval:            *throttleRefreshInterval,
-		HoneycombSampleRate:                *honeycombSampleRate,
+		TracesSampleRate:                   *tracesSampleRate,
 		TeleportSampleRate:                 *teleportSampleRate,
 		ExternalIP:                         *externalIP,
 		HTTPS:                              *https,
