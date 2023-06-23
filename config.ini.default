@@ -53,7 +53,6 @@ pforward-addr =   # Address at which to listen for packet forwarding connections
 pforward-intf =   # The name of the interface to use for upstream packet forwarding connections. Deprecated by external-intf
 pprofaddr =   # pprof address to listen on, not activate pprof if empty
 pro = false  # Set to true to make this a pro proxy (no bandwidth limiting unless forced throttling)
-promexporteraddr =   # Prometheus exporter address to listen on, not activate exporter if empty
 proxied-sites-sample-percentage = 0.01  # The percentage of requests to sample (0.01 = 1%)
 proxied-sites-tracking-id = UA-21815217-16  # The Google Analytics property id for tracking proxied sites
 proxyname = macbook-pro.lan  # The name of this proxy (defaults to hostname)

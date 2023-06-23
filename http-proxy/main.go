@@ -90,7 +90,6 @@ var (
 	throttleRefreshInterval = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
 
 	enableMultipath = flag.Bool("enablemultipath", false, "Enable multipath. Only clients support multipath can communicate with it.")
-	enableReports   = flag.Bool("enablereports", false, "Enable stats reporting")
 
 	externalIP = flag.String("externalip", "", "The external IP of this proxy, used for reporting")
 	https      = flag.Bool("https", false, "Use TLS for client to proxy communication")
@@ -98,7 +97,6 @@ var (
 	_          = flag.Uint64("maxconns", 0, "Max number of simultaneous allowed connections, unused")
 
 	pprofAddr         = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
-	promExporterAddr  = flag.String("promexporteraddr", "", "Prometheus exporter address to listen on, not activate exporter if empty")
 	maxmindLicenseKey = flag.String("maxmindlicensekey", "", "MaxMind license key to load the GeoLite2 Country database")
 	geoip2ISPDBFile   = flag.String("geoip2ispdbfile", "", "The local copy of the GeoIP2 ISP database")
 
@@ -174,8 +172,8 @@ var (
 	shadowsocksSecret        = flag.String("shadowsocks-secret", "", "shadowsocks secret")
 	shadowsocksCipher        = flag.String("shadowsocks-cipher", shadowsocks.DefaultCipher, "shadowsocks cipher")
 
-	honeycombSampleRate = flag.Int("honeycomb-sample-rate", 1000, "rate at which to sample data for Honeycomb")
-	teleportSampleRate  = flag.Int("teleport-sample-rate", 1, "rate at which to sample data for Teleport")
+	tracesSampleRate   = flag.Int("traces-sample-rate", 1000, "rate at which to sample trace data")
+	teleportSampleRate = flag.Int("teleport-sample-rate", 1, "rate at which to sample data for Teleport")
 
 	broflakeAddr = flag.String("broflake-addr", "", "Address at which to listen for broflake connections.")
 
@@ -367,10 +365,9 @@ func main() {
 		CertFile:                           *certfile,
 		CfgSvrAuthToken:                    *cfgSvrAuthToken,
 		ConnectOKWaitsForUpstream:          *connectOKWaitsForUpstream,
-		EnableReports:                      *enableReports,
 		EnableMultipath:                    *enableMultipath,
 		ThrottleRefreshInterval:            *throttleRefreshInterval,
-		HoneycombSampleRate:                *honeycombSampleRate,
+		TracesSampleRate:                   *tracesSampleRate,
 		TeleportSampleRate:                 *teleportSampleRate,
 		ExternalIP:                         *externalIP,
 		HTTPS:                              *https,
@@ -434,7 +431,6 @@ func main() {
 		ShadowsocksReplayHistory:           *shadowsocksReplayHistory,
 		StarbridgeAddr:                     *starbridgeAddr,
 		StarbridgePrivateKey:               *starbridgePrivateKey,
-		PromExporterAddr:                   *promExporterAddr,
 		MultiplexProtocol:                  *multiplexProtocol,
 		SmuxVersion:                        *smuxVersion,
 		SmuxMaxFrameSize:                   *smuxMaxFrameSize,

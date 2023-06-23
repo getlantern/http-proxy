@@ -9,7 +9,7 @@ import (
 )
 
 // QuicTracer is a quic-go/logging.Tracer implementation which counts the sent and
-// lost packets and exports the data to Prometheus.
+// lost packets and exports the data to our instrumentation package.
 type QuicTracer struct {
 	inst Instrument
 }
@@ -38,19 +38,19 @@ type QuicConnTracer struct {
 }
 
 func (t *QuicConnTracer) SentPacket(hdr *qlog.ExtendedHeader, size qlog.ByteCount, ack *qlog.AckFrame, frames []qlog.Frame) {
-	t.inst.quicSentPacket()
+	t.inst.quicSentPacket(context.Background())
 }
 
 func (t *QuicConnTracer) SentLongHeaderPacket(hdr *qlog.ExtendedHeader, size qlog.ByteCount, ack *qlog.AckFrame, frames []qlog.Frame) {
-	t.inst.quicSentLongHeaderPacket()
+	// t.inst.quicSentLongHeaderPacket()
 }
 
 func (t *QuicConnTracer) SentShortHeaderPacket(hdr *qlog.ShortHeader, size qlog.ByteCount, ack *qlog.AckFrame, frames []qlog.Frame) {
-	t.inst.quicSentShortHeaderPacket()
+	// t.inst.quicSentShortHeaderPacket()
 }
 
 func (t *QuicConnTracer) LostPacket(level qlog.EncryptionLevel, pn qlog.PacketNumber, reason qlog.PacketLossReason) {
-	t.inst.quicLostPacket()
+	t.inst.quicLostPacket(context.Background())
 }
 
 func (t *QuicConnTracer) StartedConnection(local, remote net.Addr, srcConnID, destConnID qlog.ConnectionID) {

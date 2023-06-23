@@ -1,6 +1,7 @@
 package proxy
 
 import (
+	"context"
 	"net"
 	"strings"
 	"time"
@@ -27,10 +28,7 @@ type reportingConfig struct {
 	wrapper func(ls net.Listener) net.Listener
 }
 
-func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, enabled bool, instrument instrument.Instrument, throttleConfig throttle.Config) *reportingConfig {
-	if !enabled || rc == nil {
-		return noReport
-	}
+func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, instrument instrument.Instrument, throttleConfig throttle.Config) *reportingConfig {
 	proxiedBytesReporter := func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 		if deltaStats.SentTotal == 0 && deltaStats.RecvTotal == 0 {
 			// nothing to report
@@ -77,7 +75,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 		if _originHost != nil {
 			originHost = _originHost.(string)
 		}
-		instrument.ProxiedBytes(deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, app, locale, dataCapCohort, client_ip, deviceID, originHost)
+		instrument.ProxiedBytes(context.Background(), deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, app, locale, dataCapCohort, client_ip, deviceID, originHost)
 	}
 
 	var reporter listeners.MeasuredReportFN
@@ -87,7 +85,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ena
 			final bool) {
 			// noop
 		}
-	} else {
+	} else if rc != nil {
 		reporter = redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval, throttleConfig)
 	}
 	reporter = combineReporter(reporter, proxiedBytesReporter)

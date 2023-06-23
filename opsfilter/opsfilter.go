@@ -5,13 +5,19 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/v2/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy/listeners"
 )
 
-type opsfilter struct{}
+var (
+	log = golog.LoggerFor("logging")
+)
+
+type opsfilter struct {
+}
 
 // New constructs a new filter that adds ops context.
 func New() filters.Filter {
