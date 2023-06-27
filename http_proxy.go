@@ -24,6 +24,7 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/http-proxy-lantern/v2/broflake"
+	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	shadowsocks "github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/http-proxy-lantern/v2/starbridge"
@@ -57,7 +58,6 @@ import (
 	lanternlisteners "github.com/getlantern/http-proxy-lantern/v2/listeners"
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
-	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/ping"
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
@@ -915,7 +915,6 @@ func (p *Proxy) listenQUICIETF(addr string) (net.Listener, error) {
 	config := &quicwrapper.Config{
 		MaxIncomingStreams:      1000,
 		Tracer:                  instrument.NewQuicTracer(p.instrument),
-		UseBBR:                  p.QUICUseBBR,
 		DisablePathMTUDiscovery: true,
 	}
 

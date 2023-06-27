@@ -92,7 +92,7 @@ func TestAbortOnHello(t *testing.T) {
 			err = uconn.Handshake()
 			if tc.expectedErr != "" {
 				assert.Error(t, err)
-				assert.Equal(t, tc.expectedErr, err.Error())
+				assert.Equal(t, tc.expectedErr, err.Error(), tc.response.action)
 			} else {
 				assert.NoError(t, err)
 				defer conn.Close()

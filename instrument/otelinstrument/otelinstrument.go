@@ -11,10 +11,9 @@ import (
 	"sync"
 	"time"
 
+	"go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
-	"go.opentelemetry.io/otel/metric/global"
-	"go.opentelemetry.io/otel/metric/instrument"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument/distinct"
 	"github.com/getlantern/proxy/v2/filters"
@@ -23,18 +22,18 @@ import (
 var (
 	initOnce                                                 sync.Once
 	meter                                                    metric.Meter
-	Blacklist                                                instrument.Int64Counter
-	ProxyIO                                                  instrument.Int64Counter
-	QuicPackets                                              instrument.Int64Counter
-	Mimicked                                                 instrument.Int64Counter
-	MultipathFrames                                          instrument.Int64Counter
-	MultipathIO                                              instrument.Int64Counter
-	XBQ                                                      instrument.Int64Counter
-	Throttling                                               instrument.Int64Counter
-	SuspectedProbing                                         instrument.Int64Counter
-	VersionCheck                                             instrument.Int64Counter
+	Blacklist                                                metric.Int64Counter
+	ProxyIO                                                  metric.Int64Counter
+	QuicPackets                                              metric.Int64Counter
+	Mimicked                                                 metric.Int64Counter
+	MultipathFrames                                          metric.Int64Counter
+	MultipathIO                                              metric.Int64Counter
+	XBQ                                                      metric.Int64Counter
+	Throttling                                               metric.Int64Counter
+	SuspectedProbing                                         metric.Int64Counter
+	VersionCheck                                             metric.Int64Counter
 	DistinctClients1m, DistinctClients10m, DistinctClients1h *distinct.SlidingWindowDistinctCount
-	distinctClients                                          instrument.Int64ObservableGauge
+	distinctClients                                          metric.Int64ObservableGauge
 )
 
 // Note - we don't use package-level init() because we want to defer initialization of
@@ -48,9 +47,9 @@ func Initialize() error {
 }
 
 func initialize() error {
-	meter = global.MeterProvider().Meter("")
+	meter = otel.GetMeterProvider().Meter("")
 	var err error
-	if ProxyIO, err = meter.Int64Counter("proxy.io", instrument.WithUnit("bytes")); err != nil {
+	if ProxyIO, err = meter.Int64Counter("proxy.io", metric.WithUnit("bytes")); err != nil {
 		return err
 	}
 	if QuicPackets, err = meter.Int64Counter("proxy.quic.packets"); err != nil {
@@ -62,7 +61,7 @@ func initialize() error {
 	if MultipathFrames, err = meter.Int64Counter("proxy.multipath.frames"); err != nil {
 		return err
 	}
-	if MultipathIO, err = meter.Int64Counter("proxy.multipath.io", instrument.WithUnit("bytes")); err != nil {
+	if MultipathIO, err = meter.Int64Counter("proxy.multipath.io", metric.WithUnit("bytes")); err != nil {
 		return err
 	}
 	if XBQ, err = meter.Int64Counter("proxy.xbq.headers"); err != nil {
@@ -87,10 +86,10 @@ func initialize() error {
 
 	if distinctClients, err = meter.Int64ObservableGauge(
 		"proxy.clients.active",
-		instrument.WithInt64Callback(func(ctx context.Context, io instrument.Int64Observer) error {
-			io.Observe(int64(DistinctClients1m.Cardinality()), attribute.String("window", "1m"))
-			io.Observe(int64(DistinctClients10m.Cardinality()), attribute.String("window", "10m"))
-			io.Observe(int64(DistinctClients1h.Cardinality()), attribute.String("window", "1h"))
+		metric.WithInt64Callback(func(ctx context.Context, io metric.Int64Observer) error {
+			io.Observe(int64(DistinctClients1m.Cardinality()), metric.WithAttributes(attribute.String("window", "1m")))
+			io.Observe(int64(DistinctClients10m.Cardinality()), metric.WithAttributes(attribute.String("window", "10m")))
+			io.Observe(int64(DistinctClients1h.Cardinality()), metric.WithAttributes(attribute.String("window", "1h")))
 			return nil
 		})); err != nil {
 		return err
@@ -117,9 +116,9 @@ func WrapFilter(prefix string, f filters.Filter) (filters.Filter, error) {
 
 type instrumentedFilter struct {
 	filters.Filter
-	requests instrument.Int64Counter
-	errors   instrument.Int64Counter
-	duration instrument.Float64Histogram
+	requests metric.Int64Counter
+	errors   metric.Int64Counter
+	duration metric.Float64Histogram
 }
 
 func (f *instrumentedFilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
@@ -134,10 +133,10 @@ func (f *instrumentedFilter) Apply(cs *filters.ConnectionState, req *http.Reques
 	return res, cs, err
 }
 
-func ConnErrorHandlerCounter(prefix string) (instrument.Int64Counter, error) {
+func ConnErrorHandlerCounter(prefix string) (metric.Int64Counter, error) {
 	return meter.Int64Counter(prefix + "_errors_total")
 }
 
-func ConnConsecErrorHandlerCounter(prefix string) (instrument.Int64Counter, error) {
+func ConnConsecErrorHandlerCounter(prefix string) (metric.Int64Counter, error) {
 	return meter.Int64Counter(prefix + "_consec_per_client_ip_errors_total")
 }
