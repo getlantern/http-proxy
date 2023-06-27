@@ -29,6 +29,7 @@ import (
 	shadowsocks "github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/http-proxy-lantern/v2/starbridge"
 	"github.com/getlantern/kcpwrapper"
+	"github.com/getlantern/quicwrapper/webt"
 
 	"github.com/xtaci/smux"
 
@@ -134,6 +135,7 @@ type Proxy struct {
 	BuildType                          string
 	BBRUpstreamProbeURL                string
 	QUICIETFAddr                       string
+	WebTAddr                           string
 	QUICUseBBR                         bool
 	WSSAddr                            string
 	PacketForwardAddr                  string
@@ -343,6 +345,9 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		return err
 	}
 	if err := addListenerIfNecessary("wss", p.WSSAddr, p.listenWSS); err != nil {
+		return err
+	}
+	if err := addListenerIfNecessary("webt", p.WebTAddr, p.listenWebT); err != nil {
 		return err
 	}
 
@@ -924,6 +929,33 @@ func (p *Proxy) listenQUICIETF(addr string) (net.Listener, error) {
 	}
 
 	log.Debugf("Listening for quic at %v", l.Addr())
+	return l, err
+}
+
+func (p *Proxy) listenWebT(addr string) (net.Listener, error) {
+	tlsConf, err := tlsdefaults.BuildListenerConfig(addr, p.KeyFile, p.CertFile)
+	if err != nil {
+		return nil, err
+	}
+
+	config := &quicwrapper.Config{
+		MaxIncomingStreams:      1000,
+		Tracer:                  instrument.NewQuicTracer(p.instrument),
+		DisablePathMTUDiscovery: true,
+	}
+
+	options := &webt.ListenOptions{
+		Addr:       p.WebTAddr,
+		TLSConfig:  tlsConf,
+		QuicConfig: config,
+	}
+
+	l, err := webt.ListenAddr(options)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("Listening for WebTransport connections at %v", l.Addr())
 	return l, err
 }
 
