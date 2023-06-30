@@ -244,8 +244,8 @@ github.com/getlantern/proxy/v2 v2.0.1-0.20220303164029-b34b76e0e581 h1:7NrSoq9ce
 github.com/getlantern/proxy/v2 v2.0.1-0.20220303164029-b34b76e0e581/go.mod h1:81jIwwI/5NGYj2CSvbsZapcTe87jd6AeEu6yJD1NKIg=
 github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683 h1:Asfm7ajzavuSZC+5b+tPwXwyvlw188NM9hKM7wNMNGg=
 github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683/go.mod h1:GtXRvtMItoflWGLPE7GNq+AdL7BnmpaaNLtDQVD1XHU=
-github.com/getlantern/quicwrapper v0.0.0-20230627031542-82ee2afb27d0 h1:xhDazETVv9tSHPfffpWPi7jAmEn4J+K32iMhyKV0lz0=
-github.com/getlantern/quicwrapper v0.0.0-20230627031542-82ee2afb27d0/go.mod h1:VIVKENhDaV5T+KPMHPHr3nev4JjxdLE7X6HreEOpnY8=
+github.com/getlantern/quicwrapper v0.0.0-20230628202137-869099385a2a h1:aN5eTNvSgmcU8PUspeXY4ZNWgDeJnR3LHS82T1E2yzw=
+github.com/getlantern/quicwrapper v0.0.0-20230628202137-869099385a2a/go.mod h1:VIVKENhDaV5T+KPMHPHr3nev4JjxdLE7X6HreEOpnY8=
 github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7 h1:47FJ5kTeXc3I1VPpi2hWW9I16/Y3K0cpUq/B7oWJGF8=
 github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7/go.mod h1:OOqKCIkspqXtIWEex4uhH1H9l7NGekT9i3Hs591ZDk4=
 github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c h1:IkjF+RwRs8B/RsuD638eUFO2K/227OO2B1FLXGp17Ro=

@@ -30,7 +30,7 @@ require (
 	github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360
 	github.com/getlantern/proxy/v2 v2.0.1-0.20220303164029-b34b76e0e581
 	github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683
-	github.com/getlantern/quicwrapper v0.0.0-20230627031542-82ee2afb27d0
+	github.com/getlantern/quicwrapper v0.0.0-20230628202137-869099385a2a
 	github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
