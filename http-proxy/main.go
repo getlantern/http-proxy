@@ -53,6 +53,7 @@ var (
 	quicIETFAddr  = flag.String("quic-ietf-addr", "", "Address at which to listen for IETF QUIC connections.")
 	quicBBR       = flag.Bool("quic-bbr", false, "Should quic-go use BBR instead of CUBIC")
 	wssAddr       = flag.String("wss-addr", "", "Address at which to listen for WSS connections.")
+	webtAddr      = flag.String("webt-addr", "", "Address at which to listen for WebTransport connections.")
 	kcpConf       = flag.String("kcpconf", "", "Path to file configuring kcp")
 
 	obfs4Addr                          = flag.String("obfs4-addr", "", "Provide an address here in order to listen with obfs4")
@@ -413,6 +414,7 @@ func main() {
 		BBRUpstreamProbeURL:                *bbrUpstreamProbeURL,
 		QUICIETFAddr:                       *quicIETFAddr,
 		QUICUseBBR:                         *quicBBR,
+		WebTAddr:                           *webtAddr,
 		WSSAddr:                            *wssAddr,
 		PacketForwardAddr:                  *packetForwardAddr,
 		ExternalIntf:                       *externalIntf,

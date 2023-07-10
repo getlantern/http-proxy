@@ -752,6 +752,8 @@ func (p *Proxy) buildOTELOpts(endpoint string, includeProxyIdentity bool) *otel.
 		opts.Addr = p.ShadowsocksAddr
 	} else if p.QUICIETFAddr != "" {
 		opts.Addr = p.QUICIETFAddr
+	} else if p.WebTAddr != "" {
+		opts.Addr = p.WebTAddr
 	} else if p.LampshadeAddr != "" {
 		opts.Addr = p.LampshadeAddr
 	} else if p.Obfs4MultiplexAddr != "" {
