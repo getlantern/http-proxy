@@ -264,7 +264,7 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 
 	otelinstrument.ProxyIO.Add(
 		ctx,
-		int64(sent),
+		int64(recv),
 		metric.WithAttributes(
 			append(otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("receive")})...,
 		),
