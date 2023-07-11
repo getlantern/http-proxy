@@ -1,7 +1,7 @@
 name: docker push
 on:
   push:
-    branches: [colin/dockerize]
+    branches: [main]
 
 jobs:
   docker_push:
