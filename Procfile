@@ -1,1 +1,1 @@
-web: http-proxy -broflake-addr :$PORT
+web: http-proxy -webt-addr :$PORT
