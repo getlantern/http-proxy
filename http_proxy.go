@@ -934,7 +934,7 @@ func (p *Proxy) listenQUICIETF(addr string) (net.Listener, error) {
 
 func (p *Proxy) listenWebT(addr string) listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
-		wrapped, wrapErr := broflake.WrapWebTransport(addr, p.BroflakeCert, p.BroflakeKey)
+		wrapped, wrapErr := broflake.NewWebTransportListener(addr, p.BroflakeCert, p.BroflakeKey)
 		if wrapErr != nil {
 			log.Fatalf("Unable to initialize broflake with tcp: %v", wrapErr)
 		}
