@@ -1,1 +1,1 @@
-web: http-proxy -webt-addr :$PORT
+web: http-proxy -webt-addr :8000
