@@ -16,7 +16,6 @@ import (
 
 	"github.com/Jigsaw-Code/outline-ss-server/client"
 	"github.com/Jigsaw-Code/outline-ss-server/service"
-	"github.com/Jigsaw-Code/outline-ss-server/service/metrics"
 	outlineShadowsocks "github.com/Jigsaw-Code/outline-ss-server/shadowsocks"
 	"github.com/stretchr/testify/require"
 )
@@ -50,13 +49,12 @@ func TestLocalUpstreamHandling(t *testing.T) {
 	secrets := outlineShadowsocks.MakeTestSecrets(1)
 	cipherList, err := makeTestCiphers(secrets)
 	require.Nil(t, err, "MakeTestCiphers failed: %v", err)
-	testMetrics := &metrics.NoOpMetrics{}
 
 	options := &ListenerOptions{
 		Listener: &tcpListenerAdapter{l0},
 		Ciphers:  cipherList,
-		Metrics:  testMetrics,
-		Timeout:  200 * time.Millisecond,
+		// Metrics:  testMetrics,
+		Timeout: 200 * time.Millisecond,
 	}
 
 	l1 := ListenLocalTCPOptions(options)
@@ -136,12 +134,10 @@ func TestConcurrentLocalUpstreamHandling(t *testing.T) {
 	secrets := outlineShadowsocks.MakeTestSecrets(1)
 	cipherList, err := makeTestCiphers(secrets)
 	require.Nil(t, err, "MakeTestCiphers failed: %v", err)
-	testMetrics := &metrics.NoOpMetrics{}
 
 	options := &ListenerOptions{
 		Listener: &tcpListenerAdapter{l0},
 		Ciphers:  cipherList,
-		Metrics:  testMetrics,
 		Timeout:  200 * time.Millisecond,
 	}
 

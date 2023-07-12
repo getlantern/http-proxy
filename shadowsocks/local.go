@@ -51,7 +51,6 @@ type ListenerOptions struct {
 	Listener              onet.TCPListener
 	Ciphers               service.CipherList
 	ReplayCache           *service.ReplayCache
-	Metrics               metrics.ShadowsocksMetrics
 	Timeout               time.Duration
 	ShouldHandleLocally   HandleLocalPredicate   // determines whether an upstream should be handled by the listener locally or dial upstream
 	TargetIPValidator     onet.TargetIPValidator // determines validity of non-local upstream dials
@@ -107,7 +106,6 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 	if timeout == 0 {
 		timeout = tcpReadTimeout
 	}
-	m := options.Metrics
 
 	validator := options.TargetIPValidator
 	if validator == nil {
@@ -123,7 +121,7 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 	l.TCPService = service.NewTCPService(
 		options.Ciphers,
 		options.ReplayCache,
-		m,
+		&metrics.NoOpMetrics{},
 		timeout,
 		&service.TCPServiceOptions{
 			DialTarget:        dialer,
