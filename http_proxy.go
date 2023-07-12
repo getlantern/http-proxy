@@ -29,7 +29,6 @@ import (
 	shadowsocks "github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/http-proxy-lantern/v2/starbridge"
 	"github.com/getlantern/kcpwrapper"
-	"github.com/getlantern/quicwrapper/webt"
 
 	"github.com/xtaci/smux"
 
@@ -347,7 +346,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	if err := addListenerIfNecessary("wss", p.WSSAddr, p.listenWSS); err != nil {
 		return err
 	}
-	if err := addListenerIfNecessary("webt", p.WebTAddr, p.listenWebT); err != nil {
+	if err := addListenerIfNecessary("webt", p.WebTAddr, p.listenWebT(p.WebTAddr)); err != nil {
 		return err
 	}
 
@@ -933,30 +932,16 @@ func (p *Proxy) listenQUICIETF(addr string) (net.Listener, error) {
 	return l, err
 }
 
-func (p *Proxy) listenWebT(addr string) (net.Listener, error) {
-	tlsConf, err := tlsdefaults.BuildListenerConfig(addr, p.KeyFile, p.CertFile)
-	if err != nil {
-		return nil, err
-	}
+func (p *Proxy) listenWebT(addr string) listenerBuilderFN {
+	return func(addr string) (net.Listener, error) {
+		wrapped, wrapErr := broflake.WrapWebTransport(addr, p.BroflakeCert, p.BroflakeKey)
+		if wrapErr != nil {
+			log.Fatalf("Unable to initialize broflake with tcp: %v", wrapErr)
+		}
+		log.Debugf("Listening for broflake at %v", wrapped.Addr())
 
-	config := &quicwrapper.Config{
-		MaxIncomingStreams:      1000,
-		DisablePathMTUDiscovery: true,
+		return wrapped, nil
 	}
-
-	options := &webt.ListenOptions{
-		Addr:       p.WebTAddr,
-		TLSConfig:  tlsConf,
-		QuicConfig: config,
-	}
-
-	l, err := webt.ListenAddr(options)
-	if err != nil {
-		return nil, err
-	}
-
-	log.Debugf("Listening for WebTransport connections at %v", l.Addr())
-	return l, err
 }
 
 func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
@@ -1048,7 +1033,7 @@ func (p *Proxy) listenBroflake(baseListen func(string) (net.Listener, error)) li
 		if err != nil {
 			return nil, err
 		}
-		wrapped, wrapErr := broflake.Wrap(l, p.BroflakeCert, p.BroflakeKey)
+		wrapped, wrapErr := broflake.WrapWebSocket(l, p.BroflakeCert, p.BroflakeKey)
 		if wrapErr != nil {
 			log.Fatalf("Unable to initialize broflake with tcp: %v", wrapErr)
 		}
