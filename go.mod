@@ -10,7 +10,7 @@ require (
 	github.com/OperatorFoundation/Starbridge-go/Starbridge/v3 v3.0.15
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/dustin/go-humanize v1.0.0
-	github.com/getlantern/broflake v0.0.0-20230712151102-babe00bace7f
+	github.com/getlantern/broflake v0.0.0-20230712153547-aa716566e960
 	github.com/getlantern/cmux/v2 v2.0.0-20230228131144-addc208d233b
 	github.com/getlantern/cmuxprivate v0.0.0-20200905032931-afb63438e40b
 	github.com/getlantern/enhttp v0.0.0-20190401024120-a974fa851e3c
@@ -30,7 +30,7 @@ require (
 	github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360
 	github.com/getlantern/proxy/v2 v2.0.1-0.20220303164029-b34b76e0e581
 	github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683
-	github.com/getlantern/quicwrapper v0.0.0-20230712142605-583786d9d29c
+	github.com/getlantern/quicwrapper v0.0.0-20230712153452-6632f7a4b6ed
 	github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7
 	github.com/getlantern/tinywss v0.0.0-20200121221108-851921f95ad7
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
