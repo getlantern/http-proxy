@@ -10,7 +10,7 @@ import (
 	"time"
 
 	utls "github.com/refraction-networking/utls"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 )
@@ -37,9 +37,9 @@ func TestAbortOnHello(t *testing.T) {
 			l, _ := net.Listen("tcp", ":0")
 			defer l.Close()
 			hl, err := Wrap(
-				l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", "",
+				l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", "", "",
 				true, tc.response, false, instrument.NoInstrument{})
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			defer hl.Close()
 
 			go func() {
@@ -61,25 +61,25 @@ func TestAbortOnHello(t *testing.T) {
 			cfg := &tls.Config{ServerName: "microsoft.com"}
 			conn, err := tls.Dial("tcp", l.Addr().String(), cfg)
 			if tc.expectedErr != "" {
-				assert.Error(t, err)
-				assert.Equal(t, tc.expectedErr, err.Error())
+				require.Error(t, err)
+				require.Equal(t, tc.expectedErr, err.Error())
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				defer conn.Close()
-				assert.Equal(t, "microsoft.com", conn.ConnectionState().PeerCertificates[0].Subject.CommonName)
+				require.Equal(t, "microsoft.com", conn.ConnectionState().PeerCertificates[0].Subject.CommonName)
 				req, _ := http.NewRequest("GET", "https://microsoft.com", nil)
-				assert.NoError(t, req.Write(conn))
+				require.NoError(t, req.Write(conn))
 				resp, err := http.ReadResponse(bufio.NewReader(conn), req)
-				assert.NoError(t, err)
-				assert.Equal(t, http.StatusMovedPermanently, resp.StatusCode)
+				require.NoError(t, err)
+				require.Equal(t, http.StatusMovedPermanently, resp.StatusCode)
 			}
 
 			// Now make sure we can't spoof a session ticket.
 			rawConn, err := net.Dial("tcp", l.Addr().String())
-			assert.NoError(t, err)
+			require.NoError(t, err)
 			ucfg := &utls.Config{ServerName: "microsoft.com"}
-			maintainSessionTicketKey(
-				&tls.Config{}, "../test/testtickets", nil,
+			maintainSessionTicketKeyFile(
+				&tls.Config{}, "../test/testtickets", "",
 				func(keys [][32]byte) { ucfg.SetSessionTicketKeys(keys) })
 			ss := &utls.ClientSessionState{}
 			ticket := make([]byte, 120)
@@ -91,12 +91,12 @@ func TestAbortOnHello(t *testing.T) {
 			uconn.SetSessionState(ss)
 			err = uconn.Handshake()
 			if tc.expectedErr != "" {
-				assert.Error(t, err)
-				assert.Equal(t, tc.expectedErr, err.Error(), tc.response.action)
+				require.Error(t, err)
+				require.Equal(t, tc.expectedErr, err.Error(), tc.response.action)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				defer conn.Close()
-				assert.Equal(t, "microsoft.com", uconn.ConnectionState().PeerCertificates[0].Subject.CommonName)
+				require.Equal(t, "microsoft.com", uconn.ConnectionState().PeerCertificates[0].Subject.CommonName)
 			}
 		})
 	}
@@ -108,5 +108,5 @@ func TestParseInvalidTicket(t *testing.T) {
 	ticket := make([]byte, 120)
 	rand.Read(ticket)
 	plainText, _ := utls.DecryptTicketWith(ticket, utls.TicketKeys{utls.TicketKeyFromBytes(tk)})
-	assert.Len(t, plainText, 0)
+	require.Len(t, plainText, 0)
 }
