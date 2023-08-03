@@ -40,10 +40,10 @@ var (
 	revision   = "unknown" // overridden by Makefile
 	build_type = "unknown" // overriden by Makefile
 
-	// Use our own CDN distribution which fetches the origin at most once per
+	// Use our own S3 bucket  distribution which fetches the origin at most once per
 	// day to avoid hitting the 2000 downloads/day limit imposed by MaxMind.
-	geolite2_url   = "https://d254wvfcgkka1d.cloudfront.net/app/geoip_download?license_key=%s&edition_id=GeoLite2-Country&suffix=tar.gz"
-	geoip2_isp_url = "https://d254wvfcgkka1d.cloudfront.net/app/geoip_download?license_key=%s&edition_id=GeoIP2-ISP&suffix=tar.gz"
+	geolite2_url   = "https://lanterngeo.s3.eu-central-1.amazonaws.com/GeoLite2-Country.mmdb.tar.gz"
+	geoip2_isp_url = "https://lanterngeo.s3.eu-central-1.amazonaws.com/GeoIP2-ISP.mmdb.tar.gz"
 
 	hostname, _ = os.Hostname()
 
@@ -455,8 +455,8 @@ func main() {
 		if err := deleteStaleISPDB(); err != nil {
 			log.Errorf("Error deleting stale ISP DB, ignore: %v", err)
 		}
-		p.CountryLookup = geo.FromWeb(fmt.Sprintf(geolite2_url, *maxmindLicenseKey), "GeoLite2-Country.mmdb", 24*time.Hour, countryDBFile, geo.CountryCode)
-		p.ISPLookup = geo.FromWeb(fmt.Sprintf(geoip2_isp_url, *maxmindLicenseKey), "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile, geo.ISP)
+		p.CountryLookup = geo.FromWeb(geolite2_url, "GeoLite2-Country.mmdb", 24*time.Hour, countryDBFile, geo.CountryCode)
+		p.ISPLookup = geo.FromWeb(geoip2_isp_url, "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile, geo.ISP)
 	}
 
 	err = p.ListenAndServe(ctx)
