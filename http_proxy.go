@@ -196,6 +196,20 @@ type addresses struct {
 	broflake       string
 }
 
+// RunBroflakeProxy runs a proxy for broflake browser-based peers.
+func RunBroflakeProxy(ctx context.Context, port int, track string) error {
+	p := &Proxy{
+		Track:        track,
+		Pro:          true,
+		WebTAddr:     ":" + strconv.Itoa(port), // This is running on UDP
+		BroflakeAddr: ":" + strconv.Itoa(port), // This is running on TCP
+		BroflakeCert: os.Getenv("BROFLAKE_CERT"),
+		BroflakeKey:  os.Getenv("BROFLAKE_KEY"),
+	}
+
+	return p.ListenAndServe(ctx)
+}
+
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	if p.CountryLookup == nil {
