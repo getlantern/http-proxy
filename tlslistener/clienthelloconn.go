@@ -210,7 +210,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	}
 
 	plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, rrc.utlsCfg)
-	if plainText == nil || len(plainText) == 0 {
+	if len(plainText) == 0 {
 		return rrc.helloError("ClientHello has invalid session ticket")
 	}
 
@@ -219,6 +219,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 
 func (rrc *clientHelloRecordingConn) helloError(errStr string) (*tls.Config, error) {
 	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
+	log.Debugf("Responding with hello error '%v' to %v", errStr, sourceIP)
 	rrc.instrument.SuspectedProbing(context.Background(), sourceIP, errStr)
 	if rrc.missingTicketReaction.handleConn != nil {
 		rrc.missingTicketReaction.handleConn(rrc)
