@@ -144,6 +144,10 @@ func TestClientHelloConcurrency(t *testing.T) {
 				b := bufio.NewReader(conn)
 				for i := 0; i < requestsPerConn; i++ {
 					req, err := http.ReadRequest(b)
+					if err != nil && i == 0 {
+						// this is okay, this is just the first connection that gets a session ticket
+						return
+					}
 					require.NoError(t, err)
 					io.Copy(io.Discard, req.Body)
 					req.Body.Close()
@@ -160,14 +164,34 @@ func TestClientHelloConcurrency(t *testing.T) {
 	for i := 0; i < numWorkers; i++ {
 		go func() {
 			defer wg.Done()
+			cfg := &tls.Config{
+				InsecureSkipVerify: true,
+				ClientSessionCache: tls.NewLRUClientSessionCache(0),
+			}
+			// Dial once without session ticket
+			var conn net.Conn
+			var err error
+			conn, err = tls.Dial("tcp", l.Addr().String(), cfg)
+			require.NoError(t, err)
+			// Write some jibberish
+			jibberish := make([]byte, 1024)
+			_, err = rand.Read(jibberish)
+			require.NoError(t, err)
+			_, err = conn.Write(jibberish)
+			require.NoError(t, err)
+			conn.Close()
+
+			// Dial again to send actual requests
 			md := cmux.Dialer(&cmux.DialerOpts{
 				Dial: func(ctx context.Context, network, addr string) (conn net.Conn, err error) {
-					return tls.Dial(network, addr, &tls.Config{InsecureSkipVerify: true})
+					return tls.Dial(network, addr, cfg)
 				},
 				Protocol: proto,
 			})
-			conn, err := md(context.Background(), "tcp", l.Addr().String())
+			conn, err = md(context.Background(), "tcp", l.Addr().String())
 			require.NoError(t, err)
+			defer conn.Close()
+
 			b := bufio.NewReader(conn)
 			// Pipeline requests
 			for i := 0; i < requestsPerConn; i++ {

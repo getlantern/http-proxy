@@ -176,11 +176,9 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	rrc.activeReader = rrc.Conn
 	rrc.helloMutex.Unlock()
 	defer func() {
-		time.Sleep(250 * time.Millisecond)
 		rrc.dataRead.Reset()
 		bufferPool.Put(rrc.dataRead)
 	}()
-	time.Sleep(250 * time.Millisecond)
 
 	hello := rrc.dataRead.Bytes()[5:]
 	// We use uTLS here purely because it exposes more TLS handshake internals, allowing
@@ -204,18 +202,22 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	// pre-defined tickets. If it doesn't we should again return some sort of error or just
 	// close the connection.
 	if !helloMsg.TicketSupported {
+		log.Debug("ClientHello does not support session tickets")
 		return rrc.helloError("ClientHello does not support session tickets")
 	}
 
 	if len(helloMsg.SessionTicket) == 0 {
+		log.Debug("ClientHello has no session tickets")
 		return rrc.helloError("ClientHello has no session ticket")
 	}
 
 	plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, rrc.utlsCfg)
-	if plainText == nil || len(plainText) == 0 {
+	if len(plainText) == 0 {
+		log.Debug("ClientHello has invalid session tickets")
 		return rrc.helloError("ClientHello has invalid session ticket")
 	}
 
+	log.Debug("ClientHello okay")
 	return nil, nil
 }
 
