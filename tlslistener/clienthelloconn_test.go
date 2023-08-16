@@ -103,12 +103,10 @@ func TestAbortOnHello(t *testing.T) {
 }
 
 func TestParseInvalidTicket(t *testing.T) {
-	scfg := &utls.Config{}
 	var tk [32]byte
 	rand.Read(tk[:])
-	scfg.SetSessionTicketKeys([][32]byte{tk})
 	ticket := make([]byte, 120)
 	rand.Read(ticket)
-	plainText, _ := utls.DecryptTicketWith(ticket, scfg)
+	plainText, _ := utls.DecryptTicketWith(ticket, utls.TicketKeys{utls.TicketKeyFromBytes(tk)})
 	assert.Len(t, plainText, 0)
 }
