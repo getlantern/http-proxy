@@ -10,13 +10,11 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/getlantern/errors"
 	"github.com/getlantern/geo"
-	"github.com/getlantern/http-proxy-lantern/v2/instrument/otelinstrument"
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/proxy/v2/filters"
 )
@@ -101,10 +99,6 @@ type defaultInstrument struct {
 }
 
 func NewDefault(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup) (*defaultInstrument, error) {
-	if err := otelinstrument.Initialize(); err != nil {
-		return nil, err
-	}
-
 	p := &defaultInstrument{
 		countryLookup:           countryLookup,
 		ispLookup:               ispLookup,
@@ -122,235 +116,64 @@ func NewDefault(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup) (*defa
 // (so-called RED) of processed requests.
 func (ins *defaultInstrument) WrapFilter(prefix string, f filters.Filter) (filters.Filter, error) {
 	wrapped := ins.filters[prefix]
-	if wrapped == nil {
-		var err error
-		wrapped, err = otelinstrument.WrapFilter(prefix, f)
-		if err != nil {
-			return nil, err
-		}
-		ins.filters[prefix] = wrapped
-	}
 	return wrapped, nil
 }
 
 // WrapConnErrorHandler wraps an error handler to instrument the error count.
 func (ins *defaultInstrument) WrapConnErrorHandler(prefix string, f func(conn net.Conn, err error)) (func(conn net.Conn, err error), error) {
 	h := ins.errorHandlers[prefix]
-	if h == nil {
-		otelCounter, err := otelinstrument.ConnErrorHandlerCounter(prefix)
-		if err != nil {
-			return nil, err
-		}
-		otelConsecCounter, err := otelinstrument.ConnConsecErrorHandlerCounter(prefix)
-		if err != nil {
-			return nil, err
-		}
-		if f == nil {
-			f = func(conn net.Conn, err error) {}
-		}
-		var mu sync.Mutex
-		var lastRemoteIP string
-		h = func(conn net.Conn, err error) {
-			otelCounter.Add(context.Background(), 1)
-			addr := conn.RemoteAddr()
-			if addr == nil {
-				return
-			}
-			host, _, err := net.SplitHostPort(addr.String())
-			if err != nil {
-				return
-			}
-			mu.Lock()
-			if lastRemoteIP != host {
-				lastRemoteIP = host
-				mu.Unlock()
-				otelConsecCounter.Add(context.Background(), 1)
-			} else {
-				mu.Unlock()
-			}
-			f(conn, err)
-		}
-		ins.errorHandlers[prefix] = h
-	}
 	return h, nil
 }
 
 // Blacklist instruments the blacklist checking.
 func (ins *defaultInstrument) Blacklist(ctx context.Context, b bool) {
-	otelinstrument.Blacklist.Add(ctx, 1,
-		metric.WithAttributes(attribute.KeyValue{"blacklisted", attribute.BoolValue(b)}))
+
 }
 
 // Mimic instruments the Apache mimicry.
 func (ins *defaultInstrument) Mimic(ctx context.Context, m bool) {
-	otelinstrument.Mimicked.Add(ctx, 1, metric.WithAttributes(attribute.KeyValue{"mimicked", attribute.BoolValue(m)}))
 
-	if m {
-		otelinstrument.Mimicked.Add(ctx, 1)
-	}
 }
 
 // Throttle instruments the device based throttling.
 func (ins *defaultInstrument) Throttle(ctx context.Context, m bool, reason string) {
-	otelinstrument.Throttling.Add(ctx, 1,
-		metric.WithAttributes(
-			attribute.KeyValue{"throttled", attribute.BoolValue(m)},
-			attribute.KeyValue{"reason", attribute.StringValue(reason)},
-		))
+
 }
 
 // XBQHeaderSent counts the number of times XBQ header is sent along with the
 // response.
 func (ins *defaultInstrument) XBQHeaderSent(ctx context.Context) {
-	otelinstrument.XBQ.Add(ctx, 1)
+
 }
 
 // SuspectedProbing records the number of visits which looks like active
 // probing.
 func (ins *defaultInstrument) SuspectedProbing(ctx context.Context, fromIP net.IP, reason string) {
-	fromCountry := ins.countryLookup.CountryCode(fromIP)
-	otelinstrument.SuspectedProbing.Add(
-		ctx,
-		1,
-		metric.WithAttributes(
-			attribute.KeyValue{"country", attribute.StringValue(fromCountry)},
-			attribute.KeyValue{"reason", attribute.StringValue(reason)},
-		),
-	)
+
 }
 
 // VersionCheck records the number of times the Lantern version header is
 // checked and if redirecting to the upgrade page is required.
 func (ins *defaultInstrument) VersionCheck(ctx context.Context, redirect bool, method, reason string) {
-	otelinstrument.VersionCheck.Add(
-		ctx,
-		1,
-		metric.WithAttributes(
-			attribute.KeyValue{"method", attribute.StringValue(method)},
-			attribute.KeyValue{"redirected", attribute.BoolValue(redirect)},
-			attribute.KeyValue{"reason", attribute.StringValue(reason)},
-		),
-	)
+
 }
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
 func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
-	// Track the cardinality of clients.
-	otelinstrument.DistinctClients1m.Add(deviceID)
-	otelinstrument.DistinctClients10m.Add(deviceID)
-	otelinstrument.DistinctClients1h.Add(deviceID)
 
-	country := ins.countryLookup.CountryCode(clientIP)
-	isp := ins.ispLookup.ISP(clientIP)
-	asn := ins.ispLookup.ASN(clientIP)
-	otelAttributes := []attribute.KeyValue{
-		{"client_platform", attribute.StringValue(platform)},
-		{"client_version", attribute.StringValue(version)},
-		{"client_app", attribute.StringValue(app)},
-		{"datacap_cohort", attribute.StringValue(dataCapCohort)},
-		{"country", attribute.StringValue(country)},
-		{"client_isp", attribute.StringValue(isp)},
-		{"client_asn", attribute.StringValue(asn)},
-	}
-
-	otelinstrument.ProxyIO.Add(
-		ctx,
-		int64(sent),
-		metric.WithAttributes(
-			append(otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("transmit")})...,
-		),
-	)
-
-	otelinstrument.ProxyIO.Add(
-		ctx,
-		int64(recv),
-		metric.WithAttributes(
-			append(otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("receive")})...,
-		),
-	)
-
-	clientKey := clientDetails{
-		platform: platform,
-		version:  version,
-		locale:   locale,
-		country:  country,
-		isp:      isp,
-		asn:      asn,
-	}
-	clientKeyWithDeviceID := clientDetails{
-		deviceID: deviceID,
-		platform: platform,
-		version:  version,
-		locale:   locale,
-		country:  country,
-		isp:      isp,
-		asn:      asn,
-	}
-	ins.statsMx.Lock()
-	ins.clientStats[clientKey] = ins.clientStats[clientKey].add(sent, recv)
-	ins.clientStatsWithDeviceID[clientKeyWithDeviceID] = ins.clientStatsWithDeviceID[clientKeyWithDeviceID].add(sent, recv)
-	if originHost != "" {
-		originRoot, err := ins.originRoot(originHost)
-		if err == nil {
-			// only record if we could extract originRoot
-			originKey := originDetails{
-				origin:   originRoot,
-				platform: platform,
-				version:  version,
-				country:  country,
-			}
-			ins.originStats[originKey] = ins.originStats[originKey].add(sent, recv)
-		}
-	}
-	ins.statsMx.Unlock()
 }
 
 // quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.
 func (ins *defaultInstrument) quicSentPacket(ctx context.Context) {
-	otelinstrument.QuicPackets.Add(ctx, 1, metric.WithAttributes(attribute.KeyValue{"state", attribute.StringValue("sent")}))
+
 }
 
 func (ins *defaultInstrument) quicLostPacket(ctx context.Context) {
-	otelinstrument.QuicPackets.Add(ctx, 1, metric.WithAttributes(attribute.KeyValue{"state", attribute.StringValue("lost")}))
-}
 
-type stats struct {
-	otelAttributes []attribute.KeyValue
-}
-
-func (s *stats) OnRecv(n uint64) {
-	otelinstrument.MultipathFrames.Add(context.Background(), 1,
-		metric.WithAttributes(append(s.otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("receive")})...))
-	otelinstrument.MultipathIO.Add(context.Background(), int64(n),
-		metric.WithAttributes(append(s.otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("receive")})...))
-}
-func (s *stats) OnSent(n uint64) {
-	otelinstrument.MultipathFrames.Add(context.Background(), 1,
-		metric.WithAttributes(append(s.otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("transmit")})...))
-	otelinstrument.MultipathIO.Add(context.Background(), int64(n),
-		metric.WithAttributes(append(s.otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("transmit")})...))
-}
-func (s *stats) OnRetransmit(n uint64) {
-	otelinstrument.MultipathFrames.Add(context.Background(), 1,
-		metric.WithAttributes(append(s.otelAttributes,
-			attribute.KeyValue{"direction", attribute.StringValue("transmit")},
-			attribute.KeyValue{"state", attribute.StringValue("retransmit")})...))
-	otelinstrument.MultipathIO.Add(context.Background(), int64(n),
-		metric.WithAttributes(append(s.otelAttributes,
-			attribute.KeyValue{"direction", attribute.StringValue("transmit")},
-			attribute.KeyValue{"state", attribute.StringValue("retransmit")})...))
-}
-func (s *stats) UpdateRTT(time.Duration) {
-	// do nothing as the RTT from different clients can vary significantly
 }
 
 func (ins *defaultInstrument) MultipathStats(protocols []string) (trackers []multipath.StatsTracker) {
-	for _, p := range protocols {
-		trackers = append(trackers, &stats{
-			otelAttributes: []attribute.KeyValue{attribute.KeyValue{"path_protocol", attribute.StringValue(p)}},
-		})
-	}
 	return
 }
 

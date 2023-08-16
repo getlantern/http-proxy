@@ -6,13 +6,9 @@ import (
 	"strings"
 	"time"
 
-	sdkotel "go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
-	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
-	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
@@ -119,41 +115,7 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 }
 
 func InitGlobalMeterProvider(opts *Opts) (func(), error) {
-	exp, err := otlpmetrichttp.New(context.Background(),
-		otlpmetrichttp.WithEndpoint(opts.Endpoint),
-		otlpmetrichttp.WithHeaders(opts.Headers),
-		otlpmetrichttp.WithTemporalitySelector(func(kind sdkmetric.InstrumentKind) metricdata.Temporality {
-			switch kind {
-			case
-				sdkmetric.InstrumentKindCounter,
-				sdkmetric.InstrumentKindUpDownCounter,
-				sdkmetric.InstrumentKindObservableCounter,
-				sdkmetric.InstrumentKindObservableUpDownCounter:
-				return metricdata.DeltaTemporality
-			default:
-				return metricdata.CumulativeTemporality
-			}
-		}),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	// Create a new meter provider
-	mp := sdkmetric.NewMeterProvider(
-		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exp)),
-		sdkmetric.WithResource(opts.buildResource()),
-	)
-
-	// Set the meter provider as global
-	sdkotel.SetMeterProvider(mp)
-
 	return func() {
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		err := mp.Shutdown(ctx)
-		if err != nil {
-			log.Errorf("error shutting down meter provider: %v", err)
-		}
+
 	}, nil
 }
