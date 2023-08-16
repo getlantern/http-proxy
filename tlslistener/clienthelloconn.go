@@ -176,9 +176,11 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	rrc.activeReader = rrc.Conn
 	rrc.helloMutex.Unlock()
 	defer func() {
+		time.Sleep(250 * time.Millisecond)
 		rrc.dataRead.Reset()
 		bufferPool.Put(rrc.dataRead)
 	}()
+	time.Sleep(250 * time.Millisecond)
 
 	hello := rrc.dataRead.Bytes()[5:]
 	// We use uTLS here purely because it exposes more TLS handshake internals, allowing

@@ -2,21 +2,33 @@ package tlslistener
 
 import (
 	"bufio"
+	"bytes"
+	"context"
 	"crypto/rand"
 	"crypto/tls"
+	"io"
+	mrand "math/rand"
 	"net"
 	"net/http"
+	"sync"
 	"testing"
 	"time"
 
 	utls "github.com/refraction-networking/utls"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"github.com/xtaci/smux"
 
+	"github.com/getlantern/cmux/v2"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 )
 
 func TestAbortOnHello(t *testing.T) {
 	disallowLookbackForTesting = true
+	defer func() {
+		disallowLookbackForTesting = false
+	}()
+
 	testCases := []struct {
 		response    HandshakeReaction
 		expectedErr string
@@ -102,6 +114,81 @@ func TestAbortOnHello(t *testing.T) {
 	}
 }
 
+func TestClientHelloConcurrency(t *testing.T) {
+	numWorkers := 100
+	requestsPerConn := 10
+
+	l, _ := net.Listen("tcp", ":0")
+	defer l.Close()
+	hl, err := Wrap(
+		l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", "",
+		true, AlertHandshakeFailure, false, instrument.NoInstrument{})
+	assert.NoError(t, err)
+	defer hl.Close()
+
+	proto := cmux.NewSmuxProtocol(smux.DefaultConfig())
+	ml := cmux.Listen(&cmux.ListenOpts{
+		Listener: hl,
+		Protocol: proto,
+	})
+	defer ml.Close()
+
+	go func() {
+		for {
+			conn, err := ml.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				defer conn.Close()
+				b := bufio.NewReader(conn)
+				for i := 0; i < requestsPerConn; i++ {
+					req, err := http.ReadRequest(b)
+					require.NoError(t, err)
+					io.Copy(io.Discard, req.Body)
+					req.Body.Close()
+					var resp http.Response
+					resp.StatusCode = http.StatusOK
+					resp.Write(conn)
+				}
+			}()
+		}
+	}()
+
+	var wg sync.WaitGroup
+	wg.Add(numWorkers)
+	for i := 0; i < numWorkers; i++ {
+		go func() {
+			defer wg.Done()
+			md := cmux.Dialer(&cmux.DialerOpts{
+				Dial: func(ctx context.Context, network, addr string) (conn net.Conn, err error) {
+					return tls.Dial(network, addr, &tls.Config{InsecureSkipVerify: true})
+				},
+				Protocol: proto,
+			})
+			conn, err := md(context.Background(), "tcp", l.Addr().String())
+			require.NoError(t, err)
+			b := bufio.NewReader(conn)
+			// Pipeline requests
+			for i := 0; i < requestsPerConn; i++ {
+				req, err := http.NewRequest("GET", "http://"+l.Addr().String(), bytes.NewReader([]byte("Hello World")))
+				require.NoError(t, err)
+				err = req.Write(conn)
+				require.NoError(t, err)
+			}
+			for i := 0; i < requestsPerConn; i++ {
+				req, err := http.NewRequest("GET", "http://"+l.Addr().String(), bytes.NewReader([]byte("Hello World")))
+				require.NoError(t, err)
+				resp, err := http.ReadResponse(b, req)
+				require.NoError(t, err)
+				io.Copy(io.Discard, resp.Body)
+				require.Equal(t, http.StatusOK, resp.StatusCode)
+			}
+		}()
+	}
+	wg.Wait()
+}
+
 func TestParseInvalidTicket(t *testing.T) {
 	scfg := &utls.Config{}
 	var tk [32]byte
@@ -112,3 +199,45 @@ func TestParseInvalidTicket(t *testing.T) {
 	plainText, _ := utls.DecryptTicketWith(ticket, scfg)
 	assert.Len(t, plainText, 0)
 }
+
+var maxSlowChunkSize = 50
+
+type slowConn struct {
+	net.Conn
+}
+
+func (c *slowConn) Write(b []byte) (int, error) {
+	slowChunkSize := mrand.Intn(maxSlowChunkSize) + 1
+	written := 0
+	for i := 0; i < len(b); i += slowChunkSize {
+		time.Sleep(10 * time.Millisecond)
+		end := i + slowChunkSize
+		if end > len(b) {
+			end = len(b)
+		}
+		n, err := c.Conn.Write(b[i:end])
+		written += n
+		if err != nil {
+			return written, err
+		}
+	}
+	return written, nil
+}
+
+// func (c *slowConn) Read(b []byte) (int, error) {
+// 	read := 0
+// 	for i := 0; i < len(b); i += slowChunkSize {
+// 		// time.Sleep(10 * time.Millisecond)
+// 		end := i + slowChunkSize
+// 		if end > len(b) {
+// 			end = len(b)
+// 		}
+// 		n, err := c.Conn.Read(b[i:end])
+// 		read += n
+// 		if err != nil {
+// 			return read, err
+// 		}
+// 	}
+// 	fmt.Printf("%v vs %v\n", read, len(b))
+// 	return read, nil
+// }
