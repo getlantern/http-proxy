@@ -80,8 +80,8 @@ func (opts *Opts) buildResource() *resource.Resource {
 	}
 	if opts.FrontendProvider != "" {
 		log.Debugf("Will report frontend provider %v in dc %v", opts.FrontendProvider, opts.FrontendDC)
-		attributes = append(attributes, attribute.String("frontend.provider", opts.Provider))
-		attributes = append(attributes, attribute.String("frontend.dc", opts.DC))
+		attributes = append(attributes, attribute.String("frontend.provider", opts.FrontendProvider))
+		attributes = append(attributes, attribute.String("frontend.dc", opts.FrontendDC))
 	}
 	return resource.NewWithAttributes(semconv.SchemaURL, attributes...)
 }
