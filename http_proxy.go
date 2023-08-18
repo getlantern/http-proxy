@@ -131,10 +131,6 @@ type Proxy struct {
 	BlacklistExpiration                time.Duration
 	ProxyName                          string
 	ProxyProtocol                      string
-	Provider                           string
-	DC                                 string
-	FrontendProvider                   string
-	FrontendDC                         string
 	BuildType                          string
 	BBRUpstreamProbeURL                string
 	QUICIETFAddr                       string
@@ -737,20 +733,13 @@ func (p *Proxy) configureOTELMetrics() (func(), error) {
 }
 
 func (p *Proxy) buildOTELOpts(endpoint string, includeProxyIdentity bool) *otel.Opts {
-	proxyName, provider, dc := p.ProxyName, p.Provider, p.DC
-	if dc == "" {
-		// This proxy is running on the old infrastructure, parse the name to get the dc
-		proxyName, dc = proxyNameAndDC(p.ProxyName)
-	}
+	proxyName, dc := proxyNameAndDC(p.ProxyName)
 	opts := &otel.Opts{
-		Endpoint:         endpoint,
-		Track:            p.Track,
-		Provider:         provider,
-		DC:               dc,
-		FrontendProvider: p.FrontendProvider,
-		FrontendDC:       p.FrontendDC,
-		ProxyProtocol:    p.ProxyProtocol,
-		IsPro:            p.Pro,
+		Endpoint:      endpoint,
+		Track:         p.Track,
+		DC:            dc,
+		ProxyProtocol: p.ProxyProtocol,
+		IsPro:         p.Pro,
 	}
 	if p.ShadowsocksMultiplexAddr != "" {
 		opts.Addr = p.ShadowsocksMultiplexAddr

@@ -185,9 +185,9 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	// us to decrypt the ClientHello and session tickets, for example. We use those functions
 	// separately without switching to uTLS entirely to allow continued upgrading of the TLS stack
 	// as new Go versions are released.
-	helloMsg := utls.UnmarshalClientHello(hello)
+	helloMsg, err := utls.UnmarshalClientHello(hello)
 
-	if helloMsg == nil {
+	if err != nil {
 		return rrc.helloError("malformed ClientHello")
 	}
 
@@ -209,8 +209,8 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		return rrc.helloError("ClientHello has no session ticket")
 	}
 
-	plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, utls.TicketKeys{utls.TicketKeyFromBytes(rrc.utlsCfg.SessionTicketKey)})
-	if len(plainText) == 0 {
+	plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, rrc.utlsCfg)
+	if plainText == nil || len(plainText) == 0 {
 		return rrc.helloError("ClientHello has invalid session ticket")
 	}
 
@@ -219,7 +219,6 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 
 func (rrc *clientHelloRecordingConn) helloError(errStr string) (*tls.Config, error) {
 	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
-	log.Debugf("Responding with hello error '%v' to %v", errStr, sourceIP)
 	rrc.instrument.SuspectedProbing(context.Background(), sourceIP, errStr)
 	if rrc.missingTicketReaction.handleConn != nil {
 		rrc.missingTicketReaction.handleConn(rrc)

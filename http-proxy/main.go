@@ -113,10 +113,6 @@ var (
 	proxyName           = flag.String("proxyname", hostname, "The name of this proxy (defaults to hostname)")
 	proxyProtocol       = flag.String("proxyprotocol", "", "The protocol of this proxy, for information only")
 	bbrUpstreamProbeURL = flag.String("bbrprobeurl", "", "optional URL to probe for upstream BBR bandwidth estimates")
-	provider            = flag.String("provider", "", "The name of the proxy's provider")
-	dc                  = flag.String("dc", "", "The name of the proxy's datacenter")
-	frontendProvider    = flag.String("frontendprovider", "", "The name of the provider for the PFE frontend associated with this proxy")
-	frontendDC          = flag.String("frontenddc", "", "The name of the datacenter for the PFE frontend associated with this proxy")
 
 	bench   = flag.Bool("bench", false, "Set this flag to set up proxy as a benchmarking proxy. This automatically puts the proxy into tls mode and disables auth token authentication.")
 	version = flag.Bool("version", false, "shows the version of the binary")
@@ -413,10 +409,6 @@ func main() {
 		BlacklistExpiration:                *blacklistExpiration,
 		ProxyName:                          *proxyName,
 		ProxyProtocol:                      *proxyProtocol,
-		Provider:                           *provider,
-		DC:                                 *dc,
-		FrontendProvider:                   *frontendProvider,
-		FrontendDC:                         *frontendDC,
 		BuildType:                          build_type,
 		BBRUpstreamProbeURL:                *bbrUpstreamProbeURL,
 		QUICIETFAddr:                       *quicIETFAddr,
