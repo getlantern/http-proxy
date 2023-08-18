@@ -73,14 +73,13 @@ var (
 	keyfile              = flag.String("key", "", "Private key file name")
 	certfile             = flag.String("cert", "", "Certificate file name")
 	token                = flag.String("token", "", "Lantern token")
-	sessionTicketKeyFile = flag.String("sessionticketkey", "", "File name for storing rotating session ticket keys (deprecated, use -sessionticketkeys instead)")
-	sessionTicketKeys    = flag.String("sessionticketkeys", "", "One or more 32 byte session ticket keys, base64 encoded. We will rotate through these every 24 hours. Replaces -sessionticketkey")
+	sessionTicketKeyFile = flag.String("sessionticketkey", "", "File name for storing rotating session ticket keys")
 
 	// This flag was added after sessionticketkey (above) to allow the deploying server to configure
 	// a key for the proxy without the need to touch its local files. In the interest of backwards
 	// compatibility, sessionticketkey was retained and firstSessionTicketKey was implemented to be
 	// compatible with sessionticketkey.
-	firstSessionTicketKey = flag.String("first-session-ticket-key", "", "initial session ticket key; never expires; 32-byte string, base64-encoded  (deprecated, use -sessionticketkeys instead)")
+	firstSessionTicketKey = flag.String("first-session-ticket-key", "", "initial session ticket key; never expires; 32-byte string, base64-encoded")
 
 	lampshadeKeyCacheSize     = flag.Int("lampshade-keycache-size", 0, "set this to a positive value to cache client keys and reject duplicates to thwart replay attacks")
 	lampshadeMaxClientInitAge = flag.Duration("lampshade-max-clientinit-age", 0, "set this to a positive value to limit the age of client init messages to thwart replay attacks")
@@ -378,7 +377,6 @@ func main() {
 		HTTPS:                              *https,
 		IdleTimeout:                        time.Duration(*idleClose) * time.Second,
 		KeyFile:                            *keyfile,
-		SessionTicketKeys:                  *sessionTicketKeys,
 		SessionTicketKeyFile:               *sessionTicketKeyFile,
 		FirstSessionTicketKey:              *firstSessionTicketKey,
 		Track:                              *track,

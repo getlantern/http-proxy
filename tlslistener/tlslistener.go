@@ -4,9 +4,11 @@ package tlslistener
 
 import (
 	"crypto/tls"
+	"encoding/base64"
+	"errors"
+	"fmt"
 	"net"
 
-	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/tlsdefaults"
 
@@ -20,7 +22,7 @@ var (
 )
 
 // Wrap wraps the specified listener in our default TLS listener.
-func Wrap(wrapped net.Listener, keyFile, certFile, sessionTicketKeyFile, firstSessionTicketKey, sessionTicketKeys string,
+func Wrap(wrapped net.Listener, keyFile, certFile, sessionTicketKeyFile, firstSessionTicketKey string,
 	requireSessionTickets bool, missingTicketReaction HandshakeReaction, allowTLS13 bool,
 	instrument instrument.Instrument) (net.Listener, error) {
 
@@ -28,6 +30,8 @@ func Wrap(wrapped net.Listener, keyFile, certFile, sessionTicketKeyFile, firstSe
 	if err != nil {
 		return nil, err
 	}
+
+	log := golog.LoggerFor("lantern-proxy-tlslistener")
 
 	utlsConfig := &utls.Config{}
 	onKeys := func(keys [][32]byte) {
@@ -44,19 +48,23 @@ func Wrap(wrapped net.Listener, keyFile, certFile, sessionTicketKeyFile, firstSe
 		cfg.MaxVersion = tls.VersionTLS12
 	}
 
-	expectTicketsFromFile := sessionTicketKeyFile != ""
-	expectTicketsInMemory := sessionTicketKeys != ""
-	expectTickets := expectTicketsFromFile || expectTicketsInMemory
-	if expectTicketsFromFile {
-		if err := maintainSessionTicketKeyFile(cfg, sessionTicketKeyFile, firstSessionTicketKey, onKeys); err != nil {
-			return nil, errors.New("unable to maintain session ticket key file: %v", err)
+	var firstKey *[32]byte
+	if firstSessionTicketKey != "" {
+		b, err := base64.StdEncoding.DecodeString(firstSessionTicketKey)
+		if err != nil {
+			return nil, fmt.Errorf("failed to parse session ticket key: %w", err)
 		}
+		if len(b) != 32 {
+			return nil, errors.New("session ticket key should be 32 bytes")
+		}
+		firstKey = new([32]byte)
+		copy(firstKey[:], b)
 	}
-	if expectTicketsInMemory {
-		log.Debug("Will rotate through session tickets in memory")
-		if err := maintainSessionTicketKeysInMemory(cfg, sessionTicketKeys, onKeys); err != nil {
-			return nil, errors.New("unable to maintain session ticket keys in memory: %v", err)
-		}
+
+	expectTickets := sessionTicketKeyFile != ""
+	if expectTickets {
+		log.Debugf("Will rotate session ticket key and store in %v", sessionTicketKeyFile)
+		maintainSessionTicketKey(cfg, sessionTicketKeyFile, firstKey, onKeys)
 	}
 
 	listener := &tlslistener{wrapped, cfg, log, expectTickets, requireSessionTickets, utlsConfig, missingTicketReaction, instrument}
