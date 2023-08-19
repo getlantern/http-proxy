@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"sync"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/tlsdefaults"
@@ -34,9 +35,6 @@ func Wrap(wrapped net.Listener, keyFile, certFile, sessionTicketKeyFile, firstSe
 	log := golog.LoggerFor("lantern-proxy-tlslistener")
 
 	utlsConfig := &utls.Config{}
-	onKeys := func(keys [][32]byte) {
-		utlsConfig.SetSessionTicketKeys(keys)
-	}
 
 	// Depending on the ClientHello generated, we use session tickets both for normal
 	// session ticket resumption as well as pre-negotiated session tickets as obfuscation.
@@ -62,12 +60,30 @@ func Wrap(wrapped net.Listener, keyFile, certFile, sessionTicketKeyFile, firstSe
 	}
 
 	expectTickets := sessionTicketKeyFile != ""
+
+	listener := &tlslistener{
+		wrapped:               wrapped,
+		cfg:                   cfg,
+		log:                   log,
+		expectTickets:         expectTickets,
+		requireTickets:        requireSessionTickets,
+		utlsCfg:               utlsConfig,
+		missingTicketReaction: missingTicketReaction,
+		instrument:            instrument,
+	}
 	if expectTickets {
 		log.Debugf("Will rotate session ticket key and store in %v", sessionTicketKeyFile)
-		maintainSessionTicketKey(cfg, sessionTicketKeyFile, firstKey, onKeys)
+		maintainSessionTicketKey(cfg, sessionTicketKeyFile, firstKey, func(keys [][32]byte) {
+			utlsConfig.SetSessionTicketKeys(keys)
+			listener.ticketKeysMutex.Lock()
+			defer listener.ticketKeysMutex.Unlock()
+			listener.ticketKeys = make([]utls.TicketKey, 0, len(keys))
+			for _, k := range keys {
+				listener.ticketKeys = append(listener.ticketKeys, utls.TicketKeyFromBytes(k))
+			}
+		})
 	}
 
-	listener := &tlslistener{wrapped, cfg, log, expectTickets, requireSessionTickets, utlsConfig, missingTicketReaction, instrument}
 	return listener, nil
 }
 
@@ -80,6 +96,8 @@ type tlslistener struct {
 	utlsCfg               *utls.Config
 	missingTicketReaction HandshakeReaction
 	instrument            instrument.Instrument
+	ticketKeys            utls.TicketKeys
+	ticketKeysMutex       sync.RWMutex
 }
 
 func (l *tlslistener) Accept() (net.Conn, error) {
@@ -90,8 +108,15 @@ func (l *tlslistener) Accept() (net.Conn, error) {
 	if !l.expectTickets || !l.requireTickets {
 		return &tlsconn{tls.Server(conn, l.cfg), conn}, nil
 	}
-	helloConn, cfg := newClientHelloRecordingConn(conn, l.cfg, l.utlsCfg, l.missingTicketReaction, l.instrument)
+
+	helloConn, cfg := newClientHelloRecordingConn(conn, l.cfg, l.utlsCfg, l.getTicketKeys(), l.missingTicketReaction, l.instrument)
 	return &tlsconn{tls.Server(helloConn, cfg), conn}, nil
+}
+
+func (l *tlslistener) getTicketKeys() utls.TicketKeys {
+	l.ticketKeysMutex.RLock()
+	defer l.ticketKeysMutex.RUnlock()
+	return l.ticketKeys
 }
 
 func (l *tlslistener) Addr() net.Addr {

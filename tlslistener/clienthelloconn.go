@@ -123,7 +123,7 @@ func Delayed(d time.Duration, r HandshakeReaction) HandshakeReaction {
 	return r2
 }
 
-var disallowLookbackForTesting bool
+var disallowLoopbackForTesting bool
 
 var bufferPool = sync.Pool{
 	New: func() interface{} {
@@ -135,7 +135,7 @@ var bytePool = sync.Pool{
 		return make([]byte, reflectBufferSize)
 	}}
 
-func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utls.Config, missingTicketReaction HandshakeReaction, instrument instrument.Instrument) (net.Conn, *tls.Config) {
+func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utls.Config, ticketKeys utls.TicketKeys, missingTicketReaction HandshakeReaction, instrument instrument.Instrument) (net.Conn, *tls.Config) {
 	buf := bufferPool.Get().(*bytes.Buffer)
 	cfgClone := cfg.Clone()
 	rrc := &clientHelloRecordingConn{
@@ -143,6 +143,7 @@ func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utl
 		dataRead:              buf,
 		log:                   golog.LoggerFor("clienthello-conn"),
 		cfg:                   cfgClone,
+		ticketKeys:            ticketKeys,
 		activeReader:          io.TeeReader(rawConn, buf),
 		helloMutex:            &sync.Mutex{},
 		utlsCfg:               utlsCfg,
@@ -162,6 +163,7 @@ type clientHelloRecordingConn struct {
 	helloMutex            *sync.Mutex
 	cfg                   *tls.Config
 	utlsCfg               *utls.Config
+	ticketKeys            utls.TicketKeys
 	missingTicketReaction HandshakeReaction
 	instrument            instrument.Instrument
 }
@@ -194,7 +196,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
 	// We allow loopback to generate session states (makesessions) to
 	// distribute to Lantern clients.
-	if !disallowLookbackForTesting && sourceIP.IsLoopback() {
+	if !disallowLoopbackForTesting && sourceIP.IsLoopback() {
 		return nil, nil
 	}
 
@@ -209,7 +211,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		return rrc.helloError("ClientHello has no session ticket")
 	}
 
-	plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, utls.TicketKeys{utls.TicketKeyFromBytes(rrc.utlsCfg.SessionTicketKey)})
+	plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, rrc.ticketKeys)
 	if len(plainText) == 0 {
 		return rrc.helloError("ClientHello has invalid session ticket")
 	}
