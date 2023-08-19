@@ -11,12 +11,13 @@ import (
 
 	utls "github.com/refraction-networking/utls"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 )
 
 func TestAbortOnHello(t *testing.T) {
-	disallowLookbackForTesting = true
+	disallowLoopbackForTesting = true
 	testCases := []struct {
 		response    HandshakeReaction
 		expectedErr string
@@ -100,6 +101,60 @@ func TestAbortOnHello(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestSuccess(t *testing.T) {
+	disallowLoopbackForTesting = false
+	l, _ := net.Listen("tcp", ":0")
+	defer l.Close()
+	hl, err := Wrap(
+		l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", "",
+		true, ReflectToSite("microsoft.com"), false, instrument.NoInstrument{})
+	require.NoError(t, err)
+	defer hl.Close()
+
+	go func() {
+		for {
+			sconn, err := hl.Accept()
+			if err != nil {
+				return
+			}
+			go func(sconn net.Conn) {
+				_, err := http.ReadRequest(bufio.NewReader(sconn))
+				if err != nil {
+					return
+				}
+				(&http.Response{StatusCode: http.StatusAccepted}).Write(sconn)
+			}(sconn)
+		}
+	}()
+
+	// Dial once to obtain a valid session ticket (this is works because we're dialing localhost)
+	ucfg := &utls.Config{
+		InsecureSkipVerify: true,
+		ClientSessionCache: utls.NewLRUClientSessionCache(10),
+	}
+	conn, err := utls.Dial("tcp", l.Addr().String(), ucfg)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	// Now disallow loopback for testing, then dial again and make sure session ticket still works
+	disallowLoopbackForTesting = true
+	defer func() {
+		disallowLoopbackForTesting = false
+	}()
+
+	conn, err = utls.Dial("tcp", l.Addr().String(), ucfg)
+	require.NoError(t, err)
+	defer conn.Close()
+
+	req, err := http.NewRequest("GET", "/", nil)
+	require.NoError(t, err)
+	err = req.Write(conn)
+	require.NoError(t, err)
+	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusAccepted, resp.StatusCode)
 }
 
 func TestParseInvalidTicket(t *testing.T) {
