@@ -36,7 +36,10 @@ type Opts struct {
 	ExternalIP           string
 	ProxyName            string
 	Track                string
+	Provider             string
 	DC                   string
+	FrontendProvider     string
+	FrontendDC           string
 	ProxyProtocol        string
 	Addr                 string
 	IsPro                bool
@@ -70,9 +73,15 @@ func (opts *Opts) buildResource() *resource.Resource {
 		attributes = append(attributes, attribute.String("proxy.ip", opts.ExternalIP))
 	}
 	if opts.ProxyName != "" {
-		log.Debugf("Will report with proxy.name %v in dc %v", opts.ProxyName, opts.DC)
+		log.Debugf("Will report with proxy.name %v on provider %v in dc %v", opts.ProxyName, opts.Provider, opts.DC)
 		attributes = append(attributes, attribute.String("proxy.name", opts.ProxyName))
+		attributes = append(attributes, attribute.String("provider", opts.Provider))
 		attributes = append(attributes, attribute.String("dc", opts.DC))
+	}
+	if opts.FrontendProvider != "" {
+		log.Debugf("Will report frontend provider %v in dc %v", opts.FrontendProvider, opts.FrontendDC)
+		attributes = append(attributes, attribute.String("frontend.provider", opts.FrontendProvider))
+		attributes = append(attributes, attribute.String("frontend.dc", opts.FrontendDC))
 	}
 	return resource.NewWithAttributes(semconv.SchemaURL, attributes...)
 }

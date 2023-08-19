@@ -17,6 +17,10 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 )
 
+var (
+	log = golog.LoggerFor("tlslistener")
+)
+
 // Wrap wraps the specified listener in our default TLS listener.
 func Wrap(wrapped net.Listener, keyFile, certFile, sessionTicketKeyFile, firstSessionTicketKey string,
 	requireSessionTickets bool, missingTicketReaction HandshakeReaction, allowTLS13 bool,
