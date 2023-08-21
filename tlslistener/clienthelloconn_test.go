@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/rand"
 	"crypto/tls"
+	"encoding/base64"
 	"net"
 	"net/http"
 	"testing"
@@ -106,8 +107,17 @@ func TestSuccess(t *testing.T) {
 	disallowLoopbackForTesting = false
 	l, _ := net.Listen("tcp", ":0")
 	defer l.Close()
+
+	// We specify in-memory session ticket keys to make sure that key rotation for these is working
+	// but that we are NOT requiring clients to present session tickets (yet).
+	// See https://github.com/getlantern/engineering/issues/292#issuecomment-1687180508.
+	sessionTicketKeys := make([]byte, keySize)
+	_, err := rand.Read(sessionTicketKeys)
+	require.NoError(t, err)
+	strKeys := base64.StdEncoding.EncodeToString(sessionTicketKeys)
+
 	hl, err := Wrap(
-		l, "../test/data/server.key", "../test/data/server.crt", "../test/testtickets", "", "",
+		l, "../test/data/server.key", "../test/data/server.crt", "", "", strKeys,
 		true, ReflectToSite("microsoft.com"), false, instrument.NoInstrument{})
 	require.NoError(t, err)
 	defer hl.Close()
@@ -131,7 +141,7 @@ func TestSuccess(t *testing.T) {
 	// Dial once to obtain a valid session ticket (this is works because we're dialing localhost)
 	ucfg := &utls.Config{
 		InsecureSkipVerify: true,
-		ClientSessionCache: utls.NewLRUClientSessionCache(10),
+		// ClientSessionCache: utls.NewLRUClientSessionCache(10),
 	}
 	conn, err := utls.Dial("tcp", l.Addr().String(), ucfg)
 	require.NoError(t, err)
