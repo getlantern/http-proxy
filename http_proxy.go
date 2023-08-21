@@ -142,6 +142,7 @@ type Proxy struct {
 	WSSAddr                            string
 	PacketForwardAddr                  string
 	ExternalIntf                       string
+	SessionTicketKeys                  string
 	SessionTicketKeyFile               string
 	FirstSessionTicketKey              string
 	RequireSessionTickets              bool
@@ -422,7 +423,7 @@ func (p *Proxy) wrapTLSIfNecessary(fn listenerBuilderFN) listenerBuilderFN {
 
 		if p.HTTPS {
 			l, err = tlslistener.Wrap(
-				l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.FirstSessionTicketKey,
+				l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.FirstSessionTicketKey, p.SessionTicketKeys,
 				p.RequireSessionTickets, p.MissingTicketReaction, p.TLSListenerAllowTLS13,
 				p.instrument)
 			if err != nil {
@@ -1001,7 +1002,7 @@ func (p *Proxy) listenWSS(addr string) (net.Listener, error) {
 
 	if p.HTTPS {
 		l, err = tlslistener.Wrap(
-			l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.FirstSessionTicketKey,
+			l, p.KeyFile, p.CertFile, p.SessionTicketKeyFile, p.FirstSessionTicketKey, p.SessionTicketKeys,
 			p.RequireSessionTickets, p.MissingTicketReaction, p.TLSListenerAllowTLS13, p.instrument)
 		if err != nil {
 			return nil, err
