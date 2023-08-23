@@ -63,6 +63,7 @@ func Wrap(wrapped net.Listener, keyFile, certFile, sessionTicketKeyFile, firstSe
 	}
 
 	onKeys := func(keys [][32]byte) {
+		cfg.SetSessionTicketKeys(keys)
 		utlsConfig.SetSessionTicketKeys(keys)
 		listener.ticketKeysMutex.Lock()
 		defer listener.ticketKeysMutex.Unlock()
@@ -70,14 +71,15 @@ func Wrap(wrapped net.Listener, keyFile, certFile, sessionTicketKeyFile, firstSe
 		for _, k := range keys {
 			listener.ticketKeys = append(listener.ticketKeys, utls.TicketKeyFromBytes(k))
 		}
+		log.Debug("Finished setting listener keys")
 	}
 
 	if expectTicketsFromFile {
 		log.Debugf("Will rotate session ticket key and store in %v", sessionTicketKeyFile)
-		maintainSessionTicketKeyFile(cfg, sessionTicketKeyFile, firstSessionTicketKey, onKeys)
+		maintainSessionTicketKeyFile(sessionTicketKeyFile, firstSessionTicketKey, onKeys)
 	} else if expectTicketsInMemory {
 		log.Debug("Will rotate through session tickets in memory")
-		if err := maintainSessionTicketKeysInMemory(cfg, sessionTicketKeys, onKeys); err != nil {
+		if err := maintainSessionTicketKeysInMemory(sessionTicketKeys, onKeys); err != nil {
 			return nil, errors.New("unable to maintain session ticket keys in memory: %v", err)
 		}
 	}
