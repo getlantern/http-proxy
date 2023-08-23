@@ -79,8 +79,7 @@ func TestAbortOnHello(t *testing.T) {
 			rawConn, err := net.Dial("tcp", l.Addr().String())
 			require.NoError(t, err)
 			ucfg := &utls.Config{ServerName: "microsoft.com"}
-			maintainSessionTicketKeyFile(
-				&tls.Config{}, "../test/testtickets", "",
+			maintainSessionTicketKeyFile("../test/testtickets", "",
 				func(keys [][32]byte) { ucfg.SetSessionTicketKeys(keys) })
 			ss := &utls.ClientSessionState{}
 			ticket := make([]byte, 120)
@@ -118,7 +117,7 @@ func TestSuccess(t *testing.T) {
 
 	hl, err := Wrap(
 		l, "../test/data/server.key", "../test/data/server.crt", "", "", strKeys,
-		true, ReflectToSite("microsoft.com"), false, instrument.NoInstrument{})
+		true, AlertHandshakeFailure, false, instrument.NoInstrument{})
 	require.NoError(t, err)
 	defer hl.Close()
 

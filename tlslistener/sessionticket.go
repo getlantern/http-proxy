@@ -3,9 +3,7 @@ package tlslistener
 import (
 	"bytes"
 	"crypto/rand"
-	"crypto/tls"
 	"encoding/base64"
-	"io/ioutil"
 	"os"
 	"time"
 
@@ -21,7 +19,7 @@ const (
 // Using on-disk session ticket keys is deprecated, but this is left here for backwards compatibility
 // with old infrastructure proxies. Use maintainSessionTicketKeysInMemory instead.
 func maintainSessionTicketKeyFile(
-	cfg *tls.Config, sessionTicketKeyFile, firstSessionTicketKey string, keyListener func(keys [][keySize]byte)) error {
+	sessionTicketKeyFile, firstSessionTicketKey string, keyListener func(keys [][keySize]byte)) error {
 
 	log.Debugf("Will rotate session ticket key every %v and store in %v", rotateInterval, sessionTicketKeyFile)
 
@@ -39,7 +37,7 @@ func maintainSessionTicketKeyFile(
 	}
 
 	// read cached session ticket keys
-	keyBytes, err := ioutil.ReadFile(sessionTicketKeyFile)
+	keyBytes, err := os.ReadFile(sessionTicketKeyFile)
 	if err != nil {
 		if !os.IsNotExist(err) {
 			panic(errors.New("Unable to read session ticket key file %v: %v", sessionTicketKeyFile, err))
@@ -52,12 +50,12 @@ func maintainSessionTicketKeyFile(
 	}
 
 	// Create a new key right away
-	keyBytes = prependToSessionTicketKeys(cfg, sessionTicketKeyFile, keyBytes, keyListener)
+	keyBytes = prependToSessionTicketKeys(sessionTicketKeyFile, keyBytes, keyListener)
 
 	go func() {
 		for {
 			time.Sleep(rotateInterval)
-			keyBytes = prependToSessionTicketKeys(cfg, sessionTicketKeyFile, keyBytes, keyListener)
+			keyBytes = prependToSessionTicketKeys(sessionTicketKeyFile, keyBytes, keyListener)
 		}
 	}()
 
@@ -80,19 +78,18 @@ func ensureFirstKey(firstKey [keySize]byte, keyBytes []byte) []byte {
 	return append(keyBytes, firstKey[:]...)
 }
 
-func prependToSessionTicketKeys(cfg *tls.Config, sessionTicketKeyFile string, keyBytes []byte, keyListener func(keys [][keySize]byte)) []byte {
+func prependToSessionTicketKeys(sessionTicketKeyFile string, keyBytes []byte, keyListener func(keys [][keySize]byte)) []byte {
 	newKey := makeSessionTicketKey()
 	keyBytes = append(newKey, keyBytes...)
 	saveSessionTicketKeys(sessionTicketKeyFile, keyBytes)
 
 	keys := buildKeysArray(keyBytes)
-	cfg.SetSessionTicketKeys(keys)
 	keyListener(keys)
 	return keyBytes
 }
 
 func saveSessionTicketKeys(sessionTicketKeyFile string, keyBytes []byte) {
-	err := ioutil.WriteFile(sessionTicketKeyFile, keyBytes, 0644)
+	err := os.WriteFile(sessionTicketKeyFile, keyBytes, 0644)
 	if err != nil {
 		panic(errors.New("Unable to save session ticket key bytes to %v: %v", sessionTicketKeyFile, err))
 	}
@@ -105,7 +102,7 @@ func makeSessionTicketKey() []byte {
 }
 
 func maintainSessionTicketKeysInMemory(
-	cfg *tls.Config, sessionTicketKeys string, keyListener func(keys [][keySize]byte)) error {
+	sessionTicketKeys string, keyListener func(keys [][keySize]byte)) error {
 
 	keyBytes, err := base64.StdEncoding.DecodeString(sessionTicketKeys)
 	if err != nil {
