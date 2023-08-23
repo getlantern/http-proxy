@@ -107,6 +107,9 @@ func TestSuccess(t *testing.T) {
 	l, _ := net.Listen("tcp", ":0")
 	defer l.Close()
 
+	// We specify in-memory session ticket keys to make sure that key rotation for these is working
+	// but that we are NOT requiring clients to present session tickets (yet).
+	// See https://github.com/getlantern/engineering/issues/292#issuecomment-1687180508.
 	sessionTicketKeys := make([]byte, keySize)
 	_, err := rand.Read(sessionTicketKeys)
 	require.NoError(t, err)
@@ -137,7 +140,7 @@ func TestSuccess(t *testing.T) {
 	// Dial once to obtain a valid session ticket (this is works because we're dialing localhost)
 	ucfg := &utls.Config{
 		InsecureSkipVerify: true,
-		ClientSessionCache: utls.NewLRUClientSessionCache(10),
+		// ClientSessionCache: utls.NewLRUClientSessionCache(10),
 	}
 	conn, err := utls.Dial("tcp", l.Addr().String(), ucfg)
 	require.NoError(t, err)

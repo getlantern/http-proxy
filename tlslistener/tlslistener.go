@@ -44,7 +44,12 @@ func Wrap(wrapped net.Listener, keyFile, certFile, sessionTicketKeyFile, firstSe
 
 	expectTicketsFromFile := sessionTicketKeyFile != ""
 	expectTicketsInMemory := sessionTicketKeys != ""
-	expectTickets := expectTicketsFromFile || expectTicketsInMemory
+	// For now, we don't expect tickets if we're only maintaining them in memory.
+	// This will allow clients who are still using session tickets generated with old
+	// disk-based keys to obtain new session tickets without hitting a missing ticket
+	// reaction. See https://github.com/getlantern/engineering/issues/292.
+	// expectTickets := expectTicketsFromFile || expectTicketsInMemory
+	expectTickets := expectTicketsFromFile
 
 	listener := &tlslistener{
 		wrapped:               wrapped,
@@ -66,6 +71,7 @@ func Wrap(wrapped net.Listener, keyFile, certFile, sessionTicketKeyFile, firstSe
 		for _, k := range keys {
 			listener.ticketKeys = append(listener.ticketKeys, utls.TicketKeyFromBytes(k))
 		}
+		log.Debug("Finished setting listener keys")
 	}
 
 	if expectTicketsFromFile {
