@@ -83,6 +83,10 @@ func (opts *Opts) buildResource() *resource.Resource {
 		attributes = append(attributes, attribute.String("frontend.provider", opts.FrontendProvider))
 		attributes = append(attributes, attribute.String("frontend.dc", opts.FrontendDC))
 	}
+	attributes = append(
+		attributes,
+		attribute.Bool("legacy", strings.HasPrefix(opts.ProxyName, "fp-")),
+	)
 	return resource.NewWithAttributes(semconv.SchemaURL, attributes...)
 }
 
