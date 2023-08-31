@@ -2,7 +2,6 @@ package otel
 
 import (
 	"context"
-	"strconv"
 	"strings"
 	"time"
 
@@ -52,29 +51,32 @@ func (opts *Opts) buildResource() *resource.Resource {
 		attribute.String("protocol", opts.ProxyProtocol),
 		attribute.Bool("pro", opts.IsPro),
 	}
-	parts := strings.Split(opts.Addr, ":")
-	if len(parts) == 2 {
-		_port := parts[1]
-		port, err := strconv.Atoi(_port)
-		if err == nil {
-			log.Debugf("will report with proxy.port %d", port)
-			attributes = append(attributes, attribute.Int("proxy.port", port))
-		} else {
-			log.Errorf("Unable to parse proxy.port %v: %v", _port, err)
-		}
-	} else {
-		log.Errorf("Unable to split proxy address %v into two pieces", opts.Addr)
-	}
+	// Disable reporting proxy port for Datadog cost reasons
+	// parts := strings.Split(opts.Addr, ":")
+	// if len(parts) == 2 {
+	// 	_port := parts[1]
+	// 	port, err := strconv.Atoi(_port)
+	// 	if err == nil {
+	// 		log.Debugf("will report with proxy.port %d", port)
+	// 		attributes = append(attributes, attribute.Int("proxy.port", port))
+	// 	} else {
+	// 		log.Errorf("Unable to parse proxy.port %v: %v", _port, err)
+	// 	}
+	// } else {
+	// 	log.Errorf("Unable to split proxy address %v into two pieces", opts.Addr)
+	// }
 	if opts.Track != "" {
 		attributes = append(attributes, attribute.String("track", opts.Track))
 	}
-	if opts.ExternalIP != "" {
-		log.Debugf("Will report with proxy.ip: %v", opts.ExternalIP)
-		attributes = append(attributes, attribute.String("proxy.ip", opts.ExternalIP))
-	}
+	// Disable reporting proxy IP for Datadog cost reasons
+	// if opts.ExternalIP != "" {
+	// 	log.Debugf("Will report with proxy.ip: %v", opts.ExternalIP)
+	// 	attributes = append(attributes, attribute.String("proxy.ip", opts.ExternalIP))
+	// }
 	if opts.ProxyName != "" {
 		log.Debugf("Will report with proxy.name %v on provider %v in dc %v", opts.ProxyName, opts.Provider, opts.DC)
-		attributes = append(attributes, attribute.String("proxy.name", opts.ProxyName))
+		// Disable reporting proxy name for Datadog cost reasons
+		// attributes = append(attributes, attribute.String("proxy.name", opts.ProxyName))
 		attributes = append(attributes, attribute.String("provider", opts.Provider))
 		attributes = append(attributes, attribute.String("dc", opts.DC))
 	}
