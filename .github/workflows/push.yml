@@ -1,14 +1,7 @@
-name: docker push
+name: docker push main
 on:
-  workflow_dispatch:
-  
   push:
     branches: [main]
-    paths:
-      - "**.go"
-      - "go.mod"
-      - "go.sum"
-      - "Dockerfile"
 
 jobs:
   go:
