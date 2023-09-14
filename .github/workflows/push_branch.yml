@@ -2,8 +2,7 @@ name: docker push
 on:
   workflow_dispatch:
   
-  push:
-    branches: [main]
+    push:
     paths:
       - "**.go"
       - "go.mod"
@@ -54,4 +53,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            us-docker.pkg.dev/lantern-cloud/containers/http-proxy:latest
+            us-docker.pkg.dev/lantern-cloud/containers/http-proxy:${{ github.sha }}
