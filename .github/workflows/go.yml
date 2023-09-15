@@ -3,6 +3,9 @@ name: Go
 on:
   workflow_call:
   
+  push:
+    branches-ignore: main
+    
 jobs:
   build:
     runs-on: ubuntu-latest

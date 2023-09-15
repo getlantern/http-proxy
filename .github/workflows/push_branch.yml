@@ -1,15 +1,10 @@
 name: docker push branch
 on:
-  push:
+  workflow_dispatch:
 
 jobs:
-  go:
-    uses: ./.github/workflows/go.yml
-    secrets: inherit
-    
   docker_push:
     name: docker push
-    needs: [go]
     runs-on: ubuntu-latest
     permissions:
       contents: "read"
@@ -46,4 +41,4 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           tags: |
-            us-docker.pkg.dev/lantern-cloud/containers/http-proxy:${{ github.sha }}
+            us-docker.pkg.dev/lantern-cloud/containers/http-proxy:${{ github.ref_name }}
