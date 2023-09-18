@@ -23,6 +23,7 @@ import (
 
 	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
+	"github.com/getlantern/memhelper"
 
 	proxy "github.com/getlantern/http-proxy-lantern/v2"
 	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
@@ -183,6 +184,8 @@ var (
 	broflakeAddr = flag.String("broflake-addr", "", "Address at which to listen for broflake connections.")
 
 	track = flag.String("track", "", "The track this proxy is running on")
+
+	memLimit = flag.Int64("memlimit", 2000000000, "soft memory limit for the process, defaults to 2 GB")
 )
 
 const (
@@ -352,6 +355,13 @@ func main() {
 	if mux != "smux" && mux != "psmux" {
 		log.Fatalf("unsupported multiplex protocol %v", mux)
 	}
+
+	if *memLimit > 0 {
+		debug.SetMemoryLimit(*memLimit)
+	}
+	memhelper.Track(15*time.Second, 15*time.Second, func(err error) {
+		log.Errorf("error logging memory usage: %v", err)
+	})
 	go periodicallyForceGC()
 
 	var reportingRedisClient *redis.Client
