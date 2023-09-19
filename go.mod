@@ -20,11 +20,11 @@ require (
 	github.com/getlantern/golog v0.0.0-20230503153817-8e72de7e0a65
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
 	github.com/getlantern/grtrack v0.0.0-20160824195228-cbf67d3fa0fd
-	github.com/getlantern/http-proxy v0.0.3-0.20230405160101-eb4bf4e4a733
+	github.com/getlantern/http-proxy v0.0.3-0.20230919230842-4b7b66fd0535
 	github.com/getlantern/kcpwrapper v0.0.0-20220503142841-b0e764933966
 	github.com/getlantern/keyman v0.0.0-20210218183930-5e48f8ced961
 	github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9
-	github.com/getlantern/measured v0.0.0-20210507000559-ec5307b2b8be
+	github.com/getlantern/measured v0.0.0-20230919230611-3d9e3776a6cd
 	github.com/getlantern/memhelper v0.0.0-20220104170102-df557102babd
 	github.com/getlantern/multipath v0.0.0-20220920195041-55195f38df73
 	github.com/getlantern/netx v0.0.0-20211206143627-7ccfeb739cbd
