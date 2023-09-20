@@ -270,40 +270,47 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		),
 	)
 
-	// clientKey := clientDetails{
-	// 	platform: platform,
-	// 	version:  version,
-	// 	locale:   locale,
-	// 	country:  country,
-	// 	isp:      isp,
-	// 	asn:      asn,
-	// }
-	// clientKeyWithDeviceID := clientDetails{
-	// 	deviceID: deviceID,
-	// 	platform: platform,
-	// 	version:  version,
-	// 	locale:   locale,
-	// 	country:  country,
-	// 	isp:      isp,
-	// 	asn:      asn,
-	// }
-	// ins.statsMx.Lock()
-	// ins.clientStats[clientKey] = ins.clientStats[clientKey].add(sent, recv)
-	// ins.clientStatsWithDeviceID[clientKeyWithDeviceID] = ins.clientStatsWithDeviceID[clientKeyWithDeviceID].add(sent, recv)
-	// if originHost != "" {
-	// 	originRoot, err := ins.originRoot(originHost)
-	// 	if err == nil {
-	// 		// only record if we could extract originRoot
-	// 		originKey := originDetails{
-	// 			origin:   originRoot,
-	// 			platform: platform,
-	// 			version:  version,
-	// 			country:  country,
-	// 		}
-	// 		ins.originStats[originKey] = ins.originStats[originKey].add(sent, recv)
-	// 	}
-	// }
-	// ins.statsMx.Unlock()
+	clientKey := clientDetails{
+		platform: platform,
+		version:  version,
+		locale:   locale,
+		country:  country,
+		isp:      isp,
+		asn:      asn,
+	}
+	clientKeyWithDeviceID := clientDetails{
+		deviceID: deviceID,
+		platform: platform,
+		version:  version,
+		locale:   locale,
+		country:  country,
+		isp:      isp,
+		asn:      asn,
+	}
+
+	var originKey originDetails
+	hasOriginKey := true
+	if originHost != "" {
+		originRoot, err := ins.originRoot(originHost)
+		if err == nil {
+			// only record if we could extract originRoot
+			originKey = originDetails{
+				origin:   originRoot,
+				platform: platform,
+				version:  version,
+				country:  country,
+			}
+			hasOriginKey = true
+		}
+	}
+
+	ins.statsMx.Lock()
+	ins.clientStats[clientKey] = ins.clientStats[clientKey].add(sent, recv)
+	ins.clientStatsWithDeviceID[clientKeyWithDeviceID] = ins.clientStatsWithDeviceID[clientKeyWithDeviceID].add(sent, recv)
+	if hasOriginKey {
+		ins.originStats[originKey] = ins.originStats[originKey].add(sent, recv)
+	}
+	ins.statsMx.Unlock()
 }
 
 // quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.
