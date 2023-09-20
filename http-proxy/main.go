@@ -184,8 +184,6 @@ var (
 	broflakeAddr = flag.String("broflake-addr", "", "Address at which to listen for broflake connections.")
 
 	track = flag.String("track", "", "The track this proxy is running on")
-
-	memLimit = flag.Int64("memlimit", 2000000000, "soft memory limit for the process, defaults to 2 GB")
 )
 
 const (
@@ -356,9 +354,6 @@ func main() {
 		log.Fatalf("unsupported multiplex protocol %v", mux)
 	}
 
-	if *memLimit > 0 {
-		debug.SetMemoryLimit(*memLimit)
-	}
 	memhelper.Track(15*time.Second, 15*time.Second, func(err error) {
 		log.Errorf("error logging memory usage: %v", err)
 	})
