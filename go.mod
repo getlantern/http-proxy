@@ -20,7 +20,7 @@ require (
 	github.com/getlantern/golog v0.0.0-20230503153817-8e72de7e0a65
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
 	github.com/getlantern/grtrack v0.0.0-20160824195228-cbf67d3fa0fd
-	github.com/getlantern/http-proxy v0.0.3-0.20230919230842-4b7b66fd0535
+	github.com/getlantern/http-proxy v0.0.3-0.20230920101335-847403ef71cc
 	github.com/getlantern/kcpwrapper v0.0.0-20220503142841-b0e764933966
 	github.com/getlantern/keyman v0.0.0-20210218183930-5e48f8ced961
 	github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9
