@@ -460,8 +460,12 @@ func (ins *defaultInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeD
 func (ins *defaultInstrument) originRoot(origin string) (string, error) {
 	ip := net.ParseIP(origin)
 	if ip != nil {
+		var r net.Resolver
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
 		// origin is an IP address, try to get domain name
-		origins, err := net.LookupAddr(origin)
+		origins, err := r.LookupAddr(ctx, origin)
 		if err != nil || net.ParseIP(origins[0]) != nil {
 			// failed to reverse lookup, try to get ASN
 			asn := ins.ispLookup.ASN(ip)
