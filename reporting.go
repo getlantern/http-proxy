@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	rclient "github.com/go-redis/redis/v8"
@@ -19,8 +20,6 @@ import (
 
 var (
 	measuredReportingInterval = 1 * time.Minute
-
-	noReport = &reportingConfig{false, neverWrap}
 )
 
 type reportingConfig struct {
@@ -29,7 +28,18 @@ type reportingConfig struct {
 }
 
 func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, instrument instrument.Instrument, throttleConfig throttle.Config) *reportingConfig {
+	var numReporters int64
+	go func() {
+		for {
+			time.Sleep(5 * time.Second)
+			log.Debugf("numProxiedBytesReporters: %d", atomic.LoadInt64(&numReporters))
+		}
+	}()
+
 	proxiedBytesReporter := func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
+		atomic.AddInt64(&numReporters, 1)
+		defer atomic.AddInt64(&numReporters, -1)
+
 		if deltaStats.SentTotal == 0 && deltaStats.RecvTotal == 0 {
 			// nothing to report
 			return
@@ -88,10 +98,9 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 	} else if rc != nil {
 		reporter = redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval, throttleConfig)
 	}
-	origReporter := reporter
 	reporter = combineReporter(reporter, proxiedBytesReporter)
 	wrapper := func(ls net.Listener) net.Listener {
-		return listeners.NewMeasuredListener(ls, measuredReportingInterval, origReporter)
+		return listeners.NewMeasuredListener(ls, measuredReportingInterval, reporter)
 	}
 	return &reportingConfig{true, wrapper}
 }
