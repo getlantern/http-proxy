@@ -241,17 +241,17 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 	otelinstrument.DistinctClients10m.Add(deviceID)
 	otelinstrument.DistinctClients1h.Add(deviceID)
 
-	country := ins.countryLookup.CountryCode(clientIP)
-	isp := ins.ispLookup.ISP(clientIP)
-	asn := ins.ispLookup.ASN(clientIP)
+	// country := ins.countryLookup.CountryCode(clientIP)
+	// isp := ins.ispLookup.ISP(clientIP)
+	// asn := ins.ispLookup.ASN(clientIP)
 	otelAttributes := []attribute.KeyValue{
 		{"client_platform", attribute.StringValue(platform)},
 		{"client_version", attribute.StringValue(version)},
 		{"client_app", attribute.StringValue(app)},
 		{"datacap_cohort", attribute.StringValue(dataCapCohort)},
-		{"country", attribute.StringValue(country)},
-		{"client_isp", attribute.StringValue(isp)},
-		{"client_asn", attribute.StringValue(asn)},
+		// {"country", attribute.StringValue(country)},
+		// {"client_isp", attribute.StringValue(isp)},
+		// {"client_asn", attribute.StringValue(asn)},
 	}
 
 	otelinstrument.ProxyIO.Add(
@@ -274,18 +274,18 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		platform: platform,
 		version:  version,
 		locale:   locale,
-		country:  country,
-		isp:      isp,
-		asn:      asn,
+		// country:  country,
+		// isp:      isp,
+		// asn:      asn,
 	}
 	clientKeyWithDeviceID := clientDetails{
 		deviceID: deviceID,
 		platform: platform,
 		version:  version,
 		locale:   locale,
-		country:  country,
-		isp:      isp,
-		asn:      asn,
+		// country:  country,
+		// isp:      isp,
+		// asn:      asn,
 	}
 	ins.statsMx.Lock()
 	ins.clientStats[clientKey] = ins.clientStats[clientKey].add(sent, recv)
@@ -298,7 +298,7 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 				origin:   originRoot,
 				platform: platform,
 				version:  version,
-				country:  country,
+				// country:  country,
 			}
 			ins.originStats[originKey] = ins.originStats[originKey].add(sent, recv)
 		}
