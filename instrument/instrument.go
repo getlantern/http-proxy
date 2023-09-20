@@ -287,21 +287,28 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		isp:      isp,
 		asn:      asn,
 	}
-	ins.statsMx.Lock()
-	ins.clientStats[clientKey] = ins.clientStats[clientKey].add(sent, recv)
-	ins.clientStatsWithDeviceID[clientKeyWithDeviceID] = ins.clientStatsWithDeviceID[clientKeyWithDeviceID].add(sent, recv)
+
+	var originKey originDetails
+	hasOriginKey := true
 	if originHost != "" {
 		originRoot, err := ins.originRoot(originHost)
 		if err == nil {
 			// only record if we could extract originRoot
-			originKey := originDetails{
+			originKey = originDetails{
 				origin:   originRoot,
 				platform: platform,
 				version:  version,
 				country:  country,
 			}
-			ins.originStats[originKey] = ins.originStats[originKey].add(sent, recv)
+			hasOriginKey = true
 		}
+	}
+
+	ins.statsMx.Lock()
+	ins.clientStats[clientKey] = ins.clientStats[clientKey].add(sent, recv)
+	ins.clientStatsWithDeviceID[clientKeyWithDeviceID] = ins.clientStatsWithDeviceID[clientKeyWithDeviceID].add(sent, recv)
+	if hasOriginKey {
+		ins.originStats[originKey] = ins.originStats[originKey].add(sent, recv)
 	}
 	ins.statsMx.Unlock()
 }
@@ -453,8 +460,12 @@ func (ins *defaultInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeD
 func (ins *defaultInstrument) originRoot(origin string) (string, error) {
 	ip := net.ParseIP(origin)
 	if ip != nil {
+		var r net.Resolver
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
 		// origin is an IP address, try to get domain name
-		origins, err := net.LookupAddr(origin)
+		origins, err := r.LookupAddr(ctx, origin)
 		if err != nil || net.ParseIP(origins[0]) != nil {
 			// failed to reverse lookup, try to get ASN
 			asn := ins.ispLookup.ASN(ip)
