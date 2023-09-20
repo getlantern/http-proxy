@@ -40,6 +40,10 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 		atomic.AddInt64(&numReporters, 1)
 		defer atomic.AddInt64(&numReporters, -1)
 
+		if true {
+			return
+		}
+
 		if deltaStats.SentTotal == 0 && deltaStats.RecvTotal == 0 {
 			// nothing to report
 			return
