@@ -88,9 +88,10 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 	} else if rc != nil {
 		reporter = redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval, throttleConfig)
 	}
+	origReporter := reporter
 	reporter = combineReporter(reporter, proxiedBytesReporter)
 	wrapper := func(ls net.Listener) net.Listener {
-		return listeners.NewMeasuredListener(ls, measuredReportingInterval, reporter)
+		return listeners.NewMeasuredListener(ls, measuredReportingInterval, origReporter)
 	}
 	return &reportingConfig{true, wrapper}
 }
