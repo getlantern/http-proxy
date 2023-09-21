@@ -191,6 +191,7 @@ const (
 )
 
 func main() {
+	panic("goodbye cruel world")
 	iniflags.SetAllowUnknownFlags(true)
 	iniflags.Parse()
 	if *version {
