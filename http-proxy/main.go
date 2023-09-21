@@ -275,6 +275,10 @@ func main() {
 		}
 	}()
 
+	if *cfgSvrAuthToken == "" {
+		log.Fatal("Config server auth token is required")
+	}
+
 	if *lampshadeAddr != "" && !*https {
 		log.Fatal("Use of lampshade requires https flag to be true")
 	}
