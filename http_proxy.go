@@ -29,6 +29,7 @@ import (
 	shadowsocks "github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/http-proxy-lantern/v2/starbridge"
 	"github.com/getlantern/kcpwrapper"
+	"github.com/getlantern/netx"
 
 	"github.com/xtaci/smux"
 
@@ -183,6 +184,7 @@ type Proxy struct {
 	BroflakeCert string
 	BroflakeKey  string
 
+	DNSServer      string
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
 }
@@ -276,6 +278,35 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	bwReporting := p.configureBandwidthReporting()
 	// Throttle connections when signaled
 	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
+
+	if p.DNSServer != "" {
+		log.Debugf("Will resolve DNS using %v", p.DNSServer)
+		host, port, err := net.SplitHostPort(p.DNSServer)
+		if err != nil {
+			log.Fatalf("invalid dns-server address %v: %v", p.DNSServer, err)
+		}
+		r := &net.Resolver{
+			PreferGo: true,
+			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+				log.Debug("Dialing custom resolver")
+				return netx.DialContext(ctx, host, port)
+			},
+		}
+		netx.OverrideResolveIPs(func(host string) ([]net.IP, error) {
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+
+			addrs, err := r.LookupIPAddr(ctx, host)
+			if err != nil {
+				return nil, err
+			}
+			ips := make([]net.IP, 0, len(addrs))
+			for _, addr := range addrs {
+				ips = append(ips, addr.IP)
+			}
+			return ips, nil
+		})
+	}
 
 	allListeners := make([]net.Listener, 0)
 	listenerProtocols := make([]string, 0)
@@ -613,7 +644,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	_dialer := preferIPV4Dialer(timeoutToDialOriginSite)
 	dialer := func(ctx context.Context, network, addr string) (net.Conn, error) {
 		// resolve separately so that we can track the DNS resolution time
-		resolvedAddr, resolveErr := net.ResolveTCPAddr(network, addr)
+		resolvedAddr, resolveErr := netx.Resolve(network, addr)
 		if resolveErr != nil {
 			return nil, resolveErr
 		}

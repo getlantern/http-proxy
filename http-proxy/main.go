@@ -184,6 +184,8 @@ var (
 	broflakeAddr = flag.String("broflake-addr", "", "Address at which to listen for broflake connections.")
 
 	track = flag.String("track", "", "The track this proxy is running on")
+
+	dnsServer = flag.String("dns-server", "172.16.0.53", "Optional DNS server to use for DNS lookups (in place of system resolver)")
 )
 
 const (
@@ -468,6 +470,7 @@ func main() {
 		BroflakeAddr:                       *broflakeAddr,
 		BroflakeCert:                       os.Getenv("BROFLAKE_CERT"),
 		BroflakeKey:                        os.Getenv("BROFLAKE_KEY"),
+		DNSServer:                          *dnsServer,
 	}
 	if *maxmindLicenseKey != "" {
 		log.Debug("Will use Maxmind for geolocating clients")

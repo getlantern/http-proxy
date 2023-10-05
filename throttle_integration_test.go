@@ -17,10 +17,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlantern/golog/testlog"
-	. "github.com/getlantern/waitforserver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/getlantern/golog/testlog"
+	. "github.com/getlantern/waitforserver"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/internal/testutil"
