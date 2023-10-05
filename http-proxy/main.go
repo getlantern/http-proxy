@@ -184,6 +184,8 @@ var (
 	broflakeAddr = flag.String("broflake-addr", "", "Address at which to listen for broflake connections.")
 
 	track = flag.String("track", "", "The track this proxy is running on")
+
+	dnsServers = flag.String("dns-servers", "", "Optional DNS servers (comma separated) to use for DNS lookups (in place of system resolver)")
 )
 
 const (
@@ -373,6 +375,11 @@ func main() {
 		log.Debug("no redis address configured for bandwidth reporting")
 	}
 
+	var splitDNSServers []string
+	if len(*dnsServers) > 0 {
+		splitDNSServers = strings.Split(*dnsServers, ",")
+	}
+
 	p := &proxy.Proxy{
 		HTTPAddr:                           *addr,
 		HTTPMultiplexAddr:                  *multiplexAddr,
@@ -468,6 +475,7 @@ func main() {
 		BroflakeAddr:                       *broflakeAddr,
 		BroflakeCert:                       os.Getenv("BROFLAKE_CERT"),
 		BroflakeKey:                        os.Getenv("BROFLAKE_KEY"),
+		DNSServers:                         splitDNSServers,
 	}
 	if *maxmindLicenseKey != "" {
 		log.Debug("Will use Maxmind for geolocating clients")

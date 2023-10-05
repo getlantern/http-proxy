@@ -17,10 +17,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlantern/golog/testlog"
-	. "github.com/getlantern/waitforserver"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/getlantern/golog/testlog"
+	. "github.com/getlantern/waitforserver"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/internal/testutil"
@@ -92,6 +93,7 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string, redisIsUp bool,
 		TestingLocal:            true,
 		GoogleSearchRegex:       "bequiet",
 		GoogleCaptchaRegex:      "bequiet",
+		DNSServers:              []string{"127.0.0.1:2435", "8.8.8.8:53"}, // first one is a bogus DNS server
 	}
 	go func() {
 		assert.NoError(t, proxy.ListenAndServe(context.Background()))

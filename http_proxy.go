@@ -183,6 +183,7 @@ type Proxy struct {
 	BroflakeCert string
 	BroflakeKey  string
 
+	DNSServers     []string
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
 }
@@ -608,22 +609,16 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}
 	filterChain = filterChain.Append(instrumentedProxyPingFilter)
 
-	// Google anomaly detection can be triggered very often over IPv6.
-	// Prefer IPv4 to mitigate, see issue #97
-	_dialer := preferIPV4Dialer(timeoutToDialOriginSite)
-	dialer := func(ctx context.Context, network, addr string) (net.Conn, error) {
-		// resolve separately so that we can track the DNS resolution time
-		resolvedAddr, resolveErr := net.ResolveTCPAddr(network, addr)
-		if resolveErr != nil {
-			return nil, resolveErr
+	var dialer func(context.Context, string, string) (net.Conn, error)
+	if len(p.DNSServers) == 0 {
+		log.Debug("Will resolve DNS using system DNS servers")
+		dialer = preferIPV4Dialer(timeoutToDialOriginSite)
+	} else {
+		log.Debugf("Will resolve DNS using %v", p.DNSServers)
+		dialer, err = customDNSDialer(p.DNSServers, timeoutToDialOriginSite)
+		if err != nil {
+			return nil, nil, err
 		}
-
-		conn, dialErr := _dialer(ctx, network, resolvedAddr.String())
-		if dialErr != nil {
-			return nil, dialErr
-		}
-
-		return conn, nil
 	}
 	dialerForPforward := dialer
 
