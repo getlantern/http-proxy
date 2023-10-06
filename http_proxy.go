@@ -609,16 +609,9 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}
 	filterChain = filterChain.Append(instrumentedProxyPingFilter)
 
-	var dialer func(context.Context, string, string) (net.Conn, error)
-	if len(p.DNSServers) == 0 {
-		log.Debug("Will resolve DNS using system DNS servers")
-		dialer = preferIPV4Dialer(timeoutToDialOriginSite)
-	} else {
-		log.Debugf("Will resolve DNS using %v", p.DNSServers)
-		dialer, err = customDNSDialer(p.DNSServers, timeoutToDialOriginSite)
-		if err != nil {
-			return nil, nil, err
-		}
+	dialer, err := customDNSDialer(p.DNSServers, timeoutToDialOriginSite)
+	if err != nil {
+		return nil, nil, err
 	}
 	dialerForPforward := dialer
 

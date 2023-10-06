@@ -13,15 +13,21 @@ import (
 // Returns a dialer that uses custom DNS servers to resolve the host.
 func customDNSDialer(dnsServers []string, timeout time.Duration) (func(context.Context, string, string) (net.Conn, error), error) {
 	resolvers := make([]*net.Resolver, 0, len(dnsServers))
-	for _, _dnsServer := range dnsServers {
-		dnsServer := _dnsServer
-		r := &net.Resolver{
-			PreferGo: true,
-			Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-				return netx.DialContext(ctx, "udp", dnsServer)
-			},
+	if len(dnsServers) == 0 {
+		log.Debug("Will resolve DNS using system DNS servers")
+		resolvers = append(resolvers, net.DefaultResolver)
+	} else {
+		log.Debugf("Will resolve DNS using %v", dnsServers)
+		for _, _dnsServer := range dnsServers {
+			dnsServer := _dnsServer
+			r := &net.Resolver{
+				PreferGo: true,
+				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
+					return netx.DialContext(ctx, "udp", dnsServer)
+				},
+			}
+			resolvers = append(resolvers, r)
 		}
-		resolvers = append(resolvers, r)
 	}
 
 	dial := func(ctx context.Context, network, addr string) (net.Conn, error) {
