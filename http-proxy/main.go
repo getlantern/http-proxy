@@ -13,6 +13,7 @@ import (
 	"os/signal"
 	"runtime"
 	"runtime/debug"
+	"strconv"
 	"strings"
 	"syscall"
 	"time"
@@ -92,6 +93,9 @@ var (
 	throttleRefreshInterval = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
 
 	enableMultipath = flag.Bool("enablemultipath", false, "Enable multipath. Only clients support multipath can communicate with it.")
+
+	// Experimental flag for https://github.com/getlantern/engineering/issues/367.
+	multipathQUIC = flag.String("multipathquic", "", "Enables multipath over QUIC. Comma-separated list of ports to use.")
 
 	externalIP = flag.String("externalip", "", "The external IP of this proxy, used for reporting")
 	https      = flag.Bool("https", false, "Use TLS for client to proxy communication")
@@ -373,6 +377,18 @@ func main() {
 		log.Debug("no redis address configured for bandwidth reporting")
 	}
 
+	var multipathQUICPorts []int
+	if *multipathQUIC != "" {
+		multipathQUICPorts = []int{}
+		for _, s := range strings.Split(*multipathQUIC, ",") {
+			i, err := strconv.Atoi(s)
+			if err != nil {
+				log.Fatalf("could not parse multipath QUIC port as int: %s: %v", s, err)
+			}
+			multipathQUICPorts = append(multipathQUICPorts, i)
+		}
+	}
+
 	p := &proxy.Proxy{
 		HTTPAddr:                           *addr,
 		HTTPMultiplexAddr:                  *multiplexAddr,
@@ -380,6 +396,7 @@ func main() {
 		CfgSvrAuthToken:                    *cfgSvrAuthToken,
 		ConnectOKWaitsForUpstream:          *connectOKWaitsForUpstream,
 		EnableMultipath:                    *enableMultipath,
+		MultipathQUICPorts:                 multipathQUICPorts,
 		ThrottleRefreshInterval:            *throttleRefreshInterval,
 		TracesSampleRate:                   *tracesSampleRate,
 		TeleportSampleRate:                 *teleportSampleRate,

@@ -96,6 +96,7 @@ type Proxy struct {
 	ENHTTPServerURL                    string
 	ENHTTPReapIdleTime                 time.Duration
 	EnableMultipath                    bool
+	MultipathQUICPorts                 []int
 	HTTPS                              bool
 	IdleTimeout                        time.Duration
 	KeyFile                            string
@@ -365,6 +366,19 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	}
 
 	errCh := make(chan error, len(allListeners))
+	if len(p.MultipathQUICPorts) > 0 {
+		// Reset allListeners.
+		allListeners = make([]net.Listener, 0)
+
+		for _, port := range p.MultipathQUICPorts {
+			err := addListenerIfNecessary("quic_ietf", ":"+strconv.Itoa(port), p.listenQUICIETF)
+			if err != nil {
+				return err
+			}
+		}
+		p.EnableMultipath = true
+	}
+
 	if p.EnableMultipath {
 		mpl := multipath.NewListener(allListeners, p.instrument.MultipathStats(listenerProtocols))
 		log.Debug("Serving multipath at:")
