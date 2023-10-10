@@ -10,7 +10,13 @@ import (
 	"github.com/getlantern/netx"
 )
 
-// Returns a dialer that uses custom DNS servers to resolve the host.
+const (
+	// 5 second DNS resolution timeout is the default on Linux
+	resolutionTimeout = 5 * time.Second
+)
+
+// Returns a dialer that uses custom DNS servers to resolve the host. It uses all DNS servers
+// in parallel and uses the first response it gets.
 func customDNSDialer(dnsServers []string, timeout time.Duration) (func(context.Context, string, string) (net.Conn, error), error) {
 	resolvers := make([]*net.Resolver, 0, len(dnsServers))
 	if len(dnsServers) == 0 {
@@ -37,34 +43,28 @@ func customDNSDialer(dnsServers []string, timeout time.Duration) (func(context.C
 			return nil, errors.New("invalid address %v: %v", addr, err)
 		}
 		ip := net.ParseIP(host)
-		var resolveErr error
 		if ip == nil {
 			// the host wasn't an IP, so resolve it
-		resolveLoop:
+			results := make(chan net.IP, len(resolvers))
+			errs := make(chan error, len(resolvers))
+			rctx, cancel := context.WithTimeout(ctx, resolutionTimeout)
+			defer cancel()
 			for _, r := range resolvers {
-				var ips []net.IPAddr
-				// Note - 5 seconds is the default Linux DNS timeout
-				rctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-				ips, resolveErr = r.LookupIPAddr(rctx, host)
-				cancel()
-				if resolveErr == nil && len(ips) > 0 {
-					// Google anomaly detection can be triggered very often over IPv6.
-					// Prefer IPv4 to mitigate, see issue #97
-					// If no IPv4 is available, fall back to IPv6
-					for _, candidate := range ips {
-						if candidate.IP.To4() != nil {
-							ip = candidate.IP
-							break resolveLoop
-						}
-					}
-					// We couldn't find an IPv4, so just use the first one (at this point we assume it's IPv6)
-					ip = ips[0].IP
-					break resolveLoop
-				}
+				resolveInBackground(rctx, r, host, results, errs)
 			}
-		}
-		if ip == nil {
-			return nil, errors.New("unable to resolve host %v, last resolution error: %v", host, resolveErr)
+			select {
+			case ip = <-results:
+				// got a result!
+			case <-time.After(resolutionTimeout):
+				var resolveErr error
+				select {
+				case resolveErr = <-errs:
+					// got an error
+				default:
+					// no error, we just timed out
+				}
+				return nil, errors.New("unable to resolve host %v, last resolution error: %v", host, resolveErr)
+			}
 		}
 
 		resolvedAddr := fmt.Sprintf("%s:%s", ip, port)
@@ -80,4 +80,27 @@ func customDNSDialer(dnsServers []string, timeout time.Duration) (func(context.C
 	}
 
 	return dial, nil
+}
+
+func resolveInBackground(ctx context.Context, r *net.Resolver, host string, results chan net.IP, errors chan error) {
+	go func() {
+		ips, err := r.LookupIPAddr(ctx, host)
+		if err != nil {
+			errors <- err
+			return
+		}
+		if len(ips) > 0 {
+			// Google anomaly detection can be triggered very often over IPv6.
+			// Prefer IPv4 to mitigate, see issue #97
+			// If no IPv4 is available, fall back to IPv6
+			for _, candidate := range ips {
+				if candidate.IP.To4() != nil {
+					results <- candidate.IP
+					return
+				}
+			}
+			// We couldn't find an IPv4, so just use the first one (at this point we assume it's IPv6)
+			results <- ips[0].IP
+		}
+	}()
 }
