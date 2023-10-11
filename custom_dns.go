@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net"
+	"sync"
 	"time"
 
 	"github.com/getlantern/errors"
@@ -17,7 +18,7 @@ const (
 
 // Returns a dialer that uses custom DNS servers to resolve the host. It uses all DNS servers
 // in parallel and uses the first response it gets.
-func customDNSDialer(dnsServers []string, timeout time.Duration) (func(context.Context, string, string) (net.Conn, error), error) {
+func customDNSDialer(dnsServers []string, timeoutToDialOrigin time.Duration) (func(context.Context, string, string) (net.Conn, error), error) {
 	resolvers := make([]*net.Resolver, 0, len(dnsServers))
 	if len(dnsServers) == 0 {
 		log.Debug("Will resolve DNS using system DNS servers")
@@ -29,11 +30,15 @@ func customDNSDialer(dnsServers []string, timeout time.Duration) (func(context.C
 			r := &net.Resolver{
 				PreferGo: true,
 				Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-					return netx.DialContext(ctx, "udp", dnsServer)
+					return netx.DialContext(ctx, network, dnsServer)
 				},
 			}
 			resolvers = append(resolvers, r)
 		}
+	}
+
+	dialer := &net.Dialer{
+		Timeout: timeoutToDialOrigin,
 	}
 
 	dial := func(ctx context.Context, network, addr string) (net.Conn, error) {
@@ -49,29 +54,33 @@ func customDNSDialer(dnsServers []string, timeout time.Duration) (func(context.C
 			errs := make(chan error, len(resolvers))
 			rctx, cancel := context.WithTimeout(ctx, resolutionTimeout)
 			defer cancel()
+			var wg sync.WaitGroup
+			wg.Add(len(resolvers))
 			for _, r := range resolvers {
-				resolveInBackground(rctx, r, host, results, errs)
+				resolveInBackground(rctx, r, host, &wg, results, errs)
 			}
-			select {
-			case ip = <-results:
-				// got a result!
-			case <-time.After(resolutionTimeout):
-				var resolveErr error
+			errorCount := 0
+			deadline := time.After(resolutionTimeout)
+		resultLoop:
+			for {
 				select {
-				case resolveErr = <-errs:
-					// got an error
-				default:
-					// no error, we just timed out
+				case ip = <-results:
+					// got a result!
+					break resultLoop
+				case err := <-errs:
+					errorCount++
+					if errorCount == len(resolvers) {
+						// all resolvers failed, stop trying
+						return nil, errors.New("unable to resolve host %v, last resolution error: %v", host, err)
+					}
+				case <-deadline:
+					return nil, errors.New("unable to resolve host %v, resolution timed out", host)
 				}
-				return nil, errors.New("unable to resolve host %v, last resolution error: %v", host, resolveErr)
 			}
 		}
 
 		resolvedAddr := fmt.Sprintf("%s:%s", ip, port)
-		d := &net.Dialer{
-			Deadline: time.Now().Add(timeout),
-		}
-		conn, dialErr := d.DialContext(ctx, "tcp", resolvedAddr)
+		conn, dialErr := dialer.DialContext(ctx, "tcp", resolvedAddr)
 		if dialErr != nil {
 			return nil, dialErr
 		}
@@ -82,8 +91,10 @@ func customDNSDialer(dnsServers []string, timeout time.Duration) (func(context.C
 	return dial, nil
 }
 
-func resolveInBackground(ctx context.Context, r *net.Resolver, host string, results chan net.IP, errors chan error) {
+func resolveInBackground(ctx context.Context, r *net.Resolver, host string, wg *sync.WaitGroup, results chan net.IP, errors chan error) {
 	go func() {
+		defer wg.Done()
+
 		ips, err := r.LookupIPAddr(ctx, host)
 		if err != nil {
 			errors <- err

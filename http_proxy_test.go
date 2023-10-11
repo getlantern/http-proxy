@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"bufio"
+	"context"
 	"crypto/tls"
 	"flag"
 	"fmt"
@@ -17,6 +18,7 @@ import (
 	"time"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/getlantern/keyman"
 	"github.com/getlantern/measured"
@@ -792,4 +794,28 @@ func (mr *mockReporter) Report(ctx map[string]interface{}, stats *measured.Stats
 		deviceID = _deviceID.(string)
 	}
 	mr.traffic[deviceID] = stats
+}
+
+func TestCustomDNSSuccess(t *testing.T) {
+	// Use a working and a non-working (4.4.4.4) DNS server to make sure that DNS resolution doesn't wait for
+	// the failing one to timeout
+	d, err := customDNSDialer([]string{"8.8.8.8:53", "4.4.4.4:53"}, 5*time.Second)
+	require.NoError(t, err)
+	start := time.Now()
+	conn, err := d(context.Background(), "tcp", "www.google.com:443")
+	require.NoError(t, err)
+	require.Less(t, time.Since(start), 2*time.Second)
+	conn.Close()
+}
+
+func TestCustomDNSFailure(t *testing.T) {
+	// Use a two working DNS servers to make sure that when all DNS servers fail to find
+	// a result, we return an error quickly.
+	d, err := customDNSDialer([]string{"8.8.8.8:53", "8.8.4.4:53"}, 5*time.Second)
+	require.NoError(t, err)
+	start := time.Now()
+	_, err = d(context.Background(), "tcp", "blubbaasdfsadfsadf.dude:443")
+	require.Error(t, err)
+	fmt.Println(err)
+	require.Less(t, time.Since(start), 2*time.Second)
 }
