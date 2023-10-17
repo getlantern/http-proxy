@@ -36,7 +36,7 @@ type Instrument interface {
 	XBQHeaderSent(ctx context.Context)
 	SuspectedProbing(ctx context.Context, fromIP net.IP, reason string)
 	VersionCheck(ctx context.Context, redirect bool, method, reason string)
-	ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort string, clientIP net.IP, deviceID, originHost string)
+	ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string)
 	ReportToOTELPeriodically(interval time.Duration, tp *sdktrace.TracerProvider, includeDeviceID bool)
 	ReportToOTEL(tp *sdktrace.TracerProvider, includeDeviceID bool)
 	quicSentPacket(ctx context.Context)
@@ -69,7 +69,7 @@ func (i NoInstrument) Throttle(ctx context.Context, m bool, reason string) {}
 func (i NoInstrument) XBQHeaderSent(ctx context.Context)                                      {}
 func (i NoInstrument) SuspectedProbing(ctx context.Context, fromIP net.IP, reason string)     {}
 func (i NoInstrument) VersionCheck(ctx context.Context, redirect bool, method, reason string) {}
-func (i NoInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
+func (i NoInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string) {
 }
 func (i NoInstrument) ReportToOTELPeriodically(interval time.Duration, tp *sdktrace.TracerProvider, includeDeviceID bool) {
 }
@@ -235,7 +235,7 @@ func (ins *defaultInstrument) VersionCheck(ctx context.Context, redirect bool, m
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort string, clientIP net.IP, deviceID, originHost string) {
+func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string) {
 	// Track the cardinality of clients.
 	otelinstrument.DistinctClients1m.Add(deviceID)
 	otelinstrument.DistinctClients10m.Add(deviceID)
@@ -271,21 +271,23 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 	)
 
 	clientKey := clientDetails{
-		platform: platform,
-		version:  version,
-		locale:   locale,
-		country:  country,
-		isp:      isp,
-		asn:      asn,
+		platform:     platform,
+		version:      version,
+		locale:       locale,
+		country:      country,
+		isp:          isp,
+		asn:          asn,
+		probingError: probingError,
 	}
 	clientKeyWithDeviceID := clientDetails{
-		deviceID: deviceID,
-		platform: platform,
-		version:  version,
-		locale:   locale,
-		country:  country,
-		isp:      isp,
-		asn:      asn,
+		deviceID:     deviceID,
+		platform:     platform,
+		version:      version,
+		locale:       locale,
+		country:      country,
+		isp:          isp,
+		asn:          asn,
+		probingError: probingError,
 	}
 
 	var originKey originDetails
@@ -362,13 +364,14 @@ func (ins *defaultInstrument) MultipathStats(protocols []string) (trackers []mul
 }
 
 type clientDetails struct {
-	deviceID string
-	platform string
-	version  string
-	locale   string
-	country  string
-	isp      string
-	asn      string
+	deviceID     string
+	platform     string
+	version      string
+	locale       string
+	country      string
+	isp          string
+	asn          string
+	probingError string
 }
 
 type originDetails struct {
@@ -433,7 +436,8 @@ func (ins *defaultInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeD
 					attribute.String("client_locale", key.locale),
 					attribute.String("client_country", key.country),
 					attribute.String("client_isp", key.isp),
-					attribute.String("client_asn", key.asn)))
+					attribute.String("client_asn", key.asn),
+					attribute.String("probing_error", key.probingError)))
 		span.End()
 	}
 	if !includeDeviceID {

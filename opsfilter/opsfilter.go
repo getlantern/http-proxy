@@ -6,9 +6,11 @@ import (
 	"strings"
 
 	"github.com/getlantern/golog"
+	"github.com/getlantern/netx"
 	"github.com/getlantern/proxy/v2/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
+	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
 	"github.com/getlantern/http-proxy/listeners"
 )
 
@@ -65,6 +67,15 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	addMeasuredHeader("locale", locale)
 	addMeasuredHeader("supported_data_caps", req.Header[common.SupportedDataCaps])
 	addMeasuredHeader("time_zone", req.Header.Get(common.TimeZoneHeader))
+
+	netx.WalkWrapped(cs.Downstream(), func(conn net.Conn) bool {
+		pdc, ok := conn.(tlslistener.ProbingDetectingConn)
+		if ok {
+			addMeasuredHeader("probing_error", pdc.ProbingError())
+			return false
+		}
+		return true
+	})
 
 	clientIP, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
