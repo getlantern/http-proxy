@@ -71,6 +71,9 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	netx.WalkWrapped(cs.Downstream(), func(conn net.Conn) bool {
 		pdc, ok := conn.(tlslistener.ProbingDetectingConn)
 		if ok {
+			if deviceID == "127a3813-47fb-4dc0-906e-cc510057b67b" {
+				log.Debugf("Probing error for device 127a3813-47fb-4dc0-906e-cc510057b67b: %v", pdc.ProbingError())
+			}
 			addMeasuredHeader("probing_error", pdc.ProbingError())
 			return false
 		}
