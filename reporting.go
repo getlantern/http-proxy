@@ -75,7 +75,12 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 		if _originHost != nil {
 			originHost = _originHost.(string)
 		}
-		instrument.ProxiedBytes(context.Background(), deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, app, locale, dataCapCohort, client_ip, deviceID, originHost)
+		_probingError := ctx["probing_error"]
+		probingError := ""
+		if _probingError != nil {
+			probingError = _probingError.(string)
+		}
+		instrument.ProxiedBytes(context.Background(), deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, app, locale, dataCapCohort, probingError, client_ip, deviceID, originHost)
 	}
 
 	var reporter listeners.MeasuredReportFN

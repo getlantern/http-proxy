@@ -135,7 +135,7 @@ var bytePool = sync.Pool{
 		return make([]byte, reflectBufferSize)
 	}}
 
-func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utls.Config, ticketKeys utls.TicketKeys, missingTicketReaction HandshakeReaction, instrument instrument.Instrument) (net.Conn, *tls.Config) {
+func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utls.Config, ticketKeys utls.TicketKeys, missingTicketReaction HandshakeReaction, instrument instrument.Instrument) (*clientHelloRecordingConn, *tls.Config) {
 	buf := bufferPool.Get().(*bytes.Buffer)
 	cfgClone := cfg.Clone()
 	rrc := &clientHelloRecordingConn{
@@ -166,6 +166,7 @@ type clientHelloRecordingConn struct {
 	ticketKeys            utls.TicketKeys
 	missingTicketReaction HandshakeReaction
 	instrument            instrument.Instrument
+	probingError          string
 }
 
 func (rrc *clientHelloRecordingConn) Read(b []byte) (int, error) {
@@ -221,7 +222,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 
 func (rrc *clientHelloRecordingConn) helloError(errStr string, continueOnError bool) (*tls.Config, error) {
 	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
-	log.Debugf("Responding with hello error '%v' to %v", errStr, sourceIP)
+	rrc.probingError = errStr
 	rrc.instrument.SuspectedProbing(context.Background(), sourceIP, errStr)
 	// For now, we just record that there was a problem with the client hello, but we actually
 	// proceed as if everything is fine.

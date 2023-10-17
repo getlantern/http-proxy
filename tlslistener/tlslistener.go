@@ -101,11 +101,11 @@ func (l *tlslistener) Accept() (net.Conn, error) {
 		return nil, err
 	}
 	if !l.expectTickets || !l.requireTickets {
-		return &tlsconn{tls.Server(conn, l.cfg), conn}, nil
+		return &tlsconn{Conn: tls.Server(conn, l.cfg), wrapped: conn}, nil
 	}
 
 	helloConn, cfg := newClientHelloRecordingConn(conn, l.cfg, l.utlsCfg, l.getTicketKeys(), l.missingTicketReaction, l.instrument)
-	return &tlsconn{tls.Server(helloConn, cfg), conn}, nil
+	return &tlsconn{Conn: tls.Server(helloConn, cfg), wrapped: conn, helloConn: helloConn}, nil
 }
 
 func (l *tlslistener) getTicketKeys() utls.TicketKeys {
@@ -122,11 +122,28 @@ func (l *tlslistener) Close() error {
 	return l.wrapped.Close()
 }
 
+type ProbingDetectingConn interface {
+	// If there was suspected probing on this connection, return the error message for that suspected probing
+	// (e.g. "ClientHello does not support session tickets"), else return empty string.
+	ProbingError() string
+}
+
 type tlsconn struct {
 	net.Conn
-	wrapped net.Conn
+	wrapped   net.Conn
+	helloConn *clientHelloRecordingConn
 }
 
 func (conn *tlsconn) Wrapped() net.Conn {
 	return conn.wrapped
+}
+
+func (conn *tlsconn) ProbingError() string {
+	if conn.helloConn == nil {
+		return ""
+	}
+	conn.helloConn.helloMutex.Lock()
+	err := conn.helloConn.probingError
+	conn.helloConn.helloMutex.Unlock()
+	return err
 }
