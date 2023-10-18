@@ -217,12 +217,14 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		return rrc.helloError("ClientHello has invalid session ticket", true)
 	}
 
+	log.Debugf("No probing from %v", sourceIP)
 	return nil, nil
 }
 
 func (rrc *clientHelloRecordingConn) helloError(errStr string, continueOnError bool) (*tls.Config, error) {
 	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
 	rrc.probingError = errStr
+	log.Debugf("Suspected probing from %v: %v", sourceIP, errStr)
 	rrc.instrument.SuspectedProbing(context.Background(), sourceIP, errStr)
 	// For now, we just record that there was a problem with the client hello, but we actually
 	// proceed as if everything is fine.
