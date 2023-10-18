@@ -387,7 +387,7 @@ func main() {
 		HTTPS:                              *https,
 		IdleTimeout:                        time.Duration(*idleClose) * time.Second,
 		KeyFile:                            *keyfile,
-		SessionTicketKeys:                  "",
+		SessionTicketKeys:                  *firstSessionTicketKey,
 		SessionTicketKeyFile:               *sessionTicketKeyFile,
 		FirstSessionTicketKey:              *firstSessionTicketKey,
 		Track:                              *track,
