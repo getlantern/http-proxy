@@ -32,7 +32,6 @@ type Opts struct {
 	Endpoint             string
 	Headers              map[string]string
 	SampleRate           int
-	ExternalIP           string
 	ProxyName            string
 	Track                string
 	Provider             string
@@ -68,16 +67,16 @@ func (opts *Opts) buildResource() *resource.Resource {
 	if opts.Track != "" {
 		attributes = append(attributes, attribute.String("track", opts.Track))
 	}
-	// Disable reporting proxy IP for Datadog cost reasons
-	// if opts.ExternalIP != "" {
-	// 	log.Debugf("Will report with proxy.ip: %v", opts.ExternalIP)
-	// 	attributes = append(attributes, attribute.String("proxy.ip", opts.ExternalIP))
-	// }
 	if opts.ProxyName != "" {
-		log.Debugf("Will report with proxy.name %v on provider %v in dc %v", opts.ProxyName, opts.Provider, opts.DC)
-		// Disable reporting proxy name for Datadog cost reasons
-		// attributes = append(attributes, attribute.String("proxy.name", opts.ProxyName))
+		log.Debugf("Will report with proxy.name %v", opts.ProxyName)
+		attributes = append(attributes, attribute.String("proxy.name", opts.ProxyName))
+	}
+	if opts.Provider != "" {
+		log.Debugf("Will report with provider %v", opts.Provider)
 		attributes = append(attributes, attribute.String("provider", opts.Provider))
+	}
+	if opts.DC != "" {
+		log.Debugf("Will report with dc %v", opts.DC)
 		attributes = append(attributes, attribute.String("dc", opts.DC))
 	}
 	if opts.FrontendProvider != "" {
