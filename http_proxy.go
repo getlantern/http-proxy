@@ -704,7 +704,7 @@ func (p *Proxy) configureTeleport() func() {
 		p.TeleportSampleRate,
 		1*time.Hour,
 		true,
-		false, // don't include proxy identity in Teleport data to avoid tying device IDs to specific proxy IP addresses
+		true,
 	)
 }
 
@@ -733,11 +733,11 @@ func (p *Proxy) configureOTELMetrics() (func(), error) {
 	return otel.InitGlobalMeterProvider(
 		p.buildOTELOpts(
 			teleportHost,
-			true,
+			false, // don't include proxy name in order to reduce DataDog costs
 		))
 }
 
-func (p *Proxy) buildOTELOpts(endpoint string, includeProxyIdentity bool) *otel.Opts {
+func (p *Proxy) buildOTELOpts(endpoint string, includeProxyName bool) *otel.Opts {
 	proxyName, provider, dc := p.ProxyName, p.Provider, p.DC
 	if dc == "" {
 		// This proxy is running on the old infrastructure, parse the name to get the dc
@@ -776,8 +776,7 @@ func (p *Proxy) buildOTELOpts(endpoint string, includeProxyIdentity bool) *otel.
 	} else if p.BroflakeAddr != "" {
 		opts.Addr = p.BroflakeAddr
 	}
-	if includeProxyIdentity {
-		opts.ExternalIP = p.ExternalIP
+	if includeProxyName {
 		opts.ProxyName = proxyName
 	}
 	return opts
