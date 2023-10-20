@@ -29,19 +29,17 @@ var (
 )
 
 type Opts struct {
-	Endpoint             string
-	Headers              map[string]string
-	SampleRate           int
-	ProxyName            string
-	Track                string
-	Provider             string
-	DC                   string
-	FrontendProvider     string
-	FrontendDC           string
-	ProxyProtocol        string
-	Addr                 string
-	IsPro                bool
-	IncludeProxyIdentity bool
+	Endpoint         string
+	Headers          map[string]string
+	ProxyName        string
+	Track            string
+	Provider         string
+	DC               string
+	FrontendProvider string
+	FrontendDC       string
+	ProxyProtocol    string
+	Addr             string
+	IsPro            bool
 }
 
 func (opts *Opts) buildResource() *resource.Resource {
@@ -115,7 +113,6 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 			sdktrace.WithBlocking(), // it's okay to use blocking mode right now because we're just submitting bandwidth data in a goroutine that doesn't block real work
 		),
 		sdktrace.WithResource(opts.buildResource()),
-		sdktrace.WithSampler(sdktrace.ParentBased(newDeterministicSampler(opts.SampleRate))),
 	)
 
 	stop := func() {

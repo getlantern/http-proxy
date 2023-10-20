@@ -37,8 +37,10 @@ type Instrument interface {
 	SuspectedProbing(ctx context.Context, fromIP net.IP, reason string)
 	VersionCheck(ctx context.Context, redirect bool, method, reason string)
 	ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string)
-	ReportToOTELPeriodically(interval time.Duration, tp *sdktrace.TracerProvider, includeDeviceID bool)
-	ReportToOTEL(tp *sdktrace.TracerProvider, includeDeviceID bool)
+	ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider)
+	ReportProxiedBytes(tp *sdktrace.TracerProvider)
+	ReportOriginBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider)
+	ReportOriginBytes(tp *sdktrace.TracerProvider)
 	quicSentPacket(ctx context.Context)
 	quicLostPacket(ctx context.Context)
 }
@@ -71,12 +73,14 @@ func (i NoInstrument) SuspectedProbing(ctx context.Context, fromIP net.IP, reaso
 func (i NoInstrument) VersionCheck(ctx context.Context, redirect bool, method, reason string) {}
 func (i NoInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string) {
 }
-func (i NoInstrument) ReportToOTELPeriodically(interval time.Duration, tp *sdktrace.TracerProvider, includeDeviceID bool) {
+func (i NoInstrument) ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider) {
 }
-func (i NoInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeDeviceID bool) {
+func (i NoInstrument) ReportProxiedBytes(tp *sdktrace.TracerProvider) {}
+func (i NoInstrument) ReportOriginBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider) {
 }
-func (i NoInstrument) quicSentPacket(ctx context.Context) {}
-func (i NoInstrument) quicLostPacket(ctx context.Context) {}
+func (i NoInstrument) ReportOriginBytes(tp *sdktrace.TracerProvider) {}
+func (i NoInstrument) quicSentPacket(ctx context.Context)            {}
+func (i NoInstrument) quicLostPacket(ctx context.Context)            {}
 
 // CommonLabels defines a set of common labels apply to all metrics instrumented.
 type CommonLabels struct {
@@ -90,14 +94,13 @@ type CommonLabels struct {
 // defaultInstrument is an implementation of Instrument which exports metrics
 // via open telemetry.
 type defaultInstrument struct {
-	countryLookup           geo.CountryLookup
-	ispLookup               geo.ISPLookup
-	filters                 map[string]filters.Filter
-	errorHandlers           map[string]func(conn net.Conn, err error)
-	clientStats             map[clientDetails]*usage
-	clientStatsWithDeviceID map[clientDetails]*usage
-	originStats             map[originDetails]*usage
-	statsMx                 sync.Mutex
+	countryLookup geo.CountryLookup
+	ispLookup     geo.ISPLookup
+	filters       map[string]filters.Filter
+	errorHandlers map[string]func(conn net.Conn, err error)
+	clientStats   map[clientDetails]*usage
+	originStats   map[originDetails]*usage
+	statsMx       sync.Mutex
 }
 
 func NewDefault(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup) (*defaultInstrument, error) {
@@ -106,13 +109,12 @@ func NewDefault(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup) (*defa
 	}
 
 	p := &defaultInstrument{
-		countryLookup:           countryLookup,
-		ispLookup:               ispLookup,
-		filters:                 make(map[string]filters.Filter),
-		errorHandlers:           make(map[string]func(conn net.Conn, err error)),
-		clientStats:             make(map[clientDetails]*usage),
-		clientStatsWithDeviceID: make(map[clientDetails]*usage),
-		originStats:             make(map[originDetails]*usage),
+		countryLookup: countryLookup,
+		ispLookup:     ispLookup,
+		filters:       make(map[string]filters.Filter),
+		errorHandlers: make(map[string]func(conn net.Conn, err error)),
+		clientStats:   make(map[clientDetails]*usage),
+		originStats:   make(map[originDetails]*usage),
 	}
 
 	return p, nil
@@ -271,15 +273,6 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 	)
 
 	clientKey := clientDetails{
-		platform:     platform,
-		version:      version,
-		locale:       locale,
-		country:      country,
-		isp:          isp,
-		asn:          asn,
-		probingError: probingError,
-	}
-	clientKeyWithDeviceID := clientDetails{
 		deviceID:     deviceID,
 		platform:     platform,
 		version:      version,
@@ -308,7 +301,6 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 
 	ins.statsMx.Lock()
 	ins.clientStats[clientKey] = ins.clientStats[clientKey].add(sent, recv)
-	ins.clientStatsWithDeviceID[clientKeyWithDeviceID] = ins.clientStatsWithDeviceID[clientKeyWithDeviceID].add(sent, recv)
 	if hasOriginKey {
 		ins.originStats[originKey] = ins.originStats[originKey].add(sent, recv)
 	}
@@ -395,7 +387,7 @@ func (u *usage) add(sent int, recv int) *usage {
 	return u
 }
 
-func (ins *defaultInstrument) ReportToOTELPeriodically(interval time.Duration, tp *sdktrace.TracerProvider, includeDeviceID bool) {
+func (ins *defaultInstrument) ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider) {
 	for {
 		// We randomize the sleep time to avoid bursty submission to OpenTelemetry.
 		// Even though each proxy sends relatively little data, proxies often run fairly
@@ -403,22 +395,15 @@ func (ins *defaultInstrument) ReportToOTELPeriodically(interval time.Duration, t
 		// time. By randomizing each proxy's interval, we smooth out the pattern of submissions.
 		sleepInterval := rand.Int63n(int64(interval * 2))
 		time.Sleep(time.Duration(sleepInterval))
-		ins.ReportToOTEL(tp, includeDeviceID)
+		ins.ReportProxiedBytes(tp)
 	}
 }
 
-func (ins *defaultInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeDeviceID bool) {
+func (ins *defaultInstrument) ReportProxiedBytes(tp *sdktrace.TracerProvider) {
 	var clientStats map[clientDetails]*usage
 	ins.statsMx.Lock()
-	if includeDeviceID {
-		clientStats = ins.clientStatsWithDeviceID
-		ins.clientStatsWithDeviceID = make(map[clientDetails]*usage)
-	} else {
-		clientStats = ins.clientStats
-		ins.clientStats = make(map[clientDetails]*usage)
-	}
-	originStats := ins.originStats
-	ins.originStats = make(map[originDetails]*usage)
+	clientStats = ins.clientStats
+	ins.clientStats = make(map[clientDetails]*usage)
 	ins.statsMx.Unlock()
 
 	for key, value := range clientStats {
@@ -440,24 +425,40 @@ func (ins *defaultInstrument) ReportToOTEL(tp *sdktrace.TracerProvider, includeD
 					attribute.String("probing_error", key.probingError)))
 		span.End()
 	}
-	if !includeDeviceID {
-		// In order to prevent associating origins with device IDs, only report
-		// origin stats if we're not including device IDs.
-		for key, value := range originStats {
-			_, span := tp.Tracer("").
-				Start(
-					context.Background(),
-					"origin_bytes",
-					trace.WithAttributes(
-						attribute.Int("origin_bytes_sent", value.sent),
-						attribute.Int("origin_bytes_recv", value.recv),
-						attribute.Int("origin_bytes_total", value.sent+value.recv),
-						attribute.String("origin", key.origin),
-						attribute.String("client_platform", key.platform),
-						attribute.String("client_version", key.version),
-						attribute.String("client_country", key.country)))
-			span.End()
-		}
+}
+
+func (ins *defaultInstrument) ReportOriginBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider) {
+	for {
+		// We randomize the sleep time to avoid bursty submission to OpenTelemetry.
+		// Even though each proxy sends relatively little data, proxies often run fairly
+		// closely synchronized since they all update to a new binary and restart around the same
+		// time. By randomizing each proxy's interval, we smooth out the pattern of submissions.
+		sleepInterval := rand.Int63n(int64(interval * 2))
+		time.Sleep(time.Duration(sleepInterval))
+		ins.ReportOriginBytes(tp)
+	}
+}
+
+func (ins *defaultInstrument) ReportOriginBytes(tp *sdktrace.TracerProvider) {
+	ins.statsMx.Lock()
+	originStats := ins.originStats
+	ins.originStats = make(map[originDetails]*usage)
+	ins.statsMx.Unlock()
+
+	for key, value := range originStats {
+		_, span := tp.Tracer("").
+			Start(
+				context.Background(),
+				"origin_bytes",
+				trace.WithAttributes(
+					attribute.Int("origin_bytes_sent", value.sent),
+					attribute.Int("origin_bytes_recv", value.recv),
+					attribute.Int("origin_bytes_total", value.sent+value.recv),
+					attribute.String("origin", key.origin),
+					attribute.String("client_platform", key.platform),
+					attribute.String("client_version", key.version),
+					attribute.String("client_country", key.country)))
+		span.End()
 	}
 }
 
