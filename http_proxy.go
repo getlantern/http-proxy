@@ -261,11 +261,11 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  instrumentedErrorHandler,
 	})
-	stopTraces := p.configureTraces()
-	defer stopTraces()
+	stopProxiedBytes := p.configureTeleportProxiedBytes()
+	defer stopProxiedBytes()
 
-	stopTeleport := p.configureTeleport()
-	defer stopTeleport()
+	stopOriginBytes := p.configureTeleportOriginBytes()
+	defer stopOriginBytes()
 
 	stopMetrics, err := p.configureOTELMetrics()
 	if err != nil {
@@ -671,58 +671,29 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}, nil
 }
 
-func (p *Proxy) configureTraces() func() {
-	if true {
-		log.Debug("Tracing currently disabled until we figure out how to handle traces in the centralized OTEL collector")
-		return func() {}
-	}
-
-	if p.TracesSampleRate <= 0 {
-		log.Debug("Not configuring tracing")
-		return func() {}
-	}
-
-	log.Debug("Configuring tracing")
-	return p.configureOTEL(
-		teleportHost,
-		p.TracesSampleRate,
-		1*time.Minute,
-		false,
-		true,
-	)
-}
-
-func (p *Proxy) configureTeleport() func() {
-	if p.TeleportSampleRate <= 0 {
-		log.Debug("Not configuring Teleport")
-		return func() {}
-	}
-
-	log.Debug("Configuring Teleport")
-	return p.configureOTEL(
-		teleportHost,
-		p.TeleportSampleRate,
-		1*time.Hour,
-		true,
-		true,
-	)
-}
-
-func (p *Proxy) configureOTEL(
-	endpoint string,
-	sampleRate int,
-	reportingInterval time.Duration,
-	includeDeviceIDs bool,
-	includeProxyIdentity bool,
-) func() {
-	opts := p.buildOTELOpts(endpoint, includeProxyIdentity)
-	opts.SampleRate = sampleRate
-	tp, stop := otel.BuildTracerProvider(opts)
+func (p *Proxy) configureTeleportProxiedBytes() func() {
+	log.Debug("Configuring Teleport proxied bytes")
+	tp, stop := otel.BuildTracerProvider(p.buildOTELOpts(teleportHost, true))
 	if tp != nil {
-		go p.instrument.ReportToOTELPeriodically(reportingInterval, tp, includeDeviceIDs)
+		go p.instrument.ReportProxiedBytesPeriodically(1*time.Hour, tp)
 		ogStop := stop
 		stop = func() {
-			p.instrument.ReportToOTEL(tp, includeDeviceIDs)
+			p.instrument.ReportProxiedBytes(tp)
+			ogStop()
+		}
+	}
+	return stop
+}
+
+func (p *Proxy) configureTeleportOriginBytes() func() {
+	log.Debug("Configuring Teleport origin bytes")
+	// Note - we do not include the proxy name here to avoid associating origin site usage with devices on that proxy name
+	tp, stop := otel.BuildTracerProvider(p.buildOTELOpts(teleportHost, false))
+	if tp != nil {
+		go p.instrument.ReportOriginBytesPeriodically(1*time.Hour, tp)
+		ogStop := stop
+		stop = func() {
+			p.instrument.ReportOriginBytes(tp)
 			ogStop()
 		}
 	}
