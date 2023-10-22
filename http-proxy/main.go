@@ -125,7 +125,7 @@ var (
 	help    = flag.Bool("help", false, "Get usage help")
 
 	versionCheck                   = flag.String("versioncheck", "< 7.0.6", "Check if Lantern client matches the semantic version range, like \"< 3.1.1\" or \"<= 3.x\". No check by default.")
-	versionCheckRedirectPercentage = flag.Float64("versioncheck-redirect-percentage", 1, "The percentage of requests to be redirected in version check. Defaults to 1 (100%)")
+	versionCheckRedirectPercentage = flag.Float64("versioncheck-redirect-percentage", .1, "The percentage of requests to be redirected in version check. Defaults to 1 (100%)")
 
 	googleSearchRegex  = flag.String("google-search-regex", googlefilter.DefaultSearchRegex, "Regex for detecting access to Google Search")
 	googleCaptchaRegex = flag.String("google-captcha-regex", googlefilter.DefaultCaptchaRegex, "Regex for detecting access to Google captcha page")
