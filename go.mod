@@ -19,7 +19,7 @@ require (
 	github.com/getlantern/geo v0.0.0-20230612145351-d1374c8f8dec
 	github.com/getlantern/golog v0.0.0-20230503153817-8e72de7e0a65
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
-	github.com/getlantern/grtrack v0.0.0-20210901195719-bdf9e1d12dac
+	github.com/getlantern/grtrack v0.0.0-20231025115619-bfbfadb228f3
 	github.com/getlantern/http-proxy v0.0.3-0.20230405160101-eb4bf4e4a733
 	github.com/getlantern/kcpwrapper v0.0.0-20230327091313-c12d7c17c6de
 	github.com/getlantern/keyman v0.0.0-20230503155501-4e864ca2175b
@@ -29,7 +29,7 @@ require (
 	github.com/getlantern/multipath v0.0.0-20230510135141-717ed305ef50
 	github.com/getlantern/netx v0.0.0-20211206143627-7ccfeb739cbd
 	github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360
-	github.com/getlantern/proxy/v2 v2.0.1-0.20231025101536-0061dd72186d
+	github.com/getlantern/proxy/v2 v2.0.1-0.20231025120008-e5de10082549
 	github.com/getlantern/psmux v1.5.15
 	github.com/getlantern/quicwrapper v0.0.0-20230523101504-1ec066b7f869
 	github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7
@@ -99,7 +99,7 @@ require (
 	github.com/getlantern/iptool v0.0.0-20230112135223-c00e863b2696 // indirect
 	github.com/getlantern/kcp-go/v5 v5.0.0-20220503142114-f0c1cd6e1b54 // indirect
 	github.com/getlantern/keepcurrent v0.0.0-20221014183517-fcee77376b89 // indirect
-	github.com/getlantern/mitm v0.0.0-20231025101347-86bc546cc0ba // indirect
+	github.com/getlantern/mitm v0.0.0-20231025115752-54d3e43899b7 // indirect
 	github.com/getlantern/mtime v0.0.0-20200417132445-23682092d1f7 // indirect
 	github.com/getlantern/ops v0.0.0-20230424193308-26325dfed3cf // indirect
 	github.com/getlantern/preconn v1.0.0 // indirect

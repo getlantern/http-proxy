@@ -127,8 +127,8 @@ github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb h1:tDQA66mL1vTHKS
 github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb/go.mod h1:ysiamkJHyOrnlNmtDCCccH1NbFdgEBSJRg44DWiOxcY=
 github.com/getlantern/gotun v0.0.0-20190809092752-6d35bb1397ee/go.mod h1:zvsZQrsl7Yrmi+ENk5WZFT7dQaYtihAcI0H/9+LacqQ=
 github.com/getlantern/grtrack v0.0.0-20160824195228-cbf67d3fa0fd/go.mod h1:RkQEgBdrJCH5tYJP2D+a/aJ216V3c9q8w/tCJtEiDoY=
-github.com/getlantern/grtrack v0.0.0-20210901195719-bdf9e1d12dac h1:WsJhOWm1hJEAqts1OAhEPctQpy7Y0Eiu05mV84ixekc=
-github.com/getlantern/grtrack v0.0.0-20210901195719-bdf9e1d12dac/go.mod h1:RkQEgBdrJCH5tYJP2D+a/aJ216V3c9q8w/tCJtEiDoY=
+github.com/getlantern/grtrack v0.0.0-20231025115619-bfbfadb228f3 h1:3eOqQA2WKd5tvepSwHXcN1IteDBnWcrs4dAoKVpGZ9k=
+github.com/getlantern/grtrack v0.0.0-20231025115619-bfbfadb228f3/go.mod h1:esUcij+yiXH9mSlzZChtoSClQ9vr8cjNgEbcDHVqJfI=
 github.com/getlantern/hex v0.0.0-20190417191902-c6586a6fe0b7 h1:micT5vkcr9tOVk1FiH8SWKID8ultN44Z+yzd2y/Vyb0=
 github.com/getlantern/hex v0.0.0-20190417191902-c6586a6fe0b7/go.mod h1:dD3CgOrwlzca8ed61CsZouQS5h5jIzkK9ZWrTcf0s+o=
 github.com/getlantern/hidden v0.0.0-20190325191715-f02dbb02be55/go.mod h1:6mmzY2kW1TOOrVy+r41Za2MxXM+hhqTtY3oBKd2AgFA=
@@ -161,8 +161,8 @@ github.com/getlantern/measured v0.0.0-20230919230611-3d9e3776a6cd/go.mod h1:QG6d
 github.com/getlantern/memhelper v0.0.0-20220104170102-df557102babd h1:qAbpkftDdMOaNF6NXNovpNhJrghIzIOMHGABu6zJgns=
 github.com/getlantern/memhelper v0.0.0-20220104170102-df557102babd/go.mod h1:Ehpz4e44lXNZ0dPcvMedNR04P9ccngpp1B4Vk+0AQP0=
 github.com/getlantern/mitm v0.0.0-20180205214248-4ce456bae650/go.mod h1:jmIVbVxSVLdeY5hlD+6chiOR/9CdzPjVgIIQphviCl0=
-github.com/getlantern/mitm v0.0.0-20231025101347-86bc546cc0ba h1:vlOwzXuz7J/Gy5RTT6DOHXEnQkg3oeKrw6uqt+gSnm8=
-github.com/getlantern/mitm v0.0.0-20231025101347-86bc546cc0ba/go.mod h1:sCAOk1Y9pRrLuK0sSH3Rz2lubOBIl04h7pD/+UZM/lc=
+github.com/getlantern/mitm v0.0.0-20231025115752-54d3e43899b7 h1:l9/yc7C0eaF4UQWgxAdtOnYKNfS74NMaInZ9vrlNKWI=
+github.com/getlantern/mitm v0.0.0-20231025115752-54d3e43899b7/go.mod h1:sCAOk1Y9pRrLuK0sSH3Rz2lubOBIl04h7pD/+UZM/lc=
 github.com/getlantern/mockconn v0.0.0-20190708122800-637bd46d8034/go.mod h1:+F5GJ7qGpQ03DBtcOEyQpM30ix4BLswdaojecFtsdy8=
 github.com/getlantern/mockconn v0.0.0-20191023022503-481dbcceeb58/go.mod h1:+F5GJ7qGpQ03DBtcOEyQpM30ix4BLswdaojecFtsdy8=
 github.com/getlantern/mockconn v0.0.0-20200818071412-cb30d065a848 h1:2MhMMVBTnaHrst6HyWFDhwQCaJ05PZuOv1bE2gN8WFY=
@@ -196,8 +196,8 @@ github.com/getlantern/probe v0.0.0-20191107230642-ed284e08029a/go.mod h1:EPE0nd9
 github.com/getlantern/probednet v0.0.0-20190725133252-1cfdb2354b4d h1:9PBhNNIc3CErDnFbi0uc7WCasEtQ5hoz3jWgebHRYm0=
 github.com/getlantern/probednet v0.0.0-20190725133252-1cfdb2354b4d/go.mod h1:7sl7hPjPDAqXyxVx7mhrKfvb4oCX/ROhcs16w2EhWX8=
 github.com/getlantern/proxy/v2 v2.0.0/go.mod h1:jU6qNaMq92qDY0slT9afuER7arXLnh7jU+DTg3W/oDs=
-github.com/getlantern/proxy/v2 v2.0.1-0.20231025101536-0061dd72186d h1:AqNgUend8/Uht1kQkur8bKOtTaxJenEGuxWv5zSTd3E=
-github.com/getlantern/proxy/v2 v2.0.1-0.20231025101536-0061dd72186d/go.mod h1:QPObrbBtORaWC+1xP6voNoupa/kmbOQO1JvcRqA+qQ0=
+github.com/getlantern/proxy/v2 v2.0.1-0.20231025120008-e5de10082549 h1:J+GL1aSH4p6vkQWt7OoziYrVtD0MwehQr5Uj7qE24DM=
+github.com/getlantern/proxy/v2 v2.0.1-0.20231025120008-e5de10082549/go.mod h1:teUfqDKSD5HIJkH+n/2gHJUmJYKPox/sipLrrBYZP/w=
 github.com/getlantern/psmux v1.5.15-0.20200903210100-947ca5d91683/go.mod h1:GtXRvtMItoflWGLPE7GNq+AdL7BnmpaaNLtDQVD1XHU=
 github.com/getlantern/psmux v1.5.15 h1:VUCEk8MIsvAj90wNYRyY2fE9ZL4LIRhi1W5V9aycA9A=
 github.com/getlantern/psmux v1.5.15/go.mod h1:nyp/sr4uTbWpUh7Q2WovRb07LeLNUxDg8kAdS726FIw=
