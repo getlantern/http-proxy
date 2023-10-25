@@ -10,7 +10,7 @@ require (
 	github.com/OperatorFoundation/Starbridge-go/Starbridge/v3 v3.0.17
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/dustin/go-humanize v1.0.1
-	github.com/getlantern/broflake v0.0.0-20231023203105-1566f60bd3f5
+	github.com/getlantern/broflake v0.0.0-20231016221059-9c3632502cae
 	github.com/getlantern/cmux/v2 v2.0.0-20230301223233-dac79088a4c0
 	github.com/getlantern/cmuxprivate v0.0.0-20211216020409-d29d0d38be54
 	github.com/getlantern/enhttp v0.0.0-20210901195634-6f89d45ee033
