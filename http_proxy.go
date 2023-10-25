@@ -723,6 +723,7 @@ func (p *Proxy) buildOTELOpts(endpoint string, includeProxyName bool) *otel.Opts
 		FrontendDC:       p.FrontendDC,
 		ProxyProtocol:    p.ProxyProtocol,
 		IsPro:            p.Pro,
+		Legacy:           strings.HasPrefix(proxyName, "fp-"),
 	}
 	if p.ShadowsocksMultiplexAddr != "" {
 		opts.Addr = p.ShadowsocksMultiplexAddr

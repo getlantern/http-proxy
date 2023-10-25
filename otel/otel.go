@@ -2,7 +2,6 @@ package otel
 
 import (
 	"context"
-	"strings"
 	"time"
 
 	sdkotel "go.opentelemetry.io/otel"
@@ -40,6 +39,7 @@ type Opts struct {
 	ProxyProtocol    string
 	Addr             string
 	IsPro            bool
+	Legacy           bool
 }
 
 func (opts *Opts) buildResource() *resource.Resource {
@@ -47,6 +47,7 @@ func (opts *Opts) buildResource() *resource.Resource {
 		semconv.ServiceNameKey.String("http-proxy-lantern"),
 		attribute.String("protocol", opts.ProxyProtocol),
 		attribute.Bool("pro", opts.IsPro),
+		attribute.Bool("legacy", opts.Legacy),
 	}
 	// Disable reporting proxy port for Datadog cost reasons
 	// parts := strings.Split(opts.Addr, ":")
@@ -82,10 +83,6 @@ func (opts *Opts) buildResource() *resource.Resource {
 		attributes = append(attributes, attribute.String("frontend.provider", opts.FrontendProvider))
 		attributes = append(attributes, attribute.String("frontend.dc", opts.FrontendDC))
 	}
-	attributes = append(
-		attributes,
-		attribute.Bool("legacy", strings.HasPrefix(opts.ProxyName, "fp-")),
-	)
 	return resource.NewWithAttributes(semconv.SchemaURL, attributes...)
 }
 
