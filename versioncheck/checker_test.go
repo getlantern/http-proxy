@@ -14,7 +14,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/getlantern/proxy/v2"
+	"github.com/getlantern/proxy/v3"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 )

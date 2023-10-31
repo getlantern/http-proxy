@@ -34,16 +34,16 @@ import (
 
 	"github.com/getlantern/multipath"
 	packetforward "github.com/getlantern/packetforward/server"
-	"github.com/getlantern/proxy/v2"
-	"github.com/getlantern/proxy/v2/filters"
+	"github.com/getlantern/proxy/v3"
+	"github.com/getlantern/proxy/v3/filters"
 	"github.com/getlantern/psmux"
 	"github.com/getlantern/quicwrapper"
 	"github.com/getlantern/tinywss"
 	"github.com/getlantern/tlsdefaults"
 
-	"github.com/getlantern/http-proxy/listeners"
-	"github.com/getlantern/http-proxy/proxyfilters"
-	"github.com/getlantern/http-proxy/server"
+	"github.com/getlantern/http-proxy-lantern/v2/listeners"
+	"github.com/getlantern/http-proxy-lantern/v2/proxyfilters"
+	"github.com/getlantern/http-proxy-lantern/v2/server"
 
 	"github.com/getlantern/http-proxy-lantern/v2/analytics"
 	"github.com/getlantern/http-proxy-lantern/v2/blacklist"

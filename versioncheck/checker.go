@@ -34,7 +34,7 @@ import (
 	"github.com/blang/semver"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/proxy/v2/filters"
+	"github.com/getlantern/proxy/v3/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"

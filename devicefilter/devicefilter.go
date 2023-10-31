@@ -11,15 +11,14 @@ import (
 	"github.com/dustin/go-humanize"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/proxy/v2/filters"
+	"github.com/getlantern/proxy/v3/filters"
 
-	"github.com/getlantern/http-proxy/listeners"
+	"github.com/getlantern/http-proxy-lantern/v2/listeners"
 
 	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
-	lanternlisteners "github.com/getlantern/http-proxy-lantern/v2/listeners"
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/usage"
@@ -30,7 +29,7 @@ var (
 
 	epoch = time.Date(2016, 1, 1, 0, 0, 0, 0, time.UTC)
 
-	alwaysThrottle = lanternlisteners.NewRateLimiter(10, 10) // this is basically unusably slow, only used for malicious or really old/broken clients
+	alwaysThrottle = listeners.NewRateLimiter(10, 10) // this is basically unusably slow, only used for malicious or really old/broken clients
 
 	defaultThrottleRate = int64(5000 * 1024 / 8) // 5 Mbps
 )
@@ -41,7 +40,7 @@ type deviceFilterPre struct {
 	throttleConfig     throttle.Config
 	sendXBQHeader      bool
 	instrument         instrument.Instrument
-	limitersByDevice   map[string]*lanternlisteners.RateLimiter
+	limitersByDevice   map[string]*listeners.RateLimiter
 	limitersByDeviceMx sync.Mutex
 }
 
@@ -74,7 +73,7 @@ func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, sendXBQHead
 		throttleConfig:   throttleConfig,
 		sendXBQHeader:    sendXBQHeader,
 		instrument:       instrument,
-		limitersByDevice: make(map[string]*lanternlisteners.RateLimiter, 0),
+		limitersByDevice: make(map[string]*listeners.RateLimiter, 0),
 	}
 }
 
@@ -193,13 +192,13 @@ func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, 
 	return resp, nextCtx, err
 }
 
-func (f *deviceFilterPre) rateLimiterForDevice(deviceID string, rateLimitRead, rateLimitWrite int64) *lanternlisteners.RateLimiter {
+func (f *deviceFilterPre) rateLimiterForDevice(deviceID string, rateLimitRead, rateLimitWrite int64) *listeners.RateLimiter {
 	f.limitersByDeviceMx.Lock()
 	defer f.limitersByDeviceMx.Unlock()
 
 	limiter := f.limitersByDevice[deviceID]
 	if limiter == nil || limiter.GetRateRead() != rateLimitRead || limiter.GetRateWrite() != rateLimitWrite {
-		limiter = lanternlisteners.NewRateLimiter(rateLimitRead, rateLimitWrite)
+		limiter = listeners.NewRateLimiter(rateLimitRead, rateLimitWrite)
 		f.limitersByDevice[deviceID] = limiter
 	}
 	return limiter

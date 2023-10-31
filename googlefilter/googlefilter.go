@@ -9,7 +9,7 @@ import (
 	"regexp"
 
 	"github.com/getlantern/golog"
-	"github.com/getlantern/proxy/v2/filters"
+	"github.com/getlantern/proxy/v3/filters"
 )
 
 var (

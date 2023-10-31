@@ -18,7 +18,7 @@ import (
 	"github.com/getlantern/geo"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument/otelinstrument"
 	"github.com/getlantern/multipath"
-	"github.com/getlantern/proxy/v2/filters"
+	"github.com/getlantern/proxy/v3/filters"
 )
 
 var (

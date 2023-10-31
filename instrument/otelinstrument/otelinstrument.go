@@ -16,7 +16,7 @@ import (
 	"go.opentelemetry.io/otel/metric"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument/distinct"
-	"github.com/getlantern/proxy/v2/filters"
+	"github.com/getlantern/proxy/v3/filters"
 )
 
 var (

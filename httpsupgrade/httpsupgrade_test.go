@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/getlantern/proxy/v2/filters"
+	"github.com/getlantern/proxy/v3/filters"
 	"github.com/stretchr/testify/assert"
 )
 
