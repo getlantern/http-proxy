@@ -20,16 +20,19 @@ require (
 	github.com/getlantern/golog v0.0.0-20230503153817-8e72de7e0a65
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
 	github.com/getlantern/grtrack v0.0.0-20231025115619-bfbfadb228f3
-	github.com/getlantern/http-proxy v0.0.3-0.20230405160101-eb4bf4e4a733
+	github.com/getlantern/idletiming v0.0.0-20200228204104-10036786eac5
+	github.com/getlantern/iptool v0.0.0-20230112135223-c00e863b2696
 	github.com/getlantern/kcpwrapper v0.0.0-20230327091313-c12d7c17c6de
 	github.com/getlantern/keyman v0.0.0-20230503155501-4e864ca2175b
 	github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9
 	github.com/getlantern/measured v0.0.0-20230919230611-3d9e3776a6cd
 	github.com/getlantern/memhelper v0.0.0-20220104170102-df557102babd
+	github.com/getlantern/mockconn v0.0.0-20200818071412-cb30d065a848
 	github.com/getlantern/multipath v0.0.0-20230510135141-717ed305ef50
 	github.com/getlantern/netx v0.0.0-20211206143627-7ccfeb739cbd
+	github.com/getlantern/ops v0.0.0-20230424193308-26325dfed3cf
 	github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360
-	github.com/getlantern/proxy/v2 v2.0.1-0.20231025120008-e5de10082549
+	github.com/getlantern/proxy/v3 v3.0.0-20231031142453-252ab678e6b7
 	github.com/getlantern/psmux v1.5.15
 	github.com/getlantern/quicwrapper v0.0.0-20230523101504-1ec066b7f869
 	github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7
@@ -41,6 +44,7 @@ require (
 	github.com/getlantern/withtimeout v0.0.0-20160829163843-511f017cd913
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
+	github.com/hashicorp/golang-lru v0.5.4
 	github.com/mitchellh/panicwrap v1.0.0
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/quic-go/quic-go v0.34.0
@@ -95,13 +99,10 @@ require (
 	github.com/getlantern/go-cache v0.0.0-20141028142048-88b53914f467 // indirect
 	github.com/getlantern/hex v0.0.0-20190417191902-c6586a6fe0b7 // indirect
 	github.com/getlantern/hidden v0.0.0-20201229170000-e66e7f878730 // indirect
-	github.com/getlantern/idletiming v0.0.0-20200228204104-10036786eac5 // indirect
-	github.com/getlantern/iptool v0.0.0-20230112135223-c00e863b2696 // indirect
 	github.com/getlantern/kcp-go/v5 v5.0.0-20220503142114-f0c1cd6e1b54 // indirect
 	github.com/getlantern/keepcurrent v0.0.0-20221014183517-fcee77376b89 // indirect
 	github.com/getlantern/mitm v0.0.0-20231025115752-54d3e43899b7 // indirect
 	github.com/getlantern/mtime v0.0.0-20200417132445-23682092d1f7 // indirect
-	github.com/getlantern/ops v0.0.0-20230424193308-26325dfed3cf // indirect
 	github.com/getlantern/preconn v1.0.0 // indirect
 	github.com/getlantern/reconn v0.0.0-20161128113912-7053d017511c // indirect
 	github.com/getlantern/telemetry v0.0.0-20230523155019-be7c1d8cd8cb // indirect
@@ -121,7 +122,6 @@ require (
 	github.com/googleapis/enterprise-certificate-proxy v0.3.1 // indirect
 	github.com/googleapis/gax-go/v2 v2.12.0 // indirect
 	github.com/grpc-ecosystem/grpc-gateway/v2 v2.16.0 // indirect
-	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/klauspost/compress v1.16.7 // indirect
 	github.com/klauspost/cpuid v1.3.1 // indirect
 	github.com/klauspost/pgzip v1.2.5 // indirect

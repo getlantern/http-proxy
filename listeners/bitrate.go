@@ -5,7 +5,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/getlantern/http-proxy/listeners"
 	"github.com/getlantern/ratelimit"
 )
 
@@ -83,7 +82,7 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 		return nil, err
 	}
 
-	wc, _ := c.(listeners.WrapConnEmbeddable)
+	wc, _ := c.(WrapConnEmbeddable)
 	return &bitrateConn{
 		WrapConnEmbeddable: wc,
 		Conn:               c,
@@ -93,7 +92,7 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 
 // Bitrate Conn wrapper
 type bitrateConn struct {
-	listeners.WrapConnEmbeddable
+	WrapConnEmbeddable
 	net.Conn
 	limiter *RateLimiter
 }

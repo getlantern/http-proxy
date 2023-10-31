@@ -21,8 +21,8 @@ import (
 	"github.com/getlantern/keyman"
 	"github.com/getlantern/measured"
 
-	"github.com/getlantern/http-proxy/listeners"
-	"github.com/getlantern/http-proxy/server"
+	"github.com/getlantern/http-proxy-lantern/v2/listeners"
+	"github.com/getlantern/http-proxy-lantern/v2/server"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/tokenfilter"

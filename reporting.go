@@ -9,7 +9,7 @@ import (
 	rclient "github.com/go-redis/redis/v8"
 
 	"github.com/getlantern/geo"
-	"github.com/getlantern/http-proxy/listeners"
+	"github.com/getlantern/http-proxy-lantern/v2/listeners"
 	"github.com/getlantern/measured"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
@@ -19,8 +19,6 @@ import (
 
 var (
 	measuredReportingInterval = 1 * time.Minute
-
-	noReport = &reportingConfig{false, neverWrap}
 )
 
 type reportingConfig struct {

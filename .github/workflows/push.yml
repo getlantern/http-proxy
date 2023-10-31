@@ -7,7 +7,7 @@ jobs:
   go:
     uses: ./.github/workflows/go.yml
     secrets: inherit
-    
+
   docker_push:
     name: docker push
     needs: [go]
@@ -39,7 +39,7 @@ jobs:
         uses: docker/build-push-action@v3
         with:
           secrets: |
-            "github_oauth_token=${{ secrets.GH_TOKEN }}"
+            "github_oauth_token=${{ secrets.CI_PRIVATE_REPOS_GH_TOKEN }}"
           context: .
           push: true
           file: Dockerfile

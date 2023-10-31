@@ -11,10 +11,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/getlantern/proxy/v2/filters"
+	"github.com/getlantern/proxy/v3/filters"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/getlantern/http-proxy/server"
+	"github.com/getlantern/http-proxy-lantern/v2/server"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
