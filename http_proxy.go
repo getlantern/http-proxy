@@ -55,7 +55,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/httpsupgrade"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/lampshade"
-	lanternlisteners "github.com/getlantern/http-proxy-lantern/v2/listeners"
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/v2/ping"
@@ -275,7 +274,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 
 	bwReporting := p.configureBandwidthReporting()
 	// Throttle connections when signaled
-	srv.AddListenerWrappers(lanternlisteners.NewBitrateListener, bwReporting.wrapper)
+	srv.AddListenerWrappers(listeners.NewBitrateListener, bwReporting.wrapper)
 
 	allListeners := make([]net.Listener, 0)
 	listenerProtocols := make([]string, 0)
@@ -290,7 +289,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		listenerProtocols = append(listenerProtocols, proto)
 		// Although we include blacklist functionality, it's currently only used to
 		// track potential blacklisting ad doesn't actually blacklist anyone.
-		allListeners = append(allListeners, lanternlisteners.NewAllowingListener(l, blacklist.OnConnect))
+		allListeners = append(allListeners, listeners.NewAllowingListener(l, blacklist.OnConnect))
 		return nil
 	}
 
