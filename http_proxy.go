@@ -56,6 +56,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/lampshade"
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
+	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/v2/ping"
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
@@ -293,6 +294,13 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	}
 
 	addListenersForBaseTransport := func(baseListen func(string) (net.Listener, error), addrs *addresses) error {
+		if err := addListenerIfNecessary("obfs4", addrs.obfs4, p.listenOBFS4(baseListen)); err != nil {
+			return err
+		}
+		if err := addListenerIfNecessary("obfs4_multiplex", addrs.obfs4Multiplex, p.wrapMultiplexing(p.listenOBFS4(baseListen))); err != nil {
+			return err
+		}
+
 		// We pass onListenerError to lampshade so that we can count errors in its
 		// internal connection handling.
 		var err error
@@ -781,6 +789,22 @@ func (p *Proxy) listenHTTP(baseListen func(string) (net.Listener, error)) listen
 	}
 }
 
+func (p *Proxy) listenOBFS4(baseListen func(string) (net.Listener, error)) listenerBuilderFN {
+	return func(addr string) (net.Listener, error) {
+		l, err := baseListen(addr)
+		if err != nil {
+			return nil, errors.New("Unable to listen for OBFS4: %v", err)
+		}
+		wrapped, err := obfs4listener.Wrap(l, p.Obfs4Dir, p.Obfs4HandshakeConcurrency, p.Obfs4MaxPendingHandshakesPerClient, p.Obfs4HandshakeTimeout)
+		if err != nil {
+			l.Close()
+			return nil, errors.New("Unable to wrap listener with OBFS4: %v", err)
+		}
+		log.Debugf("Listening for OBFS4 at %v", wrapped.Addr())
+		return wrapped, nil
+	}
+}
+
 func (p *Proxy) listenLampshade(onListenerError func(net.Conn, error), baseListen func(string) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
 		l, err := baseListen(addr)
@@ -872,6 +896,7 @@ func (p *Proxy) listenQUICIETF(addr string) (net.Listener, error) {
 
 	config := &quicwrapper.Config{
 		MaxIncomingStreams:      1000,
+		Tracer:                  instrument.NewQuicTracer(p.instrument),
 		DisablePathMTUDiscovery: true,
 	}
 
