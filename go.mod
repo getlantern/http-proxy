@@ -1,6 +1,6 @@
 module github.com/getlantern/http-proxy-lantern/v2
 
-go 1.19
+go 1.21
 
 require (
 	cloud.google.com/go/errorreporting v0.3.0
@@ -10,7 +10,7 @@ require (
 	github.com/OperatorFoundation/Starbridge-go/Starbridge/v3 v3.0.17
 	github.com/blang/semver v3.5.1+incompatible
 	github.com/dustin/go-humanize v1.0.1
-	github.com/getlantern/broflake v0.0.0-20231016221059-9c3632502cae
+	github.com/getlantern/broflake v0.0.0-20231117182649-7d46643a6f87
 	github.com/getlantern/cmux/v2 v2.0.0-20230301223233-dac79088a4c0
 	github.com/getlantern/cmuxprivate v0.0.0-20211216020409-d29d0d38be54
 	github.com/getlantern/enhttp v0.0.0-20210901195634-6f89d45ee033
@@ -34,7 +34,7 @@ require (
 	github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360
 	github.com/getlantern/proxy/v3 v3.0.0-20231031142453-252ab678e6b7
 	github.com/getlantern/psmux v1.5.15
-	github.com/getlantern/quicwrapper v0.0.0-20230523101504-1ec066b7f869
+	github.com/getlantern/quicwrapper v0.0.0-20231117185542-d951689c4970
 	github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7
 	github.com/getlantern/tinywss v0.0.0-20211216020538-c10008a7d461
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
@@ -47,7 +47,7 @@ require (
 	github.com/hashicorp/golang-lru v0.5.4
 	github.com/mitchellh/panicwrap v1.0.0
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
-	github.com/quic-go/quic-go v0.34.0
+	github.com/quic-go/quic-go v0.40.0
 	github.com/refraction-networking/utls v1.3.3
 	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
 	github.com/spaolacci/murmur3 v1.1.0
@@ -112,7 +112,6 @@ require (
 	github.com/go-ole/go-ole v1.2.6 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
 	github.com/go-task/slim-sprig v0.0.0-20230315185526-52ccab3ef572 // indirect
-	github.com/golang/mock v1.6.0 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/golang/snappy v0.0.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
@@ -159,8 +158,7 @@ require (
 	github.com/prometheus/client_model v0.3.0 // indirect
 	github.com/prometheus/common v0.42.0 // indirect
 	github.com/prometheus/procfs v0.9.0 // indirect
-	github.com/quic-go/qtls-go1-19 v0.3.2 // indirect
-	github.com/quic-go/qtls-go1-20 v0.2.2 // indirect
+	github.com/quic-go/qtls-go1-20 v0.4.1 // indirect
 	github.com/shadowsocks/go-shadowsocks2 v0.1.4-0.20201002022019-75d43273f5a5 // indirect
 	github.com/shirou/gopsutil v3.21.11+incompatible // indirect
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8 // indirect
@@ -180,6 +178,7 @@ require (
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric v0.42.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.0.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
+	go.uber.org/mock v0.3.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
 	golang.org/x/crypto v0.14.0 // indirect
