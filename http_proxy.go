@@ -896,7 +896,6 @@ func (p *Proxy) listenQUICIETF(addr string) (net.Listener, error) {
 
 	config := &quicwrapper.Config{
 		MaxIncomingStreams:      1000,
-		Tracer:                  instrument.NewQuicTracer(p.instrument),
 		DisablePathMTUDiscovery: true,
 	}
 
