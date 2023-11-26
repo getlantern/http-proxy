@@ -123,7 +123,7 @@ func doTestThrottling(t *testing.T, pro bool, serverAddr string, redisIsUp bool,
 		req, _ := http.NewRequest(http.MethodGet, u, nil)
 		req.Header.Set(common.TokenHeader, validToken)
 		req.Header.Set(common.DeviceIdHeader, deviceId)
-		req.Header.Add(common.SupportedDataCaps, throttle.Daily)
+		req.Header.Add(common.SupportedDataCapsHeader, throttle.Daily)
 		req.Header.Set(common.TimeZoneHeader, timezone)
 		req.Header.Set(sizeHeader, strconv.Itoa(testSize))
 
