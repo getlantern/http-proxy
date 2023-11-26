@@ -21,6 +21,7 @@ import (
 	"github.com/getlantern/keyman"
 	"github.com/getlantern/measured"
 
+	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/listeners"
 	"github.com/getlantern/http-proxy-lantern/v2/server"
 
@@ -779,14 +780,13 @@ func newTargetHandler(msg string, tls bool) (string, *targetHandler) {
 
 type mockReporter struct {
 	traffic map[string]*measured.Stats
-	lmtx    sync.Mutex
 	tmtx    sync.Mutex
 }
 
 func (mr *mockReporter) Report(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 	mr.tmtx.Lock()
 	defer mr.tmtx.Unlock()
-	_deviceID := ctx["deviceid"]
+	_deviceID := ctx[common.DeviceID]
 	deviceID := ""
 	if _deviceID != nil {
 		deviceID = _deviceID.(string)
