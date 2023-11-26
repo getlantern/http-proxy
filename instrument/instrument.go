@@ -16,6 +16,7 @@ import (
 
 	"github.com/getlantern/errors"
 	"github.com/getlantern/geo"
+	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument/otelinstrument"
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/proxy/v3/filters"
@@ -35,8 +36,7 @@ type Instrument interface {
 	Throttle(ctx context.Context, m bool, reason string)
 	XBQHeaderSent(ctx context.Context)
 	SuspectedProbing(ctx context.Context, fromIP net.IP, reason string)
-	VersionCheck(ctx context.Context, redirect bool, method, reason string)
-	ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string)
+	ProxiedBytes(ctx context.Context, sent, recv int, platform, version, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string)
 	ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider)
 	ReportProxiedBytes(tp *sdktrace.TracerProvider)
 	ReportOriginBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider)
@@ -68,10 +68,9 @@ func (i NoInstrument) MultipathStats(protocols []string) (trackers []multipath.S
 }
 func (i NoInstrument) Throttle(ctx context.Context, m bool, reason string) {}
 
-func (i NoInstrument) XBQHeaderSent(ctx context.Context)                                      {}
-func (i NoInstrument) SuspectedProbing(ctx context.Context, fromIP net.IP, reason string)     {}
-func (i NoInstrument) VersionCheck(ctx context.Context, redirect bool, method, reason string) {}
-func (i NoInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string) {
+func (i NoInstrument) XBQHeaderSent(ctx context.Context)                                  {}
+func (i NoInstrument) SuspectedProbing(ctx context.Context, fromIP net.IP, reason string) {}
+func (i NoInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, version, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string) {
 }
 func (i NoInstrument) ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider) {
 }
@@ -221,23 +220,9 @@ func (ins *defaultInstrument) SuspectedProbing(ctx context.Context, fromIP net.I
 	)
 }
 
-// VersionCheck records the number of times the Lantern version header is
-// checked and if redirecting to the upgrade page is required.
-func (ins *defaultInstrument) VersionCheck(ctx context.Context, redirect bool, method, reason string) {
-	otelinstrument.VersionCheck.Add(
-		ctx,
-		1,
-		metric.WithAttributes(
-			attribute.KeyValue{"method", attribute.StringValue(method)},
-			attribute.KeyValue{"redirected", attribute.BoolValue(redirect)},
-			attribute.KeyValue{"reason", attribute.StringValue(reason)},
-		),
-	)
-}
-
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, version, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string) {
+func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, version, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string) {
 	// Track the cardinality of clients.
 	otelinstrument.DistinctClients1m.Add(deviceID)
 	otelinstrument.DistinctClients10m.Add(deviceID)
@@ -247,9 +232,11 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 	isp := ins.ispLookup.ISP(clientIP)
 	asn := ins.ispLookup.ASN(clientIP)
 	otelAttributes := []attribute.KeyValue{
-		{"client_platform", attribute.StringValue(platform)},
-		{"client_version", attribute.StringValue(version)},
-		{"client_app", attribute.StringValue(app)},
+		{common.Platform, attribute.StringValue(platform)},
+		{common.Version, attribute.StringValue(version)},
+		{common.LibraryVersion, attribute.StringValue(libVersion)},
+		{common.AppVersion, attribute.StringValue(appVersion)},
+		{common.App, attribute.StringValue(app)},
 		{"datacap_cohort", attribute.StringValue(dataCapCohort)},
 		{"country", attribute.StringValue(country)},
 		{"client_isp", attribute.StringValue(isp)},
@@ -276,6 +263,8 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		deviceID:     deviceID,
 		platform:     platform,
 		version:      version,
+		appVersion:   appVersion,
+		libVersion:   libVersion,
 		locale:       locale,
 		country:      country,
 		isp:          isp,
@@ -359,6 +348,8 @@ type clientDetails struct {
 	deviceID     string
 	platform     string
 	version      string
+	appVersion   string
+	libVersion   string
 	locale       string
 	country      string
 	isp          string
@@ -415,14 +406,16 @@ func (ins *defaultInstrument) ReportProxiedBytes(tp *sdktrace.TracerProvider) {
 					attribute.Int("bytes_sent", value.sent),
 					attribute.Int("bytes_recv", value.recv),
 					attribute.Int("bytes_total", value.sent+value.recv),
-					attribute.String("device_id", key.deviceID),
-					attribute.String("client_platform", key.platform),
-					attribute.String("client_version", key.version),
-					attribute.String("client_locale", key.locale),
+					attribute.String(common.DeviceID, key.deviceID),
+					attribute.String(common.Platform, key.platform),
+					attribute.String(common.Version, key.version),
+					attribute.String(common.AppVersion, key.appVersion),
+					attribute.String(common.LibraryVersion, key.libVersion),
+					attribute.String(common.Locale, key.locale),
 					attribute.String("client_country", key.country),
 					attribute.String("client_isp", key.isp),
 					attribute.String("client_asn", key.asn),
-					attribute.String("probing_error", key.probingError)))
+					attribute.String(common.ProbingError, key.probingError)))
 		span.End()
 	}
 }

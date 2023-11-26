@@ -9,6 +9,7 @@ import (
 	rclient "github.com/go-redis/redis/v8"
 
 	"github.com/getlantern/geo"
+	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/listeners"
 	"github.com/getlantern/measured"
 
@@ -33,52 +34,28 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 			return
 		}
 		// Note - sometimes we're missing the platform and version
-		platform := ""
-		_platform := ctx["app_platform"]
-		if _platform != nil {
-			platform = _platform.(string)
-		}
-		version := ""
-		_version := ctx["app_version"]
-		if _version != nil {
-			version = _version.(string)
-		}
-		app := ""
-		_app := ctx["app"]
-		if _app != nil {
-			app = strings.ToLower(_app.(string))
-		}
-		locale := ""
-		_locale := ctx["locale"]
-		if _locale != nil {
-			locale = strings.ToLower(_locale.(string))
-		}
+		platform := fromContext(ctx, common.Platform)
+		legacyVersion := fromContext(ctx, common.Version)
+		clientVersion := fromContext(ctx, common.AppVersion)
+		libraryVersion := fromContext(ctx, common.LibraryVersion)
+		app := lowerFromContext(ctx, common.App)
+		locale := lowerFromContext(ctx, common.Locale)
+		deviceID := fromContext(ctx, common.DeviceID)
+		originHost := fromContext(ctx, common.OriginHost)
+		probingError := fromContext(ctx, common.ProbingError)
+
 		var client_ip net.IP
-		_client_ip := ctx["client_ip"]
+		_client_ip := ctx[common.ClientIP]
 		if _client_ip != nil {
 			client_ip = net.ParseIP(_client_ip.(string))
 		}
-		_deviceID := ctx["deviceid"]
-		deviceID := ""
-		if _deviceID != nil {
-			deviceID = _deviceID.(string)
-		}
+
 		dataCapCohort := ""
-		throttleSettings, hasThrottleSettings := ctx["throttle_settings"]
+		throttleSettings, hasThrottleSettings := ctx[common.ThrottleSettings]
 		if hasThrottleSettings {
 			dataCapCohort = throttleSettings.(*throttle.Settings).Label
 		}
-		_originHost := ctx["origin_host"]
-		originHost := ""
-		if _originHost != nil {
-			originHost = _originHost.(string)
-		}
-		_probingError := ctx["probing_error"]
-		probingError := ""
-		if _probingError != nil {
-			probingError = _probingError.(string)
-		}
-		instrument.ProxiedBytes(context.Background(), deltaStats.SentTotal, deltaStats.RecvTotal, platform, version, app, locale, dataCapCohort, probingError, client_ip, deviceID, originHost)
+		instrument.ProxiedBytes(context.Background(), deltaStats.SentTotal, deltaStats.RecvTotal, platform, legacyVersion, libraryVersion, clientVersion, app, locale, dataCapCohort, probingError, client_ip, deviceID, originHost)
 	}
 
 	var reporter listeners.MeasuredReportFN
@@ -98,14 +75,22 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 	return &reportingConfig{true, wrapper}
 }
 
+func fromContext(ctx map[string]interface{}, key string) string {
+	value := ctx[key]
+	if value != nil {
+		return value.(string)
+	}
+	return ""
+}
+
+func lowerFromContext(ctx map[string]interface{}, key string) string {
+	return strings.ToLower(fromContext(ctx, key))
+}
+
 func combineReporter(reporters ...listeners.MeasuredReportFN) listeners.MeasuredReportFN {
 	return func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 		for _, r := range reporters {
 			r(ctx, stats, deltaStats, final)
 		}
 	}
-}
-
-func neverWrap(ls net.Listener) net.Listener {
-	return ls
 }

@@ -5,17 +5,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/netx"
 	"github.com/getlantern/proxy/v3/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/listeners"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
-)
-
-var (
-	log = golog.LoggerFor("logging")
 )
 
 type opsfilter struct {
@@ -27,7 +22,6 @@ func New() filters.Filter {
 }
 
 func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
-	deviceID := req.Header.Get(common.DeviceIdHeader)
 	originHost, originPort, _ := net.SplitHostPort(req.Host)
 	if (originPort == "0" || originPort == "") && req.Method != http.MethodConnect {
 		// Default port for HTTP
@@ -36,15 +30,31 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	if originHost == "" && !strings.Contains(req.Host, ":") {
 		originHost = req.Host
 	}
-	platform := req.Header.Get(common.PlatformHeader)
-	version := req.Header.Get(common.VersionHeader)
-	app := req.Header.Get(common.AppHeader)
-	locale := req.Header.Get(common.LocaleHeader)
+	version := req.Header.Get(common.LegacyVersionHeader)
+	if version == "" {
+		// If there's no legacy version header, set the "version" to the
+		// library version to be consistent with more recent lantern
+		// versions post early 2023.
+		version = req.Header.Get(common.LibraryVersionHeader)
+	}
+
+	clientIP, _, err := net.SplitHostPort(req.RemoteAddr)
+	if err != nil {
+		clientIP = req.RemoteAddr
+	}
 
 	measuredCtx := map[string]interface{}{
-		"origin":      req.Host,
-		"origin_host": originHost,
-		"origin_port": originPort,
+		"origin":          req.Host,
+		common.OriginHost: originHost,
+		common.OriginPort: originPort,
+
+		// Note we changed this with flashlight version v7.6.24 to explicity
+		// report the application version and the library version separately.
+		// Prior to that, for about 6 months, we were reporting the library
+		// version. Prior to that (around March of 2023), we were reporting
+		// the version of the application.
+		common.Version:  version,
+		common.ClientIP: clientIP,
 	}
 
 	addMeasuredHeader := func(key string, headerValue interface{}) {
@@ -57,31 +67,33 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 		}
 	}
 
+	addStringHeader := func(ctxKey, headerKey string) {
+		val := req.Header.Get(headerKey)
+		if val != "" {
+			measuredCtx[ctxKey] = val
+		}
+	}
+
 	// On persistent HTTP connections, some or all of the below may be missing on requests after the first. By only setting
 	// the values when they're available, the measured listener will preserve any values that were already included in the
 	// first request on the connection.
-	addMeasuredHeader("deviceid", deviceID)
-	addMeasuredHeader("app_version", version)
-	addMeasuredHeader("app_platform", platform)
-	addMeasuredHeader("app", app)
-	addMeasuredHeader("locale", locale)
-	addMeasuredHeader("supported_data_caps", req.Header[common.SupportedDataCaps])
-	addMeasuredHeader("time_zone", req.Header.Get(common.TimeZoneHeader))
+	addStringHeader(common.DeviceID, common.DeviceIdHeader)
+	addStringHeader(common.AppVersion, common.AppVersionHeader)
+	addStringHeader(common.LibraryVersion, common.LibraryVersionHeader)
+	addStringHeader(common.Platform, common.PlatformHeader)
+	addStringHeader(common.App, common.AppHeader)
+	addStringHeader(common.Locale, common.LocaleHeader)
+	addStringHeader(common.TimeZone, common.TimeZoneHeader)
+	addMeasuredHeader(common.SupportDataCaps, req.Header[common.SupportedDataCapsHeader])
 
 	netx.WalkWrapped(cs.Downstream(), func(conn net.Conn) bool {
 		pdc, ok := conn.(tlslistener.ProbingDetectingConn)
 		if ok {
-			addMeasuredHeader("probing_error", pdc.ProbingError())
+			addMeasuredHeader(common.ProbingError, pdc.ProbingError())
 			return false
 		}
 		return true
 	})
-
-	clientIP, _, err := net.SplitHostPort(req.RemoteAddr)
-	if err != nil {
-		clientIP = req.RemoteAddr
-	}
-	measuredCtx["client_ip"] = clientIP
 
 	// Send the same context data to measured as well
 	wc := cs.Downstream().(listeners.WrapConn)

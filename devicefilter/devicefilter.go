@@ -138,7 +138,7 @@ func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, 
 		return next(cs, req)
 	}
 
-	settings, capOn := f.throttleConfig.SettingsFor(lanternDeviceID, u.CountryCode, req.Header.Get(common.PlatformHeader), req.Header.Get(common.AppHeader), req.Header[common.SupportedDataCaps])
+	settings, capOn := f.throttleConfig.SettingsFor(lanternDeviceID, u.CountryCode, req.Header.Get(common.PlatformHeader), req.Header.Get(common.AppHeader), req.Header[common.SupportedDataCapsHeader])
 
 	measuredCtx := map[string]interface{}{
 		"throttled": false,
