@@ -21,6 +21,8 @@ const (
 	XBQHeaderv2             = "XBQv2"
 )
 
+// This standardizes the keys we use for storing data in the request context
+// and for reporting to teleport.
 const (
 	Platform         = "client_platform"
 	Version          = "client_version"
