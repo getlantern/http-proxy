@@ -138,7 +138,7 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 		}
 
 		var supportedDataCaps []string
-		_supportedDataCaps, ok := sac.ctx[common.SupportDataCaps]
+		_supportedDataCaps, ok := sac.ctx[common.SupportedDataCaps]
 		if ok {
 			supportedDataCaps = _supportedDataCaps.([]string)
 		}

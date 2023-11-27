@@ -57,21 +57,23 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 		common.ClientIP: clientIP,
 	}
 
-	addMeasuredHeader := func(key string, headerValue interface{}) {
-		if headerValue != nil && headerValue != "" {
-			headerArray, ok := headerValue.([]string)
-			if ok && len(headerArray) == 0 {
-				return
-			}
-			measuredCtx[key] = headerValue
+	addVal := func(ctxKey string, val interface{}) {
+		if val != nil && val != "" {
+			measuredCtx[ctxKey] = val
 		}
+	}
+
+	addArrayHeader := func(ctxKey, headerKey string) {
+		vals := req.Header.Values(headerKey)
+		if len(vals) == 0 {
+			return
+		}
+		addVal(ctxKey, vals)
 	}
 
 	addStringHeader := func(ctxKey, headerKey string) {
 		val := req.Header.Get(headerKey)
-		if val != "" {
-			measuredCtx[ctxKey] = val
-		}
+		addVal(ctxKey, val)
 	}
 
 	// On persistent HTTP connections, some or all of the below may be missing on requests after the first. By only setting
@@ -84,12 +86,12 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	addStringHeader(common.App, common.AppHeader)
 	addStringHeader(common.Locale, common.LocaleHeader)
 	addStringHeader(common.TimeZone, common.TimeZoneHeader)
-	addMeasuredHeader(common.SupportDataCaps, req.Header[common.SupportedDataCapsHeader])
+	addArrayHeader(common.SupportedDataCaps, common.SupportedDataCapsHeader)
 
 	netx.WalkWrapped(cs.Downstream(), func(conn net.Conn) bool {
 		pdc, ok := conn.(tlslistener.ProbingDetectingConn)
 		if ok {
-			addMeasuredHeader(common.ProbingError, pdc.ProbingError())
+			addVal(common.ProbingError, pdc.ProbingError())
 			return false
 		}
 		return true

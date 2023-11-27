@@ -525,7 +525,7 @@ func TestDirectNoDevice(t *testing.T) {
 		}
 
 		var buf [400]byte
-		_, err = conn.Read(buf[:])
+		conn.Read(buf[:])
 		if !assert.Contains(t, string(buf[:]), connectResp,
 			"should get 404 Not Found because no token was provided") {
 			t.FailNow()
@@ -602,7 +602,7 @@ func TestInvalidRequest(t *testing.T) {
 		}
 
 		buf := [400]byte{}
-		_, err = conn.Read(buf[:])
+		conn.Read(buf[:])
 		assert.Contains(t, string(buf[:]), connectResp, "should 400")
 
 	}
