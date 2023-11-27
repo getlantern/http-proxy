@@ -184,7 +184,8 @@ func (ins *defaultInstrument) Blacklist(ctx context.Context, b bool) {
 
 // Mimic instruments the Apache mimicry.
 func (ins *defaultInstrument) Mimic(ctx context.Context, m bool) {
-	otelinstrument.Mimicked.Add(ctx, 1, metric.WithAttributes(attribute.KeyValue{"mimicked", attribute.BoolValue(m)}))
+	otelinstrument.Mimicked.Add(ctx, 1, metric.WithAttributes(
+		attribute.KeyValue{"mimicked", attribute.BoolValue(m)}))
 
 	if m {
 		otelinstrument.Mimicked.Add(ctx, 1)
@@ -233,7 +234,7 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 	asn := ins.ispLookup.ASN(clientIP)
 	otelAttributes := []attribute.KeyValue{
 		{common.Platform, attribute.StringValue(platform)},
-		{common.Version, attribute.StringValue(version)},
+		{common.LibraryVersion, attribute.StringValue(version)},
 		{common.AppVersion, attribute.StringValue(appVersion)},
 		{common.App, attribute.StringValue(app)},
 		{"datacap_cohort", attribute.StringValue(dataCapCohort)},
@@ -337,7 +338,8 @@ func (s *stats) UpdateRTT(time.Duration) {
 func (ins *defaultInstrument) MultipathStats(protocols []string) (trackers []multipath.StatsTracker) {
 	for _, p := range protocols {
 		trackers = append(trackers, &stats{
-			otelAttributes: []attribute.KeyValue{attribute.KeyValue{"path_protocol", attribute.StringValue(p)}},
+			otelAttributes: []attribute.KeyValue{
+				{"path_protocol", attribute.StringValue(p)}},
 		})
 	}
 	return
@@ -407,7 +409,7 @@ func (ins *defaultInstrument) ReportProxiedBytes(tp *sdktrace.TracerProvider) {
 					attribute.Int("bytes_total", value.sent+value.recv),
 					attribute.String(common.DeviceID, key.deviceID),
 					attribute.String(common.Platform, key.platform),
-					attribute.String(common.Version, key.version),
+					attribute.String(common.LibraryVersion, key.version),
 					attribute.String(common.AppVersion, key.appVersion),
 					attribute.String(common.LibraryVersion, key.libVersion),
 					attribute.String(common.Locale, key.locale),

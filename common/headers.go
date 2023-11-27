@@ -3,7 +3,7 @@ package common
 const (
 	AppHeader               = "X-Lantern-App"
 	PlatformHeader          = "X-Lantern-Platform"
-	VersionHeader           = "X-Lantern-Version"
+	LibraryVersionHeader    = "X-Lantern-Version"
 	AppVersionHeader        = "X-Lantern-App-Version"
 	DeviceIdHeader          = "X-Lantern-Device-Id"
 	SupportedDataCapsHeader = "X-Lantern-Supported-Data-Caps"
@@ -24,10 +24,9 @@ const (
 // and for reporting to teleport.
 const (
 	Platform          = "client_platform"
-	Version           = "client_version"
+	LibraryVersion    = "client_version"
 	Locale            = "client_locale"
 	AppVersion        = "client_app_version"
-	LibraryVersion    = "client_lib_version"
 	App               = "client_app"
 	DeviceID          = "device_id"
 	OriginHost        = "origin_host"

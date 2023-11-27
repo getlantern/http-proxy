@@ -35,7 +35,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 		}
 		// Note - sometimes we're missing the platform and version
 		platform := fromContext(ctx, common.Platform)
-		legacyVersion := fromContext(ctx, common.Version)
+		legacyVersion := fromContext(ctx, common.LibraryVersion)
 		clientVersion := fromContext(ctx, common.AppVersion)
 		libraryVersion := fromContext(ctx, common.LibraryVersion)
 		app := lowerFromContext(ctx, common.App)

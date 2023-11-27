@@ -66,7 +66,7 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	// report the application version separately. Starting in early 2023,
 	// we began reporting the library (flashlight) version in X-Lantern-Version.
 	// Prior to that, we were reporting the version of the application.
-	addStringHeader(common.Version, common.VersionHeader)
+	addStringHeader(common.LibraryVersion, common.LibraryVersionHeader)
 
 	// On persistent HTTP connections, some or all of the below may be missing on requests after the first. By only setting
 	// the values when they're available, the measured listener will preserve any values that were already included in the
