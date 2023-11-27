@@ -36,7 +36,7 @@ type Instrument interface {
 	Throttle(ctx context.Context, m bool, reason string)
 	XBQHeaderSent(ctx context.Context)
 	SuspectedProbing(ctx context.Context, fromIP net.IP, reason string)
-	ProxiedBytes(ctx context.Context, sent, recv int, platform, version, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string)
+	ProxiedBytes(ctx context.Context, sent, recv int, platform, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string)
 	ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider)
 	ReportProxiedBytes(tp *sdktrace.TracerProvider)
 	ReportOriginBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider)
@@ -70,7 +70,7 @@ func (i NoInstrument) Throttle(ctx context.Context, m bool, reason string) {}
 
 func (i NoInstrument) XBQHeaderSent(ctx context.Context)                                  {}
 func (i NoInstrument) SuspectedProbing(ctx context.Context, fromIP net.IP, reason string) {}
-func (i NoInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, version, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string) {
+func (i NoInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string) {
 }
 func (i NoInstrument) ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider) {
 }
@@ -223,7 +223,7 @@ func (ins *defaultInstrument) SuspectedProbing(ctx context.Context, fromIP net.I
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, version, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string) {
+func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, appVersion, libVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string) {
 	// Track the cardinality of clients.
 	otelinstrument.DistinctClients1m.Add(deviceID)
 	otelinstrument.DistinctClients10m.Add(deviceID)
@@ -234,7 +234,7 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 	asn := ins.ispLookup.ASN(clientIP)
 	otelAttributes := []attribute.KeyValue{
 		{common.Platform, attribute.StringValue(platform)},
-		{common.LibraryVersion, attribute.StringValue(version)},
+		{common.LibraryVersion, attribute.StringValue(libVersion)},
 		{common.AppVersion, attribute.StringValue(appVersion)},
 		{common.App, attribute.StringValue(app)},
 		{"datacap_cohort", attribute.StringValue(dataCapCohort)},
@@ -262,7 +262,6 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 	clientKey := clientDetails{
 		deviceID:     deviceID,
 		platform:     platform,
-		version:      version,
 		appVersion:   appVersion,
 		libVersion:   libVersion,
 		locale:       locale,
@@ -281,7 +280,7 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 			originKey = originDetails{
 				origin:   originRoot,
 				platform: platform,
-				version:  version,
+				version:  libVersion,
 				country:  country,
 			}
 			hasOriginKey = true
@@ -348,7 +347,6 @@ func (ins *defaultInstrument) MultipathStats(protocols []string) (trackers []mul
 type clientDetails struct {
 	deviceID     string
 	platform     string
-	version      string
 	appVersion   string
 	libVersion   string
 	locale       string
@@ -409,9 +407,8 @@ func (ins *defaultInstrument) ReportProxiedBytes(tp *sdktrace.TracerProvider) {
 					attribute.Int("bytes_total", value.sent+value.recv),
 					attribute.String(common.DeviceID, key.deviceID),
 					attribute.String(common.Platform, key.platform),
-					attribute.String(common.LibraryVersion, key.version),
-					attribute.String(common.AppVersion, key.appVersion),
 					attribute.String(common.LibraryVersion, key.libVersion),
+					attribute.String(common.AppVersion, key.appVersion),
 					attribute.String(common.Locale, key.locale),
 					attribute.String("client_country", key.country),
 					attribute.String("client_isp", key.isp),
