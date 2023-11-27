@@ -47,10 +47,8 @@ $(BUILD_DIR):
 $(DIST_DIR):
 	mkdir -p $(DIST_DIR)
 
-# Build with CGO_ENABLED=0 to ensure that we don't have any dependencies on glibc
-# in particular, which can cause issues when running on some Linux versions.
 $(BUILD_DIR)/http-proxy: $(SRCS) | $(BUILD_DIR)
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GOPRIVATE="github.com/getlantern" go build -o $(BUILD_DIR) ./http-proxy
+	go build -o $(BUILD_DIR) ./http-proxy
 
 build: $(BUILD_DIR)/http-proxy
 
@@ -59,8 +57,10 @@ local-rts: build
 
 local-proxy: local-rts
 
+# Build with CGO_ENABLED=0 to ensure that we don't have any dependencies on glibc
+# in particular, which can cause issues when running on some Linux versions.
 $(DIST_DIR)/http-proxy: $(SRCS)
-	GOOS=linux GOARCH=amd64 GO111MODULE=on GOPRIVATE="github.com/getlantern" \
+	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
 	go build -o $(DIST_DIR)/http-proxy \
 	-ldflags="-X main.revision=$(GIT_REVISION) -X main.build_type=$(BUILD_TYPE)" \
 	./http-proxy
