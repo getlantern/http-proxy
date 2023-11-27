@@ -48,7 +48,7 @@ $(DIST_DIR):
 	mkdir -p $(DIST_DIR)
 
 $(BUILD_DIR)/http-proxy: $(SRCS) | $(BUILD_DIR)
-	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 GOPRIVATE="github.com/getlantern" go build -o $(BUILD_DIR) ./http-proxy
+	GOPRIVATE="github.com/getlantern" go build -o $(BUILD_DIR) ./http-proxy
 
 build: $(BUILD_DIR)/http-proxy
 
