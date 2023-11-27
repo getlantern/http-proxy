@@ -3,9 +3,8 @@ package common
 const (
 	AppHeader               = "X-Lantern-App"
 	PlatformHeader          = "X-Lantern-Platform"
-	LegacyVersionHeader     = "X-Lantern-Version"
+	VersionHeader           = "X-Lantern-Version"
 	AppVersionHeader        = "X-Lantern-App-Version"
-	LibraryVersionHeader    = "X-Lantern-Lib-Version"
 	DeviceIdHeader          = "X-Lantern-Device-Id"
 	SupportedDataCapsHeader = "X-Lantern-Supported-Data-Caps"
 	TimeZoneHeader          = "X-Lantern-Time-Zone"

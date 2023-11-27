@@ -30,13 +30,6 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	if originHost == "" && !strings.Contains(req.Host, ":") {
 		originHost = req.Host
 	}
-	version := req.Header.Get(common.LegacyVersionHeader)
-	if version == "" {
-		// If there's no legacy version header, set the "version" to the
-		// library version to be consistent with more recent lantern
-		// versions post early 2023.
-		version = req.Header.Get(common.LibraryVersionHeader)
-	}
 
 	clientIP, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
@@ -47,14 +40,7 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 		"origin":          req.Host,
 		common.OriginHost: originHost,
 		common.OriginPort: originPort,
-
-		// Note we changed this with flashlight version v7.6.24 to explicity
-		// report the application version and the library version separately.
-		// Prior to that, for about 6 months, we were reporting the library
-		// version. Prior to that (around March of 2023), we were reporting
-		// the version of the application.
-		common.Version:  version,
-		common.ClientIP: clientIP,
+		common.ClientIP:   clientIP,
 	}
 
 	addVal := func(ctxKey string, val interface{}) {
@@ -76,12 +62,17 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 		addVal(ctxKey, val)
 	}
 
+	// Note we changed this with flashlight version v7.6.24 or 25 to explicity
+	// report the application version separately. Starting in early 2023,
+	// we began reporting the library (flashlight) version in X-Lantern-Version.
+	// Prior to that, we were reporting the version of the application.
+	addStringHeader(common.Version, common.VersionHeader)
+
 	// On persistent HTTP connections, some or all of the below may be missing on requests after the first. By only setting
 	// the values when they're available, the measured listener will preserve any values that were already included in the
 	// first request on the connection.
 	addStringHeader(common.DeviceID, common.DeviceIdHeader)
 	addStringHeader(common.AppVersion, common.AppVersionHeader)
-	addStringHeader(common.LibraryVersion, common.LibraryVersionHeader)
 	addStringHeader(common.Platform, common.PlatformHeader)
 	addStringHeader(common.App, common.AppHeader)
 	addStringHeader(common.Locale, common.LocaleHeader)

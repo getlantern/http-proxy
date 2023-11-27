@@ -234,7 +234,6 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 	otelAttributes := []attribute.KeyValue{
 		{common.Platform, attribute.StringValue(platform)},
 		{common.Version, attribute.StringValue(version)},
-		{common.LibraryVersion, attribute.StringValue(libVersion)},
 		{common.AppVersion, attribute.StringValue(appVersion)},
 		{common.App, attribute.StringValue(app)},
 		{"datacap_cohort", attribute.StringValue(dataCapCohort)},
