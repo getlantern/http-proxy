@@ -11,8 +11,8 @@ type WrapConnEmbeddable interface {
 	ControlMessage(msgType string, data interface{})
 }
 
-// WrapConn is an interface that describes a connection that an be wrapped and
-// wrap other connections.  It responds to connection changes with OnState, and
+// WrapConn is an interface that describes a connection that can be wrapped and
+// wrap other connections. It responds to connection changes with OnState, and
 // allows control messages with ControlMessage (for things like modify the
 // connection at the wrapper level).
 // It is important that these functions, when defined, pass the arguments
