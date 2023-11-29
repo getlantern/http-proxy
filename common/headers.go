@@ -2,6 +2,7 @@ package common
 
 const (
 	AppHeader               = "X-Lantern-App"
+	KernelArchHeader        = "X-Lantern-KernelArch"
 	PlatformHeader          = "X-Lantern-Platform"
 	LibraryVersionHeader    = "X-Lantern-Version"
 	AppVersionHeader        = "X-Lantern-App-Version"
@@ -24,6 +25,7 @@ const (
 // and for reporting to teleport.
 const (
 	Platform          = "client_platform"
+	KernelArch        = "client_kernel_arch"
 	LibraryVersion    = "client_version"
 	Locale            = "client_locale"
 	AppVersion        = "client_app_version"
