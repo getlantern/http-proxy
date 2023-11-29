@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/internal/testutil"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/usage"
@@ -34,7 +35,7 @@ func TestReportPeriodically(t *testing.T) {
 	fetcher := NewDeviceFetcher(redisClient)
 	statsCh := make(chan *statsAndContext, 10000)
 	newStats := func() {
-		statsCh <- &statsAndContext{map[string]interface{}{"deviceid": deviceID, "client_ip": clientIP, "app_platform": "windows", "throttled": true}, &measured.Stats{RecvTotal: 2, SentTotal: 1}}
+		statsCh <- &statsAndContext{map[string]interface{}{common.DeviceID: deviceID, "client_ip": clientIP, "app_platform": "windows", "throttled": true}, &measured.Stats{RecvTotal: 2, SentTotal: 1}}
 	}
 	lookup := &fakeLookup{}
 	go reportPeriodically(lookup, redisClient, time.Millisecond, throttle.NewForcedConfig(5000, 500, throttle.Monthly), statsCh)
@@ -79,7 +80,7 @@ func TestReportPeriodically(t *testing.T) {
 	deviceLastSeen, err := strconv.Atoi(_deviceLastSeen)
 	require.NoError(t, err)
 	_deviceFirstThrottled := redisClient.Get(context.Background(), "_deviceFirstThrottled:"+deviceID).Val()
-	deviceFirstThrottled, err := strconv.Atoi(_deviceFirstThrottled)
+	deviceFirstThrottled, _ := strconv.Atoi(_deviceFirstThrottled)
 
 	nowUnix := int(time.Now().Unix())
 	assert.Greater(t, deviceLastSeen, nowUnix-10)

@@ -5,17 +5,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/netx"
 	"github.com/getlantern/proxy/v3/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/listeners"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
-)
-
-var (
-	log = golog.LoggerFor("logging")
 )
 
 type opsfilter struct {
@@ -27,7 +22,6 @@ func New() filters.Filter {
 }
 
 func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
-	deviceID := req.Header.Get(common.DeviceIdHeader)
 	originHost, originPort, _ := net.SplitHostPort(req.Host)
 	if (originPort == "0" || originPort == "") && req.Method != http.MethodConnect {
 		// Default port for HTTP
@@ -36,52 +30,63 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	if originHost == "" && !strings.Contains(req.Host, ":") {
 		originHost = req.Host
 	}
-	platform := req.Header.Get(common.PlatformHeader)
-	version := req.Header.Get(common.VersionHeader)
-	app := req.Header.Get(common.AppHeader)
-	locale := req.Header.Get(common.LocaleHeader)
-
-	measuredCtx := map[string]interface{}{
-		"origin":      req.Host,
-		"origin_host": originHost,
-		"origin_port": originPort,
-	}
-
-	addMeasuredHeader := func(key string, headerValue interface{}) {
-		if headerValue != nil && headerValue != "" {
-			headerArray, ok := headerValue.([]string)
-			if ok && len(headerArray) == 0 {
-				return
-			}
-			measuredCtx[key] = headerValue
-		}
-	}
-
-	// On persistent HTTP connections, some or all of the below may be missing on requests after the first. By only setting
-	// the values when they're available, the measured listener will preserve any values that were already included in the
-	// first request on the connection.
-	addMeasuredHeader("deviceid", deviceID)
-	addMeasuredHeader("app_version", version)
-	addMeasuredHeader("app_platform", platform)
-	addMeasuredHeader("app", app)
-	addMeasuredHeader("locale", locale)
-	addMeasuredHeader("supported_data_caps", req.Header[common.SupportedDataCaps])
-	addMeasuredHeader("time_zone", req.Header.Get(common.TimeZoneHeader))
-
-	netx.WalkWrapped(cs.Downstream(), func(conn net.Conn) bool {
-		pdc, ok := conn.(tlslistener.ProbingDetectingConn)
-		if ok {
-			addMeasuredHeader("probing_error", pdc.ProbingError())
-			return false
-		}
-		return true
-	})
 
 	clientIP, _, err := net.SplitHostPort(req.RemoteAddr)
 	if err != nil {
 		clientIP = req.RemoteAddr
 	}
-	measuredCtx["client_ip"] = clientIP
+
+	measuredCtx := map[string]interface{}{
+		"origin":          req.Host,
+		common.OriginHost: originHost,
+		common.OriginPort: originPort,
+		common.ClientIP:   clientIP,
+	}
+
+	addVal := func(ctxKey string, val interface{}) {
+		if val != nil && val != "" {
+			measuredCtx[ctxKey] = val
+		}
+	}
+
+	addArrayHeader := func(ctxKey, headerKey string) {
+		vals := req.Header.Values(headerKey)
+		if len(vals) == 0 {
+			return
+		}
+		addVal(ctxKey, vals)
+	}
+
+	addStringHeader := func(ctxKey, headerKey string) {
+		val := req.Header.Get(headerKey)
+		addVal(ctxKey, val)
+	}
+
+	// Note we changed this with flashlight version v7.6.24 or 25 to explicity
+	// report the application version separately. Starting in early 2023,
+	// we began reporting the library (flashlight) version in X-Lantern-Version.
+	// Prior to that, we were reporting the version of the application.
+	addStringHeader(common.LibraryVersion, common.LibraryVersionHeader)
+
+	// On persistent HTTP connections, some or all of the below may be missing on requests after the first. By only setting
+	// the values when they're available, the measured listener will preserve any values that were already included in the
+	// first request on the connection.
+	addStringHeader(common.DeviceID, common.DeviceIdHeader)
+	addStringHeader(common.AppVersion, common.AppVersionHeader)
+	addStringHeader(common.Platform, common.PlatformHeader)
+	addStringHeader(common.App, common.AppHeader)
+	addStringHeader(common.Locale, common.LocaleHeader)
+	addStringHeader(common.TimeZone, common.TimeZoneHeader)
+	addArrayHeader(common.SupportedDataCaps, common.SupportedDataCapsHeader)
+
+	netx.WalkWrapped(cs.Downstream(), func(conn net.Conn) bool {
+		pdc, ok := conn.(tlslistener.ProbingDetectingConn)
+		if ok {
+			addVal(common.ProbingError, pdc.ProbingError())
+			return false
+		}
+		return true
+	})
 
 	// Send the same context data to measured as well
 	wc := cs.Downstream().(listeners.WrapConn)

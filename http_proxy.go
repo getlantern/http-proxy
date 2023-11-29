@@ -63,7 +63,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/v2/tlsmasq"
 	"github.com/getlantern/http-proxy-lantern/v2/tokenfilter"
-	"github.com/getlantern/http-proxy-lantern/v2/versioncheck"
 	"github.com/getlantern/http-proxy-lantern/v2/wss"
 )
 
@@ -118,10 +117,6 @@ type Proxy struct {
 	LampshadeAddr                      string
 	LampshadeKeyCacheSize              int
 	LampshadeMaxClientInitAge          time.Duration
-	VersionCheck                       bool
-	VersionCheckRange                  string
-	VersionCheckRedirectURL            string
-	VersionCheckRedirectPercentage     float64
 	GoogleSearchRegex                  string
 	GoogleCaptchaRegex                 string
 	BlacklistMaxIdleTime               time.Duration
@@ -625,27 +620,6 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		return conn, nil
 	}
 	dialerForPforward := dialer
-
-	// Check if Lantern client version is in the supplied range. If yes,
-	// redirect certain percentage of the requests to an URL to notify the user
-	// to upgrade.
-	if p.VersionCheck {
-		log.Debugf("versioncheck: Will redirect %.4f%% of requests from Lantern clients %s to %s",
-			p.VersionCheckRedirectPercentage*100,
-			p.VersionCheckRange,
-			p.VersionCheckRedirectURL,
-		)
-		vc, err := versioncheck.New(p.VersionCheckRange,
-			p.VersionCheckRedirectURL,
-			[]string{"80"}, // checks CONNECT tunnel to 80 port only.
-			p.VersionCheckRedirectPercentage, p.instrument)
-		if err != nil {
-			log.Errorf("Fail to init versioncheck, skipping: %v", err)
-		} else {
-			dialerForPforward = vc.Dialer(dialerForPforward)
-			filterChain = filterChain.Append(vc.Filter())
-		}
-	}
 
 	filterChain = filterChain.Append(
 		proxyfilters.DiscardInitialPersistentRequest,

@@ -12,6 +12,7 @@ import (
 
 	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/listeners"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/usage"
@@ -82,7 +83,7 @@ func reportPeriodically(countryLookup geo.CountryLookup, rc *redis.Client, repor
 	for {
 		select {
 		case sac := <-statsCh:
-			_deviceID := sac.ctx["deviceid"]
+			_deviceID := sac.ctx[common.DeviceID]
 			if _deviceID == nil {
 				// ignore
 				continue
@@ -116,7 +117,7 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 	for deviceID, sac := range statsByDeviceID {
 		now := time.Now()
 
-		_clientIP := sac.ctx["client_ip"]
+		_clientIP := sac.ctx[common.ClientIP]
 		if _clientIP == nil {
 			log.Error("Missing client_ip in context, this shouldn't happen. Ignoring.")
 			continue
@@ -125,19 +126,19 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 		countryCode := countryLookup.CountryCode(net.ParseIP(clientIP))
 
 		var platform string
-		_platform, ok := sac.ctx["app_platform"]
+		_platform, ok := sac.ctx[common.Platform]
 		if ok {
 			platform = _platform.(string)
 		}
 
 		var appName string
-		_appName, ok := sac.ctx["app"]
+		_appName, ok := sac.ctx[common.App]
 		if ok {
 			appName = _appName.(string)
 		}
 
 		var supportedDataCaps []string
-		_supportedDataCaps, ok := sac.ctx["supported_data_caps"]
+		_supportedDataCaps, ok := sac.ctx[common.SupportedDataCaps]
 		if ok {
 			supportedDataCaps = _supportedDataCaps.([]string)
 		}
@@ -153,7 +154,7 @@ func submit(countryLookup geo.CountryLookup, rc *redis.Client, scriptSHA string,
 			throttleCohort = throttleSettings.Label
 
 			timeZone := ""
-			_timeZone, hasTimeZone := sac.ctx["time_zone"]
+			_timeZone, hasTimeZone := sac.ctx[common.TimeZone]
 			if hasTimeZone {
 				timeZone = _timeZone.(string)
 			} else {
