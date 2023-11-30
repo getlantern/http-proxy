@@ -223,7 +223,7 @@ func (ins *defaultInstrument) SuspectedProbing(ctx context.Context, fromIP net.I
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, appVersion, libVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost, arch string) {
+func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost, arch string) {
 	// Track the cardinality of clients.
 	otelinstrument.DistinctClients1m.Add(deviceID)
 	otelinstrument.DistinctClients10m.Add(deviceID)
