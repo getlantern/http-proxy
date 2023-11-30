@@ -72,6 +72,7 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	// the values when they're available, the measured listener will preserve any values that were already included in the
 	// first request on the connection.
 	addStringHeader(common.DeviceID, common.DeviceIdHeader)
+	addStringHeader(common.KernelArch, common.KernelArchHeader)
 	addStringHeader(common.AppVersion, common.AppVersionHeader)
 	addStringHeader(common.Platform, common.PlatformHeader)
 	addStringHeader(common.App, common.AppHeader)

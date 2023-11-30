@@ -36,7 +36,7 @@ type Instrument interface {
 	Throttle(ctx context.Context, m bool, reason string)
 	XBQHeaderSent(ctx context.Context)
 	SuspectedProbing(ctx context.Context, fromIP net.IP, reason string)
-	ProxiedBytes(ctx context.Context, sent, recv int, platform, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string)
+	ProxiedBytes(ctx context.Context, sent, recv int, platform, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost, arch string)
 	ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider)
 	ReportProxiedBytes(tp *sdktrace.TracerProvider)
 	ReportOriginBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider)
@@ -70,7 +70,7 @@ func (i NoInstrument) Throttle(ctx context.Context, m bool, reason string) {}
 
 func (i NoInstrument) XBQHeaderSent(ctx context.Context)                                  {}
 func (i NoInstrument) SuspectedProbing(ctx context.Context, fromIP net.IP, reason string) {}
-func (i NoInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string) {
+func (i NoInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost, arch string) {
 }
 func (i NoInstrument) ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider) {
 }
@@ -223,7 +223,7 @@ func (ins *defaultInstrument) SuspectedProbing(ctx context.Context, fromIP net.I
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, appVersion, libVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost string) {
+func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost, arch string) {
 	// Track the cardinality of clients.
 	otelinstrument.DistinctClients1m.Add(deviceID)
 	otelinstrument.DistinctClients10m.Add(deviceID)
@@ -234,6 +234,7 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 	asn := ins.ispLookup.ASN(clientIP)
 	otelAttributes := []attribute.KeyValue{
 		{common.Platform, attribute.StringValue(platform)},
+		{common.KernelArch, attribute.StringValue(arch)},
 		{common.LibraryVersion, attribute.StringValue(libVersion)},
 		{common.AppVersion, attribute.StringValue(appVersion)},
 		{common.App, attribute.StringValue(app)},
