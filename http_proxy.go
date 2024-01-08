@@ -23,12 +23,14 @@ import (
 	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
+	"github.com/getlantern/kcpwrapper"
+
+	"github.com/getlantern/http-proxy-lantern/v2/algeneva"
 	"github.com/getlantern/http-proxy-lantern/v2/broflake"
 	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	shadowsocks "github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/http-proxy-lantern/v2/starbridge"
-	"github.com/getlantern/kcpwrapper"
 
 	"github.com/xtaci/smux"
 
@@ -182,6 +184,9 @@ type Proxy struct {
 	BroflakeCert string
 	BroflakeKey  string
 
+	AlgenevaAddr          string
+	AlgenevaEncryptionKey string
+
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
 }
@@ -220,7 +225,6 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	}
 
 	var onServerError func(conn net.Conn, err error)
-	var onListenerError func(conn net.Conn, err error)
 	if err := p.setupPacketForward(); err != nil {
 		log.Errorf("Unable to set up packet forwarding, will continue to start up: %v", err)
 	}
@@ -293,74 +297,12 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		return nil
 	}
 
-	addListenersForBaseTransport := func(baseListen func(string) (net.Listener, error), addrs *addresses) error {
-		if err := addListenerIfNecessary("obfs4", addrs.obfs4, p.listenOBFS4(baseListen)); err != nil {
+	// Add listeners for all protocols
+	listenerArgs := getProtoListenersArgs(p)
+	for _, proto := range listenerArgs {
+		if err := addListenerIfNecessary(proto.protocol, proto.addr, proto.fn); err != nil {
 			return err
 		}
-		if err := addListenerIfNecessary("obfs4_multiplex", addrs.obfs4Multiplex, p.wrapMultiplexing(p.listenOBFS4(baseListen))); err != nil {
-			return err
-		}
-
-		// We pass onListenerError to lampshade so that we can count errors in its
-		// internal connection handling.
-		var err error
-		onListenerError, err = p.instrument.WrapConnErrorHandler("proxy_lampshade_listen", onListenerError)
-		if err != nil {
-			return err
-		}
-		if err := addListenerIfNecessary("lampshade", addrs.lampshade, p.listenLampshade(onListenerError, baseListen)); err != nil {
-			return err
-		}
-
-		if err := addListenerIfNecessary("https", addrs.http, p.wrapTLSIfNecessary(p.listenHTTP(baseListen))); err != nil {
-			return err
-		}
-		if err := addListenerIfNecessary("https_multiplex", addrs.httpMultiplex, p.wrapMultiplexing(p.wrapTLSIfNecessary(p.listenHTTP(baseListen)))); err != nil {
-			return err
-		}
-
-		if err := addListenerIfNecessary("tlsmasq", addrs.tlsmasq, p.wrapMultiplexing(p.listenTLSMasq(baseListen))); err != nil {
-			return err
-		}
-
-		if err := addListenerIfNecessary("starbridge", addrs.starbridge, p.wrapMultiplexing(p.listenStarbridge(baseListen))); err != nil {
-			return err
-		}
-
-		if err := addListenerIfNecessary("broflake", addrs.broflake, p.listenBroflake(baseListen)); err != nil {
-			return err
-		}
-
-		return nil
-	}
-
-	if err := addListenerIfNecessary("kcp", p.KCPConf, p.wrapTLSIfNecessary(p.listenKCP)); err != nil {
-		return err
-	}
-	if err := addListenerIfNecessary("quic_ietf", p.QUICIETFAddr, p.listenQUICIETF); err != nil {
-		return err
-	}
-	if err := addListenerIfNecessary("shadowsocks", p.ShadowsocksAddr, p.listenShadowsocks); err != nil {
-		return err
-	}
-	if err := addListenerIfNecessary("shadowsocks_multiplex", p.ShadowsocksMultiplexAddr, p.wrapMultiplexing(p.listenShadowsocks)); err != nil {
-		return err
-	}
-	if err := addListenerIfNecessary("wss", p.WSSAddr, p.listenWSS); err != nil {
-		return err
-	}
-
-	if err := addListenersForBaseTransport(p.listenTCP, &addresses{
-		obfs4:          p.Obfs4Addr,
-		obfs4Multiplex: p.Obfs4MultiplexAddr,
-		lampshade:      p.LampshadeAddr,
-		http:           p.HTTPAddr,
-		httpMultiplex:  p.HTTPMultiplexAddr,
-		tlsmasq:        p.TLSMasqAddr,
-		starbridge:     p.StarbridgeAddr,
-		broflake:       p.BroflakeAddr,
-	}); err != nil {
-		return err
 	}
 
 	errCh := make(chan error, len(allListeners))
@@ -389,6 +331,29 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		// this is an expected path for closing, no error
 		return err
 	}
+}
+
+type listenerAdder struct {
+	allListeners      []net.Listener
+	listenerProtocols []string
+	allow             func(string) bool
+	err               error
+}
+
+func (la *listenerAdder) addListenerIfNecessary(proto, addr string, fn listenerBuilderFN) {
+	if la.err != nil || addr == "" {
+		return
+	}
+
+	var l net.Listener
+	if l, la.err = fn(addr); la.err != nil {
+		return
+	}
+
+	la.listenerProtocols = append(la.listenerProtocols, proto)
+	// Although we include blacklist functionality, it's currently only used to
+	// track potential blacklisting ad doesn't actually blacklist anyone.
+	la.allListeners = append(la.allListeners, listeners.NewAllowingListener(l, la.allow))
 }
 
 func (p *Proxy) ListenAndServeENHTTP() error {
@@ -1009,6 +974,21 @@ func (p *Proxy) listenBroflake(baseListen func(string) (net.Listener, error)) li
 
 		return wrapped, nil
 	}
+}
+
+func (p *Proxy) listenAlgeneva(addr string) (net.Listener, error) {
+	l, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
+	}
+
+	ll, err := algeneva.WrapListener(l, p.AlgenevaEncryptionKey)
+	if err != nil {
+		log.Fatalf("Unable to initialize algeneva listener: %v", err)
+	}
+
+	log.Debugf("Listening for algeneva at %v", ll.Addr())
+	return ll, nil
 }
 
 func (p *Proxy) setupPacketForward() error {
