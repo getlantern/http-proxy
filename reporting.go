@@ -35,6 +35,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 		}
 		// Note - sometimes we're missing the platform and version
 		platform := fromContext(ctx, common.Platform)
+		platformVersion := fromContext(ctx, common.PlatformVersion)
 		appVersion := fromContext(ctx, common.AppVersion)
 		libraryVersion := fromContext(ctx, common.LibraryVersion)
 		app := lowerFromContext(ctx, common.App)
@@ -55,7 +56,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 		if hasThrottleSettings {
 			dataCapCohort = throttleSettings.(*throttle.Settings).Label
 		}
-		instrument.ProxiedBytes(context.Background(), deltaStats.SentTotal, deltaStats.RecvTotal, platform, libraryVersion, appVersion, app, locale, dataCapCohort, probingError, client_ip, deviceID, originHost, arch)
+		instrument.ProxiedBytes(context.Background(), deltaStats.SentTotal, deltaStats.RecvTotal, platform, platformVersion, libraryVersion, appVersion, app, locale, dataCapCohort, probingError, client_ip, deviceID, originHost, arch)
 	}
 
 	var reporter listeners.MeasuredReportFN

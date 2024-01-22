@@ -4,6 +4,7 @@ const (
 	AppHeader               = "X-Lantern-App"
 	KernelArchHeader        = "X-Lantern-KernelArch"
 	PlatformHeader          = "X-Lantern-Platform"
+	PlatformVersionHeader   = "X-Lantern-PlatVer"
 	LibraryVersionHeader    = "X-Lantern-Version"
 	AppVersionHeader        = "X-Lantern-App-Version"
 	DeviceIdHeader          = "X-Lantern-Device-Id"
@@ -24,10 +25,15 @@ const (
 // This standardizes the keys we use for storing data in the request context
 // and for reporting to teleport.
 const (
-	Platform          = "client_platform"
-	KernelArch        = "client_kernel_arch"
-	LibraryVersion    = "client_version"
-	Locale            = "client_locale"
+	Platform        = "client_platform"
+	PlatformVersion = "client_platform_version"
+	KernelArch      = "client_kernel_arch"
+
+	// Note this is the flashlight version.
+	LibraryVersion = "client_version"
+	Locale         = "client_locale"
+
+	// This is the version of the app that's using the library.
 	AppVersion        = "client_app_version"
 	App               = "client_app"
 	DeviceID          = "device_id"

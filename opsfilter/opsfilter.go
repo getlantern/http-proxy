@@ -75,6 +75,7 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	addStringHeader(common.KernelArch, common.KernelArchHeader)
 	addStringHeader(common.AppVersion, common.AppVersionHeader)
 	addStringHeader(common.Platform, common.PlatformHeader)
+	addStringHeader(common.PlatformVersion, common.PlatformVersionHeader)
 	addStringHeader(common.App, common.AppHeader)
 	addStringHeader(common.Locale, common.LocaleHeader)
 	addStringHeader(common.TimeZone, common.TimeZoneHeader)
