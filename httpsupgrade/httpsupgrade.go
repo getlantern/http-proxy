@@ -92,7 +92,7 @@ func (h *httpsUpgrade) rewrite(cs *filters.ConnectionState, host string, r *http
 		return res, cs, err
 	}
 
-	if res.StatusCode != http.StatusOK {
+	if res.StatusCode < 200 || res.StatusCode >= 400 {
 		h.log.Errorf("Unexpected status code %d from short circuited request to %s", res.StatusCode, host)
 	}
 
