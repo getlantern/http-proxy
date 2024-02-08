@@ -92,6 +92,10 @@ func (h *httpsUpgrade) rewrite(cs *filters.ConnectionState, host string, r *http
 		return res, cs, err
 	}
 
+	if res.StatusCode != http.StatusOK {
+		h.log.Errorf("Unexpected status code %d from short circuited request to %s", res.StatusCode, host)
+	}
+
 	// Downgrade the response back to 1.1 to avoid any oddities with clients choking on h2, although
 	// no incompatibilities have been observed in the field.
 	res.ProtoMajor = 1
