@@ -57,7 +57,9 @@ func TestRedirect(t *testing.T) {
 	cap := captureRoundTripInfo(up)
 	chain := filters.Join(up)
 
-	req, _ := http.NewRequest("GET", "http://config.getiantem.org:80/abc.gz", nil)
+	req, _ := http.NewRequest("GET", "http://config.getiantem.org:80/proxies.yaml.gz", nil)
+	// We look at this for setting the X-Lantern-Config-Server-Client-IP header thing,
+	// although it shouldn't actually impact anything.
 	req.RemoteAddr = "127.0.0.1:1234"
 	cs := filters.NewConnectionState(req, nil, nil)
 
