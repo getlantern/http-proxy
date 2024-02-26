@@ -11,7 +11,7 @@ import (
 
 func preferIPV6Dialer(timeout time.Duration) func(ctx context.Context, network, hostport string) (net.Conn, error) {
 	return func(ctx context.Context, network, hostport string) (net.Conn, error) {
-		tcpAddr, err := tcpAddrPrefer6IPv4Fallback(hostport)
+		tcpAddr, err := resolveAddressPreferIPv6(hostport)
 		if err != nil {
 			return nil, err
 		}
@@ -31,7 +31,7 @@ func preferIPV6Dialer(timeout time.Duration) func(ctx context.Context, network, 
 	}
 }
 
-func tcpAddrPrefer6IPv4Fallback(hostport string) (*net.TCPAddr, error) {
+func resolveAddressPreferIPv6(hostport string) (*net.TCPAddr, error) {
 	host, portStr, err := net.SplitHostPort(hostport)
 	if err != nil {
 		return nil, fmt.Errorf("unable to split host and port: %s", hostport)
