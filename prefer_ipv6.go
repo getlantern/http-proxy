@@ -34,28 +34,28 @@ func preferIPV6Dialer(timeout time.Duration) func(ctx context.Context, network, 
 func tcpAddrPrefer6IPv4Fallback(hostport string) (*net.TCPAddr, error) {
 	host, portStr, err := net.SplitHostPort(hostport)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to split host and port: %s", hostport)
 	}
 
 	port, err := strconv.Atoi(portStr)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to parse port: %s", portStr)
 	}
 
 	// Attempt to directly resolve as IPv6 to avoid unnecessary lookups
 	ipv6Addr, err := net.ResolveIPAddr("ip6", host)
-	if err == nil && ipv6Addr.IP.To4() == nil { 
+	if err == nil && ipv6Addr.IP.To4() == nil {
 		return &net.TCPAddr{IP: ipv6Addr.IP, Port: port}, nil
 	}
 
 	// If IPv6 resolution failed, fall back to a full lookup and prefer any IPv6 addresses found
 	ips, err := net.LookupIP(host)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("unable to resolve IP addresses for host: %s", host)
 	}
 
 	for _, ip := range ips {
-		if ip.To4() == nil { 
+		if ip.To4() == nil {
 			return &net.TCPAddr{IP: ip, Port: port}, nil
 		}
 	}
