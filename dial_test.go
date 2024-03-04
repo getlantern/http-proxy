@@ -49,7 +49,7 @@ func TestPreferIPV6Dialer(t *testing.T) {
 				defer closer()
 			}
 
-			dialer := preferIPV6Dialer(tt.timeout)
+			dialer := dialWithFastFallback(tt.timeout)
 			conn, err := dialer(context.Background(), tt.network, tt.hostport)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("preferIPV6Dialer() error = %v, wantErr %v", err, tt.wantErr)
