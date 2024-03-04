@@ -7,7 +7,7 @@ import (
 	"time"
 )
 
-func TestPreferIPV6Dialer(t *testing.T) {
+func TestDialWithFastFallback(t *testing.T) {
 	tests := []struct {
 		name     string
 		timeout  time.Duration
@@ -52,7 +52,7 @@ func TestPreferIPV6Dialer(t *testing.T) {
 			dialer := dialWithFastFallback(tt.timeout)
 			conn, err := dialer(context.Background(), tt.network, tt.hostport)
 			if (err != nil) != tt.wantErr {
-				t.Errorf("preferIPV6Dialer() error = %v, wantErr %v", err, tt.wantErr)
+				t.Errorf("dialWithFastFallback() error = %v, wantErr %v", err, tt.wantErr)
 				return
 			}
 			if conn != nil {
