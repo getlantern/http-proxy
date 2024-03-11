@@ -609,7 +609,9 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 			return nil, resolveErr
 		}
 
-		d := net.Dialer{Timeout: timeoutToDialOriginSite}
+		d := net.Dialer{
+			Deadline: time.Now().Add(timeoutToDialOriginSite),
+		}
 		conn, dialErr := d.DialContext(ctx, network, resolvedAddr.String())
 		if dialErr != nil {
 			return nil, dialErr
