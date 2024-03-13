@@ -94,7 +94,7 @@ func TestHTTPS2(t *testing.T) {
 	cap := captureRoundTripInfo(up)
 	chain := filters.Join(up)
 
-	req, _ := http.NewRequest("GET", "http://config.getiantem.org/abc.gz", nil)
+	req, _ := http.NewRequest("GET", "http://config.getiantem.org/proxies.yaml.gz", nil)
 	next := func(cs *filters.ConnectionState, req *http.Request) (*http.Response, *filters.ConnectionState, error) {
 		return nil, cs, nil
 	}
@@ -106,14 +106,14 @@ func TestHTTPS2(t *testing.T) {
 
 	assert.Equal(t, "HTTP/2.0", cap.takeProto())
 
-	r, _ := http.NewRequest("GET", "http://api.getiantem.org/abc.gz", nil)
+	r, _ := http.NewRequest("GET", "http://api.getiantem.org/proxies.yaml.gz", nil)
 
 	r.URL.Scheme = "http"
 	r.URL.Host = "api.getiantem.org"
 	r.Host = r.URL.Host
 	r.RequestURI = ""
 
-	res, cs, err = chain.Apply(cs, r, next)
+	res, _, err = chain.Apply(cs, r, next)
 	assert.NoError(t, err)
 	assert.NotNil(t, res)
 
