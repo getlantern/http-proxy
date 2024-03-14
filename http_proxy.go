@@ -66,7 +66,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/tokenfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/wss"
 
-	genevahttp "github.com/getlantern/lantern-algeneva"
+	algeneva "github.com/getlantern/lantern-algeneva"
 )
 
 const (
@@ -922,25 +922,26 @@ func (p *Proxy) listenBroflake(baseListen func(string) (net.Listener, error)) li
 	}
 }
 
-func (p *Proxy) listenAlgeneva(addr string) (net.Listener, error) {
-	// algeneva tries to exploit how strictly some/most censors follow the RFC spec by modifying
-	// the request header using predefined strategies. Any further modifications would most likely
-	// render this technique moot. For this reason, listenAlgeneva creates and returns a
-	// net.Listener instead of allowing the caller to provide one to wrap as it's safer for it
-	// to write directly to the wire.
-	l, err := net.Listen("tcp", addr)
-	if err != nil {
-		return nil, err
-	}
+// listenAlgeneva returns a listenerBuilderFN that wraps the listener returned by the provided
+// baseListen function with a algeneva.Listener.
+func (p *Proxy) listenAlgeneva(baseListen func(string) (net.Listener, error)) listenerBuilderFN {
+	return func(addr string) (net.Listener, error) {
+		base, err := baseListen(addr)
+		if err != nil {
+			return nil, err
+		}
 
-	// _ is the error channel for the algeneva ws server, not sure how we want to handle it
-	ll, _, err := genevahttp.WrapListener(l)
-	if err != nil {
-		log.Fatalf("Unable to initialize algeneva listener: %v", err)
-	}
+		ll, connErrC := algeneva.WrapListener(base)
+		// create a goroutine to log any connection errors
+		go func() {
+			for err := range connErrC {
+				log.Errorf("Error accpeting algeneva connection: %v", err)
+			}
+		}()
 
-	log.Debugf("Listening for algeneva at %v", ll.Addr())
-	return ll, nil
+		log.Debugf("Listening for algeneva at %v", ll.Addr())
+		return ll, nil
+	}
 }
 
 func (p *Proxy) setupPacketForward() error {

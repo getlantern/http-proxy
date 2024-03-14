@@ -18,6 +18,7 @@ func getProtoListenersArgs(p *Proxy) []protoListenerArgs {
 		{"tlsmasq", p.TLSMasqAddr, p.wrapMultiplexing(p.listenTLSMasq(p.listenTCP))},
 		{"starbridge", p.StarbridgeAddr, p.wrapMultiplexing(p.listenStarbridge(p.listenTCP))},
 		{"broflake", p.BroflakeAddr, p.listenBroflake(p.listenTCP)},
+		{"algeneva", p.AlgenevaAddr, p.wrapMultiplexing(p.listenAlgeneva(p.listenTCP))},
 		/******************************************************/
 
 		{"kcp", p.KCPConf, p.wrapTLSIfNecessary(p.listenKCP)},
@@ -28,6 +29,5 @@ func getProtoListenersArgs(p *Proxy) []protoListenerArgs {
 			p.ShadowsocksMultiplexAddr,
 			p.wrapMultiplexing(p.listenShadowsocks),
 		},
-		{"algeneva", p.AlgenevaAddr, p.listenAlgeneva},
 	}
 }
