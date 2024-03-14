@@ -602,9 +602,6 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	}
 	filterChain = filterChain.Append(instrumentedProxyPingFilter)
 
-	// Google anomaly detection can be triggered very often over IPv6.
-	// Prefer IPv4 to mitigate, see issue #97
-	_dialer := preferIPV4Dialer(timeoutToDialOriginSite)
 	dialer := func(ctx context.Context, network, addr string) (net.Conn, error) {
 		// resolve separately so that we can track the DNS resolution time
 		resolvedAddr, resolveErr := net.ResolveTCPAddr(network, addr)
@@ -612,7 +609,10 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 			return nil, resolveErr
 		}
 
-		conn, dialErr := _dialer(ctx, network, resolvedAddr.String())
+		d := net.Dialer{
+			Deadline: time.Now().Add(timeoutToDialOriginSite),
+		}
+		conn, dialErr := d.DialContext(ctx, network, resolvedAddr.String())
 		if dialErr != nil {
 			return nil, dialErr
 		}
