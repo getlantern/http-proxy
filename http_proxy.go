@@ -935,7 +935,7 @@ func (p *Proxy) listenAlgeneva(baseListen func(string) (net.Listener, error)) li
 		// create a goroutine to log any connection errors
 		go func() {
 			for err := range connErrC {
-				log.Errorf("Error accpeting algeneva connection: %v", err)
+				log.Errorf("Error accepting algeneva connection: %v", err)
 			}
 		}()
 
