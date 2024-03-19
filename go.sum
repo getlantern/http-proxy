@@ -150,8 +150,6 @@ github.com/getlantern/keyman v0.0.0-20230503155501-4e864ca2175b h1:iyEuk8ARQC9Hf
 github.com/getlantern/keyman v0.0.0-20230503155501-4e864ca2175b/go.mod h1:ZJ+yDaZkJ/JU9j7EQa3UUh6ouedrNDDLA5OiowS1Iuk=
 github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9 h1:n2t63QvweEs53Kpy7QbXv6JRSfXpDTTgPMT4cNTOt8g=
 github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9/go.mod h1:Zqiq4op+E689yjuJACMLURzE9XUGj48UDZP7h8aN+kk=
-github.com/getlantern/lantern-algeneva v0.0.0-20240314203415-69eb8977479a h1:X00G8TBNmh9QSa7LylkdHaLd/l6cf7i89w0g+JBWAbE=
-github.com/getlantern/lantern-algeneva v0.0.0-20240314203415-69eb8977479a/go.mod h1:Mr7d8aaA90O5exvnO21x5ZXL5gDeWuLSpAzdljXTe88=
 github.com/getlantern/lantern-algeneva v0.0.0-20240318182342-277382911c6a h1:ezjOkAFyWGdo6R01bH4CxWTwyQ6gfD2z93y45Xzx0t4=
 github.com/getlantern/lantern-algeneva v0.0.0-20240318182342-277382911c6a/go.mod h1:Mr7d8aaA90O5exvnO21x5ZXL5gDeWuLSpAzdljXTe88=
 github.com/getlantern/lantern-shadowsocks v1.3.6-0.20230301223223-150b18ac427d h1:YwH3hgY1qtp1J1V8iBx58wB+mAY6L7N1s+qYqNJgDjM=
