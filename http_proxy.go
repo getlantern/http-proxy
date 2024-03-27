@@ -23,6 +23,7 @@ import (
 	"github.com/getlantern/geo"
 	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
+	"github.com/getlantern/iptool"
 	"github.com/getlantern/kcpwrapper"
 
 	"github.com/getlantern/http-proxy-lantern/v2/broflake"
@@ -545,6 +546,12 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		resolvedAddr, resolveErr := net.ResolveTCPAddr(network, addr)
 		if resolveErr != nil {
 			return nil, resolveErr
+		}
+
+		// block local here
+		ipt, _ := iptool.New()
+		if ipt.IsPrivate(&net.IPAddr{IP: resolvedAddr.IP}) {
+			return nil, errors.New("requested local address")
 		}
 
 		d := net.Dialer{
