@@ -66,7 +66,7 @@ type Server struct {
 
 // New constructs a new HTTP proxy server using the given options
 func New(opts *Opts) *Server {
-	p, _ := proxy.New(&proxy.Opts{
+	p := proxy.New(&proxy.Opts{
 		IdleTimeout:         opts.IdleTimeout,
 		Dial:                opts.Dial,
 		Filter:              opts.Filter,
