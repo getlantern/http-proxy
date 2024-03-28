@@ -251,9 +251,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		return errors.New("unable to instrument error handler: %v", err)
 	}
 	srv := server.New(&server.Opts{
-		IdleTimeout: p.IdleTimeout,
-		// Use the same buffer pool as lampshade for now but need to optimize later.
-		BufferSource:             lampshade.BufferPool,
+		IdleTimeout:              p.IdleTimeout,
 		Dial:                     dial,
 		Filter:                   instrumentedFilter,
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
