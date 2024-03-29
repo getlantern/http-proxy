@@ -43,8 +43,8 @@ var (
 
 	// Use our own S3 bucket  distribution which fetches the origin at most once per
 	// day to avoid hitting the 2000 downloads/day limit imposed by MaxMind.
-	geolite2_url   = "https://lanterngeo.s3.eu-central-1.amazonaws.com/GeoLite2-Country.mmdb.tar.gz"
-	geoip2_isp_url = "https://lanterngeo.s3.eu-central-1.amazonaws.com/GeoIP2-ISP.mmdb.tar.gz"
+	geolite2_url   = "https://storage.googleapis.com/lanterngeo/GeoLite2-Country.mmdb.tar.gz"
+	geoip2_isp_url = "https://storage.googleapis.com/lanterngeo/GeoIP2-ISP.mmdb.tar.gz"
 
 	hostname, _ = os.Hostname()
 
