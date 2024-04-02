@@ -656,6 +656,8 @@ func (p *Proxy) buildOTELOpts(endpoint string, includeProxyName bool) *otel.Opts
 		opts.Addr = p.HTTPAddr
 	} else if p.BroflakeAddr != "" {
 		opts.Addr = p.BroflakeAddr
+	} else if p.AlgenevaAddr != "" {
+		opts.Addr = p.AlgenevaAddr
 	}
 	if includeProxyName {
 		opts.ProxyName = proxyName

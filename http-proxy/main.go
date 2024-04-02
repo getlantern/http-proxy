@@ -183,6 +183,8 @@ var (
 
 	broflakeAddr = flag.String("broflake-addr", "", "Address at which to listen for broflake connections.")
 
+	algenevaAddr = flag.String("algeneva-addr", "", "Address at which to listen for algenAddr connections.")
+
 	track = flag.String("track", "", "The track this proxy is running on")
 )
 
@@ -464,6 +466,7 @@ func main() {
 		BroflakeAddr:                       *broflakeAddr,
 		BroflakeCert:                       os.Getenv("BROFLAKE_CERT"),
 		BroflakeKey:                        os.Getenv("BROFLAKE_KEY"),
+		AlgenevaAddr:                       *algenevaAddr,
 	}
 	if *maxmindLicenseKey != "" {
 		log.Debug("Will use Maxmind for geolocating clients")
