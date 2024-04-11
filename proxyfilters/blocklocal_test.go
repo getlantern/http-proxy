@@ -33,7 +33,7 @@ func TestBlockLocalNotLocal(t *testing.T) {
 	modifiedReq, resp := doTestBlockLocal(t, []string{"localhost"}, "http://example.com/index.html")
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	// assert that block local filter did the resolving and modified req.URL.Host
-	exampleDotComIP := "93.184.216.34:"
+	exampleDotComIP := "93.184.216.34"
 	assert.Equal(t, exampleDotComIP, modifiedReq.URL.Host)
 }
 
