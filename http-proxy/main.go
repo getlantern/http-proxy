@@ -43,8 +43,8 @@ var (
 
 	// Use our own S3 bucket  distribution which fetches the origin at most once per
 	// day to avoid hitting the 2000 downloads/day limit imposed by MaxMind.
-	geolite2_url   = "https://storage.googleapis.com/lanterngeo/GeoLite2-Country.mmdb.tar.gz"
-	geoip2_isp_url = "https://storage.googleapis.com/lanterngeo/GeoIP2-ISP.mmdb.tar.gz"
+	geolite2CityURL   = "https://storage.googleapis.com/lanterngeo/GeoLite2-City.mmdb.tar.gz"
+	geoip2ISPURL = "https://storage.googleapis.com/lanterngeo/GeoIP2-ISP.mmdb.tar.gz"
 
 	hostname, _ = os.Hostname()
 
@@ -99,7 +99,7 @@ var (
 	_          = flag.Uint64("maxconns", 0, "Max number of simultaneous allowed connections, unused")
 
 	pprofAddr         = flag.String("pprofaddr", "", "pprof address to listen on, not activate pprof if empty")
-	maxmindLicenseKey = flag.String("maxmindlicensekey", "", "MaxMind license key to load the GeoLite2 Country database")
+	maxmindLicenseKey = flag.String("maxmindlicensekey", "", "MaxMind license key to load the GeoLite2 City database")
 	geoip2ISPDBFile   = flag.String("geoip2ispdbfile", "", "The local copy of the GeoIP2 ISP database")
 
 	pro = flag.Bool("pro", false, "Set to true to make this a pro proxy (no bandwidth limiting unless forced throttling)")
@@ -189,7 +189,7 @@ var (
 )
 
 const (
-	countryDBFile = "GeoLite2-Country.mmdb"
+	cityDBFile = "GeoLite2-City.mmdb"
 )
 
 func main() {
@@ -231,8 +231,8 @@ func main() {
 				}
 				if strings.Contains(msg, "maxmind") {
 					log.Debugf("Panic possibly related to maxmind, delete maxmind database files")
-					if err := os.Remove(countryDBFile); err != nil {
-						log.Errorf("Unable to delete country DB file %v: %v", countryDBFile, err)
+					if err := os.Remove(cityDBFile); err != nil {
+						log.Errorf("Unable to delete city DB file %v: %v", cityDBFile, err)
 					}
 					if err := os.Remove(*geoip2ISPDBFile); err != nil {
 						log.Errorf("Unable to delete ISP DB file %v: %v", *geoip2ISPDBFile, err)
@@ -473,8 +473,8 @@ func main() {
 		if err := deleteStaleISPDB(); err != nil {
 			log.Errorf("Error deleting stale ISP DB, ignore: %v", err)
 		}
-		p.CountryLookup = geo.FromWeb(geolite2_url, "GeoLite2-Country.mmdb", 24*time.Hour, countryDBFile, geo.CountryCode)
-		p.ISPLookup = geo.FromWeb(geoip2_isp_url, "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile, geo.ISP)
+		p.CountryLookup = geo.FromWeb(geolite2CityURL, "GeoLite2-City.mmdb", 24*time.Hour, cityDBFile, geo.CountryCode)
+		p.ISPLookup = geo.FromWeb(geoip2ISPURL, "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile, geo.ISP)
 	}
 
 	err = p.ListenAndServe(ctx)
