@@ -2,6 +2,7 @@ package proxy
 
 import (
 	"context"
+	"crypto/tls"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -926,12 +927,22 @@ func (p *Proxy) listenBroflake(baseListen func(string) (net.Listener, error)) li
 // baseListen function with a algeneva.Listener.
 func (p *Proxy) listenAlgeneva(baseListen func(string) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
+		var tlsConfig *tls.Config
+		if p.KeyFile != "" || p.CertFile != "" {
+			cert, err := tls.LoadX509KeyPair(p.CertFile, p.KeyFile)
+			if err != nil {
+				return nil, errors.New("Unable to load cert: %v", err)
+			}
+
+			tlsConfig = &tls.Config{Certificates: []tls.Certificate{cert}}
+		}
+
 		base, err := baseListen(addr)
 		if err != nil {
 			return nil, err
 		}
 
-		ll, connErrC := algeneva.WrapListener(base)
+		ll, connErrC := algeneva.WrapListener(base, tlsConfig)
 		// create a goroutine to log any connection errors
 		go func() {
 			for err := range connErrC {
