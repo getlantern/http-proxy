@@ -1,6 +1,7 @@
 package proxyfilters
 
 import (
+	"net"
 	"net/http"
 	"testing"
 
@@ -8,6 +9,18 @@ import (
 
 	"github.com/getlantern/proxy/v3/filters"
 )
+
+type testResolver struct{}
+
+func (r *testResolver) SplitHostPort(hostport string) (host string, port string, err error) {
+	return net.SplitHostPort(hostport)
+}
+func (r *testResolver) ResolveIPAddr(network string, address string) (*net.IPAddr, error) {
+
+	return &net.IPAddr{
+		IP: net.IPv4(93, 184, 215, 16),
+	}, nil
+}
 
 func TestBlockLocalBlocked(t *testing.T) {
 	_, resp := doTestBlockLocal(t, []string{"localhost"}, "http://127.0.0.1/index.html")
@@ -33,7 +46,7 @@ func TestBlockLocalNotLocal(t *testing.T) {
 	modifiedReq, resp := doTestBlockLocal(t, []string{"localhost"}, "http://example.com/index.html")
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 	// assert that block local filter did the resolving and modified req.URL.Host
-	exampleDotComIP := "93.184.216.34"
+	exampleDotComIP := "93.184.215.16"
 	assert.Equal(t, exampleDotComIP, modifiedReq.URL.Host)
 }
 
@@ -44,7 +57,7 @@ func doTestBlockLocal(t *testing.T, exceptions []string, urlStr string) (*http.R
 		}, cs, nil
 	}
 
-	filter := BlockLocal(exceptions)
+	filter := BlockLocal(exceptions, &testResolver{})
 	req, _ := http.NewRequest(http.MethodGet, urlStr, nil)
 	log.Debug(req.URL.Host)
 	cs := filters.NewConnectionState(req, nil, nil)
