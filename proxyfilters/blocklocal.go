@@ -1,6 +1,7 @@
 package proxyfilters
 
 import (
+	"fmt"
 	"net"
 	"net/http"
 	"strings"
@@ -28,7 +29,7 @@ func BlockLocal(exceptions []string) filters.Filter {
 			return next(cs, req)
 		}
 
-		host, _, err := net.SplitHostPort(req.URL.Host)
+		host, port, err := net.SplitHostPort(req.URL.Host)
 		if err != nil {
 			// host didn't have a port, thus splitting didn't work
 			host = req.URL.Host
@@ -42,6 +43,15 @@ func BlockLocal(exceptions []string) filters.Filter {
 			if ipt.IsPrivate(ipAddr) {
 				return fail(cs, req, http.StatusForbidden, "%v requested local address %v (%v)", req.RemoteAddr, req.Host, ipAddr)
 			}
+		}
+
+		// Note: It is important to pass Host as an already resolved and vetted IP in order to avoid
+		// DNS rebind attacks should there be any other dialers, that attempt to resolve the host down in the execution path
+		addr := ipAddr.String()
+		if port != "" && addr != "" {
+			req.URL.Host = fmt.Sprintf("%s:%s", addr, port)
+		} else if addr != "" {
+			req.URL.Host = addr
 		}
 
 		return next(cs, req)
