@@ -928,7 +928,7 @@ func (p *Proxy) listenBroflake(baseListen func(string) (net.Listener, error)) li
 func (p *Proxy) listenAlgeneva(baseListen func(string) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
 		var tlsConfig *tls.Config
-		if p.KeyFile != "" || p.CertFile != "" {
+		if p.KeyFile != "" && p.CertFile != "" {
 			cert, err := tls.LoadX509KeyPair(p.CertFile, p.KeyFile)
 			if err != nil {
 				return nil, errors.New("Unable to load cert: %v", err)
