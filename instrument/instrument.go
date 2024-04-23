@@ -36,7 +36,7 @@ type Instrument interface {
 	Throttle(ctx context.Context, m bool, reason string)
 	XBQHeaderSent(ctx context.Context)
 	SuspectedProbing(ctx context.Context, fromIP net.IP, reason string)
-	ProxiedBytes(ctx context.Context, sent, recv int, platform, platformVersion, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost, arch string)
+	ProxiedBytes(ctx context.Context, sent, recv int, connectionDuration time.Duration, platform, platformVersion, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost, arch string)
 	ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider)
 	ReportProxiedBytes(tp *sdktrace.TracerProvider)
 	ReportOriginBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider)
@@ -70,7 +70,7 @@ func (i NoInstrument) Throttle(ctx context.Context, m bool, reason string) {}
 
 func (i NoInstrument) XBQHeaderSent(ctx context.Context)                                  {}
 func (i NoInstrument) SuspectedProbing(ctx context.Context, fromIP net.IP, reason string) {}
-func (i NoInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, platformVersion, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost, arch string) {
+func (i NoInstrument) ProxiedBytes(ctx context.Context, sent, recv int, connectionDuration time.Duration, platform, platformVersion, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost, arch string) {
 }
 func (i NoInstrument) ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider) {
 }
@@ -223,7 +223,7 @@ func (ins *defaultInstrument) SuspectedProbing(ctx context.Context, fromIP net.I
 
 // ProxiedBytes records the volume of application data clients sent and
 // received via the proxy.
-func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, platformVersion, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost, arch string) {
+func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, connectionDuration time.Duration, platform, platformVersion, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost, arch string) {
 	// Track the cardinality of clients.
 	otelinstrument.DistinctClients1m.Add(deviceID)
 	otelinstrument.DistinctClients10m.Add(deviceID)
@@ -261,6 +261,15 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		),
 	)
 
+	// TODO int64ObservableGauge requires a callback so may require a different meter.
+	otelinstrument.ConnectionDuration.(
+		ctx,
+		int64(connectionDuration),
+		metric.WithAttributes(
+			append(otelAttributes, attribute.KeyValue{"connectionDuration", attribute.StringValue("connectionDuration")})...,
+		),
+	)
+
 	clientKey := clientDetails{
 		deviceID:        deviceID,
 		platform:        platform,
@@ -291,9 +300,9 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 	}
 
 	ins.statsMx.Lock()
-	ins.clientStats[clientKey] = ins.clientStats[clientKey].add(sent, recv)
+	ins.clientStats[clientKey] = ins.clientStats[clientKey].add(sent, recv, connectionDuration)
 	if hasOriginKey {
-		ins.originStats[originKey] = ins.originStats[originKey].add(sent, recv)
+		ins.originStats[originKey] = ins.originStats[originKey].add(sent, recv, connectionDuration)
 	}
 	ins.statsMx.Unlock()
 }
@@ -367,17 +376,21 @@ type originDetails struct {
 	country  string
 }
 
+// Usage is a meter for bytes. Add a timestamp/duration to let it be a meter for time, too.
 type usage struct {
-	sent int
-	recv int
+	sent     int
+	recv     int
+	duration time.Duration
 }
 
-func (u *usage) add(sent int, recv int) *usage {
+// add(sent, recv, duration)
+func (u *usage) add(sent int, recv int, duration time.Duration) *usage {
 	if u == nil {
 		u = &usage{}
 	}
 	u.sent += sent
 	u.recv += recv
+	u.duration += duration
 	return u
 }
 
@@ -405,6 +418,7 @@ func (ins *defaultInstrument) ReportProxiedBytes(tp *sdktrace.TracerProvider) {
 			Start(
 				context.Background(),
 				"proxied_bytes",
+				// TODO DeviceID is added here. Okay to include connection duration precisely?
 				trace.WithAttributes(
 					attribute.Int("bytes_sent", value.sent),
 					attribute.Int("bytes_recv", value.recv),

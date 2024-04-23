@@ -24,6 +24,7 @@ var (
 	meter                                                    metric.Meter
 	Blacklist                                                metric.Int64Counter
 	ProxyIO                                                  metric.Int64Counter
+	ConnectionDuration                                       metric.Int64ObservableGauge
 	QuicPackets                                              metric.Int64Counter
 	Mimicked                                                 metric.Int64Counter
 	MultipathFrames                                          metric.Int64Counter
@@ -49,6 +50,9 @@ func initialize() error {
 	meter = otel.GetMeterProvider().Meter("")
 	var err error
 	if ProxyIO, err = meter.Int64Counter("proxy.io", metric.WithUnit("bytes")); err != nil {
+		return err
+	}
+	if ConnectionDuration, err = meter.Int64ObservableGauge("conection.duration", metric.WithUnit("second")); err != nil {
 		return err
 	}
 	if QuicPackets, err = meter.Int64Counter("proxy.quic.packets"); err != nil {

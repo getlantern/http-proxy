@@ -136,7 +136,8 @@ func InitGlobalMeterProvider(opts *Opts) (func(), error) {
 				sdkmetric.InstrumentKindCounter,
 				sdkmetric.InstrumentKindUpDownCounter,
 				sdkmetric.InstrumentKindObservableCounter,
-				sdkmetric.InstrumentKindObservableUpDownCounter:
+				sdkmetric.InstrumentKindObservableUpDownCounter,
+				sdkmetric.InstrumentKindObservableGauge:
 				return metricdata.DeltaTemporality
 			default:
 				return metricdata.CumulativeTemporality

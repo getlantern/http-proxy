@@ -56,7 +56,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 		if hasThrottleSettings {
 			dataCapCohort = throttleSettings.(*throttle.Settings).Label
 		}
-		instrument.ProxiedBytes(context.Background(), deltaStats.SentTotal, deltaStats.RecvTotal, platform, platformVersion, libraryVersion, appVersion, app, locale, dataCapCohort, probingError, client_ip, deviceID, originHost, arch)
+		instrument.ProxiedBytes(context.Background(), deltaStats.SentTotal, deltaStats.RecvTotal, deltaStats.Duration, platform, platformVersion, libraryVersion, appVersion, app, locale, dataCapCohort, probingError, client_ip, deviceID, originHost, arch)
 	}
 
 	var reporter listeners.MeasuredReportFN

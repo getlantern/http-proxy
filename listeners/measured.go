@@ -47,6 +47,10 @@ func (l *stateAwareMeasuredListener) Accept() (c net.Conn, err error) {
 	}
 	sac, _ := c.(WrapConnEmbeddable)
 	wc.WrapConnEmbeddable = sac
+	// TODO Manage reporting connection duration only when l.report (MeasuredReportFN) arg for 'final' is true.
+	// Consider reporting accurately to DD and with hourly fuzzing to BQ (that precision may be ... inadequate?).
+	// If so, report connection duration independently of proxied_bytes, alongside device_id, timestamp (fuzzed
+	// to some degree; alternately, anonymize device_id)
 	go wc.track(l.reportInterval, l.report)
 	return wc, nil
 }
@@ -72,11 +76,14 @@ func (c *wrapMeasuredConn) track(reportInterval time.Duration, report MeasuredRe
 		if priorStats != nil {
 			deltaStats.SentTotal -= priorStats.SentTotal
 			deltaStats.RecvTotal -= priorStats.RecvTotal
+			deltaStats.Duration -= priorStats.Duration
 		}
 		priorStats = stats
 		c.ctxMx.RLock()
 		ctx := c.ctx
 		c.ctxMx.RUnlock()
+		// TODO All deltaStats fields are reported. Useful to identify when connectionDuration
+		// is its the terminal value, or report it only when final = true?
 		report(ctx, stats, deltaStats, final)
 	}
 
