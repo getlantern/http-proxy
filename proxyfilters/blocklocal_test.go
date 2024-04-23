@@ -14,9 +14,6 @@ type testResolver struct {
 	a, b, c, d byte
 }
 
-func (r *testResolver) SplitHostPort(hostport string) (host string, port string, err error) {
-	return net.SplitHostPort(hostport)
-}
 func (r *testResolver) ResolveIPAddr(network string, address string) (*net.IPAddr, error) {
 	return &net.IPAddr{
 		IP: net.IPv4(r.a, r.b, r.c, r.d),

@@ -11,15 +11,11 @@ import (
 )
 
 type resolver interface {
-	SplitHostPort(hostport string) (host string, port string, err error)
 	ResolveIPAddr(network string, address string) (*net.IPAddr, error)
 }
 
 type Resolver struct{}
 
-func (r *Resolver) SplitHostPort(hostport string) (host string, port string, err error) {
-	return net.SplitHostPort(hostport)
-}
 func (r *Resolver) ResolveIPAddr(network string, address string) (*net.IPAddr, error) {
 	return net.ResolveIPAddr(network, address)
 }
@@ -43,7 +39,7 @@ func BlockLocal(exceptions []string, r resolver) filters.Filter {
 			return next(cs, req)
 		}
 
-		host, port, err := r.SplitHostPort(req.URL.Host)
+		host, port, err := net.SplitHostPort(req.URL.Host)
 		if err != nil {
 			// host didn't have a port, thus splitting didn't work
 			host = req.URL.Host
