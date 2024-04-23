@@ -530,7 +530,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		if p.PacketForwardAddr != "" {
 			allowedLocalAddrs = append(allowedLocalAddrs, p.PacketForwardAddr)
 		}
-		filterChain = filterChain.Append(proxyfilters.BlockLocal(allowedLocalAddrs))
+		filterChain = filterChain.Append(proxyfilters.BlockLocal(allowedLocalAddrs, &proxyfilters.Resolver{}))
 	}
 	instrumentedProxyPingFilter, err := p.instrument.WrapFilter("proxy_http_ping", ping.New(0))
 	if err != nil {

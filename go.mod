@@ -13,7 +13,7 @@ require (
 	github.com/getlantern/cmux/v2 v2.0.0-20230301223233-dac79088a4c0
 	github.com/getlantern/cmuxprivate v0.0.0-20211216020409-d29d0d38be54
 	github.com/getlantern/enhttp v0.0.0-20210901195634-6f89d45ee033
-	github.com/getlantern/errors v1.0.3
+	github.com/getlantern/errors v1.0.4
 	github.com/getlantern/fdcount v0.0.0-20210503151800-5decd65b3731
 	github.com/getlantern/geo v0.0.0-20230612145351-d1374c8f8dec
 	github.com/getlantern/golog v0.0.0-20230503153817-8e72de7e0a65
