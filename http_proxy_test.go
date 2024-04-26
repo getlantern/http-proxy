@@ -63,14 +63,6 @@ var (
 	}
 )
 
-// Test to make sure we can lookup TELEPORT_HOST in CI
-func TestTeleportHost(t *testing.T) {
-	teleportHost := os.Getenv("TELEPORT_HOST")
-	if teleportHost == "" {
-		t.Fatal("TELEPORT_HOST not set")
-	}
-}
-
 func TestMain(m *testing.M) {
 	flag.Parse()
 	var err error

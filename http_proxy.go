@@ -79,7 +79,7 @@ var (
 
 	proxyNameRegex = regexp.MustCompile(`(fp-([a-z0-9]+-)?([a-z0-9]+)-[0-9]{8}-[0-9]+)(-.+)?`)
 
-	teleportHost = os.Getenv("TELEPORT_HOST")
+	teleportHost = ""
 )
 
 // Proxy is an HTTP proxy.
