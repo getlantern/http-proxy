@@ -14,7 +14,7 @@ on:
       - '!**.bash'
 
 env:
-  TELEPORT: ${{secrets.TELEPORT_HOST}}
+  TELEPORT_HOST: ${{secrets.TELEPORT_HOST}}
 
 jobs:
   build:
