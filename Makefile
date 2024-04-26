@@ -62,7 +62,7 @@ local-proxy: local-rts
 $(DIST_DIR)/http-proxy: $(SRCS)
 	GOOS=linux GOARCH=amd64 CGO_ENABLED=0 \
 	go build -o $(DIST_DIR)/http-proxy \
-	-ldflags="-X main.revision=$(GIT_REVISION) -X main.build_type=$(BUILD_TYPE)" \
+	-ldflags="-X main.revision=$(GIT_REVISION) -X main.build_type=$(BUILD_TYPE) -X proxy.teleportHost=$(TELEPORT_HOST)" \
 	./http-proxy
 
 distnochange: $(DIST_DIR)/http-proxy

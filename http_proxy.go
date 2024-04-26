@@ -73,7 +73,7 @@ import (
 const (
 	timeoutToDialOriginSite = 10 * time.Second
 
-	teleportHost = "telemetry.iantem.io:443"
+	teleportHost = ""
 )
 
 var (
