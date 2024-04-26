@@ -72,14 +72,14 @@ import (
 
 const (
 	timeoutToDialOriginSite = 10 * time.Second
+
+	teleportHost = "telemetry.iantem.io:443"
 )
 
 var (
 	log = golog.LoggerFor("lantern-proxy")
 
 	proxyNameRegex = regexp.MustCompile(`(fp-([a-z0-9]+-)?([a-z0-9]+)-[0-9]{8}-[0-9]+)(-.+)?`)
-
-	teleportHost = ""
 )
 
 // Proxy is an HTTP proxy.
