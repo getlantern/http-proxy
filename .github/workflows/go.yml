@@ -13,6 +13,9 @@ on:
       - '!.github/**'
       - '!**.bash'
 
+env:
+  TELEPORT: ${{secrets.TELEPORT_HOST}}
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -25,6 +28,8 @@ jobs:
       - name: Granting private modules access
         run: |
           git config --global url."https://${{ secrets.CI_PRIVATE_REPOS_GH_TOKEN }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
+      - name: Environment list
+        run: env
       - name: Test
         run: make test
       - name: Build

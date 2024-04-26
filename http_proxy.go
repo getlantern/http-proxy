@@ -72,14 +72,14 @@ import (
 
 const (
 	timeoutToDialOriginSite = 10 * time.Second
-
-	teleportHost = "telemetry.iantem.io:443"
 )
 
 var (
 	log = golog.LoggerFor("lantern-proxy")
 
 	proxyNameRegex = regexp.MustCompile(`(fp-([a-z0-9]+-)?([a-z0-9]+)-[0-9]{8}-[0-9]+)(-.+)?`)
+
+	teleportHost = os.Getenv("TELEPORT_HOST")
 )
 
 // Proxy is an HTTP proxy.
@@ -188,17 +188,6 @@ type Proxy struct {
 }
 
 type listenerBuilderFN func(addr string) (net.Listener, error)
-
-type addresses struct {
-	obfs4          string
-	obfs4Multiplex string
-	http           string
-	httpMultiplex  string
-	lampshade      string
-	tlsmasq        string
-	starbridge     string
-	broflake       string
-}
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe(ctx context.Context) error {
