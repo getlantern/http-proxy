@@ -826,9 +826,28 @@ func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
 	if err != nil {
 		return nil, errors.New("Unable to create shadowsocks cipher: %v", err)
 	}
-	base, err := net.Listen("tcp", addr)
-	if err != nil {
-		return nil, err
+	var tlsConfig *tls.Config
+	if p.KeyFile != "" && p.CertFile != "" {
+		var cert tls.Certificate
+		cert, err = tls.LoadX509KeyPair(p.CertFile, p.KeyFile)
+		if err != nil {
+			return nil, errors.New("unable to load cert: %v", err)
+		}
+
+		tlsConfig = &tls.Config{Certificates: []tls.Certificate{cert}}
+	}
+
+	var base net.Listener
+	if tlsConfig != nil {
+		base, err = tls.Listen("tcp", addr, tlsConfig)
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		base, err = net.Listen("tcp", addr)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	l, err := shadowsocks.ListenLocalTCP(
