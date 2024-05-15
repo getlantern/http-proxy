@@ -151,6 +151,7 @@ type Proxy struct {
 	TLSMasqSecret                      string
 	TLSMasqTLSMinVersion               uint16
 	TLSMasqTLSCipherSuites             []uint16
+	ShadowsocksWithTLS                 bool
 	ShadowsocksAddr                    string
 	ShadowsocksMultiplexAddr           string
 	ShadowsocksSecret                  string
@@ -827,7 +828,7 @@ func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
 		return nil, errors.New("Unable to create shadowsocks cipher: %v", err)
 	}
 	var tlsConfig *tls.Config
-	if p.KeyFile != "" && p.CertFile != "" {
+	if p.ShadowsocksWithTLS {
 		var cert tls.Certificate
 		cert, err = tls.LoadX509KeyPair(p.CertFile, p.KeyFile)
 		if err != nil {

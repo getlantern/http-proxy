@@ -177,6 +177,7 @@ var (
 	shadowsocksReplayHistory = flag.Int("shadowsocks-replay-history", shadowsocks.DefaultReplayHistory, "Replay buffer size (# of handshakes)")
 	shadowsocksSecret        = flag.String("shadowsocks-secret", "", "shadowsocks secret")
 	shadowsocksCipher        = flag.String("shadowsocks-cipher", shadowsocks.DefaultCipher, "shadowsocks cipher")
+	shadowsocksWithTLS       = flag.Bool("shadowsocks-with-tls", false, "shadowsocks with tls option")
 
 	tracesSampleRate   = flag.Int("traces-sample-rate", 1000, "rate at which to sample trace data")
 	teleportSampleRate = flag.Int("teleport-sample-rate", 1, "rate at which to sample data for Teleport")
@@ -446,6 +447,7 @@ func main() {
 		ShadowsocksSecret:                  *shadowsocksSecret,
 		ShadowsocksCipher:                  *shadowsocksCipher,
 		ShadowsocksReplayHistory:           *shadowsocksReplayHistory,
+		ShadowsocksWithTLS:                 *shadowsocksWithTLS,
 		StarbridgeAddr:                     *starbridgeAddr,
 		StarbridgePrivateKey:               *starbridgePrivateKey,
 		MultiplexProtocol:                  *multiplexProtocol,
