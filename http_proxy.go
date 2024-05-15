@@ -837,17 +837,9 @@ func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
 		tlsConfig = &tls.Config{Certificates: []tls.Certificate{cert}}
 	}
 
-	var base net.Listener
-	if tlsConfig != nil {
-		base, err = tls.Listen("tcp", addr, tlsConfig)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		base, err = net.Listen("tcp", addr)
-		if err != nil {
-			return nil, err
-		}
+	base, err := net.Listen("tcp", addr)
+	if err != nil {
+		return nil, err
 	}
 
 	l, err := shadowsocks.ListenLocalTCP(
@@ -856,6 +848,10 @@ func (p *Proxy) listenShadowsocks(addr string) (net.Listener, error) {
 	)
 	if err != nil {
 		return nil, errors.New("Unable to listen for shadowsocks: %v", err)
+	}
+
+	if tlsConfig != nil {
+		l = tls.NewListener(l, tlsConfig)
 	}
 
 	log.Debugf("Listening for shadowsocks at %v", l.Addr())
