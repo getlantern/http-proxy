@@ -7,8 +7,8 @@ import (
 	"container/list"
 	"fmt"
 
+	"github.com/Jigsaw-Code/outline-sdk/transport/shadowsocks"
 	"github.com/Jigsaw-Code/outline-ss-server/service"
-	outlineShadowsocks "github.com/Jigsaw-Code/outline-ss-server/shadowsocks"
 )
 
 const (
@@ -46,7 +46,7 @@ func UpdateCipherList(cipherList service.CipherList, configs []CipherConfig) err
 		if config.Secret == "" {
 			return fmt.Errorf("Secret was not specified for cipher %s", config.ID)
 		}
-		ci, err := outlineShadowsocks.NewCipher(cipher, config.Secret)
+		ci, err := shadowsocks.NewEncryptionKey(cipher, config.Secret)
 		if err != nil {
 			return fmt.Errorf("Failed to create cipher entry (%v, %v, %v) : %w", config.ID, config.Cipher, config.Secret, err)
 		}
