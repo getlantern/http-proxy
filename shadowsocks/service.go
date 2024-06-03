@@ -5,6 +5,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/Jigsaw-Code/outline-sdk/transport"
 	onet "github.com/Jigsaw-Code/outline-ss-server/net"
 	"github.com/Jigsaw-Code/outline-ss-server/service"
 )
@@ -49,7 +50,7 @@ type SSMetrics interface {
 }
 
 type TCPConn interface {
-	net.Conn
+	transport.StreamConn
 	CloseRead() error
 	CloseWrite() error
 	SetKeepAlive(keepAlive bool) error
@@ -69,7 +70,7 @@ type ListenerOptions struct {
 	TargetIPValidator     onet.TargetIPValidator // determines validity of non-local upstream dials
 	MaxPendingConnections int                    // defaults to 1000
 	ShadowsocksMetrics    SSMetrics
-	Accept                func(conn net.Conn)
+	Accept                func(conn transport.StreamConn) error
 }
 
 type TCPServiceOptions struct {

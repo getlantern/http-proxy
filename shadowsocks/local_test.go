@@ -17,6 +17,7 @@ import (
 	"github.com/Jigsaw-Code/outline-sdk/transport"
 	"github.com/Jigsaw-Code/outline-sdk/transport/shadowsocks"
 	"github.com/Jigsaw-Code/outline-ss-server/service"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -28,7 +29,6 @@ func makeTestCiphers(secrets []string) (service.CipherList, error) {
 	configs := make([]CipherConfig, len(secrets))
 	for i, secret := range secrets {
 		configs[i].Secret = secret
-		configs[i].Cipher = shadowsocks.CHACHA20IETFPOLY1305
 	}
 
 	cipherList, err := NewCipherListWithConfigs(configs)
@@ -58,7 +58,7 @@ func TestLocalUpstreamHandling(t *testing.T) {
 	require.Nil(t, err, "ListenTCP failed: %v", err)
 	secrets := makeTestSecrets(1)
 	cipherList, err := makeTestCiphers(secrets)
-	require.Nil(t, err, "M:akeTestCiphers failed: %v", err)
+	require.Nil(t, err, "MakeTestCiphers failed: %v", err)
 
 	replayCache := service.NewReplayCache(1)
 	options := &ListenerOptions{
@@ -69,35 +69,41 @@ func TestLocalUpstreamHandling(t *testing.T) {
 		ShadowsocksMetrics: &service.NoOpTCPMetrics{},
 	}
 
-	req = []byte("test")
-	accept := func(c net.Conn) {
+	ciphers := cipherList.SnapshotForClientIP(net.ParseIP("127.0.0.1"))
+	require.NotEmpty(t, ciphers, "No ciphers available")
+	require.NotEmpty(t, ciphers[0].Value.(*service.CipherEntry).CryptoKey, "No crypto key available")
+
+	accept := func(c transport.StreamConn) error {
 		buf := make([]byte, 2*len(req))
-		n, err := c.Read(buf)
+		_, conn, connErr := service.NewShadowsocksStreamAuthenticator(cipherList, &replayCache, &service.NoOpTCPMetrics{})(c)
+		if connErr != nil {
+			log.Errorf("failed to create authenticated connection: %v", connErr)
+			return connErr
+		}
+		defer conn.Close()
+		n, err := conn.Read(buf)
 		if err != nil {
 			log.Errorf("error reading: %v", err)
-			return
+			return err
 		}
-		buf = buf[:n]
-		if !bytes.Equal(buf, req) {
-			log.Errorf("unexpected request %v %v, len buf: %d, len req: %d", buf, req, len(buf), len(req))
-			return
+		request := buf[7:n]
+		if !bytes.Equal(request, req) {
+			log.Errorf("unexpected request %v %v, len buf: %d, len req: %d", request, req, len(request), len(req))
+			return err
 		}
-		c.Write(res)
+		conn.Write(res)
+		return nil
 	}
 	options.Accept = accept
 
 	l1 := ListenLocalTCPOptions(options)
 	defer l1.Close()
 
-	host, _, _ := net.SplitHostPort(l1.Addr().String())
-	ciphers := cipherList.SnapshotForClientIP(net.ParseIP(host))
-	require.NotEmpty(t, ciphers, "No ciphers available")
-	require.NotEmpty(t, ciphers[0].Value.(*service.CipherEntry).CryptoKey, "No crypto key available")
 	client, err := shadowsocks.NewStreamDialer(
 		&transport.TCPEndpoint{Address: l1.Addr().String()},
 		ciphers[0].Value.(*service.CipherEntry).CryptoKey,
 	)
-	require.Nil(t, err, "Error creating client")
+	require.Nil(t, err, "error creating client")
 
 	conn, err := client.DialStream(context.Background(), "127.0.0.1:443")
 	require.Nil(t, err, "failed to dial")
@@ -105,7 +111,7 @@ func TestLocalUpstreamHandling(t *testing.T) {
 
 	n, err := conn.Write(req)
 	require.Nil(t, err, "failed to write request")
-	log.Debugf("wrote %d bytes", n)
+	assert.Greater(t, n, 0, "failed to write request")
 
 	buf := make([]byte, 2*len(res))
 	n, err = conn.Read(buf)
@@ -154,35 +160,32 @@ func TestConcurrentLocalUpstreamHandling(t *testing.T) {
 		ReplayCache:        &replayCache,
 		ShadowsocksMetrics: &service.NoOpTCPMetrics{},
 	}
+	accept := func(c transport.StreamConn) error {
+		defer c.Close()
+		_, conn, connErr := service.NewShadowsocksStreamAuthenticator(cipherList, &replayCache, &service.NoOpTCPMetrics{})(c)
+		if connErr != nil {
+			log.Errorf("failed to create authenticated connection: %v", connErr)
+			return connErr
+		}
+		buf := make([]byte, 2*reqLen)
+		n, err := conn.Read(buf)
+		if err != nil {
+			log.Errorf("error reading: %v", err)
+			return err
+		}
+		request := buf[7:n]
+
+		res := ress[string(request)]
+		if res == "" {
+			log.Errorf("unexpected request %v", request)
+			return err
+		}
+		conn.Write([]byte(res))
+		return nil
+	}
+	options.Accept = accept
 
 	l1 := ListenLocalTCPOptions(options)
-
-	go func() {
-		for {
-			c, err := l1.Accept()
-			if err != nil {
-				return
-			}
-
-			go func(c net.Conn) {
-				defer c.Close()
-				buf := make([]byte, 2*reqLen)
-				n, err := c.Read(buf)
-				if err != nil {
-					log.Errorf("error reading: %v", err)
-					return
-				}
-				buf = buf[:n]
-
-				res := ress[string(buf)]
-				if res == "" {
-					log.Errorf("unexpected request %v", buf)
-					return
-				}
-				c.Write([]byte(res))
-			}(c)
-		}
-	}()
 
 	tryReq := func(rnum int) error {
 		req := reqs[rnum]

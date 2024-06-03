@@ -91,23 +91,29 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 	authFunc := service.NewShadowsocksStreamAuthenticator(options.Ciphers, options.ReplayCache, options.ShadowsocksMetrics)
 	tcpHandler := service.NewTCPHandler(options.Listener.Addr().(*net.TCPAddr).Port, authFunc, options.ShadowsocksMetrics, tcpReadTimeout)
 	accept := func() (transport.StreamConn, error) {
-		if listener, ok := l.wrapped.(*tcpListenerAdapter); ok {
-			conn, err := listener.AcceptTCP()
+		switch l.wrapped.(type) {
+		case *tcpListenerAdapter:
+			// This is a local listener, we can handle the connection locally
+			conn, err := l.wrapped.(*tcpListenerAdapter).AcceptTCP()
 			if err == nil {
 				conn.SetKeepAlive(true)
 				if options.Accept != nil {
-					options.Accept(conn)
+					err := options.Accept(conn)
+					if err != nil {
+						return conn, err
+					}
 				}
 			}
 			return conn, err
+		case *net.TCPListener:
+			conn, err := l.wrapped.(*net.TCPListener).AcceptTCP()
+			if err == nil {
+				conn.SetKeepAlive(true)
+			}
+			return conn, err
+		default:
+			return nil, errors.New("unsupported listener type")
 		}
-
-		listener := l.wrapped.(*net.TCPListener)
-		conn, err := listener.AcceptTCP()
-		if err == nil {
-			conn.SetKeepAlive(true)
-		}
-		return conn, err
 	}
 
 	go service.StreamServe(accept, tcpHandler.Handle)
@@ -148,11 +154,11 @@ func (l *llistener) Addr() net.Addr {
 // of the shadowsocks handler that it can independently
 // close the read and write on it's upstream side.
 type tcpConnAdapter struct {
-	net.Conn
+	transport.StreamConn
 }
 
 func (c *tcpConnAdapter) Wrapped() net.Conn {
-	return c.Conn
+	return c.StreamConn
 }
 
 // this is triggered when the remote end is finished.
@@ -162,7 +168,7 @@ func (c *tcpConnAdapter) CloseRead() error {
 	if ok {
 		return tcpConn.CloseRead()
 	}
-	return c.Conn.Close()
+	return c.StreamConn.Close()
 }
 
 // this is triggered when a client finishes writing,
@@ -187,7 +193,7 @@ func (c *tcpConnAdapter) SetKeepAlive(keepAlive bool) error {
 
 func (c *tcpConnAdapter) asTCPConn() (*net.TCPConn, bool) {
 	var tcpConn *net.TCPConn
-	netx.WalkWrapped(c.Conn, func(conn net.Conn) bool {
+	netx.WalkWrapped(c.StreamConn, func(conn net.Conn) bool {
 		switch t := conn.(type) {
 		case *net.TCPConn:
 			tcpConn = t
@@ -209,7 +215,7 @@ func (l *tcpListenerAdapter) AcceptTCP() (TCPConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &tcpConnAdapter{conn}, nil
+	return &tcpConnAdapter{conn.(transport.StreamConn)}, nil
 }
 
 // this is an adapter that forwards the remote address

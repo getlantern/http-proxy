@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	DefaultCipher        = "chacha20-ietf-poly1305"
+	DefaultCipher        = "AEAD_CHACHA20_POLY1305"
 	DefaultReplayHistory = 10000
 	DefaultMaxPending    = 1000
 )
