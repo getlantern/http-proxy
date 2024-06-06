@@ -90,7 +90,7 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 
 	authFunc := service.NewShadowsocksStreamAuthenticator(options.Ciphers, options.ReplayCache, options.ShadowsocksMetrics)
 	tcpHandler := service.NewTCPHandler(options.Listener.Addr().(*net.TCPAddr).Port, authFunc, options.ShadowsocksMetrics, timeout)
-	tcpHandler.SetTargetDialer(&transport.TCPDialer{Dialer: net.Dialer{Control: func(network, address string, c syscall.RawConn) error {
+	tcpHandler.SetTargetDialer(&LocalDialer{Dialer: net.Dialer{Control: func(network, address string, c syscall.RawConn) error {
 		ip, _, _ := net.SplitHostPort(address)
 		return validator(net.ParseIP(ip))
 	}}})
@@ -118,7 +118,34 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 	}
 
 	go service.StreamServe(accept, tcpHandler.Handle)
-	return l.wrapped
+	return l
+}
+
+// Accept implements Accept() from net.Listener
+func (l *llistener) Accept() (net.Conn, error) {
+	select {
+	case conn, ok := <-l.connections:
+		if !ok {
+			return nil, ErrListenerClosed
+		}
+		return conn, nil
+	case <-l.closedSignal:
+		return nil, ErrListenerClosed
+	}
+}
+
+// Close implements Close() from net.Listener
+func (l *llistener) Close() error {
+	l.closeOnce.Do(func() {
+		close(l.closedSignal)
+		l.closeError = l.wrapped.Close()
+	})
+	return l.closeError
+}
+
+// Addr implements Addr() from net.Listener
+func (l *llistener) Addr() net.Addr {
+	return l.wrapped.Addr()
 }
 
 // this is an adapter that fulfills the expectation
