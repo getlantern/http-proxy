@@ -3,7 +3,8 @@ package shadowsocks
 import (
 	"bytes"
 	"context"
-	"crypto/rand"
+	crand "crypto/rand"
+	"errors"
 	"fmt"
 	"net"
 	"testing"
@@ -44,14 +45,31 @@ func makeTestSecrets(n int) []string {
 	return secrets
 }
 
+type PrefixSaltGen struct {
+	prefixFunc func() ([]byte, error)
+}
+
+func (p *PrefixSaltGen) GetSalt(salt []byte) error {
+	prefix, err := p.prefixFunc()
+	if err != nil {
+		return fmt.Errorf("failed to generate prefix: %v", err)
+	}
+	n := copy(salt, prefix)
+	if n != len(prefix) {
+		return errors.New("prefix is too long")
+	}
+	_, err = crand.Read(salt[n:])
+	return err
+}
+
 // tests interception of upstream connection
 func TestLocalUpstreamHandling(t *testing.T) {
 	req := make([]byte, 1024)
 	res := make([]byte, 2048)
 
-	_, err := rand.Read(req)
+	_, err := crand.Read(req)
 	require.Nil(t, err, "Failed to generate random request")
-	_, err = rand.Read(res)
+	_, err = crand.Read(res)
 	require.Nil(t, err, "Failed to generate random response")
 
 	l0, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
@@ -135,11 +153,11 @@ func TestConcurrentLocalUpstreamHandling(t *testing.T) {
 	ress := make(map[string]string)
 	for i := 0; i < clients; i++ {
 		req := make([]byte, reqLen)
-		_, err := rand.Read(req)
+		_, err := crand.Read(req)
 		require.Nil(t, err, "Failed to generate random request")
 
 		res := make([]byte, resLen)
-		_, err = rand.Read(res)
+		_, err = crand.Read(res)
 		require.Nil(t, err, "Failed to generate random response")
 
 		reqs[i] = req

@@ -3,6 +3,7 @@ package shadowsocks
 import (
 	"errors"
 	"net"
+	"syscall"
 	"time"
 
 	"github.com/getlantern/golog"
@@ -61,7 +62,6 @@ func ListenLocalTCP(
 // by the ShouldHandleLocally predicate, which defaults to all connections.
 // Any upstream handling should be handled by the caller of Accept() for any connection returned.
 func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
-
 	maxPending := options.MaxPendingConnections
 	if maxPending == 0 {
 		maxPending = DefaultMaxPending
@@ -89,7 +89,11 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 	}
 
 	authFunc := service.NewShadowsocksStreamAuthenticator(options.Ciphers, options.ReplayCache, options.ShadowsocksMetrics)
-	tcpHandler := service.NewTCPHandler(options.Listener.Addr().(*net.TCPAddr).Port, authFunc, options.ShadowsocksMetrics, tcpReadTimeout)
+	tcpHandler := service.NewTCPHandler(options.Listener.Addr().(*net.TCPAddr).Port, authFunc, options.ShadowsocksMetrics, timeout)
+	tcpHandler.SetTargetDialer(&transport.TCPDialer{Dialer: net.Dialer{Control: func(network, address string, c syscall.RawConn) error {
+		ip, _, _ := net.SplitHostPort(address)
+		return validator(net.ParseIP(ip))
+	}}})
 	accept := func() (transport.StreamConn, error) {
 		switch l.wrapped.(type) {
 		case *tcpListenerAdapter:
@@ -98,10 +102,7 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 			if err == nil {
 				conn.SetKeepAlive(true)
 				if options.Accept != nil {
-					err := options.Accept(conn)
-					if err != nil {
-						return conn, err
-					}
+					err = options.Accept(conn)
 				}
 			}
 			return conn, err
@@ -117,37 +118,7 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 	}
 
 	go service.StreamServe(accept, tcpHandler.Handle)
-	return l
-}
-
-// Accept implements Accept() from net.Listener
-func (l *llistener) Accept() (net.Conn, error) {
-	select {
-	case conn, ok := <-l.connections:
-		if !ok {
-			log.Debug("No connection available at channel")
-			return nil, ErrListenerClosed
-		}
-		log.Debug("received connection")
-		return conn, nil
-	case <-l.closedSignal:
-		log.Debug("received closed signal")
-		return nil, ErrListenerClosed
-	}
-}
-
-// Close implements Close() from net.Listener
-func (l *llistener) Close() error {
-	l.closeOnce.Do(func() {
-		close(l.closedSignal)
-		l.closeError = l.wrapped.Close()
-	})
-	return l.closeError
-}
-
-// Addr implements Addr() from net.Listener
-func (l *llistener) Addr() net.Addr {
-	return l.wrapped.Addr()
+	return l.wrapped
 }
 
 // this is an adapter that fulfills the expectation
