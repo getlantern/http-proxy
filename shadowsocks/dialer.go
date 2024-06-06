@@ -8,7 +8,8 @@ import (
 )
 
 type LocalDialer struct {
-	Dialer net.Dialer
+	Dialer   net.Dialer
+	Listener llistener
 }
 
 func (d *LocalDialer) DialStream(ctx context.Context, addr string) (transport.StreamConn, error) {
@@ -17,5 +18,7 @@ func (d *LocalDialer) DialStream(ctx context.Context, addr string) (transport.St
 	if err != nil {
 		return nil, err
 	}
+
+	d.Listener.connections <- conn
 	return conn.(*net.TCPConn), nil
 }
