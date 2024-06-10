@@ -85,7 +85,7 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 
 	authFunc := service.NewShadowsocksStreamAuthenticator(options.Ciphers, options.ReplayCache, options.ShadowsocksMetrics)
 	tcpHandler := service.NewTCPHandler(options.Listener.Addr().(*net.TCPAddr).Port, authFunc, options.ShadowsocksMetrics, timeout)
-	tcpHandler.SetTargetDialer(&LocalDialer{Listener: l})
+	tcpHandler.SetTargetDialer(&LocalDialer{connections: l.connections})
 	handler := &Handler{TCPHandler: tcpHandler}
 
 	accept := func() (transport.StreamConn, error) {
