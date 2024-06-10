@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	crand "crypto/rand"
-	"errors"
 	"fmt"
 	"net"
 	"testing"
@@ -43,23 +42,6 @@ func makeTestSecrets(n int) []string {
 		secrets[i] = fmt.Sprintf("secret-%v", i)
 	}
 	return secrets
-}
-
-type PrefixSaltGen struct {
-	prefixFunc func() ([]byte, error)
-}
-
-func (p *PrefixSaltGen) GetSalt(salt []byte) error {
-	prefix, err := p.prefixFunc()
-	if err != nil {
-		return fmt.Errorf("failed to generate prefix: %v", err)
-	}
-	n := copy(salt, prefix)
-	if n != len(prefix) {
-		return errors.New("prefix is too long")
-	}
-	_, err = crand.Read(salt[n:])
-	return err
 }
 
 // tests interception of upstream connection
