@@ -1,6 +1,7 @@
 package shadowsocks
 
 import (
+	"context"
 	"errors"
 	"net"
 	"time"
@@ -89,8 +90,8 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 
 	authFunc := service.NewShadowsocksStreamAuthenticator(options.Ciphers, options.ReplayCache, options.ShadowsocksMetrics)
 	tcpHandler := service.NewTCPHandler(options.Listener.Addr().(*net.TCPAddr).Port, authFunc, options.ShadowsocksMetrics, timeout)
-
 	tcpHandler.SetTargetDialer(&LocalDialer{Listener: l})
+	l.TCPHandler = tcpHandler
 
 	accept := func() (transport.StreamConn, error) {
 		switch l.wrapped.(type) {
@@ -115,8 +116,15 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 		}
 	}
 
-	go service.StreamServe(accept, tcpHandler.Handle)
+	go service.StreamServe(accept, l.handler)
 	return l
+}
+
+type ClientConn struct{}
+
+func (l *llistener) handler(ctx context.Context, conn transport.StreamConn) {
+	ctx = context.WithValue(ctx, ClientConn{}, conn)
+	l.TCPHandler.Handle(ctx, conn)
 }
 
 // Accept implements Accept() from net.Listener

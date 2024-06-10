@@ -42,6 +42,7 @@ type llistener struct {
 	closedSignal chan struct{}
 	closeOnce    sync.Once
 	closeError   error
+	TCPHandler   service.TCPHandler
 }
 
 type SSMetrics interface {
