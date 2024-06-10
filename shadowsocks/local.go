@@ -95,18 +95,9 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 
 	accept := func() (transport.StreamConn, error) {
 		switch l.wrapped.(type) {
-		case *tcpListenerAdapter:
+		case *tcpListenerAdapter, *net.TCPListener:
 			// This is a local listener, we can handle the connection locally
 			conn, err := l.wrapped.(*tcpListenerAdapter).AcceptTCP()
-			if err == nil {
-				conn.SetKeepAlive(true)
-				if options.Accept != nil {
-					err = options.Accept(conn)
-				}
-			}
-			return conn, err
-		case *net.TCPListener:
-			conn, err := l.wrapped.(*net.TCPListener).AcceptTCP()
 			if err == nil {
 				conn.SetKeepAlive(true)
 			}

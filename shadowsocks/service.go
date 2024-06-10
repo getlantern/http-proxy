@@ -71,7 +71,6 @@ type ListenerOptions struct {
 	TargetIPValidator     onet.TargetIPValidator // determines validity of non-local upstream dials
 	MaxPendingConnections int                    // defaults to 1000
 	ShadowsocksMetrics    SSMetrics
-	Accept                func(conn transport.StreamConn) error
 }
 
 type TCPServiceOptions struct {
