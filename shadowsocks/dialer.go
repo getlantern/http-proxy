@@ -13,7 +13,6 @@ type LocalDialer struct {
 }
 
 func (d *LocalDialer) DialStream(ctx context.Context, addr string) (transport.StreamConn, error) {
-	log.Debugf("Received %s address, sending to connections", addr)
 	cliConn := ctx.Value(ClientConnCtxKey{}).(transport.StreamConn)
 
 	c1, c2 := net.Pipe()
