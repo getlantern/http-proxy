@@ -8,54 +8,7 @@ import (
 	"github.com/Jigsaw-Code/outline-sdk/transport"
 	onet "github.com/Jigsaw-Code/outline-ss-server/net"
 	"github.com/Jigsaw-Code/outline-ss-server/service"
-	"github.com/Jigsaw-Code/outline-ss-server/service/metrics"
 )
-
-// TCPService is a Shadowsocks TCP service that can be started and stopped.
-type TCPService interface {
-
-	// SetTargetIPValidator sets the function to be used to validate the target IP addresses.
-	SetTargetIPValidator(targetIPValidator onet.TargetIPValidator)
-	// Serve adopts the listener, which will be closed before Serve returns.  Serve returns an error unless Stop() was called.
-	Serve(listener net.TCPListener) error
-	// Stop closes the listener but does not interfere with existing connections.
-	Stop() error
-	// GracefulStop calls Stop(), and then blocks until all resources have been cleaned up.
-	GracefulStop() error
-}
-
-// ShadowsocksMetrics registers metrics for the Shadowsocks service.
-type ShadowsocksMetrics interface {
-	SetBuildInfo(version string)
-
-	GetLocation(net.Addr) (string, error)
-
-	SetNumAccessKeys(numKeys int, numPorts int)
-
-	// TCP metrics
-	AddOpenTCPConnection(clientLocation string)
-	AddClosedTCPConnection(clientLocation, accessKey, status string, data metrics.ProxyMetrics, timeToCipher, duration time.Duration)
-	AddTCPProbe(status, drainResult string, port int, data metrics.ProxyMetrics)
-
-	// UDP metrics
-	AddUDPPacketFromClient(clientLocation, accessKey, status string, clientProxyBytes, proxyTargetBytes int, timeToCipher time.Duration)
-	AddUDPPacketFromTarget(clientLocation, accessKey, status string, targetProxyBytes, proxyClientBytes int)
-	AddUDPNatEntry()
-	RemoveUDPNatEntry()
-}
-
-type tcpService struct {
-	mu          sync.RWMutex // Protects .listeners and .stopped
-	listener    *net.TCPListener
-	stopped     bool
-	ciphers     service.CipherList
-	m           ShadowsocksMetrics
-	running     sync.WaitGroup
-	readTimeout time.Duration
-	// `replayCache` is a pointer to SSServer.replayCache, to share the cache among all ports.
-	replayCache       *service.ReplayCache
-	targetIPValidator onet.TargetIPValidator
-}
 
 type llistener struct {
 	wrapped      net.Listener
@@ -63,7 +16,6 @@ type llistener struct {
 	closedSignal chan struct{}
 	closeOnce    sync.Once
 	closeError   error
-	TCPHandler   service.TCPHandler
 }
 
 type SSMetrics interface {
@@ -88,12 +40,7 @@ type ListenerOptions struct {
 	Ciphers               service.CipherList
 	ReplayCache           *service.ReplayCache
 	Timeout               time.Duration
-	ShouldHandleLocally   HandleLocalPredicate   // determines whether an upstream should be handled by the listener locally or dial upstream
 	TargetIPValidator     onet.TargetIPValidator // determines validity of non-local upstream dials
 	MaxPendingConnections int                    // defaults to 1000
 	ShadowsocksMetrics    SSMetrics
-}
-
-type TCPServiceOptions struct {
-	TargetIPValidator onet.TargetIPValidator
 }

@@ -83,20 +83,14 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 		validator = onet.RequirePublicIP
 	}
 
-	isLocal := options.ShouldHandleLocally
-	if isLocal == nil {
-		isLocal = AlwaysLocal
-	}
-
 	authFunc := service.NewShadowsocksStreamAuthenticator(options.Ciphers, options.ReplayCache, options.ShadowsocksMetrics)
 	tcpHandler := service.NewTCPHandler(options.Listener.Addr().(*net.TCPAddr).Port, authFunc, options.ShadowsocksMetrics, timeout)
 	tcpHandler.SetTargetDialer(&LocalDialer{Listener: l})
-	l.TCPHandler = tcpHandler
+	handler := &Handler{TCPHandler: tcpHandler}
 
 	accept := func() (transport.StreamConn, error) {
 		switch l.wrapped.(type) {
 		case *tcpListenerAdapter, *net.TCPListener:
-			// This is a local listener, we can handle the connection locally
 			conn, err := l.wrapped.(*tcpListenerAdapter).AcceptTCP()
 			if err == nil {
 				conn.SetKeepAlive(true)
@@ -107,16 +101,23 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 		}
 	}
 
-	go service.StreamServe(accept, l.handler)
+	go service.StreamServe(accept, handler.Handle)
 	return l
 }
 
 // ClientConnCtxKey is a context key being used to share the client connection
 type ClientConnCtxKey struct{}
 
-func (l *llistener) handler(ctx context.Context, conn transport.StreamConn) {
+// Handler implements the service.TCPHandler with some customized operations
+// before calling the actual TCPHandler
+type Handler struct {
+	TCPHandler service.TCPHandler
+}
+
+func (h *Handler) Handle(ctx context.Context, conn transport.StreamConn) {
+	// Add the client connection to the context so it can be used by the LocalDialer
 	ctx = context.WithValue(ctx, ClientConnCtxKey{}, conn)
-	l.TCPHandler.Handle(ctx, conn)
+	h.TCPHandler.Handle(ctx, conn)
 }
 
 // Accept implements Accept() from net.Listener
