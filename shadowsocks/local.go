@@ -120,10 +120,11 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 	return l
 }
 
-type ClientConn struct{}
+// ClientConnCtxKey is a context key being used to share the client connection
+type ClientConnCtxKey struct{}
 
 func (l *llistener) handler(ctx context.Context, conn transport.StreamConn) {
-	ctx = context.WithValue(ctx, ClientConn{}, conn)
+	ctx = context.WithValue(ctx, ClientConnCtxKey{}, conn)
 	l.TCPHandler.Handle(ctx, conn)
 }
 
