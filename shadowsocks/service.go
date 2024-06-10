@@ -8,6 +8,7 @@ import (
 	"github.com/Jigsaw-Code/outline-sdk/transport"
 	onet "github.com/Jigsaw-Code/outline-ss-server/net"
 	"github.com/Jigsaw-Code/outline-ss-server/service"
+	"github.com/Jigsaw-Code/outline-ss-server/service/metrics"
 )
 
 // TCPService is a Shadowsocks TCP service that can be started and stopped.
@@ -21,6 +22,26 @@ type TCPService interface {
 	Stop() error
 	// GracefulStop calls Stop(), and then blocks until all resources have been cleaned up.
 	GracefulStop() error
+}
+
+// ShadowsocksMetrics registers metrics for the Shadowsocks service.
+type ShadowsocksMetrics interface {
+	SetBuildInfo(version string)
+
+	GetLocation(net.Addr) (string, error)
+
+	SetNumAccessKeys(numKeys int, numPorts int)
+
+	// TCP metrics
+	AddOpenTCPConnection(clientLocation string)
+	AddClosedTCPConnection(clientLocation, accessKey, status string, data metrics.ProxyMetrics, timeToCipher, duration time.Duration)
+	AddTCPProbe(status, drainResult string, port int, data metrics.ProxyMetrics)
+
+	// UDP metrics
+	AddUDPPacketFromClient(clientLocation, accessKey, status string, clientProxyBytes, proxyTargetBytes int, timeToCipher time.Duration)
+	AddUDPPacketFromTarget(clientLocation, accessKey, status string, targetProxyBytes, proxyClientBytes int)
+	AddUDPNatEntry()
+	RemoveUDPNatEntry()
 }
 
 type tcpService struct {
