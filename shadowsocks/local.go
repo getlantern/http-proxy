@@ -3,7 +3,6 @@ package shadowsocks
 import (
 	"errors"
 	"net"
-	"syscall"
 	"time"
 
 	"github.com/getlantern/golog"
@@ -90,10 +89,9 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 
 	authFunc := service.NewShadowsocksStreamAuthenticator(options.Ciphers, options.ReplayCache, options.ShadowsocksMetrics)
 	tcpHandler := service.NewTCPHandler(options.Listener.Addr().(*net.TCPAddr).Port, authFunc, options.ShadowsocksMetrics, timeout)
-	tcpHandler.SetTargetDialer(&LocalDialer{Dialer: net.Dialer{Control: func(network, address string, c syscall.RawConn) error {
-		ip, _, _ := net.SplitHostPort(address)
-		return validator(net.ParseIP(ip))
-	}}})
+
+	tcpHandler.SetTargetDialer(&LocalDialer{Listener: l})
+
 	accept := func() (transport.StreamConn, error) {
 		switch l.wrapped.(type) {
 		case *tcpListenerAdapter:
@@ -152,11 +150,54 @@ func (l *llistener) Addr() net.Addr {
 // of the shadowsocks handler that it can independently
 // close the read and write on it's upstream side.
 type tcpConnAdapter struct {
-	transport.StreamConn
+	conn net.Conn
 }
 
 func (c *tcpConnAdapter) Wrapped() net.Conn {
-	return c.StreamConn
+	return c.conn
+}
+
+func (c *tcpConnAdapter) Close() error {
+	return c.conn.Close()
+}
+
+func (c *tcpConnAdapter) LocalAddr() net.Addr {
+	return c.conn.LocalAddr()
+}
+
+func (c *tcpConnAdapter) RemoteAddr() net.Addr {
+	return c.conn.RemoteAddr()
+}
+
+func (c *tcpConnAdapter) Read(b []byte) (n int, err error) {
+	return c.conn.Read(b)
+}
+
+func (c *tcpConnAdapter) SetDeadline(t time.Time) error {
+	return c.conn.SetDeadline(t)
+}
+
+// Write writes data to the connection.
+// Write can be made to time out and return an error after a fixed
+// time limit; see SetDeadline and SetWriteDeadline.
+func (c *tcpConnAdapter) Write(b []byte) (n int, err error) {
+	return c.conn.Write(b)
+}
+
+// SetReadDeadline sets the deadline for future Read calls
+// and any currently-blocked Read call.
+// A zero value for t means Read will not time out.
+func (c *tcpConnAdapter) SetReadDeadline(t time.Time) error {
+	return c.conn.SetReadDeadline(t)
+}
+
+// SetWriteDeadline sets the deadline for future Write calls
+// and any currently-blocked Write call.
+// Even if write times out, it may return n > 0, indicating that
+// some of the data was successfully written.
+// A zero value for t means Write will not time out.
+func (c *tcpConnAdapter) SetWriteDeadline(t time.Time) error {
+	return c.conn.SetWriteDeadline(t)
 }
 
 // this is triggered when the remote end is finished.
@@ -166,7 +207,7 @@ func (c *tcpConnAdapter) CloseRead() error {
 	if ok {
 		return tcpConn.CloseRead()
 	}
-	return c.StreamConn.Close()
+	return c.conn.Close()
 }
 
 // this is triggered when a client finishes writing,
@@ -191,7 +232,7 @@ func (c *tcpConnAdapter) SetKeepAlive(keepAlive bool) error {
 
 func (c *tcpConnAdapter) asTCPConn() (*net.TCPConn, bool) {
 	var tcpConn *net.TCPConn
-	netx.WalkWrapped(c.StreamConn, func(conn net.Conn) bool {
+	netx.WalkWrapped(c.conn, func(conn net.Conn) bool {
 		switch t := conn.(type) {
 		case *net.TCPConn:
 			tcpConn = t
@@ -213,7 +254,7 @@ func (l *tcpListenerAdapter) AcceptTCP() (TCPConn, error) {
 	if err != nil {
 		return nil, err
 	}
-	return &tcpConnAdapter{conn.(transport.StreamConn)}, nil
+	return &tcpConnAdapter{conn}, nil
 }
 
 // this is an adapter that forwards the remote address
