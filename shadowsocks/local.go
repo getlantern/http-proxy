@@ -148,7 +148,7 @@ type tcpConnAdapter struct {
 }
 
 func (c *tcpConnAdapter) Wrapped() net.Conn {
-	return c
+	return c.Conn
 }
 
 // this is triggered when the remote end is finished.
