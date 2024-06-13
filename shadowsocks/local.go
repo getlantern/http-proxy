@@ -28,15 +28,6 @@ var (
 // 59 seconds is most common timeout for servers that do not respond to invalid requests
 const tcpReadTimeout time.Duration = 59 * time.Second
 
-// HandleLocalPredicate is a type of function that determines whether to handle an
-// upstream address locally or not.  If the function returns true, the address is
-// handled locally.  If the funtion returns false, the address is handled by the
-// default upstream dial.
-type HandleLocalPredicate func(addr string) bool
-
-// AlwaysLocal is a HandleLocalPredicate that requests local handling for all addresses
-func AlwaysLocal(addr string) bool { return true }
-
 // ListenLocalTCP creates a net.Listener that returns all inbound shadowsocks connections to the
 // returned listener rather than dialing upstream. Any upstream or local handling should be handled by the
 // caller of Accept().
@@ -103,7 +94,7 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 
 	handler := func(ctx context.Context, conn transport.StreamConn) {
 		// Add the client connection to the context so it can be used by the LocalDialer
-		ctx = context.WithValue(ctx, ClientConnCtxKey{}, conn)
+		ctx = context.WithValue(ctx, clientConnCtxKey{}, conn)
 		tcpHandler.Handle(ctx, conn)
 	}
 
@@ -111,8 +102,8 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 	return l
 }
 
-// ClientConnCtxKey is a context key being used to share the client connection
-type ClientConnCtxKey struct{}
+// clientConnCtxKey is a context key being used to share the client connection
+type clientConnCtxKey struct{}
 
 // Accept implements Accept() from net.Listener
 func (l *llistener) Accept() (net.Conn, error) {
