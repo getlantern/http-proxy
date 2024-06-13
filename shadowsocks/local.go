@@ -88,16 +88,17 @@ func ListenLocalTCPOptions(options *ListenerOptions) net.Listener {
 	tcpHandler.SetTargetDialer(&LocalDialer{connections: l.connections})
 
 	accept := func() (transport.StreamConn, error) {
-		switch listener := l.wrapped.(type) {
-		case *tcpListenerAdapter:
-			conn, err := listener.AcceptTCP()
-			if err == nil {
-				conn.SetKeepAlive(true)
-			}
-			return conn, err
-		default:
-			return nil, errors.New("unsupported listener type")
+		listener, ok := l.wrapped.(*tcpListenerAdapter)
+		if !ok {
+			return nil, errors.New("wrapped listener is not a tcpListenerAdapter")
 		}
+
+		conn, err := listener.AcceptTCP()
+		if err == nil {
+			conn.SetKeepAlive(true)
+		}
+
+		return conn, err
 	}
 
 	handler := func(ctx context.Context, conn transport.StreamConn) {
