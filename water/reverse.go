@@ -97,19 +97,24 @@ func handleReverseConnection(conn net.Conn, connections chan net.Conn) {
 	}
 	connections <- b
 
+	fromClientErrCh := make(chan error)
 	go func() {
 		defer a.Close()
 		defer conn.Close()
 		_, err := io.Copy(a, conn)
-
 		if err != nil {
-			log.Errorf("error writing to pipe: %v", err)
+			io.Copy(io.Discard, conn)
 		}
+		fromClientErrCh <- err
 	}()
 
-	_, err := io.Copy(conn, a)
-	if err != nil {
-		log.Errorf("failed to relay traffic: %v", err)
+	_, fromTargetErr := io.Copy(conn, a)
+	fromClientErr := <-fromClientErrCh
+	if fromClientErr != nil {
+		log.Errorf("failed to relay traffic from client: %v", fromClientErr)
+	}
+	if fromTargetErr != nil {
+		log.Errorf("failed to relay traffic from target: %v", fromTargetErr)
 	}
 }
 
