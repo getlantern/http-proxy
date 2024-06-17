@@ -48,6 +48,7 @@ require (
 	github.com/mitchellh/panicwrap v1.0.0
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/refraction-networking/utls v1.3.3
+	github.com/refraction-networking/water v0.6.4
 	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.8.4
@@ -62,7 +63,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.19.0
 	go.opentelemetry.io/otel/sdk/metric v1.19.0
 	go.opentelemetry.io/otel/trace v1.19.0
-	golang.org/x/net v0.17.0
+	golang.org/x/net v0.20.0
 	google.golang.org/api v0.148.0
 )
 
@@ -162,6 +163,7 @@ require (
 	github.com/songgao/water v0.0.0-20200317203138-2b4b6d7c09d8 // indirect
 	github.com/templexxx/cpu v0.0.8 // indirect
 	github.com/templexxx/xorsimd v0.4.1 // indirect
+	github.com/tetratelabs/wazero v1.7.0 // indirect
 	github.com/ti-mo/conntrack v0.3.0 // indirect
 	github.com/ti-mo/netfilter v0.3.1 // indirect
 	github.com/tjfoc/gmsm v1.3.2 // indirect
@@ -179,20 +181,20 @@ require (
 	go.uber.org/mock v0.3.0 // indirect
 	go.uber.org/multierr v1.8.0 // indirect
 	go.uber.org/zap v1.21.0 // indirect
-	golang.org/x/crypto v0.14.0 // indirect
-	golang.org/x/exp v0.0.0-20230817173708-d852ddb80c63 // indirect
-	golang.org/x/mod v0.12.0 // indirect
+	golang.org/x/crypto v0.18.0 // indirect
+	golang.org/x/exp v0.0.0-20240119083558-1b970713d09a // indirect
+	golang.org/x/mod v0.14.0 // indirect
 	golang.org/x/oauth2 v0.13.0 // indirect
-	golang.org/x/sync v0.4.0 // indirect
-	golang.org/x/sys v0.13.0 // indirect
-	golang.org/x/text v0.13.0 // indirect
-	golang.org/x/tools v0.12.1-0.20230815132531-74c255bcf846 // indirect
+	golang.org/x/sync v0.6.0 // indirect
+	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/text v0.14.0 // indirect
+	golang.org/x/tools v0.17.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/genproto v0.0.0-20231002182017-d307bd883b97 // indirect
 	google.golang.org/genproto/googleapis/api v0.0.0-20231002182017-d307bd883b97 // indirect
 	google.golang.org/genproto/googleapis/rpc v0.0.0-20231012201019-e917dd12ba7a // indirect
 	google.golang.org/grpc v1.58.3 // indirect
-	google.golang.org/protobuf v1.31.0 // indirect
+	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	nhooyr.io/websocket v1.8.10 // indirect
 )
@@ -201,3 +203,5 @@ replace github.com/Jigsaw-Code/outline-ss-server => github.com/getlantern/lanter
 
 // Waiting on https://github.com/mitchellh/panicwrap/pull/27 to be merged upstream
 replace github.com/mitchellh/panicwrap v1.0.0 => github.com/getlantern/panicwrap v0.0.0-20200707191944-9ba45baf8e51
+
+replace github.com/tetratelabs/wazero => github.com/refraction-networking/wazero v1.7.1-w
