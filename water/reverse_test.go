@@ -41,7 +41,6 @@ func TestReverseListener(t *testing.T) {
 			}
 
 			go func() {
-				defer conn.Close()
 				buf := make([]byte, 2*len(messageRequest))
 				n, err := conn.Read(buf)
 				if err != nil {
