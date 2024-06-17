@@ -2,6 +2,7 @@ package water
 
 import (
 	"context"
+	"io"
 	"net"
 	"sync"
 
@@ -86,25 +87,30 @@ func serve(accept acceptWATER, handle handleWATER) {
 func handleReverseConnection(conn net.Conn, connections chan net.Conn) {
 	log.Debugf("handling connection from/to %s", conn.RemoteAddr())
 
-	buf := make([]byte, 1024)
-	n, err := conn.Read(buf)
-	if err != nil {
-		log.Errorf("error %v, tearing down connection...", err)
-		return
+	c1, c2 := net.Pipe()
+	a := c1
+	b := &lfwd{
+		Conn:           c2,
+		clientTCPConn:  conn,
+		remoteAddr:     conn.RemoteAddr(),
+		upstreamTarget: conn.RemoteAddr().String(),
 	}
+	connections <- b
 
-	messageReceived := buf[:n]
-	if string(messageReceived) != "hello" {
-		log.Errorf("unexpected message received: %s, tearing down connection...", messageReceived)
-		return
-	}
+	go func() {
+		defer a.Close()
+		defer conn.Close()
+		_, err := io.Copy(a, conn)
 
-	_, err = conn.Write([]byte("world"))
+		if err != nil {
+			log.Errorf("error writing to pipe: %v", err)
+		}
+	}()
+
+	_, err := io.Copy(conn, a)
 	if err != nil {
-		log.Errorf("write %s: error %v, tearing down connection...", err)
-		return
+		log.Errorf("failed to relay traffic: %v", err)
 	}
-	connections <- conn
 }
 
 type innerListener struct {
