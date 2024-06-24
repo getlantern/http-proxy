@@ -186,7 +186,7 @@ type Proxy struct {
 	AlgenevaAddr string
 
 	WaterAddr string
-	WaterWASM []byte
+	WaterWASM string
 
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument

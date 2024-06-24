@@ -3,6 +3,7 @@ package water
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"net"
 	"os"
 	"testing"
@@ -20,13 +21,15 @@ func TestReverseListener(t *testing.T) {
 	wasm, err := os.ReadFile(wasmPath)
 	require.Nil(t, err)
 
+	b64WASM := base64.StdEncoding.EncodeToString(wasm)
+
 	ctx := context.Background()
 
 	cfg := &water.Config{
 		TransportModuleBin: wasm,
 	}
 
-	ll, err := NewReverseListener(ctx, addr, wasm)
+	ll, err := NewReverseListener(ctx, addr, b64WASM)
 	require.Nil(t, err)
 
 	messageRequest := "hello"

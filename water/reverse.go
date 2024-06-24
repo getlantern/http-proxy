@@ -2,6 +2,7 @@ package water
 
 import (
 	"context"
+	"encoding/base64"
 	"net"
 	"sync"
 
@@ -21,9 +22,15 @@ type llistener struct {
 	closeError   error
 }
 
-func NewReverseListener(ctx context.Context, address string, wasm []byte) (*llistener, error) {
+func NewReverseListener(ctx context.Context, address string, wasm string) (*llistener, error) {
+	decodedWASM, err := base64.StdEncoding.DecodeString(wasm)
+	if err != nil {
+		log.Errorf("failed to decode WASM base64: %v", err)
+		return nil, err
+	}
+
 	cfg := &water.Config{
-		TransportModuleBin: wasm,
+		TransportModuleBin: decodedWASM,
 	}
 
 	waterListener, err := cfg.ListenContext(ctx, "tcp", address)
