@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"net"
-	"sync"
 
 	"github.com/getlantern/golog"
 	"github.com/refraction-networking/water"
@@ -13,16 +12,7 @@ import (
 
 var log = golog.LoggerFor("water")
 
-type llistener struct {
-	net.Listener
-
-	connections  chan net.Conn
-	closedSignal chan struct{}
-	closeOnce    sync.Once
-	closeError   error
-}
-
-func NewReverseListener(ctx context.Context, address string, wasm string) (*llistener, error) {
+func NewReverseListener(ctx context.Context, address string, wasm string) (net.Listener, error) {
 	decodedWASM, err := base64.StdEncoding.DecodeString(wasm)
 	if err != nil {
 		log.Errorf("failed to decode WASM base64: %v", err)
@@ -39,56 +29,5 @@ func NewReverseListener(ctx context.Context, address string, wasm string) (*llis
 		return nil, err
 	}
 
-	l := &innerListener{Listener: waterListener}
-	ll := &llistener{
-		Listener:     l,
-		connections:  make(chan net.Conn),
-		closedSignal: make(chan struct{}),
-	}
-
-	go func() {
-		for {
-			conn, err := l.Listener.Accept()
-			if err != nil {
-				log.Errorf("failed accepting connection: %v", err)
-				return
-			}
-			select {
-			case ll.connections <- conn:
-			case <-ll.closedSignal:
-				ll.Close()
-			}
-		}
-	}()
-	return ll, nil
-}
-
-func (l *llistener) Accept() (net.Conn, error) {
-	select {
-	case c := <-l.connections:
-		return c, nil
-	case <-l.closedSignal:
-		return nil, l.closeError
-	}
-}
-
-func (l *llistener) Close() error {
-	l.closeOnce.Do(func() {
-		close(l.closedSignal)
-		l.closeError = l.Close()
-	})
-	return l.closeError
-}
-
-type innerListener struct {
-	net.Listener
-}
-
-func (il *innerListener) Accept() (net.Conn, error) {
-	c, err := il.Listener.Accept()
-	if err != nil {
-		return nil, err
-	}
-
-	return c, nil
+	return waterListener, nil
 }
