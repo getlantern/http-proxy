@@ -7,7 +7,7 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/refraction-networking/water"
-	v1 "github.com/refraction-networking/water/transport/v1"
+	_ "github.com/refraction-networking/water/transport/v1"
 )
 
 var log = golog.LoggerFor("water")
@@ -25,7 +25,7 @@ func NewWATERListener(ctx context.Context, baseListener net.Listener, wasm strin
 		ModuleConfigFactory: water.NewWazeroModuleConfigFactory(),
 	}
 
-	waterListener, err := v1.NewListenerWithContext(ctx, cfg)
+	waterListener, err := water.NewListenerWithContext(ctx, cfg)
 	if err != nil {
 		log.Errorf("error creating water listener: %v", err)
 		return nil, err
