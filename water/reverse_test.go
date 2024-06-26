@@ -3,9 +3,10 @@ package water
 import (
 	"bytes"
 	"context"
+	"embed"
 	"encoding/base64"
+	"io"
 	"net"
-	"os"
 	"testing"
 
 	"github.com/refraction-networking/water"
@@ -14,11 +15,16 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+//go:embed testdata/*
+var testData embed.FS
+
 func TestReverseListener(t *testing.T) {
 	addr := "127.0.0.1:8888"
 
-	wasmPath := "../wasm/reverse.go.wasm"
-	wasm, err := os.ReadFile(wasmPath)
+	f, err := testData.Open("testdata/reverse.go.wasm")
+	require.Nil(t, err)
+
+	wasm, err := io.ReadAll(f)
 	require.Nil(t, err)
 
 	b64WASM := base64.StdEncoding.EncodeToString(wasm)
