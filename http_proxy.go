@@ -966,16 +966,16 @@ func (p *Proxy) listenAlgeneva(baseListen func(string) (net.Listener, error)) li
 	}
 }
 
-func (p *Proxy) listenWATERReverse() listenerBuilderFN {
+func (p *Proxy) listenWATER() listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
 		ctx := context.Background()
-		reverseListener, err := water.NewReverseListener(ctx, addr, p.WaterWASM)
+		waterListener, err := water.NewWATERListener(ctx, addr, p.WaterWASM)
 		if err != nil {
 			return nil, err
 		}
 
-		log.Debugf("Listening for water at %v", reverseListener.Addr())
-		return reverseListener, nil
+		log.Debugf("Listening for water at %v", waterListener.Addr())
+		return waterListener, nil
 	}
 }
 

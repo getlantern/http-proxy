@@ -18,7 +18,7 @@ import (
 //go:embed testdata/*
 var testData embed.FS
 
-func TestReverseListener(t *testing.T) {
+func TestWATERListener(t *testing.T) {
 	addr := "127.0.0.1:8888"
 
 	f, err := testData.Open("testdata/reverse.go.wasm")
@@ -35,7 +35,7 @@ func TestReverseListener(t *testing.T) {
 		TransportModuleBin: wasm,
 	}
 
-	ll, err := NewReverseListener(ctx, addr, b64WASM)
+	ll, err := NewWATERListener(ctx, addr, b64WASM)
 	require.Nil(t, err)
 
 	messageRequest := "hello"

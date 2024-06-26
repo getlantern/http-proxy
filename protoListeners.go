@@ -29,6 +29,6 @@ func getProtoListenersArgs(p *Proxy) []protoListenerArgs {
 			p.ShadowsocksMultiplexAddr,
 			p.wrapMultiplexing(p.listenShadowsocks),
 		},
-		{"water_reverse", p.WaterAddr, p.wrapMultiplexing(p.listenWATERReverse())},
+		{"water_reverse", p.WaterAddr, p.wrapMultiplexing(p.listenWATER())},
 	}
 }
