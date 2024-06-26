@@ -966,10 +966,16 @@ func (p *Proxy) listenAlgeneva(baseListen func(string) (net.Listener, error)) li
 	}
 }
 
-func (p *Proxy) listenWATER() listenerBuilderFN {
+func (p *Proxy) listenWATER(baseListen func(string) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
 		ctx := context.Background()
-		waterListener, err := water.NewWATERListener(ctx, addr, p.WaterWASM)
+
+		base, err := baseListen(addr)
+		if err != nil {
+			return nil, err
+		}
+
+		waterListener, err := water.NewWATERListener(ctx, base, p.WaterWASM)
 		if err != nil {
 			return nil, err
 		}

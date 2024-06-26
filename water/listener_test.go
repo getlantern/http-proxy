@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/refraction-networking/water"
-	_ "github.com/refraction-networking/water/transport/v0"
+	_ "github.com/refraction-networking/water/transport/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,9 +19,7 @@ import (
 var testData embed.FS
 
 func TestWATERListener(t *testing.T) {
-	addr := "127.0.0.1:8888"
-
-	f, err := testData.Open("testdata/reverse.go.wasm")
+	f, err := testData.Open("testdata/reverse_v1.wasm")
 	require.Nil(t, err)
 
 	wasm, err := io.ReadAll(f)
@@ -35,7 +33,10 @@ func TestWATERListener(t *testing.T) {
 		TransportModuleBin: wasm,
 	}
 
-	ll, err := NewWATERListener(ctx, addr, b64WASM)
+	l0, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
+	require.Nil(t, err, "ListenTCP failed: %v", err)
+
+	ll, err := NewWATERListener(ctx, l0, b64WASM)
 	require.Nil(t, err)
 
 	messageRequest := "hello"
@@ -50,6 +51,10 @@ func TestWATERListener(t *testing.T) {
 			}
 
 			go func() {
+				if conn == nil {
+					log.Error("nil connection")
+					return
+				}
 				buf := make([]byte, 2*len(messageRequest))
 				n, err := conn.Read(buf)
 				if err != nil {
