@@ -48,6 +48,7 @@ func TestWATERListener(t *testing.T) {
 			conn, err = ll.Accept()
 			if err != nil {
 				t.Error(err)
+				return
 			}
 
 			go func() {
@@ -75,7 +76,7 @@ func TestWATERListener(t *testing.T) {
 	dialer, err := water.NewDialerWithContext(ctx, cfg)
 	require.Nil(t, err)
 
-	conn, err := dialer.DialContext(ctx, "tcp", ll.Addr().String())
+	conn, err := dialer.DialContext(ctx, "tcp", l0.Addr().String())
 	require.Nil(t, err)
 	defer conn.Close()
 
