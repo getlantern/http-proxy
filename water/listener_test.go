@@ -33,10 +33,7 @@ func TestWATERListener(t *testing.T) {
 		TransportModuleBin: wasm,
 	}
 
-	l0, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
-	require.Nil(t, err, "ListenTCP failed: %v", err)
-
-	ll, err := NewWATERListener(ctx, l0, b64WASM)
+	ll, err := NewWATERListener(ctx, "127.0.0.1:3000", b64WASM)
 	require.Nil(t, err)
 
 	messageRequest := "hello"
@@ -76,7 +73,7 @@ func TestWATERListener(t *testing.T) {
 	dialer, err := water.NewDialerWithContext(ctx, cfg)
 	require.Nil(t, err)
 
-	conn, err := dialer.DialContext(ctx, "tcp", l0.Addr().String())
+	conn, err := dialer.DialContext(ctx, "tcp", ll.Addr().String())
 	require.Nil(t, err)
 	defer conn.Close()
 

@@ -12,7 +12,9 @@ import (
 
 var log = golog.LoggerFor("water")
 
-func NewWATERListener(ctx context.Context, baseListener net.Listener, wasm string) (net.Listener, error) {
+// NewWATERListener creates a WATER listener
+// Currently water doesn't support customized TCP connections and we need to listen and receive requests directly from the WATER listener
+func NewWATERListener(ctx context.Context, address, wasm string) (net.Listener, error) {
 	decodedWASM, err := base64.StdEncoding.DecodeString(wasm)
 	if err != nil {
 		log.Errorf("failed to decode WASM base64: %v", err)
@@ -20,12 +22,12 @@ func NewWATERListener(ctx context.Context, baseListener net.Listener, wasm strin
 	}
 
 	cfg := &water.Config{
-		TransportModuleBin:  decodedWASM,
-		NetworkListener:     baseListener,
+		TransportModuleBin: decodedWASM,
+		//NetworkListener:     baseListener,
 		ModuleConfigFactory: water.NewWazeroModuleConfigFactory(),
 	}
 
-	waterListener, err := water.NewListenerWithContext(ctx, cfg)
+	waterListener, err := cfg.ListenContext(ctx, "tcp", address)
 	if err != nil {
 		log.Errorf("error creating water listener: %v", err)
 		return nil, err
