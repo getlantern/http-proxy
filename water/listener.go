@@ -7,7 +7,7 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/refraction-networking/water"
-	_ "github.com/refraction-networking/water/transport/v1"
+	_ "github.com/refraction-networking/water/transport/v0"
 )
 
 var log = golog.LoggerFor("water")

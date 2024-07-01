@@ -10,7 +10,7 @@ import (
 	"testing"
 
 	"github.com/refraction-networking/water"
-	_ "github.com/refraction-networking/water/transport/v1"
+	_ "github.com/refraction-networking/water/transport/v0"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -19,7 +19,7 @@ import (
 var testData embed.FS
 
 func TestWATERListener(t *testing.T) {
-	f, err := testData.Open("testdata/reverse_v1.wasm")
+	f, err := testData.Open("testdata/reverse_v0.wasm")
 	require.Nil(t, err)
 
 	wasm, err := io.ReadAll(f)
