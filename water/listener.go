@@ -25,7 +25,7 @@ func NewWATERListener(ctx context.Context, address, wasm string) (net.Listener, 
 	cfg := &water.Config{
 		TransportModuleBin: decodedWASM,
 		//NetworkListener:     baseListener,
-		OverrideLogger: slog.New(newLogHandler(&log)),
+		OverrideLogger: slog.New(newLogHandler(log)),
 	}
 
 	waterListener, err := cfg.ListenContext(ctx, "tcp", address)
