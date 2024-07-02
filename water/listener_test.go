@@ -33,7 +33,7 @@ func TestWATERListener(t *testing.T) {
 		TransportModuleBin: wasm,
 	}
 
-	ll, err := NewWATERListener(ctx, "127.0.0.1:3000", b64WASM)
+	ll, err := NewWATERListener(ctx, "reverse_v0", "127.0.0.1:3000", b64WASM)
 	require.Nil(t, err)
 
 	messageRequest := "hello"
