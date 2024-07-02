@@ -3,6 +3,7 @@ package water
 import (
 	"context"
 	"encoding/base64"
+	"log/slog"
 	"net"
 
 	"github.com/getlantern/golog"
@@ -24,7 +25,7 @@ func NewWATERListener(ctx context.Context, address, wasm string) (net.Listener, 
 	cfg := &water.Config{
 		TransportModuleBin: decodedWASM,
 		//NetworkListener:     baseListener,
-		ModuleConfigFactory: water.NewWazeroModuleConfigFactory(),
+		OverrideLogger: slog.New(newLogHandler(&log)),
 	}
 
 	waterListener, err := cfg.ListenContext(ctx, "tcp", address)
