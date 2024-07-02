@@ -12,14 +12,14 @@ import (
 // slogHandler is a Handler that implements the slog.Handler interface
 // and writes log records to a golog.Logger.
 type slogHandler struct {
-	logger   *golog.Logger
+	logger   golog.Logger
 	minLevel slog.Level
 	opts     slog.HandlerOptions
 	attrs    string
 	groups   []string
 }
 
-func newLogHandler(logger *golog.Logger) *slogHandler {
+func newLogHandler(logger golog.Logger) *slogHandler {
 	return &slogHandler{logger: logger}
 }
 
@@ -80,7 +80,10 @@ func (h *slogHandler) Handle(ctx context.Context, record slog.Record) error {
 	case slog.LevelDebug, slog.LevelInfo, slog.LevelWarn:
 		h.logger.Debug(message)
 	case slog.LevelError:
-		h.logger.Error(message)
+		err := h.logger.Error(message)
+		if err != nil {
+			return err
+		}
 	default:
 		return fmt.Errorf("unsupported log level: %v", record.Level)
 	}
