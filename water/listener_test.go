@@ -6,6 +6,7 @@ import (
 	"embed"
 	"encoding/base64"
 	"io"
+	"log/slog"
 	"net"
 	"testing"
 
@@ -28,12 +29,17 @@ func TestWATERListener(t *testing.T) {
 	b64WASM := base64.StdEncoding.EncodeToString(wasm)
 
 	ctx := context.Background()
+	transport := "reverse_v0"
 
 	cfg := &water.Config{
 		TransportModuleBin: wasm,
+		OverrideLogger:     slog.New(newLogHandler(log, transport)),
 	}
 
-	ll, err := NewWATERListener(ctx, "reverse_v0", "127.0.0.1:3000", b64WASM)
+	l0, err := net.ListenTCP("tcp", &net.TCPAddr{IP: net.ParseIP("127.0.0.1"), Port: 0})
+	require.Nil(t, err, "ListenTCP failed: %v", err)
+
+	ll, err := NewWATERListener(ctx, transport, l0, b64WASM)
 	require.Nil(t, err)
 
 	messageRequest := "hello"
@@ -73,7 +79,7 @@ func TestWATERListener(t *testing.T) {
 	dialer, err := water.NewDialerWithContext(ctx, cfg)
 	require.Nil(t, err)
 
-	conn, err := dialer.DialContext(ctx, "tcp", ll.Addr().String())
+	conn, err := dialer.DialContext(ctx, "tcp", l0.Addr().String())
 	require.Nil(t, err)
 	defer conn.Close()
 
