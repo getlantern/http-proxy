@@ -969,21 +969,15 @@ func (p *Proxy) listenAlgeneva(baseListen func(string) (net.Listener, error)) li
 
 // listenWATER start a WATER listener and return it
 // Currently water doesn't support customized TCP connections and we need to listen and receive requests directly from the WATER listener
-func (p *Proxy) listenWATER(baseListen func(string) (net.Listener, error)) listenerBuilderFN {
-	return func(addr string) (net.Listener, error) {
-		ctx := context.Background()
-		base, err := baseListen(addr)
-		if err != nil {
-			return nil, err
-		}
-		waterListener, err := water.NewWATERListener(ctx, p.WaterTransport, base, p.WaterWASM)
-		if err != nil {
-			return nil, err
-		}
-
-		log.Debugf("Listening for water at %v", waterListener.Addr())
-		return waterListener, nil
+func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
+	ctx := context.Background()
+	waterListener, err := water.NewWATERListener(ctx, p.WaterTransport, addr, p.WaterWASM)
+	if err != nil {
+		return nil, err
 	}
+
+	log.Debugf("Listening for water at %v", waterListener.Addr())
+	return waterListener, nil
 }
 
 func (p *Proxy) setupPacketForward() error {
