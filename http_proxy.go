@@ -976,7 +976,7 @@ func (p *Proxy) listenWATER(baseListen func(string) (net.Listener, error)) liste
 		if err != nil {
 			return nil, err
 		}
-		waterListener, err := water.NewWATERListener(ctx, p.WaterTransport, addr, p.WaterWASM)
+		waterListener, err := water.NewWATERListener(ctx, p.WaterTransport, base, p.WaterWASM)
 		if err != nil {
 			return nil, err
 		}
