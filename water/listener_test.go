@@ -11,7 +11,7 @@ import (
 	"testing"
 
 	"github.com/refraction-networking/water"
-	_ "github.com/refraction-networking/water/transport/v0"
+	_ "github.com/refraction-networking/water/transport/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -20,7 +20,7 @@ import (
 var testData embed.FS
 
 func TestWATERListener(t *testing.T) {
-	f, err := testData.Open("testdata/reverse_v0.wasm")
+	f, err := testData.Open("testdata/reverse_v1_tinygo.wasm")
 	require.Nil(t, err)
 
 	wasm, err := io.ReadAll(f)
@@ -29,7 +29,7 @@ func TestWATERListener(t *testing.T) {
 	b64WASM := base64.StdEncoding.EncodeToString(wasm)
 
 	ctx := context.Background()
-	transport := "reverse_v0"
+	transport := "reverse_v1_tinygo"
 
 	cfg := &water.Config{
 		TransportModuleBin: wasm,
@@ -50,28 +50,41 @@ func TestWATERListener(t *testing.T) {
 			var conn net.Conn
 			conn, err = ll.Accept()
 			if err != nil {
-				t.Error(err)
+				t.Errorf("failed to accept connection: %v ", err)
 				return
 			}
 
 			go func() {
-				if conn == nil {
-					log.Error("nil connection")
-					return
-				}
-				buf := make([]byte, 2*len(messageRequest))
-				n, err := conn.Read(buf)
-				if err != nil {
-					log.Errorf("error reading: %v", err)
-					return
-				}
+				for {
+					if conn == nil {
+						log.Error("nil connection")
+						return
+					}
+					buf := make([]byte, 2*len(messageRequest))
+					n, err := conn.Read(buf)
+					if err != nil {
+						if err == io.EOF {
+							log.Debug("EOF")
+							return
+						}
+						log.Errorf("error reading: %v", err)
+						return
+					}
 
-				buf = buf[:n]
-				if !bytes.Equal(buf, []byte(messageRequest)) {
-					log.Errorf("unexpected request %v %v", buf, messageRequest)
-					return
+					buf = buf[:n]
+					log.Debugf("received %v", buf)
+					if !bytes.Equal(buf, []byte(messageRequest)) {
+						conn.Write([]byte{})
+						log.Errorf("unexpected request %v %v", buf, messageRequest)
+						return
+					}
+					n, err = conn.Write([]byte(expectedResponse))
+					if err != nil {
+						log.Errorf("error writing response: %v", err)
+						return
+					}
+					log.Debugf("sent %d bytes", n)
 				}
-				conn.Write([]byte(expectedResponse))
 			}()
 		}
 	}()
