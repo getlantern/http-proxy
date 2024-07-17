@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"reflect"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/getlantern/errors"
@@ -51,6 +52,10 @@ type Opts struct {
 	// Temporary network errors (errors of type net.Error for which Temporary()
 	// returns true) will not trigger this callback.
 	OnAcceptError func(err error) (fatalErr error)
+
+	// OnActive is called only once when a connection is accepted and has done
+	// either a first Read() or Write()
+	OnActive func()
 }
 
 // Server is an HTTP proxy server.
@@ -62,6 +67,7 @@ type Server struct {
 	listenerGenerators []ListenerGenerator
 	onError            func(conn net.Conn, err error)
 	onAcceptError      func(err error) (fatalErr error)
+	onActive           func()
 }
 
 // New constructs a new HTTP proxy server using the given options
@@ -92,10 +98,14 @@ func New(opts *Opts) *Server {
 	if opts.OnAcceptError == nil {
 		opts.OnAcceptError = func(err error) (fatalErr error) { return err }
 	}
+	if opts.OnActive == nil {
+		opts.OnActive = func() {}
+	}
 	return &Server{
 		proxy:         p,
 		onError:       opts.OnError,
 		onAcceptError: opts.OnAcceptError,
+		onActive:      opts.OnActive,
 	}
 }
 
@@ -165,6 +175,8 @@ func (s *Server) serve(listener net.Listener, readyCb func(addr string)) error {
 			continue
 		}
 		tempDelay = 0
+		// wrap the conn so s.onActive will be called after first successful Read or Write
+		conn = wrapOnActiveConn(conn, s.onActive)
 		s.handle(conn)
 	}
 }
@@ -263,4 +275,50 @@ func (l *allowinglistener) Close() error {
 
 func (l *allowinglistener) Addr() net.Addr {
 	return l.wrapped.Addr()
+}
+
+type onActiveConn struct {
+	listeners.WrapConnEmbeddable
+	net.Conn
+
+	once     sync.Once
+	onActive func()
+}
+
+// WrapOnActiveConn wraps a net.Conn and calls onActive once after first successful Read or Write
+func wrapOnActiveConn(conn net.Conn, onActive func()) net.Conn {
+	wc, _ := conn.(listeners.WrapConnEmbeddable)
+	return &onActiveConn{wc, conn, sync.Once{}, onActive}
+}
+
+func (c *onActiveConn) OnState(s http.ConnState) {
+	if c.WrapConnEmbeddable != nil {
+		c.WrapConnEmbeddable.OnState(s)
+	}
+}
+
+func (c *onActiveConn) ControlMessage(msgType string, data interface{}) {
+	if c.WrapConnEmbeddable != nil {
+		c.WrapConnEmbeddable.ControlMessage(msgType, data)
+	}
+}
+
+func (c *onActiveConn) Wrapped() net.Conn {
+	return c.Conn
+}
+
+func (c *onActiveConn) Read(b []byte) (int, error) {
+	n, err := c.Conn.Read(b)
+	if err == nil {
+		c.once.Do(c.onActive)
+	}
+	return n, err
+}
+
+func (c *onActiveConn) Write(b []byte) (int, error) {
+	n, err := c.Conn.Write(b)
+	if err == nil {
+		c.once.Do(c.onActive)
+	}
+	return n, err
 }

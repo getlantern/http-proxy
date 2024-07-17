@@ -247,6 +247,10 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		Filter:                   instrumentedFilter,
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  instrumentedErrorHandler,
+		OnActive: func() {
+			// count the connection only when a connection is established and becomes active
+			p.instrument.Connection(ctx)
+		},
 	})
 	stopProxiedBytes := p.configureTeleportProxiedBytes()
 	defer stopProxiedBytes()

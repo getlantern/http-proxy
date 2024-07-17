@@ -37,6 +37,7 @@ type Instrument interface {
 	XBQHeaderSent(ctx context.Context)
 	SuspectedProbing(ctx context.Context, fromIP net.IP, reason string)
 	ProxiedBytes(ctx context.Context, sent, recv int, platform, platformVersion, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost, arch string)
+	Connection(ctx context.Context)
 	ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider)
 	ReportProxiedBytes(tp *sdktrace.TracerProvider)
 	ReportOriginBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider)
@@ -75,6 +76,7 @@ func (i NoInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform
 func (i NoInstrument) ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider) {
 }
 func (i NoInstrument) ReportProxiedBytes(tp *sdktrace.TracerProvider) {}
+func (i NoInstrument) Connection(ctx context.Context)                 {}
 func (i NoInstrument) ReportOriginBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider) {
 }
 func (i NoInstrument) ReportOriginBytes(tp *sdktrace.TracerProvider) {}
@@ -296,6 +298,11 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		ins.originStats[originKey] = ins.originStats[originKey].add(sent, recv)
 	}
 	ins.statsMx.Unlock()
+}
+
+// Connection counts the number of incoming connections
+func (ins *defaultInstrument) Connection(ctx context.Context) {
+	otelinstrument.Connections.Add(ctx, 1)
 }
 
 // quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.
