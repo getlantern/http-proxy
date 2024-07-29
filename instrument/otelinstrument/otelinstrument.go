@@ -31,6 +31,7 @@ var (
 	XBQ                                                      metric.Int64Counter
 	Throttling                                               metric.Int64Counter
 	SuspectedProbing                                         metric.Int64Counter
+	Connections                                              metric.Int64Counter
 	DistinctClients1m, DistinctClients10m, DistinctClients1h *distinct.SlidingWindowDistinctCount
 	distinctClients                                          metric.Int64ObservableGauge
 )
@@ -73,6 +74,9 @@ func initialize() error {
 		return err
 	}
 	if SuspectedProbing, err = meter.Int64Counter("proxy.probing.suspected"); err != nil {
+		return err
+	}
+	if Connections, err = meter.Int64Counter("proxy.connections", metric.WithUnit("connections")); err != nil {
 		return err
 	}
 
