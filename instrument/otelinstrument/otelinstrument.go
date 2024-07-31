@@ -76,7 +76,7 @@ func initialize() error {
 	if SuspectedProbing, err = meter.Int64Counter("proxy.probing.suspected"); err != nil {
 		return err
 	}
-	if Connections, err = meter.Int64Counter("proxy.connections", metric.WithUnit("connections")); err != nil {
+	if Connections, err = meter.Int64Counter("proxy.connections"); err != nil {
 		return err
 	}
 
