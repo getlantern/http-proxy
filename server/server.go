@@ -55,7 +55,7 @@ type Opts struct {
 
 	// OnActive is called only once when a connection is accepted and has done
 	// either a first Read() or Write()
-	OnActive func()
+	OnActive func(conn net.Conn)
 }
 
 // Server is an HTTP proxy server.
@@ -67,7 +67,7 @@ type Server struct {
 	listenerGenerators []ListenerGenerator
 	onError            func(conn net.Conn, err error)
 	onAcceptError      func(err error) (fatalErr error)
-	onActive           func()
+	onActive           func(conn net.Conn)
 }
 
 // New constructs a new HTTP proxy server using the given options
@@ -99,7 +99,7 @@ func New(opts *Opts) *Server {
 		opts.OnAcceptError = func(err error) (fatalErr error) { return err }
 	}
 	if opts.OnActive == nil {
-		opts.OnActive = func() {}
+		opts.OnActive = func(conn net.Conn) {}
 	}
 	return &Server{
 		proxy:         p,
@@ -282,11 +282,11 @@ type onActiveConn struct {
 	net.Conn
 
 	once     sync.Once
-	onActive func()
+	onActive func(conn net.Conn)
 }
 
 // WrapOnActiveConn wraps a net.Conn and calls onActive once after first successful Read or Write
-func wrapOnActiveConn(conn net.Conn, onActive func()) net.Conn {
+func wrapOnActiveConn(conn net.Conn, onActive func(conn net.Conn)) net.Conn {
 	wc, _ := conn.(listeners.WrapConnEmbeddable)
 	return &onActiveConn{wc, conn, sync.Once{}, onActive}
 }
@@ -310,7 +310,9 @@ func (c *onActiveConn) Wrapped() net.Conn {
 func (c *onActiveConn) Read(b []byte) (int, error) {
 	n, err := c.Conn.Read(b)
 	if err == nil {
-		c.once.Do(c.onActive)
+		c.once.Do(func() {
+			c.onActive(c.Conn)
+		})
 	}
 	return n, err
 }
@@ -318,7 +320,9 @@ func (c *onActiveConn) Read(b []byte) (int, error) {
 func (c *onActiveConn) Write(b []byte) (int, error) {
 	n, err := c.Conn.Write(b)
 	if err == nil {
-		c.once.Do(c.onActive)
+		c.once.Do(func() {
+			c.onActive(c.Conn)
+		})
 	}
 	return n, err
 }
