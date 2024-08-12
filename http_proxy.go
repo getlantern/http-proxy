@@ -210,6 +210,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	p.instrument, err = instrument.NewDefault(
 		p.CountryLookup,
 		p.ISPLookup,
+		p.ProxyName,
 	)
 	if err != nil {
 		return errors.New("Unable to configure instrumentation: %v", err)
@@ -252,9 +253,10 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		Filter:                   instrumentedFilter,
 		OKDoesNotWaitForUpstream: !p.ConnectOKWaitsForUpstream,
 		OnError:                  instrumentedErrorHandler,
-		OnActive: func() {
+		OnActive: func(conn net.Conn) {
+			clientIP := conn.RemoteAddr().(*net.TCPAddr).IP
 			// count the connection only when a connection is established and becomes active
-			p.instrument.Connection(ctx)
+			p.instrument.Connection(ctx, clientIP)
 		},
 	})
 	stopProxiedBytes := p.configureTeleportProxiedBytes()
