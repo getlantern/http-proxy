@@ -123,7 +123,7 @@ func Delayed(d time.Duration, r HandshakeReaction) HandshakeReaction {
 	return r2
 }
 
-var disallowLoopbackForTesting bool
+var allowLoopbackForTesting bool
 
 var bufferPool = sync.Pool{
 	New: func() interface{} {
@@ -197,7 +197,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
 	// We allow loopback to generate session states (makesessions) to
 	// distribute to Lantern clients.
-	if !disallowLoopbackForTesting && sourceIP.IsLoopback() {
+	if !allowLoopbackForTesting && sourceIP.IsLoopback() {
 		return nil, nil
 	}
 

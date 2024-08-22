@@ -17,7 +17,7 @@ import (
 )
 
 func TestAbortOnHello(t *testing.T) {
-	disallowLoopbackForTesting = true
+	allowLoopbackForTesting = true
 	testCases := []struct {
 		response    HandshakeReaction
 		expectedErr string
@@ -107,7 +107,7 @@ func TestAbortOnHello(t *testing.T) {
 }
 
 func TestSuccess(t *testing.T) {
-	disallowLoopbackForTesting = false
+	allowLoopbackForTesting = false
 	l, _ := net.Listen("tcp", ":0")
 	defer l.Close()
 
@@ -151,9 +151,9 @@ func TestSuccess(t *testing.T) {
 	defer conn.Close()
 
 	// Now disallow loopback for testing, then dial again and make sure session ticket still works
-	disallowLoopbackForTesting = true
+	allowLoopbackForTesting = true
 	defer func() {
-		disallowLoopbackForTesting = false
+		allowLoopbackForTesting = false
 	}()
 
 	conn, err = utls.Dial("tcp", l.Addr().String(), ucfg)
