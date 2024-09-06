@@ -928,7 +928,18 @@ func (p *Proxy) listenBroflake(baseListen func(string) (net.Listener, error)) li
 		if err != nil {
 			return nil, err
 		}
-		wrapped, wrapErr := broflake.Wrap(l, p.BroflakeCert, p.BroflakeKey)
+
+		certPEM, err := os.ReadFile(p.CertFile)
+		if err != nil {
+			log.Fatalf("Unable to read certificate file: %v", err)
+		}
+
+		keyPEM, err := os.ReadFile(p.KeyFile)
+		if err != nil {
+			log.Fatalf("Unable to read key file: %v", err)
+		}
+
+		wrapped, wrapErr := broflake.Wrap(l, string(certPEM), string(keyPEM))
 		if wrapErr != nil {
 			log.Fatalf("Unable to initialize broflake with tcp: %v", wrapErr)
 		}
