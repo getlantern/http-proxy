@@ -384,6 +384,7 @@ func main() {
 		HTTPAddr:                           *addr,
 		HTTPMultiplexAddr:                  *multiplexAddr,
 		CertFile:                           *certfile,
+		KeyFile:                            *keyfile,
 		CfgSvrAuthToken:                    *cfgSvrAuthToken,
 		ConnectOKWaitsForUpstream:          *connectOKWaitsForUpstream,
 		EnableMultipath:                    *enableMultipath,
@@ -393,7 +394,6 @@ func main() {
 		ExternalIP:                         *externalIP,
 		HTTPS:                              *https,
 		IdleTimeout:                        time.Duration(*idleClose) * time.Second,
-		KeyFile:                            *keyfile,
 		SessionTicketKeys:                  *sessionTicketKeys,
 		SessionTicketKeyFile:               *sessionTicketKeyFile,
 		FirstSessionTicketKey:              *firstSessionTicketKey,
@@ -470,12 +470,14 @@ func main() {
 		PsmuxAggressivePadding:             *psmuxAggressivePadding,
 		PsmuxAggressivePaddingRatio:        *psmuxAggressivePaddingRatio,
 		BroflakeAddr:                       *broflakeAddr,
-		BroflakeCert:                       os.Getenv("BROFLAKE_CERT"),
-		BroflakeKey:                        os.Getenv("BROFLAKE_KEY"),
-		AlgenevaAddr:                       *algenevaAddr,
-		WaterAddr:                          *waterAddr,
-		WaterWASM:                          *waterWASM,
-		WaterTransport:                     *waterTransport,
+
+		// TODO (allan): Remove BroflakeCert and BroflakeKey once broflake is working properly on LC
+		BroflakeCert:   os.Getenv("BROFLAKE_CERT"),
+		BroflakeKey:    os.Getenv("BROFLAKE_KEY"),
+		AlgenevaAddr:   *algenevaAddr,
+		WaterAddr:      *waterAddr,
+		WaterWASM:      *waterWASM,
+		WaterTransport: *waterTransport,
 	}
 	if *maxmindLicenseKey != "" {
 		log.Debug("Will use Maxmind for geolocating clients")
