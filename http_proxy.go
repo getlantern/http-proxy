@@ -924,16 +924,20 @@ func (p *Proxy) listenWSS(addr string) (net.Listener, error) {
 
 func (p *Proxy) listenBroflake(baseListen func(string) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
-		certPEM, _ := os.ReadFile(p.CertFile)
-		keyPEM, _ := os.ReadFile(p.KeyFile)
-		cert, _ := tls.X509KeyPair(certPEM, keyPEM)
-
-		tlsConfig := &tls.Config{
-			Certificates: []tls.Certificate{cert},
-			MaxVersion:   tls.VersionTLS12,
+		l, err := net.Listen("tcp", addr)
+		if err != nil {
+			return nil, err
 		}
 
-		l, _ := tls.Listen("tcp", addr, tlsConfig)
+		certPEM, err := os.ReadFile(p.CertFile)
+		if err != nil {
+			log.Fatalf("Unable to read certificate file: %v", err)
+		}
+
+		keyPEM, err := os.ReadFile(p.KeyFile)
+		if err != nil {
+			log.Fatalf("Unable to read key file: %v", err)
+		}
 
 		wrapped, wrapErr := broflake.Wrap(l, string(certPEM), string(keyPEM))
 		if wrapErr != nil {
