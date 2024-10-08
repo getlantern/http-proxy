@@ -1009,7 +1009,7 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 			water.WithURLs(strings.Split(p.WaterWASMAvailableAt, ",")),
 			water.WithExpectedHashsum(p.WaterWASMHashsum),
 			water.WithHTTPClient(&http.Client{Timeout: 10 * time.Second}),
-		).DownloadWASM(wasmBuffer)
+		).DownloadWASM(ctx, wasmBuffer)
 		if err != nil {
 			return nil, fmt.Errorf("unable to download water wasm: %v", err)
 		}
