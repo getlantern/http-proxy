@@ -3,6 +3,7 @@ package water
 import (
 	"bytes"
 	"context"
+	"crypto/sha256"
 	"io"
 	"net/http"
 	"testing"
@@ -69,6 +70,10 @@ func TestDownloaderWithOptions(t *testing.T) {
 
 func TestDownloadWASM(t *testing.T) {
 	ctx := context.Background()
+
+	contentMessage := "content"
+	hashsum := sha256.Sum256([]byte("content"))
+	contentHashsum := string(hashsum[:])
 	var tests = []struct {
 		name                 string
 		givenHTTPClient      *http.Client
@@ -129,6 +134,51 @@ func TestDownloadWASM(t *testing.T) {
 				assert.Error(t, err)
 				assert.ErrorContains(t, err, assert.AnError.Error())
 				assert.ErrorContains(t, err, "failed to download WASM from all URLs")
+			},
+		},
+		{
+			name: "hashsum verification error",
+			givenURLs: []string{
+				"http://example.com",
+			},
+			givenExpectedHashSum: "hashsum",
+			setupHTTPDownloader: func(ctrl *gomock.Controller) WASMDownloader {
+				httpDownloader := NewMockWASMDownloader(ctrl)
+				httpDownloader.EXPECT().DownloadWASM(ctx, gomock.Any()).DoAndReturn(
+					func(ctx context.Context, w io.Writer) error {
+						_, err := w.Write([]byte(contentMessage))
+						return err
+					})
+				return httpDownloader
+			},
+			assert: func(t *testing.T, r io.Reader, err error) {
+				b, berr := io.ReadAll(r)
+				require.NoError(t, berr)
+				assert.Empty(t, b)
+				assert.Error(t, err)
+				assert.ErrorContains(t, err, "failed to verify hash sum")
+			},
+		},
+		{
+			name: "success",
+			givenURLs: []string{
+				"http://example.com",
+			},
+			givenExpectedHashSum: contentHashsum,
+			setupHTTPDownloader: func(ctrl *gomock.Controller) WASMDownloader {
+				httpDownloader := NewMockWASMDownloader(ctrl)
+				httpDownloader.EXPECT().DownloadWASM(ctx, gomock.Any()).DoAndReturn(
+					func(ctx context.Context, w io.Writer) error {
+						_, err := w.Write([]byte(contentMessage))
+						return err
+					})
+				return httpDownloader
+			},
+			assert: func(t *testing.T, r io.Reader, err error) {
+				b, berr := io.ReadAll(r)
+				require.NoError(t, berr)
+				assert.NoError(t, err)
+				assert.Equal(t, contentMessage, string(b))
 			},
 		},
 	}

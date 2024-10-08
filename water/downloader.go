@@ -111,11 +111,7 @@ var ErrFailedToVerifyHashSum = errors.New("failed to verify hash sum")
 
 func (d *downloader) verifyHashSum(data []byte) error {
 	sha256Hashsum := sha256.Sum256(data)
-	if d.expectedHashSum == "" {
-		return nil
-	}
-
-	if d.expectedHashSum != fmt.Sprintf("%x", sha256Hashsum) {
+	if d.expectedHashSum == "" || !bytes.Equal(sha256Hashsum[:], []byte(d.expectedHashSum)) {
 		return ErrFailedToVerifyHashSum
 	}
 	return nil
