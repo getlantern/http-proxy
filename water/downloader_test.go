@@ -72,7 +72,7 @@ func TestDownloadWASM(t *testing.T) {
 	ctx := context.Background()
 
 	contentMessage := "content"
-	hashsum := sha256.Sum256([]byte("content"))
+	hashsum := sha256.Sum256([]byte(contentMessage))
 	contentHashsum := string(hashsum[:])
 	var tests = []struct {
 		name                 string
@@ -94,14 +94,14 @@ func TestDownloadWASM(t *testing.T) {
 			},
 		},
 		{
-			name:      "magnetic links are skipped",
+			name:      "magnet links are skipped",
 			givenURLs: []string{"magnet:?"},
 			assert: func(t *testing.T, r io.Reader, err error) {
 				b, berr := io.ReadAll(r)
 				require.NoError(t, berr)
 				assert.Empty(t, b)
 				assert.Error(t, err)
-				assert.ErrorContains(t, err, "magentic links are not supported")
+				assert.ErrorContains(t, err, "magnet links are not supported")
 			},
 		},
 		{
