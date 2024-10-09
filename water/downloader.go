@@ -66,7 +66,7 @@ func (d *downloader) DownloadWASM(ctx context.Context, w io.Writer) error {
 	for _, url := range d.urls {
 		if strings.HasPrefix(url, "magnet:?") {
 			// Skip magnet links for now
-			joinedErrs = errors.Join(joinedErrs, errors.New("magentic links are not supported"))
+			joinedErrs = errors.Join(joinedErrs, errors.New("magent links are not supported"))
 			continue
 		}
 		tempBuffer := &bytes.Buffer{}
