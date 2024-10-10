@@ -20,14 +20,20 @@ func NewWATERListener(ctx context.Context, baseListener net.Listener, transport,
 		OverrideLogger:     slog.New(newLogHandler(log, transport)),
 	}
 
+	// multiplex listener
 	if baseListener != nil {
 		cfg.NetworkListener = baseListener
+		waterListener, err := water.NewListenerWithContext(ctx, cfg)
+		if err != nil {
+			return nil, log.Errorf("error creating water listener: %v", err)
+		}
+		log.Debugf("created water multiplexed listener on %s", waterListener.Addr())
+		return waterListener, nil
 	}
 
 	waterListener, err := cfg.ListenContext(ctx, "tcp", address)
 	if err != nil {
-		log.Errorf("error creating water listener: %v", err)
-		return nil, err
+		return nil, log.Errorf("error creating water listener: %v", err)
 	}
 
 	return waterListener, nil

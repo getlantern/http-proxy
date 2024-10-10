@@ -991,39 +991,45 @@ func (p *Proxy) listenAlgeneva(baseListen func(string) (net.Listener, error)) li
 
 // listenWATER start a WATER listener and return it
 // Currently water doesn't support customized TCP connections and we need to listen and receive requests directly from the WATER listener
-func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
-	ctx := context.Background()
-	var wasm []byte
-	if p.WaterWASM != "" {
-		var err error
-		wasm, err = base64.StdEncoding.DecodeString(p.WaterWASM)
+func (p *Proxy) listenWATER(baseListen func(string) (net.Listener, error)) listenerBuilderFN {
+	return func(addr string) (net.Listener, error) {
+		ctx := context.Background()
+		var wasm []byte
+		if p.WaterWASM != "" {
+			var err error
+			wasm, err = base64.StdEncoding.DecodeString(p.WaterWASM)
+			if err != nil {
+				return nil, log.Errorf("failed to decode WASM base64: %v", err)
+			}
+		}
+
+		if p.WaterWASMAvailableAt != "" {
+			wasmBuffer := new(bytes.Buffer)
+			err := water.NewWASMDownloader(
+				water.WithURLs(strings.Split(p.WaterWASMAvailableAt, ",")),
+				water.WithExpectedHashsum(p.WaterWASMHashsum),
+				water.WithHTTPClient(&http.Client{Timeout: 10 * time.Second}),
+			).DownloadWASM(ctx, wasmBuffer)
+			if err != nil {
+				return nil, log.Errorf("unable to download water wasm: %v, URLs: [%s], hashsum: [%s]", err, p.WaterWASMAvailableAt, p.WaterWASMHashsum)
+			}
+			wasm = wasmBuffer.Bytes()
+		}
+
+		base, err := baseListen(addr)
 		if err != nil {
-			log.Errorf("failed to decode WASM base64: %v", err)
 			return nil, err
 		}
-	}
 
-	if p.WaterWASMAvailableAt != "" {
-		wasmBuffer := new(bytes.Buffer)
-		err := water.NewWASMDownloader(
-			water.WithURLs(strings.Split(p.WaterWASMAvailableAt, ",")),
-			water.WithExpectedHashsum(p.WaterWASMHashsum),
-			water.WithHTTPClient(&http.Client{Timeout: 10 * time.Second}),
-		).DownloadWASM(ctx, wasmBuffer)
+		// currently the WATER listener doesn't accept a multiplexed connections, so we need to listen and accept connections directly from the listener
+		waterListener, err := water.NewWATERListener(ctx, base, p.WaterTransport, addr, wasm)
 		if err != nil {
-			return nil, fmt.Errorf("unable to download water wasm: %v, URLs: [%s], hashsum: [%s]", err, p.WaterWASMAvailableAt, p.WaterWASMHashsum)
+			return nil, err
 		}
-		wasm = wasmBuffer.Bytes()
-	}
 
-	// currently the WATER listener doesn't accept a multiplexed connections, so we need to listen and accept connections directly from the listener
-	waterListener, err := water.NewWATERListener(ctx, nil, p.WaterTransport, addr, wasm)
-	if err != nil {
-		return nil, err
+		log.Debugf("Listening for water at %v", waterListener.Addr())
+		return waterListener, nil
 	}
-
-	log.Debugf("Listening for water at %v", waterListener.Addr())
-	return waterListener, nil
 }
 
 func (p *Proxy) setupPacketForward() error {
