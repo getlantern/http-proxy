@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"embed"
-	"encoding/base64"
 	"io"
 	"net"
 	"testing"
@@ -25,15 +24,13 @@ func TestWATERListener(t *testing.T) {
 	wasm, err := io.ReadAll(f)
 	require.Nil(t, err)
 
-	b64WASM := base64.StdEncoding.EncodeToString(wasm)
-
 	ctx := context.Background()
 
 	cfg := &water.Config{
 		TransportModuleBin: wasm,
 	}
 
-	ll, err := NewWATERListener(ctx, "reverse_v0", "127.0.0.1:3000", b64WASM)
+	ll, err := NewWATERListener(ctx, nil, "reverse_v0", "127.0.0.1:3000", wasm)
 	require.Nil(t, err)
 
 	messageRequest := "hello"
