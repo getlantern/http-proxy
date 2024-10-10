@@ -1008,7 +1008,7 @@ func (p *Proxy) listenWATER(baseListen func(string) (net.Listener, error)) liste
 			err := water.NewWASMDownloader(
 				water.WithURLs(strings.Split(p.WaterWASMAvailableAt, ",")),
 				water.WithExpectedHashsum(p.WaterWASMHashsum),
-				water.WithHTTPClient(&http.Client{Timeout: 10 * time.Second}),
+				water.WithHTTPClient(&http.Client{Timeout: 1 * time.Minute}),
 			).DownloadWASM(ctx, wasmBuffer)
 			if err != nil {
 				return nil, log.Errorf("unable to download water wasm: %v, URLs: [%s], hashsum: [%s]", err, p.WaterWASMAvailableAt, p.WaterWASMHashsum)
