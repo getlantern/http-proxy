@@ -1005,11 +1005,12 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 
 	if p.WaterWASMAvailableAt != "" {
 		wasmBuffer := new(bytes.Buffer)
-		err := water.NewWASMDownloader(
-			water.WithURLs(strings.Split(p.WaterWASMAvailableAt, ",")),
-			water.WithExpectedHashsum(p.WaterWASMHashsum),
-			water.WithHTTPClient(&http.Client{Timeout: 1 * time.Minute}),
-		).DownloadWASM(ctx, wasmBuffer)
+		d, err := water.NewWASMDownloader(strings.Split(p.WaterWASMAvailableAt, ","), &http.Client{Timeout: 1 * time.Minute})
+		if err != nil {
+			return nil, log.Errorf("failed to create wasm downloader: %w", err)
+		}
+
+		err = d.DownloadWASM(ctx, wasmBuffer)
 		if err != nil {
 			return nil, log.Errorf("unable to download water wasm: %w", err)
 		}
