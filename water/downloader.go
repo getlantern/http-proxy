@@ -3,9 +3,7 @@ package water
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"errors"
-	"fmt"
 	"io"
 	"net/http"
 	"strings"
@@ -18,45 +16,22 @@ type WASMDownloader interface {
 }
 
 type downloader struct {
-	urls            []string
-	httpClient      *http.Client
-	expectedHashSum string
-	httpDownloader  WASMDownloader
+	urls           []string
+	httpClient     *http.Client
+	httpDownloader WASMDownloader
 }
 
 type DownloaderOption func(*downloader)
 
-func WithURLs(urls []string) DownloaderOption {
-	return func(d *downloader) {
-		d.urls = urls
-	}
-}
-
-func WithHTTPClient(httpClient *http.Client) DownloaderOption {
-	return func(d *downloader) {
-		d.httpClient = httpClient
-	}
-}
-
-func WithExpectedHashsum(hashsum string) DownloaderOption {
-	return func(d *downloader) {
-		d.expectedHashSum = hashsum
-	}
-}
-
-func WithHTTPDownloader(httpDownloader WASMDownloader) DownloaderOption {
-	return func(d *downloader) {
-		d.httpDownloader = httpDownloader
-	}
-}
-
 // NewWASMDownloader creates a new WASMDownloader instance.
-func NewWASMDownloader(withOpts ...DownloaderOption) WASMDownloader {
-	downloader := new(downloader)
-	for _, opt := range withOpts {
-		opt(downloader)
+func NewWASMDownloader(urls []string, client *http.Client) (WASMDownloader, error) {
+	if len(urls) == 0 {
+		return nil, log.Error("WASM downloader requires URLs to download but received empty list")
 	}
-	return downloader
+	return &downloader{
+		urls:       urls,
+		httpClient: client,
+	}, nil
 }
 
 // DownloadWASM downloads the WASM file from the given URLs, verifies the hash
@@ -71,12 +46,6 @@ func (d *downloader) DownloadWASM(ctx context.Context, w io.Writer) error {
 		}
 		tempBuffer := &bytes.Buffer{}
 		err := d.downloadWASM(ctx, tempBuffer, url)
-		if err != nil {
-			joinedErrs = errors.Join(joinedErrs, err)
-			continue
-		}
-
-		err = d.verifyHashSum(tempBuffer.Bytes())
 		if err != nil {
 			joinedErrs = errors.Join(joinedErrs, err)
 			continue
@@ -103,16 +72,6 @@ func (d *downloader) downloadWASM(ctx context.Context, w io.Writer, url string) 
 		}
 		return d.httpDownloader.DownloadWASM(ctx, w)
 	default:
-		return fmt.Errorf("unsupported protocol: %s", url)
+		return log.Errorf("unsupported protocol: %s", url)
 	}
-}
-
-var ErrFailedToVerifyHashSum = errors.New("failed to verify hash sum")
-
-func (d *downloader) verifyHashSum(data []byte) error {
-	sha256Hashsum := sha256.Sum256(data)
-	if d.expectedHashSum == "" || d.expectedHashSum != fmt.Sprintf("%x", sha256Hashsum[:]) {
-		return ErrFailedToVerifyHashSum
-	}
-	return nil
 }
