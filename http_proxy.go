@@ -1011,7 +1011,7 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 			water.WithHTTPClient(&http.Client{Timeout: 1 * time.Minute}),
 		).DownloadWASM(ctx, wasmBuffer)
 		if err != nil {
-			return nil, fmt.Errorf("unable to download water wasm: %v", err)
+			return nil, log.Errorf("unable to download water wasm: %w", err)
 		}
 		wasm = wasmBuffer.Bytes()
 	}
@@ -1019,6 +1019,7 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 	// currently the WATER listener doesn't accept a multiplexed connections, so we need to listen and accept connections directly from the listener
 	waterListener, err := water.NewWATERListener(ctx, nil, p.WaterTransport, addr, wasm)
 	if err != nil {
+		log.Errorf("failed to starte WATER listener: %w", err)
 		return nil, err
 	}
 
