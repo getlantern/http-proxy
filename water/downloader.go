@@ -9,7 +9,7 @@ import (
 	"strings"
 )
 
-//go:generate mockgen -destination=mock_downloader.go -package=water . WASMDownloader
+//go:generate mockgen -package=chained -destination=mocks_test.go . WASMDownloader
 
 type WASMDownloader interface {
 	DownloadWASM(context.Context, io.Writer) error
