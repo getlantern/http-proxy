@@ -21,8 +21,6 @@ type downloader struct {
 	httpDownloader WASMDownloader
 }
 
-type DownloaderOption func(*downloader)
-
 // NewWASMDownloader creates a new WASMDownloader instance.
 func NewWASMDownloader(urls []string, client *http.Client) (WASMDownloader, error) {
 	if len(urls) == 0 {

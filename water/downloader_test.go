@@ -17,7 +17,6 @@ func TestNewWASMDownloader(t *testing.T) {
 		name            string
 		givenURLs       []string
 		givenHTTPClient *http.Client
-		givenOptions    []DownloaderOption
 		assert          func(*testing.T, WASMDownloader, error)
 	}{
 		{
