@@ -189,7 +189,6 @@ var (
 	waterAddr            = flag.String("water-addr", "", "Address at which to listen for WATER connections.")
 	waterWASM            = flag.String("water-wasm", "", "Base64 encoded WASM for WATER")
 	waterWASMAvailableAt = flag.String("water-wasm-available-at", "", "URLs where the WATER WASM is available")
-	waterWASMHashsum     = flag.String("water-wasm-hashsum", "", "Hashsum of the WATER WASM")
 	waterTransport       = flag.String("water-transport", "", "WATER based transport name")
 
 	track = flag.String("track", "", "The track this proxy is running on")
@@ -476,7 +475,6 @@ func main() {
 		WaterAddr:                          *waterAddr,
 		WaterWASM:                          *waterWASM,
 		WaterWASMAvailableAt:               *waterWASMAvailableAt,
-		WaterWASMHashsum:                   *waterWASMHashsum,
 		WaterTransport:                     *waterTransport,
 	}
 	if *maxmindLicenseKey != "" {

@@ -190,7 +190,6 @@ type Proxy struct {
 	// deprecated: use WaterWASMAvailableAt
 	WaterWASM            string
 	WaterWASMAvailableAt string
-	WaterWASMHashsum     string
 	WaterTransport       string
 	WaterAddr            string
 
