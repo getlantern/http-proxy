@@ -186,9 +186,10 @@ var (
 
 	algenevaAddr = flag.String("algeneva-addr", "", "Address at which to listen for algenAddr connections.")
 
-	waterAddr      = flag.String("water-addr", "", "Address at which to listen for WATER connections.")
-	waterWASM      = flag.String("water-wasm", "", "Base64 encoded WASM for WATER")
-	waterTransport = flag.String("water-transport", "", "WATER based transport name")
+	waterAddr            = flag.String("water-addr", "", "Address at which to listen for WATER connections.")
+	waterWASM            = flag.String("water-wasm", "", "Base64 encoded WASM for WATER")
+	waterWASMAvailableAt = flag.String("water-wasm-available-at", "", "URLs where the WATER WASM is available")
+	waterTransport       = flag.String("water-transport", "", "WATER based transport name")
 
 	track = flag.String("track", "", "The track this proxy is running on")
 )
@@ -473,6 +474,7 @@ func main() {
 		AlgenevaAddr:                       *algenevaAddr,
 		WaterAddr:                          *waterAddr,
 		WaterWASM:                          *waterWASM,
+		WaterWASMAvailableAt:               *waterWASMAvailableAt,
 		WaterTransport:                     *waterTransport,
 	}
 	if *maxmindLicenseKey != "" {

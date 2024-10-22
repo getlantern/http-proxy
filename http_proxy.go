@@ -1,8 +1,10 @@
 package proxy
 
 import (
+	"bytes"
 	"context"
 	"crypto/tls"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -185,9 +187,11 @@ type Proxy struct {
 
 	AlgenevaAddr string
 
-	WaterAddr      string
-	WaterWASM      string
-	WaterTransport string
+	// deprecated: use WaterWASMAvailableAt
+	WaterWASM            string
+	WaterWASMAvailableAt string
+	WaterTransport       string
+	WaterAddr            string
 
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
@@ -988,8 +992,34 @@ func (p *Proxy) listenAlgeneva(baseListen func(string) (net.Listener, error)) li
 // Currently water doesn't support customized TCP connections and we need to listen and receive requests directly from the WATER listener
 func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 	ctx := context.Background()
-	waterListener, err := water.NewWATERListener(ctx, p.WaterTransport, addr, p.WaterWASM)
+	var wasm []byte
+	if p.WaterWASM != "" {
+		var err error
+		wasm, err = base64.StdEncoding.DecodeString(p.WaterWASM)
+		if err != nil {
+			log.Errorf("failed to decode WASM base64: %v", err)
+			return nil, err
+		}
+	}
+
+	if p.WaterWASMAvailableAt != "" {
+		wasmBuffer := new(bytes.Buffer)
+		d, err := water.NewWASMDownloader(strings.Split(p.WaterWASMAvailableAt, ","), &http.Client{Timeout: 1 * time.Minute})
+		if err != nil {
+			return nil, log.Errorf("failed to create wasm downloader: %w", err)
+		}
+
+		err = d.DownloadWASM(ctx, wasmBuffer)
+		if err != nil {
+			return nil, log.Errorf("unable to download water wasm: %w", err)
+		}
+		wasm = wasmBuffer.Bytes()
+	}
+
+	// currently the WATER listener doesn't accept a multiplexed connections, so we need to listen and accept connections directly from the listener
+	waterListener, err := water.NewWATERListener(ctx, nil, p.WaterTransport, addr, wasm)
 	if err != nil {
+		log.Errorf("failed to starte WATER listener: %w", err)
 		return nil, err
 	}
 
