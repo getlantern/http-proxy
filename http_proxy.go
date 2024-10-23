@@ -1033,9 +1033,7 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 
 		log.Debugf("Listening for water at %v", waterListener.Addr())
 		return waterListener, nil
-	case 1:
-		return p.listenShadowsocks(addr)
-	case 2:
+	case 97:
 		cert, err := utls.X509KeyPair([]byte(p.CertFile), []byte(p.KeyFile))
 		if err != nil {
 			return nil, log.Errorf("failed to load cert: %w", err)
