@@ -1020,7 +1020,7 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 
 	mismatchProtocol, err := strconv.Atoi(p.WaterMismatchProtocol)
 	if err != nil {
-		return nil, log.Errorf("failed to parse mismatch protocol")
+		return nil, log.Errorf("failed to parse mismatch protocol: %w", err)
 	}
 
 	switch mismatchProtocol {
