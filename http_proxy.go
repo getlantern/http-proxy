@@ -1018,13 +1018,8 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 		wasm = wasmBuffer.Bytes()
 	}
 
-	mismatchProtocol, err := strconv.Atoi(p.WaterMismatchProtocol)
-	if err != nil {
-		return nil, log.Errorf("failed to parse mismatch protocol: %w", err)
-	}
-
-	switch mismatchProtocol {
-	case 0:
+	switch p.WaterMismatchProtocol {
+	case "PROTOCOL_UNSPECIFIED":
 		// currently the WATER listener doesn't accept a multiplexed connections, so we need to listen and accept connections directly from the listener
 		waterListener, err := water.NewWATERListener(ctx, nil, p.WaterTransport, addr, wasm)
 		if err != nil {
@@ -1033,7 +1028,7 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 
 		log.Debugf("Listening for water at %v", waterListener.Addr())
 		return waterListener, nil
-	case 97:
+	case "PROTOCOL_UTLS":
 		cert, err := utls.X509KeyPair([]byte(p.CertFile), []byte(p.KeyFile))
 		if err != nil {
 			return nil, log.Errorf("failed to load cert: %w", err)
