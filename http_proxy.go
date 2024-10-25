@@ -1036,7 +1036,7 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 
 		return utls.Listen("tcp", addr, &utls.Config{Certificates: []utls.Certificate{cert}})
 	default:
-		return nil, log.Errorf("unsupported mismatch protocol provided: %d", mismatchProtocol)
+		return nil, log.Errorf("unsupported mismatch protocol provided: %s", p.WaterMismatchProtocol)
 	}
 }
 
