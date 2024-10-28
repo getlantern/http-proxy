@@ -1029,7 +1029,16 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 		log.Debugf("Listening for water at %v", waterListener.Addr())
 		return waterListener, nil
 	case "PROTOCOL_UTLS":
-		cert, err := utls.X509KeyPair([]byte(p.CertFile), []byte(p.KeyFile))
+		certPEM, err := os.ReadFile(p.CertFile)
+		if err != nil {
+			log.Fatalf("Unable to read certificate file: %v", err)
+		}
+
+		keyPEM, err := os.ReadFile(p.KeyFile)
+		if err != nil {
+			log.Fatalf("Unable to read key file: %v", err)
+		}
+		cert, err := utls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
 		if err != nil {
 			return nil, log.Errorf("failed to load cert: %w", err)
 		}
