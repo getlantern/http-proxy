@@ -33,7 +33,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	shadowsocks "github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/http-proxy-lantern/v2/starbridge"
-	utls "github.com/refraction-networking/utls"
 
 	"github.com/xtaci/smux"
 
@@ -1038,12 +1037,12 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 		if err != nil {
 			log.Fatalf("Unable to read key file: %v", err)
 		}
-		cert, err := utls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
+		cert, err := tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
 		if err != nil {
 			return nil, log.Errorf("failed to load cert: %w", err)
 		}
 
-		return utls.Listen("tcp", addr, &utls.Config{Certificates: []utls.Certificate{cert}})
+		return tls.Listen("tcp", addr, &tls.Config{Certificates: []tls.Certificate{cert}})
 	default:
 		return nil, log.Errorf("unsupported mismatch protocol provided: %s", p.WaterMismatchProtocol)
 	}
