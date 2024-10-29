@@ -188,10 +188,11 @@ type Proxy struct {
 	AlgenevaAddr string
 
 	// deprecated: use WaterWASMAvailableAt
-	WaterWASM            string
-	WaterWASMAvailableAt string
-	WaterTransport       string
-	WaterAddr            string
+	WaterWASM             string
+	WaterWASMAvailableAt  string
+	WaterTransport        string
+	WaterAddr             string
+	WaterMismatchProtocol string
 
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
@@ -1016,15 +1017,35 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 		wasm = wasmBuffer.Bytes()
 	}
 
-	// currently the WATER listener doesn't accept a multiplexed connections, so we need to listen and accept connections directly from the listener
-	waterListener, err := water.NewWATERListener(ctx, nil, p.WaterTransport, addr, wasm)
-	if err != nil {
-		log.Errorf("failed to starte WATER listener: %w", err)
-		return nil, err
-	}
+	switch p.WaterMismatchProtocol {
+	case "PROTOCOL_UNSPECIFIED":
+		// currently the WATER listener doesn't accept a multiplexed connections, so we need to listen and accept connections directly from the listener
+		waterListener, err := water.NewWATERListener(ctx, nil, p.WaterTransport, addr, wasm)
+		if err != nil {
+			return nil, log.Errorf("failed to starte WATER listener: %w", err)
+		}
 
-	log.Debugf("Listening for water at %v", waterListener.Addr())
-	return waterListener, nil
+		log.Debugf("Listening for water at %v", waterListener.Addr())
+		return waterListener, nil
+	case "PROTOCOL_UTLS":
+		certPEM, err := os.ReadFile(p.CertFile)
+		if err != nil {
+			log.Fatalf("Unable to read certificate file: %v", err)
+		}
+
+		keyPEM, err := os.ReadFile(p.KeyFile)
+		if err != nil {
+			log.Fatalf("Unable to read key file: %v", err)
+		}
+		cert, err := tls.X509KeyPair([]byte(certPEM), []byte(keyPEM))
+		if err != nil {
+			return nil, log.Errorf("failed to load cert: %w", err)
+		}
+
+		return tls.Listen("tcp", addr, &tls.Config{Certificates: []tls.Certificate{cert}})
+	default:
+		return nil, log.Errorf("unsupported mismatch protocol provided: %s", p.WaterMismatchProtocol)
+	}
 }
 
 func (p *Proxy) setupPacketForward() error {
