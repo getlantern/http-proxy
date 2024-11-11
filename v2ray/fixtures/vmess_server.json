@@ -1,0 +1,29 @@
+{
+
+  "log": {
+    "loglevel": "debug"
+  },
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {}
+    }
+  ],
+
+  "inbounds": [
+    {
+      "port": LISTEN_PORT,
+      "listen":"LISTEN_ADDRESS",
+      "tag": "ingress",
+      "protocol": "vmess",
+      "settings": {
+        "clients": [
+          {
+            "id": "19ee495c-9b89-418b-951b-b285ceb9bafb"
+          }
+        ]
+      }
+    }
+  ]
+
+}

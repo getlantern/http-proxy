@@ -1,0 +1,29 @@
+{
+  "log": {
+    "loglevel": "debug"
+  },
+  "outbounds": [
+    {
+      "protocol": "vmess",
+      "settings": {
+        "vnext": [
+          {
+            "address": "127.0.0.1",
+            "port": 11082,
+            "users": [
+              {
+                "id": "19ee495c-9b89-418b-951b-b285ceb9bafb",
+                "security": null
+              }
+            ]
+          }
+        ]
+      }}],
+  "inbounds": [
+    {
+      "listen": "127.0.0.1",
+      "port": 11083,
+      "protocol": "socks"
+    }
+  ]
+}

@@ -1,0 +1,20 @@
+{
+  "log": {
+    "loglevel": "debug"
+  },
+  "outbounds": [
+    {
+      "protocol": "freedom",
+      "settings": {}
+    }
+  ],
+
+  "inbounds": [
+    {
+      "listen": "LISTEN_ADDRESS",
+      "port": LISTEN_PORT,
+      "protocol": "socks",
+      "tag": "ingress"
+    }
+  ]
+}

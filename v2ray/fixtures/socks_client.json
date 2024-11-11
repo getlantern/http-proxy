@@ -1,0 +1,25 @@
+{
+  "log": {
+    "loglevel": "debug"
+  },
+  "outbounds": [
+    {
+      "protocol": "socks",
+      "settings": {
+        "servers": [
+          {
+            "address": "127.0.0.1",
+            "port": 11082
+          }
+        ]
+      }
+    }
+  ],
+  "inbounds": [
+    {
+      "listen": "127.0.0.1",
+      "port": 11083,
+      "protocol": "socks"
+    }
+  ]
+}
