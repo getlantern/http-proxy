@@ -31,7 +31,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/broflake"
 	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/otel"
-	shadowsocks "github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
+	"github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/http-proxy-lantern/v2/starbridge"
 
 	"github.com/xtaci/smux"
@@ -67,6 +67,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/v2/tlsmasq"
 	"github.com/getlantern/http-proxy-lantern/v2/tokenfilter"
+	"github.com/getlantern/http-proxy-lantern/v2/v2ray"
 	"github.com/getlantern/http-proxy-lantern/v2/water"
 	"github.com/getlantern/http-proxy-lantern/v2/wss"
 
@@ -193,6 +194,9 @@ type Proxy struct {
 	WaterTransport        string
 	WaterAddr             string
 	WaterMismatchProtocol string
+
+	V2RayConfig string
+	V2RayAddr   string
 
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
@@ -1046,6 +1050,18 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 	default:
 		return nil, log.Errorf("unsupported mismatch protocol provided: %s", p.WaterMismatchProtocol)
 	}
+}
+
+// listenV2Ray start a V2Ray listener and return it
+func (p *Proxy) listenV2Ray(addr string) (net.Listener, error) {
+	ctx := context.Background()
+	v2rayListener, err := v2ray.NewV2RayListener(ctx, addr, p.V2RayConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	log.Debugf("Listening for v2ray at %v", v2rayListener.Addr())
+	return v2rayListener, nil
 }
 
 func (p *Proxy) setupPacketForward() error {

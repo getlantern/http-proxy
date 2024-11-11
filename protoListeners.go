@@ -30,5 +30,6 @@ func getProtoListenersArgs(p *Proxy) []protoListenerArgs {
 			p.wrapMultiplexing(p.listenShadowsocks),
 		},
 		{"water", p.WaterAddr, p.listenWATER},
+		{"v2ray", p.V2RayAddr, p.listenV2Ray},
 	}
 }

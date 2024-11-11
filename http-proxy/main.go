@@ -192,6 +192,9 @@ var (
 	waterTransport        = flag.String("water-transport", "", "WATER based transport name")
 	waterMismatchProtocol = flag.String("water-mismatch-protocol", "", "Mismatch protocol is used to force the executution of a different protocol listener than WATER")
 
+	v2rayAddr   = flag.String("v2ray-addr", "", "Address at which to listen for V2Ray connections.")
+	v2rayConfig = flag.String("v2ray-config", "", "V2Ray configuration")
+
 	track = flag.String("track", "", "The track this proxy is running on")
 )
 
@@ -478,6 +481,8 @@ func main() {
 		WaterWASMAvailableAt:               *waterWASMAvailableAt,
 		WaterTransport:                     *waterTransport,
 		WaterMismatchProtocol:              *waterMismatchProtocol,
+		V2RayAddr:                          *v2rayAddr,
+		V2RayConfig:                        *v2rayConfig,
 	}
 	if *maxmindLicenseKey != "" {
 		log.Debug("Will use Maxmind for geolocating clients")
