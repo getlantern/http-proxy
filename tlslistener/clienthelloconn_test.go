@@ -174,6 +174,6 @@ func TestParseInvalidTicket(t *testing.T) {
 	rand.Read(tk[:])
 	ticket := make([]byte, 120)
 	rand.Read(ticket)
-	plainText, _ := utls.DecryptTicketWith(ticket, utls.TicketKeys{utls.TicketKeyFromBytes(tk)})
+	plainText := utls.DecryptTicketWith(ticket, utls.TicketKeys{utls.TicketKeyFromBytes(tk)})
 	require.Len(t, plainText, 0)
 }
