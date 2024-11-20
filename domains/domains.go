@@ -61,6 +61,7 @@ var (
 
 var configs = configure(
 	map[string]*Config{
+		"df.iantem.io":                 internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
 		"config.getiantem.org":         internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
 		"config-staging.getiantem.org": internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
 
