@@ -205,16 +205,16 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	// pre-defined tickets. If it doesn't we should again return some sort of error or just
 	// close the connection.
 	if !helloMsg.TicketSupported {
-		return rrc.helloError("ClientHello does not support session tickets", true)
+		return rrc.helloError("ClientHello does not support session tickets", false)
 	}
 
 	if len(helloMsg.SessionTicket) == 0 {
-		return rrc.helloError("ClientHello has no session ticket", true)
+		return rrc.helloError("ClientHello has no session ticket", false)
 	}
 
 	plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, rrc.ticketKeys)
 	if len(plainText) == 0 {
-		return rrc.helloError("ClientHello has invalid session ticket", true)
+		return rrc.helloError("ClientHello has invalid session ticket", false)
 	}
 
 	return nil, nil
