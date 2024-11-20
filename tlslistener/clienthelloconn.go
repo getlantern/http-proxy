@@ -212,8 +212,8 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		return rrc.helloError("ClientHello has no session ticket", false)
 	}
 
-	plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, rrc.ticketKeys)
-	if len(plainText) == 0 {
+	uss, err := rrc.utlsCfg.DecryptTicket(helloMsg.SessionTicket, utls.ConnectionState{})
+	if err != nil || uss == nil {
 		return rrc.helloError("ClientHello has invalid session ticket", false)
 	}
 
