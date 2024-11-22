@@ -191,7 +191,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	helloMsg := utls.UnmarshalClientHello(hello)
 
 	if helloMsg == nil {
-		return rrc.helloError("malformed ClientHello", false)
+		return rrc.helloError("malformed ClientHello")
 	}
 
 	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
@@ -205,31 +205,25 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	// pre-defined tickets. If it doesn't we should again return some sort of error or just
 	// close the connection.
 	if !helloMsg.TicketSupported {
-		return rrc.helloError("ClientHello does not support session tickets", true)
+		return rrc.helloError("ClientHello does not support session tickets")
 	}
 
 	if len(helloMsg.SessionTicket) == 0 {
-		return rrc.helloError("ClientHello has no session ticket", true)
+		return rrc.helloError("ClientHello has no session ticket")
 	}
 
-	plainText, _ := utls.DecryptTicketWith(helloMsg.SessionTicket, rrc.ticketKeys)
-	if len(plainText) == 0 {
-		return rrc.helloError("ClientHello has invalid session ticket", true)
+	uss, err := rrc.utlsCfg.DecryptTicket(helloMsg.SessionTicket, utls.ConnectionState{})
+	if err != nil || uss == nil {
+		return rrc.helloError("ClientHello has invalid session ticket")
 	}
 
 	return nil, nil
 }
 
-func (rrc *clientHelloRecordingConn) helloError(errStr string, continueOnError bool) (*tls.Config, error) {
+func (rrc *clientHelloRecordingConn) helloError(errStr string) (*tls.Config, error) {
 	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
 	rrc.probingError = errStr
 	rrc.instrument.SuspectedProbing(context.Background(), sourceIP, errStr)
-	// For now, we just record that there was a problem with the client hello, but we actually
-	// proceed as if everything is fine.
-	// See https://github.com/getlantern/engineering/issues/292#issuecomment-1765268377
-	if continueOnError {
-		return nil, nil
-	}
 	if rrc.missingTicketReaction.handleConn != nil {
 		rrc.missingTicketReaction.handleConn(rrc)
 		// at this point the connection has already been closed, returning

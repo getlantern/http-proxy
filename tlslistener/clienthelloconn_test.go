@@ -61,47 +61,43 @@ func TestAbortOnHello(t *testing.T) {
 
 			cfg := &tls.Config{ServerName: "microsoft.com", InsecureSkipVerify: true}
 			conn, err := tls.Dial("tcp", l.Addr().String(), cfg)
-			// For now, we expect this to work always, even when we're missing a session ticket
-			// See https://github.com/getlantern/engineering/issues/292#issuecomment-1765268377
+			if tc.expectedErr != "" {
+				require.Error(t, err)
+				require.Equal(t, tc.expectedErr, err.Error())
+			} else {
+				require.NoError(t, err)
+				defer conn.Close()
+				require.Equal(t, "microsoft.com", conn.ConnectionState().PeerCertificates[0].Subject.CommonName)
+				req, _ := http.NewRequest("GET", "https://microsoft.com", nil)
+				require.NoError(t, req.Write(conn))
+				resp, err := http.ReadResponse(bufio.NewReader(conn), req)
+				require.NoError(t, err)
+				require.Equal(t, http.StatusMovedPermanently, resp.StatusCode)
+			}
+
+			// Now make sure we can't spoof a session ticket.
+			rawConn, err := net.Dial("tcp", l.Addr().String())
 			require.NoError(t, err)
-			conn.Close()
-			// if tc.expectedErr != "" {
-			// 	require.Error(t, err)
-			// 	require.Equal(t, tc.expectedErr, err.Error())
-			// } else {
-			// 	require.NoError(t, err)
-			// 	defer conn.Close()
-			// 	require.Equal(t, "microsoft.com", conn.ConnectionState().PeerCertificates[0].Subject.CommonName)
-			// 	req, _ := http.NewRequest("GET", "https://microsoft.com", nil)
-			// 	require.NoError(t, req.Write(conn))
-			// 	resp, err := http.ReadResponse(bufio.NewReader(conn), req)
-			// 	require.NoError(t, err)
-			// 	require.Equal(t, http.StatusMovedPermanently, resp.StatusCode)
-			// }
+			ucfg := &utls.Config{ServerName: "microsoft.com"}
+			maintainSessionTicketKeyFile("../test/testtickets", "",
+				func(keys [][32]byte) { ucfg.SetSessionTicketKeys(keys) })
+			ss := &utls.ClientSessionState{}
+			ticket := make([]byte, 120)
+			rand.Read(ticket)
+			ss.SetSessionTicket(ticket)
+			ss.SetVers(tls.VersionTLS12)
 
-			// // Now make sure we can't spoof a session ticket.
-			// rawConn, err := net.Dial("tcp", l.Addr().String())
-			// require.NoError(t, err)
-			// ucfg := &utls.Config{ServerName: "microsoft.com"}
-			// maintainSessionTicketKeyFile("../test/testtickets", "",
-			// 	func(keys [][32]byte) { ucfg.SetSessionTicketKeys(keys) })
-			// ss := &utls.ClientSessionState{}
-			// ticket := make([]byte, 120)
-			// rand.Read(ticket)
-			// ss.SetSessionTicket(ticket)
-			// ss.SetVers(tls.VersionTLS12)
-
-			// uconn := utls.UClient(rawConn, ucfg, utls.HelloChrome_Auto)
-			// uconn.SetSessionState(ss)
-			// err = uconn.Handshake()
-			// if tc.expectedErr != "" {
-			// 	require.Error(t, err)
-			// 	require.Equal(t, tc.expectedErr, err.Error(), tc.response.action)
-			// } else {
-			// 	require.NoError(t, err)
-			// 	defer conn.Close()
-			// 	require.Equal(t, "microsoft.com", uconn.ConnectionState().PeerCertificates[0].Subject.CommonName)
-			// }
+			uconn := utls.UClient(rawConn, ucfg, utls.HelloChrome_Auto)
+			uconn.SetSessionState(ss)
+			err = uconn.Handshake()
+			if tc.expectedErr != "" {
+				require.Error(t, err)
+				require.Equal(t, tc.expectedErr, err.Error(), tc.response.action)
+			} else {
+				require.NoError(t, err)
+				defer conn.Close()
+				require.Equal(t, "microsoft.com", uconn.ConnectionState().PeerCertificates[0].Subject.CommonName)
+			}
 		})
 	}
 }
@@ -144,7 +140,7 @@ func TestSuccess(t *testing.T) {
 	// Dial once to obtain a valid session ticket (this is works because we're dialing localhost)
 	ucfg := &utls.Config{
 		InsecureSkipVerify: true,
-		// ClientSessionCache: utls.NewLRUClientSessionCache(10),
+		ClientSessionCache: utls.NewLRUClientSessionCache(10),
 	}
 	conn, err := utls.Dial("tcp", l.Addr().String(), ucfg)
 	require.NoError(t, err)
@@ -174,6 +170,9 @@ func TestParseInvalidTicket(t *testing.T) {
 	rand.Read(tk[:])
 	ticket := make([]byte, 120)
 	rand.Read(ticket)
-	plainText, _ := utls.DecryptTicketWith(ticket, utls.TicketKeys{utls.TicketKeyFromBytes(tk)})
-	require.Len(t, plainText, 0)
+
+	utlsConfig := &utls.Config{}
+	utlsConfig.SetSessionTicketKeys([][32]byte{tk})
+	uss, _ := utlsConfig.DecryptTicket(ticket, utls.ConnectionState{})
+	require.Nil(t, uss)
 }
