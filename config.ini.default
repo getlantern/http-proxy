@@ -99,3 +99,5 @@ versioncheck =   # Check if Lantern client matches the semantic version range, l
 versioncheck-redirect-percentage = 1  # The percentage of requests to be redirected in version check. Defaults to 1 (100%)
 versioncheck-redirect-url =   # The URL to redirect if client is below certain version. Always used along with versioncheck
 wss-addr =   # Address at which to listen for WSS connections.
+vmess-addr = # Address at which to listen for vmess connections
+vmess-uuids = # UUIDs for vmess connections as a comma separated list
