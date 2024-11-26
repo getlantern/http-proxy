@@ -31,8 +31,9 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/broflake"
 	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/otel"
-	shadowsocks "github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
+	"github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/http-proxy-lantern/v2/starbridge"
+	"github.com/getlantern/http-proxy-lantern/v2/v2ray/vmess"
 
 	"github.com/xtaci/smux"
 
@@ -193,6 +194,9 @@ type Proxy struct {
 	WaterTransport        string
 	WaterAddr             string
 	WaterMismatchProtocol string
+
+	VMessAddr  string
+	VMessUUIDs []string
 
 	throttleConfig throttle.Config
 	instrument     instrument.Instrument
@@ -667,6 +671,8 @@ func (p *Proxy) buildOTELOpts(endpoint string, includeProxyName bool) *otel.Opts
 		opts.Addr = p.AlgenevaAddr
 	} else if p.WaterAddr != "" {
 		opts.Addr = p.WaterAddr
+	} else if p.VMessAddr != "" {
+		opts.Addr = p.VMessAddr
 	}
 	if includeProxyName {
 		opts.ProxyName = proxyName
@@ -986,6 +992,23 @@ func (p *Proxy) listenAlgeneva(baseListen func(string) (net.Listener, error)) li
 
 		log.Debugf("Listening for algeneva at %v", ll.Addr())
 		return ll, nil
+	}
+}
+
+func (p *Proxy) listenVMess(baseListen func(string) (net.Listener, error)) listenerBuilderFN {
+	return func(addr string) (net.Listener, error) {
+		base, err := baseListen(addr)
+		if err != nil {
+			return nil, err
+		}
+		log.Debugf("Listening for vmess at %v", base.Addr())
+		wrapper, err := vmess.NewVMessListener(base, p.VMessUUIDs)
+		if err != nil {
+			base.Close()
+			return nil, fmt.Errorf("vmess wrapping error: %w", err)
+		}
+
+		return wrapper, nil
 	}
 }
 
