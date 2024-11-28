@@ -191,7 +191,8 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	helloMsg := utls.UnmarshalClientHello(hello)
 
 	if helloMsg == nil {
-		return rrc.helloError("malformed ClientHello")
+		return nil, nil
+		//return rrc.helloError("malformed ClientHello")
 	}
 
 	sourceIP := rrc.RemoteAddr().(*net.TCPAddr).IP
