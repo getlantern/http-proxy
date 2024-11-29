@@ -16,7 +16,7 @@ require (
 	github.com/getlantern/enhttp v0.0.0-20210901195634-6f89d45ee033
 	github.com/getlantern/errors v1.0.4
 	github.com/getlantern/fdcount v0.0.0-20210503151800-5decd65b3731
-	github.com/getlantern/geo v0.0.0-20230612145351-d1374c8f8dec
+	github.com/getlantern/geo v0.0.0-20241129152027-2fc88c10f91e
 	github.com/getlantern/golog v0.0.0-20230503153817-8e72de7e0a65
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
 	github.com/getlantern/grtrack v0.0.0-20231025115619-bfbfadb228f3
@@ -133,8 +133,8 @@ require (
 	github.com/mmcloughlin/avo v0.0.0-20200803215136-443f81d77104 // indirect
 	github.com/nwaples/rardecode v1.1.2 // indirect
 	github.com/onsi/ginkgo/v2 v2.12.0 // indirect
-	github.com/oschwald/geoip2-golang v1.8.0 // indirect
-	github.com/oschwald/maxminddb-golang v1.10.0 // indirect
+	github.com/oschwald/geoip2-golang v1.9.0 // indirect
+	github.com/oschwald/maxminddb-golang v1.11.0 // indirect
 	github.com/oxtoacart/bpool v0.0.0-20190530202638-03653db5a59c // indirect
 	github.com/pierrec/lz4/v4 v4.1.12 // indirect
 	github.com/pion/datachannel v1.5.5 // indirect
