@@ -109,8 +109,6 @@ func BuildLogProvider() *otelLogSdk.LoggerProvider {
 		otelLogSdk.WithProcessor(otelLogSdk.NewBatchProcessor(exporter)),
 	)
 
-	defer func() { _ = loggerProvider.Shutdown(context.Background()) }()
-
 	return loggerProvider
 }
 
