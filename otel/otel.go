@@ -2,13 +2,16 @@ package otel
 
 import (
 	"context"
+	"crypto/tls"
 	"time"
 
 	sdkotel "go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
+	otlpLog "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace"
 	"go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp"
+	otelLogSdk "go.opentelemetry.io/otel/sdk/log"
 	sdkmetric "go.opentelemetry.io/otel/sdk/metric"
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/resource"
@@ -84,6 +87,31 @@ func (opts *Opts) buildResource() *resource.Resource {
 		attributes = append(attributes, attribute.String("frontend.dc", opts.FrontendDC))
 	}
 	return resource.NewWithAttributes(semconv.SchemaURL, attributes...)
+}
+
+func BuildLogProvider() *otelLogSdk.LoggerProvider {
+	endPoint := "ops.lantr.net:443"
+
+	res := resource.NewWithAttributes(semconv.SchemaURL, []attribute.KeyValue{semconv.ServiceNameKey.String("http-proxy-lantern")}...)
+
+	exporter, err := otlpLog.New(context.Background(),
+		otlpLog.WithEndpoint(endPoint),
+		otlpLog.WithTLSClientConfig(&tls.Config{InsecureSkipVerify: true}), // this is just to debug a geolocation issue
+	)
+
+	if err != nil {
+		log.Errorf("Unable to initialize OpenTelemetry, will not report logs to %v", endPoint)
+		return nil
+	}
+
+	loggerProvider := otelLogSdk.NewLoggerProvider(
+		otelLogSdk.WithResource(res),
+		otelLogSdk.WithProcessor(otelLogSdk.NewBatchProcessor(exporter)),
+	)
+
+	defer func() { _ = loggerProvider.Shutdown(context.Background()) }()
+
+	return loggerProvider
 }
 
 func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
