@@ -248,6 +248,13 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		record.SetBody(otlpLog.StringValue(msg))
 		record.SetSeverity(otlpLog.SeverityInfo)
 		ins.logger.Emit(ctx, record)
+	} else {
+		var record otlpLog.Record
+		record.SetTimestamp(time.Now())
+		msg := fmt.Sprintf("Geolookup successful for IP: %s in country %s", clientIP, country)
+		record.SetBody(otlpLog.StringValue(msg))
+		record.SetSeverity(otlpLog.SeverityInfo)
+		ins.logger.Emit(ctx, record)
 	}
 
 	isp := ins.ispLookup.ISP(clientIP)
