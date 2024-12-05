@@ -2,7 +2,6 @@ package instrument
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 	"net"
 	"regexp"
@@ -11,7 +10,6 @@ import (
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
-	otlpLog "go.opentelemetry.io/otel/log"
 	"go.opentelemetry.io/otel/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	"go.opentelemetry.io/otel/trace"
@@ -20,7 +18,6 @@ import (
 	"github.com/getlantern/geo"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument/otelinstrument"
-	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/proxy/v3/filters"
 )
@@ -106,15 +103,12 @@ type defaultInstrument struct {
 	originStats   map[originDetails]*usage
 	statsMx       sync.Mutex
 	proxyName     string
-	logger        otlpLog.Logger
 }
 
 func NewDefault(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, proxyName string) (*defaultInstrument, error) {
 	if err := otelinstrument.Initialize(); err != nil {
 		return nil, err
 	}
-
-	lP := otel.BuildLogProvider()
 
 	p := &defaultInstrument{
 		countryLookup: countryLookup,
@@ -124,7 +118,6 @@ func NewDefault(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, proxyN
 		clientStats:   make(map[clientDetails]*usage),
 		originStats:   make(map[originDetails]*usage),
 		proxyName:     proxyName,
-		logger:        lP.Logger("intrument-logger"),
 	}
 
 	return p, nil
@@ -241,14 +234,6 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 	otelinstrument.DistinctClients1h.Add(deviceID)
 
 	country := ins.countryLookup.CountryCode(clientIP)
-	if country == "" {
-		var record otlpLog.Record
-		record.SetTimestamp(time.Now())
-		msg := fmt.Sprintf("Geolookup failed for IP: %s, platform: %s, platformVersion: %s, appVersion: %s", clientIP, platform, platformVersion, appVersion)
-		record.SetBody(otlpLog.StringValue(msg))
-		record.SetSeverity(otlpLog.SeverityInfo)
-		ins.logger.Emit(ctx, record)
-	}
 
 	isp := ins.ispLookup.ISP(clientIP)
 	asn := ins.ispLookup.ASN(clientIP)
