@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	vmess "github.com/sagernet/sing-vmess"
+	vmess "github.com/getlantern/sing-vmess"
 	"github.com/sagernet/sing/common/metadata"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
