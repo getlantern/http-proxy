@@ -188,6 +188,7 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	// us to decrypt the ClientHello and session tickets, for example. We use those functions
 	// separately without switching to uTLS entirely to allow continued upgrading of the TLS stack
 	// as new Go versions are released.
+	log.Debugf("!!!!! jovis processHello hello bytes, length %d, %v", len(hello), hello)
 	helloMsg := utls.UnmarshalClientHello(hello)
 
 	if helloMsg == nil {
