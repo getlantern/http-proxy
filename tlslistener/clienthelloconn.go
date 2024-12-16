@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -173,6 +174,14 @@ func (rrc *clientHelloRecordingConn) Read(b []byte) (int, error) {
 	return rrc.activeReader.Read(b)
 }
 
+func formatBytesToHex(data []byte) string {
+	var hexStrings []string
+	for _, b := range data {
+		hexStrings = append(hexStrings, fmt.Sprintf("0x%02X", b))
+	}
+	return strings.Join(hexStrings, " ")
+}
+
 func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*tls.Config, error) {
 	// The hello is read at this point, so switch to no longer write incoming data to a second buffer.
 	rrc.helloMutex.Lock()
@@ -183,15 +192,16 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		bufferPool.Put(rrc.dataRead)
 	}()
 
+	log.Debugf("!!!!! jovis processHello hello bytes, length %d, %s", len(rrc.dataRead.Bytes()), formatBytesToHex(rrc.dataRead.Bytes()))
 	hello := rrc.dataRead.Bytes()[5:]
 	// We use uTLS here purely because it exposes more TLS handshake internals, allowing
 	// us to decrypt the ClientHello and session tickets, for example. We use those functions
 	// separately without switching to uTLS entirely to allow continued upgrading of the TLS stack
 	// as new Go versions are released.
-	log.Debugf("!!!!! jovis processHello hello bytes, length %d, %v", len(hello), hello)
 	helloMsg := utls.UnmarshalClientHello(hello)
 
 	if helloMsg == nil {
+		log.Debug("!!!!! jovis processHello : malformed ClientHello")
 		return rrc.helloError("malformed ClientHello")
 	}
 
