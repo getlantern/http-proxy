@@ -192,6 +192,11 @@ var (
 	waterTransport        = flag.String("water-transport", "", "WATER based transport name")
 	waterMismatchProtocol = flag.String("water-mismatch-protocol", "", "Mismatch protocol is used to force the executution of a different protocol listener than WATER")
 
+	vmessAddr  = flag.String("vmess-addr", "", "Address at which to listen for vmess connections.")
+	vmessUUIDs = flag.String("vmess-uuids", "", "Comma separated list of UUIDs for vmess connections.")
+
+	disablePanicWrap = flag.Bool("disable-panicwrap", false, "Disable panicwrap (for debugging)")
+
 	track = flag.String("track", "", "The track this proxy is running on")
 )
 
@@ -219,52 +224,53 @@ func main() {
 		}
 	}
 
-	// panicwrap works by re-executing the running program (retaining arguments,
-	// environmental variables, etc.) and monitoring the stderr of the program.
-	exitStatus, panicWrapErr := panicwrap.Wrap(
-		&panicwrap.WrapConfig{
-			DetectDuration: time.Second,
-			Handler: func(msg string) {
-				if reporter != nil {
-					// heuristically separate the error message from the stack trace
-					separator := "\ngoroutine "
-					splitted := strings.SplitN(msg, separator, 2)
-					err := errors.New(splitted[0])
-					var maybeStack []byte
-					if len(splitted) > 1 {
-						maybeStack = []byte(separator + splitted[1])
+	if !*disablePanicWrap {
+		// panicwrap works by re-executing the running program (retaining arguments,
+		// environmental variables, etc.) and monitoring the stderr of the program.
+		exitStatus, panicWrapErr := panicwrap.Wrap(
+			&panicwrap.WrapConfig{
+				DetectDuration: time.Second,
+				Handler: func(msg string) {
+					if reporter != nil {
+						// heuristically separate the error message from the stack trace
+						separator := "\ngoroutine "
+						splitted := strings.SplitN(msg, separator, 2)
+						err := errors.New(splitted[0])
+						var maybeStack []byte
+						if len(splitted) > 1 {
+							maybeStack = []byte(separator + splitted[1])
+						}
+						reporter.Report(golog.FATAL, err, maybeStack)
 					}
-					reporter.Report(golog.FATAL, err, maybeStack)
-				}
-				if strings.Contains(msg, "maxmind") {
-					log.Debugf("Panic possibly related to maxmind, delete maxmind database files")
-					if err := os.Remove(cityDBFile); err != nil {
-						log.Errorf("Unable to delete city DB file %v: %v", cityDBFile, err)
+					if strings.Contains(msg, "maxmind") {
+						log.Debugf("Panic possibly related to maxmind, delete maxmind database files")
+						if err := os.Remove(cityDBFile); err != nil {
+							log.Errorf("Unable to delete city DB file %v: %v", cityDBFile, err)
+						}
+						if err := os.Remove(*geoip2ISPDBFile); err != nil {
+							log.Errorf("Unable to delete ISP DB file %v: %v", *geoip2ISPDBFile, err)
+						}
 					}
-					if err := os.Remove(*geoip2ISPDBFile); err != nil {
-						log.Errorf("Unable to delete ISP DB file %v: %v", *geoip2ISPDBFile, err)
-					}
-				}
-				os.Exit(1)
-			},
-			// Just forward signals to the child process
-			ForwardSignals: []os.Signal{
-				syscall.SIGHUP,
-				syscall.SIGTERM,
-				syscall.SIGQUIT,
-				syscall.SIGINT,
-				syscall.SIGUSR1,
-			},
-		})
-	if panicWrapErr != nil {
-		log.Fatalf("Error setting up panic wrapper: %v", panicWrapErr)
-	} else {
-		// If exitStatus >= 0, then we're the parent process.
-		if exitStatus >= 0 {
-			os.Exit(exitStatus)
+					os.Exit(1)
+				},
+				// Just forward signals to the child process
+				ForwardSignals: []os.Signal{
+					syscall.SIGHUP,
+					syscall.SIGTERM,
+					syscall.SIGQUIT,
+					syscall.SIGINT,
+					syscall.SIGUSR1,
+				},
+			})
+		if panicWrapErr != nil {
+			log.Fatalf("Error setting up panic wrapper: %v", panicWrapErr)
+		} else {
+			// If exitStatus >= 0, then we're the parent process.
+			if exitStatus >= 0 {
+				os.Exit(exitStatus)
+			}
 		}
 	}
-
 	// We're in the child (wrapped) process now
 
 	// Capture signals and exit normally because when relying on the default
@@ -478,6 +484,8 @@ func main() {
 		WaterWASMAvailableAt:               *waterWASMAvailableAt,
 		WaterTransport:                     *waterTransport,
 		WaterMismatchProtocol:              *waterMismatchProtocol,
+		VMessAddr:                          *vmessAddr,
+		VMessUUIDs:                         strings.Split(*vmessUUIDs, ","),
 	}
 	if *maxmindLicenseKey != "" {
 		log.Debug("Will use Maxmind for geolocating clients")
