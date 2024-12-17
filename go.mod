@@ -26,7 +26,7 @@ require (
 	github.com/getlantern/keyman v0.0.0-20230503155501-4e864ca2175b
 	github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9
 	github.com/getlantern/lantern-algeneva v0.0.0-20240418193310-610690afddbc
-	github.com/getlantern/lantern-water v0.0.0-20241213200445-0d434c979d15
+	github.com/getlantern/lantern-water v0.0.0-20241217184729-97b2bf6add4a
 	github.com/getlantern/measured v0.0.0-20230919230611-3d9e3776a6cd
 	github.com/getlantern/memhelper v0.0.0-20220104170102-df557102babd
 	github.com/getlantern/mockconn v0.0.0-20200818071412-cb30d065a848
