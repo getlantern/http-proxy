@@ -68,10 +68,11 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/v2/tlsmasq"
 	"github.com/getlantern/http-proxy-lantern/v2/tokenfilter"
-	"github.com/getlantern/http-proxy-lantern/v2/water"
 	"github.com/getlantern/http-proxy-lantern/v2/wss"
 
 	algeneva "github.com/getlantern/lantern-algeneva"
+	waterDownloader "github.com/getlantern/lantern-water/downloader"
+	waterListener "github.com/getlantern/lantern-water/listener"
 )
 
 const (
@@ -1028,7 +1029,7 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 
 	if p.WaterWASMAvailableAt != "" {
 		wasmBuffer := new(bytes.Buffer)
-		d, err := water.NewWASMDownloader(strings.Split(p.WaterWASMAvailableAt, ","), &http.Client{Timeout: 1 * time.Minute})
+		d, err := waterDownloader.NewWASMDownloader(strings.Split(p.WaterWASMAvailableAt, ","), &http.Client{Timeout: 1 * time.Minute})
 		if err != nil {
 			return nil, log.Errorf("failed to create wasm downloader: %w", err)
 		}
@@ -1042,14 +1043,18 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 
 	switch p.WaterMismatchProtocol {
 	case "PROTOCOL_UNSPECIFIED":
-		// currently the WATER listener doesn't accept a multiplexed connections, so we need to listen and accept connections directly from the listener
-		waterListener, err := water.NewWATERListener(ctx, nil, p.WaterTransport, addr, wasm)
+		listener, err := waterListener.NewWATERListener(ctx, waterListener.ListenerParams{
+			Logger:    golog.LoggerFor("water"),
+			Transport: p.WaterTransport,
+			Address:   addr,
+			WASM:      wasm,
+		})
 		if err != nil {
 			return nil, log.Errorf("failed to starte WATER listener: %w", err)
 		}
 
-		log.Debugf("Listening for water at %v", waterListener.Addr())
-		return waterListener, nil
+		log.Debugf("Listening for water at %v", listener.Addr())
+		return listener, nil
 	case "PROTOCOL_UTLS":
 		certPEM, err := os.ReadFile(p.CertFile)
 		if err != nil {
