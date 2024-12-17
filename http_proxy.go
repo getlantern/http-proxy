@@ -1050,7 +1050,7 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 			WASM:      wasm,
 		})
 		if err != nil {
-			return nil, log.Errorf("failed to starte WATER listener: %w", err)
+			return nil, log.Errorf("failed to start WATER listener: %w", err)
 		}
 
 		log.Debugf("Listening for water at %v", listener.Addr())
