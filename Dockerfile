@@ -1,5 +1,5 @@
 # syntax = docker/dockerfile:1.3
-FROM --platform=$BUILDPLATFORM golang:1.21-alpine as builder
+FROM --platform=$BUILDPLATFORM golang:1.22-alpine as builder
 ARG TARGETOS TARGETARCH
 
 WORKDIR $GOPATH/src/getlantern/http-proxy-lantern/
