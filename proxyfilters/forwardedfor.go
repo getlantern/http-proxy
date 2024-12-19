@@ -3,7 +3,6 @@ package proxyfilters
 import (
 	"net"
 	"net/http"
-	"strings"
 
 	"github.com/getlantern/proxy/v3/filters"
 )
@@ -17,10 +16,7 @@ const (
 var AddForwardedFor = filters.FilterFunc(func(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 	if req.Method != http.MethodConnect {
 		if clientIP, _, err := net.SplitHostPort(req.RemoteAddr); err == nil {
-			if prior, ok := req.Header[xForwardedFor]; ok {
-				clientIP = strings.Join(prior, ", ") + ", " + clientIP
-			}
-			req.Header.Set(xForwardedFor, clientIP)
+			req.Header.Add(xForwardedFor, clientIP)
 		}
 	}
 	return next(cs, req)
