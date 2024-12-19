@@ -16,6 +16,7 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/netx"
+	"github.com/getlantern/tlsutil"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 )
@@ -198,6 +199,28 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 	// us to decrypt the ClientHello and session tickets, for example. We use those functions
 	// separately without switching to uTLS entirely to allow continued upgrading of the TLS stack
 	// as new Go versions are released.
+
+	var (
+		version uint16 = tls.VersionTLS13
+		suite   uint16 = tls.TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA
+		secret  [52]byte
+		iv      [16]byte
+		seq     [8]byte
+	)
+	tlsutilCs, err := tlsutil.NewConnectionState(version, suite, secret, iv, seq)
+
+	records, err := tlsutil.ReadRecords(bytes.NewReader(rrc.dataRead.Bytes()), tlsutilCs)
+	// check err
+	if err != nil {
+		log.Debugf("!!!!! jovis tlsutil.ReadRecords err :  %v", err)
+	} else {
+		log.Debugf("!!!!! jovis tlsutil.ReadRecords OK")
+		hello = []byte{}
+		for _, r := range records {
+			hello = append(hello, r.Data...)
+		}
+	}
+
 	helloMsg := utls.UnmarshalClientHello(hello)
 
 	if helloMsg == nil {
