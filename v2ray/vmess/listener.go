@@ -14,6 +14,12 @@ type listener struct {
 	service *vmess.Service[int]
 }
 
+// NewVMessListener wraps a net.Listener with a VMess service
+// VMess is used only for obfuscation, not for transport, thus the destination is not read from VMess header
+// VMess will accept connections only from users that are identified by UUIDs passed here
+// The UUIDs are generated on route setup and stored in the database, there could be several UUIDs per proxy
+// The UUIDs will be distributed between the users. There is no 1-1 mapping between UUIDs and users and this is just
+// intended as a source of extra entropy
 func NewVMessListener(baseListener net.Listener, uuids []string) (net.Listener, error) {
 	var userNum []int
 	var userAlt []int

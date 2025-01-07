@@ -1005,7 +1005,7 @@ func (p *Proxy) listenVMess(baseListen func(string) (net.Listener, error)) liste
 		log.Debugf("Listening for vmess at %v", base.Addr())
 		wrapper, err := vmess.NewVMessListener(base, p.VMessUUIDs)
 		if err != nil {
-			base.Close()
+			_ = base.Close()
 			return nil, fmt.Errorf("vmess wrapping error: %w", err)
 		}
 
