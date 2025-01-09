@@ -173,6 +173,52 @@ func (rrc *clientHelloRecordingConn) Read(b []byte) (int, error) {
 	return rrc.activeReader.Read(b)
 }
 
+func concatenateTlsRecordsFragments(data []byte) []byte {
+	const headerLength = 5
+
+	if len(data) < headerLength {
+		fmt.Printf("Input data is too short to contain even one TLS record header.")
+		return nil
+	}
+
+	totalPayload := []byte{}
+	var contentType byte
+	var protocolVersion [2]byte
+
+	for i := 0; i < len(data); {
+		if len(data[i:]) < headerLength {
+			fmt.Printf("Incomplete TLS record header at position %d.", i)
+			return nil
+		}
+
+		header := data[i : i+headerLength]
+		contentType = header[0]
+		protocolVersion = [2]byte{header[1], header[2]}
+		length := int(header[3])<<8 | int(header[4])
+
+		if len(data[i+headerLength:]) < length {
+			fmt.Printf("Incomplete TLS record payload at position %d.", i+headerLength)
+			return nil
+		}
+
+		payload := data[i+headerLength : i+headerLength+length]
+		totalPayload = append(totalPayload, payload...)
+
+		i += headerLength + length
+	}
+
+	// Construct the new single TLS record
+	totalLength := len(totalPayload)
+	if totalLength > 0xFFFF {
+		fmt.Printf("Concatenated payload length %d exceeds maximum TLS record size.", totalLength)
+		return nil
+	}
+
+	header := []byte{contentType, protocolVersion[0], protocolVersion[1], byte(totalLength >> 8), byte(totalLength & 0xFF)}
+	result := append(header, totalPayload...)
+	return result
+}
+
 func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*tls.Config, error) {
 	// The hello is read at this point, so switch to no longer write incoming data to a second buffer.
 	rrc.helloMutex.Lock()
@@ -183,7 +229,12 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		bufferPool.Put(rrc.dataRead)
 	}()
 
-	hello := rrc.dataRead.Bytes()[5:]
+	concatenatedRecords := concatenateTlsRecordsFragments(rrc.dataRead.Bytes())
+	if concatenatedRecords == nil {
+		return rrc.helloError("malformed ClientHello")
+	}
+
+	hello := concatenatedRecords[5:]
 	// We use uTLS here purely because it exposes more TLS handshake internals, allowing
 	// us to decrypt the ClientHello and session tickets, for example. We use those functions
 	// separately without switching to uTLS entirely to allow continued upgrading of the TLS stack
