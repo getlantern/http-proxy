@@ -173,6 +173,13 @@ func (rrc *clientHelloRecordingConn) Read(b []byte) (int, error) {
 	return rrc.activeReader.Read(b)
 }
 
+// This function concatenates TLS record fragments into a single record.
+// The output is the concatenation of the payloads of the input records plus a header.
+// The input data is expected to be one or multiple TLS records, each with the following format:
+//   - 1 byte: content type
+//   - 2 bytes: protocol version
+//   - 2 bytes: length of the payload
+//   - N bytes: payload
 func concatenateTlsRecordsFragments(data []byte) []byte {
 	const headerLength = 5
 
