@@ -16,10 +16,6 @@ import (
 
 var logger otelLog.Logger
 
-func init() {
-	InitLogger()
-}
-
 func InitLogger() error {
 	service := "http-proxy-lantern"
 	expLog, err := otlpLog.New(context.Background(),
@@ -46,6 +42,7 @@ func InitLogger() error {
 }
 
 func Debug(ctx context.Context, title string) {
+	InitLogger() // For now I want to see if I can get logs to the otel collector
 	var record otelLog.Record
 	record.SetTimestamp(time.Now())
 	record.SetBody(otelLog.StringValue(title))
