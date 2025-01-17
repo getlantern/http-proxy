@@ -15,6 +15,7 @@ import (
 )
 
 var logger otelLog.Logger
+var done bool
 
 func InitLogger() error {
 	service := "http-proxy-lantern"
@@ -38,11 +39,14 @@ func InitLogger() error {
 	)
 
 	logger = provider.Logger(service)
+	done = true
 	return nil
 }
 
 func Debug(ctx context.Context, title string) {
-	InitLogger() // For now I want to see if I can get logs to the otel collector
+	if !done {
+		InitLogger() // For now I want to see if I can get logs to the otel collector
+	}
 	var record otelLog.Record
 	record.SetTimestamp(time.Now())
 	record.SetBody(otelLog.StringValue(title))
