@@ -16,6 +16,10 @@ import (
 
 var logger otelLog.Logger
 
+func init() {
+	InitLogger()
+}
+
 func InitLogger() error {
 	service := "http-proxy-lantern"
 	expLog, err := otlpLog.New(context.Background(),
