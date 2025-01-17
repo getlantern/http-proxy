@@ -2,7 +2,7 @@ package otel
 
 import (
 	"context"
-	"errors"
+	"crypto/tls"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -20,7 +20,7 @@ func InitLogger() error {
 	service := "http-proxy-lantern"
 	expLog, err := otlpLog.New(context.Background(),
 		otlpLog.WithEndpoint("http://172.16.0.88:4317"),
-		otlpLog.WithTLSClientConfig(tlsConfig),
+		otlpLog.WithTLSClientConfig(&tls.Config{InsecureSkipVerify: true}),
 	)
 	if err != nil {
 		return err
@@ -41,12 +41,8 @@ func InitLogger() error {
 	return nil
 }
 
-// For now I want to see if I can get logs to the otel collector
 func Error(ctx context.Context, title string, err error, fields ...any) {
-	if err == nil {
-		err = errors.New(title)
-	}
-
+	InitLogger() // For now I want to see if I can get logs to the otel collector
 	var record otelLog.Record
 	record.SetTimestamp(time.Now())
 	record.SetBody(otelLog.StringValue(title))
