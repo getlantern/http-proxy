@@ -29,6 +29,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
 	"github.com/getlantern/http-proxy-lantern/v2/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
+	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	lanternredis "github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/http-proxy-lantern/v2/stackdrivererror"
@@ -495,6 +496,8 @@ func main() {
 		p.CountryLookup = geo.FromWeb(geolite2CityURL, "GeoLite2-City.mmdb", 24*time.Hour, cityDBFile, geo.CountryCode)
 		p.ISPLookup = geo.FromWeb(geoip2ISPURL, "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile, geo.ISP)
 	}
+
+	otel.Debug(ctx, "TESTING OTEL LOGGER 123...")
 
 	err = p.ListenAndServe(ctx)
 	if err != nil {
