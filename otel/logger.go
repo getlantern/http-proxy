@@ -20,7 +20,7 @@ var done bool
 func InitLogger() error {
 	service := "http-proxy-lantern"
 	expLog, err := otlpLog.New(context.Background(),
-		otlpLog.WithEndpoint("172.16.0.88:4317"),
+		otlpLog.WithEndpoint("172.16.0.88:4318"),
 		otlpLog.WithTLSClientConfig(&tls.Config{InsecureSkipVerify: true}),
 	)
 	if err != nil {
