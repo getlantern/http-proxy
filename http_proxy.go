@@ -270,7 +270,11 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		},
 	})
 
-	otel.Debug(ctx, "TESTING OTEL LOGGER 123...")
+	go func() {
+		for i := 0; i < 100; i++ {
+			otel.Debug(ctx, "TESTING OTEL LOGGER 123...")
+		}
+	}()
 	stopProxiedBytes := p.configureTeleportProxiedBytes()
 	defer stopProxiedBytes()
 
