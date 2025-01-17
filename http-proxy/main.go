@@ -497,7 +497,7 @@ func main() {
 		p.ISPLookup = geo.FromWeb(geoip2ISPURL, "GeoIP2-ISP.mmdb", 24*time.Hour, *geoip2ISPDBFile, geo.ISP)
 	}
 
-	otel.Debug(ctx, "TESTING OTEL LOGGER 123...")
+	otel.InitLogger() // For now I want to see if I can get logs to the otel collector
 
 	err = p.ListenAndServe(ctx)
 	if err != nil {

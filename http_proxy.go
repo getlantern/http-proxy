@@ -269,6 +269,8 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 			p.instrument.Connection(ctx, clientIP)
 		},
 	})
+
+	otel.Debug(ctx, "TESTING OTEL LOGGER 123...")
 	stopProxiedBytes := p.configureTeleportProxiedBytes()
 	defer stopProxiedBytes()
 
@@ -289,8 +291,11 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	allListeners := make([]net.Listener, 0)
 	listenerProtocols := make([]string, 0)
 
+	otel.Debug(ctx, "TESTING OTEL LOGGER 123...")
+
 	listenerArgs := getProtoListenersArgs(p)
 	for _, args := range listenerArgs {
+		otel.Debug(ctx, "TESTING OTEL LOGGER 123...")
 		if args.addr == "" {
 			continue
 		}
@@ -305,6 +310,8 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		// track potential blacklisting ad doesn't actually blacklist anyone.
 		allListeners = append(allListeners, listeners.NewAllowingListener(l, blacklist.OnConnect))
 	}
+
+	otel.Debug(ctx, "TESTING OTEL LOGGER 123...")
 
 	errCh := make(chan error, len(allListeners))
 	if p.EnableMultipath {
