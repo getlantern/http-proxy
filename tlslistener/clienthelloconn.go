@@ -180,12 +180,11 @@ func (rrc *clientHelloRecordingConn) Read(b []byte) (int, error) {
 //   - 2 bytes: protocol version
 //   - 2 bytes: length of the payload
 //   - N bytes: payload
-func concatenateTlsRecordsFragments(data []byte) []byte {
+func concatenateTlsRecordsFragments(data []byte) ([]byte, error) {
 	const headerLength = 5
 
 	if len(data) < headerLength {
-		fmt.Printf("Input data is too short to contain even one TLS record header.")
-		return nil
+		return nil, fmt.Errorf("input data is too short to contain even one TLS record header")
 	}
 
 	totalPayload := []byte{}
@@ -194,8 +193,7 @@ func concatenateTlsRecordsFragments(data []byte) []byte {
 
 	for i := 0; i < len(data); {
 		if len(data[i:]) < headerLength {
-			fmt.Printf("Incomplete TLS record header at position %d.", i)
-			return nil
+			return nil, fmt.Errorf("incomplete TLS record header at position %d", i)
 		}
 
 		header := data[i : i+headerLength]
@@ -204,8 +202,7 @@ func concatenateTlsRecordsFragments(data []byte) []byte {
 		length := int(header[3])<<8 | int(header[4])
 
 		if len(data[i+headerLength:]) < length {
-			fmt.Printf("Incomplete TLS record payload at position %d.", i+headerLength)
-			return nil
+			return nil, fmt.Errorf("incomplete TLS record payload at position %d", i+headerLength)
 		}
 
 		payload := data[i+headerLength : i+headerLength+length]
@@ -217,13 +214,12 @@ func concatenateTlsRecordsFragments(data []byte) []byte {
 	// Construct the new single TLS record
 	totalLength := len(totalPayload)
 	if totalLength > 0xFFFF {
-		fmt.Printf("Concatenated payload length %d exceeds maximum TLS record size.", totalLength)
-		return nil
+		return nil, fmt.Errorf("concatenated payload length %d exceeds maximum TLS record size", totalLength)
 	}
 
 	header := []byte{contentType, protocolVersion[0], protocolVersion[1], byte(totalLength >> 8), byte(totalLength & 0xFF)}
 	result := append(header, totalPayload...)
-	return result
+	return result, nil
 }
 
 func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*tls.Config, error) {
@@ -236,9 +232,9 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		bufferPool.Put(rrc.dataRead)
 	}()
 
-	concatenatedRecords := concatenateTlsRecordsFragments(rrc.dataRead.Bytes())
-	if concatenatedRecords == nil {
-		return rrc.helloError("malformed ClientHello")
+	concatenatedRecords, err := concatenateTlsRecordsFragments(rrc.dataRead.Bytes())
+	if err != nil {
+		return rrc.helloError("malformed ClientHello: " + err.Error())
 	}
 
 	hello := concatenatedRecords[5:]
