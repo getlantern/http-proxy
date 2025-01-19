@@ -2,7 +2,6 @@ package otel
 
 import (
 	"context"
-	"crypto/tls"
 	"time"
 
 	"go.opentelemetry.io/otel/attribute"
@@ -21,7 +20,8 @@ func InitLogger() error {
 	service := "http-proxy-lantern"
 	expLog, err := otlpLog.New(context.Background(),
 		otlpLog.WithEndpoint("172.16.0.88:4318"),
-		otlpLog.WithTLSClientConfig(&tls.Config{InsecureSkipVerify: true}),
+		// otlpLog.WithTLSClientConfig(&tls.Config{InsecureSkipVerify: true}),
+		otlpLog.WithInsecure(),
 	)
 	if err != nil {
 		return err
@@ -51,6 +51,7 @@ func Debug(ctx context.Context, title string) {
 	record.SetTimestamp(time.Now())
 	record.SetBody(otelLog.StringValue(title))
 	record.SetSeverity(otelLog.SeverityDebug)
+	record.SetSeverityText(otelLog.SeverityDebug.String())
 
 	logger.Emit(ctx, record)
 }
