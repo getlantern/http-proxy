@@ -160,11 +160,11 @@ func (pl *ProxyLogger) writeLog(severity otelLog.Severity, message string, field
 	pl.otelLogger.Emit(context.Background(), record)
 }
 
-func (pl *ProxyLogger) Debug(message string) {
+func (pl *ProxyLogger) Debug(message any) {
 	if pl.stdLogger != nil {
 		pl.stdLogger.Debug(message)
 	}
-	pl.writeLog(otelLog.SeverityDebug, message)
+	pl.writeLog(otelLog.SeverityDebug, fmt.Sprintf("%v", message))
 }
 
 func (pl *ProxyLogger) Debugf(format string, args ...any) {
