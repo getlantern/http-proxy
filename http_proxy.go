@@ -29,7 +29,6 @@ import (
 	"github.com/getlantern/kcpwrapper"
 
 	"github.com/getlantern/http-proxy-lantern/v2/broflake"
-	"github.com/getlantern/http-proxy-lantern/v2/logger"
 	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	"github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
@@ -83,8 +82,7 @@ const (
 )
 
 var (
-	// log = golog.LoggerFor("lantern-proxy")
-	log = logger.InitLogger("lantern-proxy", nil)
+	log = golog.LoggerFor("lantern-proxy")
 
 	proxyNameRegex = regexp.MustCompile(`(fp-([a-z0-9]+-)?([a-z0-9]+)-[0-9]{8}-[0-9]+)(-.+)?`)
 )
