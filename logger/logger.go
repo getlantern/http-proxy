@@ -2,6 +2,7 @@ package logger
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"path"
 	"reflect"
@@ -97,14 +98,20 @@ func kvAttributes(vs []any) []otelLog.KeyValue {
 	return res
 }
 
+var loggerOpts *Opts
+
 func InitLogger(loggerLoc string, opts *Opts) *ProxyLogger {
 	goLog := golog.LoggerFor(loggerLoc)
 	p := &ProxyLogger{
 		stdLogger: goLog,
 	}
 
-	if opts == nil {
+	if opts == nil && loggerOpts == nil {
 		return p
+	}
+
+	if opts != nil {
+		loggerOpts = opts
 	}
 
 	expLog, err := otlpLog.New(context.Background(),
@@ -116,7 +123,7 @@ func InitLogger(loggerLoc string, opts *Opts) *ProxyLogger {
 	}
 
 	resourceAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String(otelServiceName), attribute.String("logger_location", loggerLoc)}
-	resourceAttributes = append(resourceAttributes, opts.attrKV()...)
+	resourceAttributes = append(resourceAttributes, loggerOpts.attrKV()...)
 
 	r := resource.NewWithAttributes(semconv.SchemaURL, resourceAttributes...)
 	provider := otelLogSdk.NewLoggerProvider(
@@ -210,19 +217,23 @@ func (pl *ProxyLogger) Tracef(format string, args ...any) {
 	pl.writeLog(otelLog.SeverityTrace, format, args...)
 }
 
-func (pl *ProxyLogger) Error(message any) {
+func (pl *ProxyLogger) Error(message any) error {
+	var err error
 	var msg string
 
 	switch v := message.(type) {
 	case error:
 		msg = v.Error()
+		err = v
 	case fmt.Stringer:
 		msg = v.String()
+		err = errors.New(msg)
 	case string:
 		msg = v
+		err = errors.New(v)
 	default:
 		msg = "unknown error"
-		return
+		err = errors.New(msg)
 	}
 
 	if pl.stdLogger != nil {
@@ -230,15 +241,18 @@ func (pl *ProxyLogger) Error(message any) {
 	}
 
 	pl.writeLog(otelLog.SeverityError, msg)
+	return err
 }
 
-func (pl *ProxyLogger) Errorf(format string, args ...any) {
+func (pl *ProxyLogger) Errorf(format string, args ...any) error {
+	var e error
 	if pl.stdLogger != nil {
-		pl.stdLogger.Errorf(format, args...)
+		e = pl.stdLogger.Errorf(format, args...)
 	}
 
 	err := fmt.Errorf(format, args...)
 	msg := err.Error()
 
 	pl.writeLog(otelLog.SeverityError, msg)
+	return e
 }
