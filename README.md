@@ -40,6 +40,8 @@ http-proxy-lantern -config config.ini
 
 To regenerate `config.ini.default` just run `http-proxy-lantern -dumpflags`.
 
+You can find instructions for how to run http-proxy with WATER by following [`docs/running-water.md`](./docs/running-water.md) steps
+
 ### Testing with Lantern extensions and configuration
 
 ### Run tests
