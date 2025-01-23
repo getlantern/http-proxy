@@ -207,6 +207,7 @@ type listenerBuilderFN func(addr string) (net.Listener, error)
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe(ctx context.Context) error {
+	log.Debug("Testing log")
 	if p.CountryLookup == nil {
 		log.Debugf("Maxmind not configured, will not report country data with telemetry")
 		p.CountryLookup = geo.NoLookup{}
