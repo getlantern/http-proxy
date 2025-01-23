@@ -11,13 +11,13 @@ require (
 	github.com/OperatorFoundation/Starbridge-go/Starbridge/v3 v3.0.17
 	github.com/dustin/go-humanize v1.0.1
 	github.com/getlantern/broflake v0.0.0-20231117182649-7d46643a6f87
-	github.com/getlantern/cmux/v2 v2.0.0-20250123091729-85a7a868a63d
+	github.com/getlantern/cmux/v2 v2.0.0-20200905031936-c55b16ee8462
 	github.com/getlantern/cmuxprivate v0.0.0-20211216020409-d29d0d38be54
 	github.com/getlantern/enhttp v0.0.0-20210901195634-6f89d45ee033
 	github.com/getlantern/errors v1.0.4
 	github.com/getlantern/fdcount v0.0.0-20210503151800-5decd65b3731
 	github.com/getlantern/geo v0.0.0-20241129152027-2fc88c10f91e
-	github.com/getlantern/golog v0.0.0-20250123095205-12a1fc9471b1
+	github.com/getlantern/golog v0.0.0-20250123111742-f1cdfe6dd32b
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
 	github.com/getlantern/grtrack v0.0.0-20231025115619-bfbfadb228f3
 	github.com/getlantern/idletiming v0.0.0-20200228204104-10036786eac5
