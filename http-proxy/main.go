@@ -39,7 +39,7 @@ import (
 
 var (
 	// log        = golog.LoggerFor("lantern-proxy")
-	log        = logger.InitLogger("lantern-proxy", logger.Opts{})
+	log        = logger.InitLogger("lantern-proxy")
 	revision   = "unknown" // overridden by Makefile
 	build_type = "unknown" // overriden by Makefile
 
@@ -219,10 +219,10 @@ func main() {
 	}
 
 	// flags are now available and we can build OTEL logger with opts
-	log = logger.InitLogger("lantern-proxy", logger.Opts{
-		HostMachine: *proxyName,
-		TrackName:   *track,
-	})
+	// log = logger.InitLogger("lantern-proxy", logger.Opts{
+	// 	HostMachine: *proxyName,
+	// 	TrackName:   *track,
+	// })
 
 	var reporter *stackdrivererror.Reporter
 	if *stackdriverProjectID != "" && *stackdriverCreds != "" {

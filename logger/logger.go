@@ -13,6 +13,7 @@ import (
 
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/sdk/resource"
+	"gopkg.in/ini.v1"
 
 	"github.com/getlantern/golog"
 	"github.com/mitchellh/mapstructure"
@@ -36,14 +37,14 @@ type ProxyLogger struct {
 }
 
 type Opts struct {
-	HostMachine string
-	TrackName   string
-	RouteName   string
+	ProviderMachine string `ini:"provider"`
+	TrackName       string `ini:"track"`
+	RouteName       string `ini:"proxyname"`
 }
 
 func (o Opts) attrKV() []attribute.KeyValue {
 	return []attribute.KeyValue{
-		attribute.String("phost", o.HostMachine),
+		attribute.String("provider", o.ProviderMachine),
 		attribute.String("track", o.TrackName),
 		attribute.String("route", o.RouteName),
 	}
@@ -108,10 +109,28 @@ func (pl *ProxyLogger) SetStdLogger(logger golog.Logger) *ProxyLogger {
 		stdLogger:       logger,
 	}
 
-	otelLogger, _ := BuildOtelLogger(Opts{})
+	otelLogger, _ := BuildOtelLogger(BuildOtelOptsFromINI())
 	nL.otelLogger = otelLogger
 	return nL
 }
+
+func BuildOtelOptsFromINI() Opts {
+	cfg, err := ini.Load("/home/lantern/config.ini")
+	if err != nil {
+		return Opts{}
+	}
+
+	var opts Opts
+	err = cfg.MapTo(&opts)
+	if err != nil {
+		return Opts{}
+	}
+
+	fmt.Println("MY opts>>>", opts)
+
+	return opts
+}
+
 func BuildOtelLogger(opts Opts) (otelLog.Logger, error) {
 	expLog, err := otlpLog.New(context.Background(),
 		otlpLog.WithEndpoint(otelEndpoint),
@@ -133,13 +152,13 @@ func BuildOtelLogger(opts Opts) (otelLog.Logger, error) {
 	return provider.Logger(otelServiceName), nil
 }
 
-func InitLogger(stdLoggerPrefix string, opts Opts) *ProxyLogger {
+func InitLogger(stdLoggerPrefix string) *ProxyLogger {
 	goLog := golog.LoggerFor(stdLoggerPrefix)
 	p := &ProxyLogger{
 		stdLogger: goLog,
 	}
 
-	oLogger, err := BuildOtelLogger(opts)
+	oLogger, err := BuildOtelLogger(BuildOtelOptsFromINI())
 	if err != nil {
 		return p
 	}
