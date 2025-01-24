@@ -108,17 +108,16 @@ func GetLogger() *ProxyLogger {
 }
 
 func (pl *ProxyLogger) SetStdLogger(logger golog.Logger) *ProxyLogger {
-	copy := &ProxyLogger{
+	nL := &ProxyLogger{
 		initializedOtel: pl.initializedOtel,
 		otelLogger:      pl.otelLogger,
+		stdLogger:       logger,
 	}
-
-	copy.stdLogger = logger
-	return copy
+	return nL
 }
 
-func InitLogger(loggerLoc string, opts *Opts) *ProxyLogger {
-	goLog := golog.LoggerFor(loggerLoc)
+func InitLogger(stdLoggerPrefix string, opts *Opts) *ProxyLogger {
+	goLog := golog.LoggerFor(stdLoggerPrefix)
 	p := &ProxyLogger{
 		stdLogger: goLog,
 	}
@@ -137,7 +136,7 @@ func InitLogger(loggerLoc string, opts *Opts) *ProxyLogger {
 		return p
 	}
 
-	resourceAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String(otelServiceName), attribute.String("logger_location", loggerLoc)}
+	resourceAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String(otelServiceName)}
 	resourceAttributes = append(resourceAttributes, loggerOpts.attrKV()...)
 
 	r := resource.NewWithAttributes(semconv.SchemaURL, resourceAttributes...)

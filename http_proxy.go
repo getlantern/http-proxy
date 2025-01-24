@@ -89,6 +89,10 @@ var (
 	proxyNameRegex = regexp.MustCompile(`(fp-([a-z0-9]+-)?([a-z0-9]+)-[0-9]{8}-[0-9]+)(-.+)?`)
 )
 
+func init() {
+	cmux.SetLogger(logger.InitializedLogger.SetStdLogger(golog.LoggerFor("cmux")))
+}
+
 // Proxy is an HTTP proxy.
 type Proxy struct {
 	TestingLocal                       bool
