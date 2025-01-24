@@ -10,10 +10,12 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
 )
 
-var log = golog.LoggerFor("tokenfilter")
+// var log = golog.LoggerFor("tokenfilter")
+var log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("tokenfilter"))
 
 type tokenFilter struct {
 	token      string

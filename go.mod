@@ -17,7 +17,7 @@ require (
 	github.com/getlantern/errors v1.0.4
 	github.com/getlantern/fdcount v0.0.0-20210503151800-5decd65b3731
 	github.com/getlantern/geo v0.0.0-20241129152027-2fc88c10f91e
-	github.com/getlantern/golog v0.0.0-20250123111742-f1cdfe6dd32b
+	github.com/getlantern/golog v0.0.0-20230503153817-8e72de7e0a65
 	github.com/getlantern/gonat v0.0.0-20201001145726-634575ba87fb
 	github.com/getlantern/grtrack v0.0.0-20231025115619-bfbfadb228f3
 	github.com/getlantern/idletiming v0.0.0-20200228204104-10036786eac5
@@ -48,6 +48,7 @@ require (
 	github.com/go-redis/redis/v8 v8.11.5
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da
 	github.com/hashicorp/golang-lru v0.5.4
+	github.com/mitchellh/mapstructure v1.5.0
 	github.com/mitchellh/panicwrap v1.0.0
 	github.com/op/go-logging v0.0.0-20160315200505-970db520ece7
 	github.com/refraction-networking/utls v1.6.7
@@ -55,10 +56,12 @@ require (
 	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.10.0
+	github.com/uptrace/opentelemetry-go-extra/otelutil v0.3.2
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	github.com/xtaci/smux v1.5.24
 	gitlab.com/yawning/obfs4.git v0.0.0-20220204003609-77af0cba934d
 	go.opentelemetry.io/otel v1.34.0
+	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.10.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.28.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.19.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.19.0
@@ -72,8 +75,8 @@ require (
 
 require (
 	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
-	go.opentelemetry.io/otel/log v0.10.0 // indirect
-	go.opentelemetry.io/otel/sdk/log v0.10.0 // indirect
+	go.opentelemetry.io/otel/log v0.10.0
+	go.opentelemetry.io/otel/sdk/log v0.10.0
 )
 
 require (
@@ -169,7 +172,6 @@ require (
 	github.com/mdlayher/netlink v1.7.2 // indirect
 	github.com/mdlayher/socket v0.4.1 // indirect
 	github.com/mholt/archiver/v3 v3.5.1 // indirect
-	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mmcloughlin/avo v0.0.0-20200803215136-443f81d77104 // indirect
 	github.com/mschoch/smat v0.2.0 // indirect
 	github.com/nwaples/rardecode v1.1.2 // indirect
@@ -218,7 +220,6 @@ require (
 	github.com/tklauser/go-sysconf v0.3.9 // indirect
 	github.com/tklauser/numcpus v0.3.0 // indirect
 	github.com/ulikunitz/xz v0.5.11 // indirect
-	github.com/uptrace/opentelemetry-go-extra/otelutil v0.3.2 // indirect
 	github.com/vishvananda/netns v0.0.4 // indirect
 	github.com/xi2/xz v0.0.0-20171230120015-48954b6210f8 // indirect
 	github.com/yusufpapurcu/wmi v1.2.2 // indirect
@@ -227,7 +228,6 @@ require (
 	go.opencensus.io v0.24.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.49.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0 // indirect
-	go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp v0.10.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.5.0 // indirect
 	go.uber.org/atomic v1.9.0 // indirect
 	go.uber.org/mock v0.5.0 // indirect

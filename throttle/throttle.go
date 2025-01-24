@@ -4,10 +4,9 @@
 // are the 2-digit lowercase ISO-3166 country code plus a pipe-delimited
 // threshold and rate, for example:
 //
-//   _throttle:mobile
-//     "__"   "524288000|10240"
-//     "cn"   "104857600|10240"
-//
+//	_throttle:mobile
+//	  "__"   "524288000|10240"
+//	  "cn"   "104857600|10240"
 package throttle
 
 import (
@@ -22,6 +21,7 @@ import (
 
 	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 )
 
 const (
@@ -29,7 +29,8 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("flashlight.throttle")
+	// log = golog.LoggerFor("flashlight.throttle")
+	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("flashligh.throttle"))
 )
 
 type CapInterval string

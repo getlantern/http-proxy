@@ -24,6 +24,8 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
 	"github.com/getlantern/proxy/v3/filters"
+
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 )
 
 type httpsUpgrade struct {
@@ -40,7 +42,9 @@ func NewHTTPSUpgrade(configServerAuthToken string) filters.Filter {
 				IdleConnTimeout: 4 * time.Minute,
 			},
 		},
-		log:                   golog.LoggerFor("httpsUpgrade"),
+		// log:                   golog.LoggerFor("httpsUpgrade"),
+		log: logger.InitializedLogger.SetStdLogger(golog.LoggerFor("httpsUpgrade")),
+
 		configServerAuthToken: configServerAuthToken,
 	}
 }

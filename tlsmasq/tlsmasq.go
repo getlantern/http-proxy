@@ -13,9 +13,12 @@ import (
 	"github.com/getlantern/tlsmasq"
 	"github.com/getlantern/tlsmasq/ptlshs"
 	"github.com/getlantern/tlsutil"
+
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 )
 
-var log = golog.LoggerFor("tlsmasq-listener")
+// var log = golog.LoggerFor("tlsmasq-listener")
+var log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("tlsmasq-listener"))
 
 func Wrap(ll net.Listener, certFile string, keyFile string, originAddr string, secret string,
 	tlsMinVersion uint16, tlsCipherSuites []uint16, onNonFatalErrors func(error)) (net.Listener, error) {

@@ -60,6 +60,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/httpsupgrade"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/lampshade"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/v2/ping"
@@ -82,7 +83,8 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("lantern-proxy")
+	// log = golog.LoggerFor("lantern-proxy")
+	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("lantern-proxy"))
 
 	proxyNameRegex = regexp.MustCompile(`(fp-([a-z0-9]+-)?([a-z0-9]+)-[0-9]{8}-[0-9]+)(-.+)?`)
 )
@@ -1046,7 +1048,8 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 	switch p.WaterMismatchProtocol {
 	case "PROTOCOL_UNSPECIFIED":
 		listener, err := waterListener.NewWATERListener(ctx, waterListener.ListenerParams{
-			Logger:    golog.LoggerFor("water"),
+			// Logger:    golog.LoggerFor("water"),
+			Logger:    logger.InitializedLogger.SetStdLogger(golog.LoggerFor("water")),
 			Transport: p.WaterTransport,
 			Address:   addr,
 			WASM:      wasm,

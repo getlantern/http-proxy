@@ -5,10 +5,12 @@ import (
 
 	"github.com/getlantern/errors"
 	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 	"github.com/getlantern/proxy/v3/filters"
 )
 
-var log = golog.LoggerFor("http-proxy.filters")
+// var log = golog.LoggerFor("http-proxy.filters")
+var log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("http-proxy.filters"))
 
 func fail(cs *filters.ConnectionState, req *http.Request, statusCode int, description string, params ...interface{}) (*http.Response, *filters.ConnectionState, error) {
 	log.Errorf("Filter fail: "+description, params...)

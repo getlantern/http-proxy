@@ -14,6 +14,7 @@ import (
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/listeners"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/usage"
 	"github.com/getlantern/measured"
@@ -42,7 +43,8 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("redis")
+	// log = golog.LoggerFor("redis")
+	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("redis"))
 )
 
 type statsAndContext struct {

@@ -16,10 +16,12 @@ import (
 	"github.com/getlantern/proxy/v3/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 )
 
 var (
-	log = golog.LoggerFor("http-proxy-lantern.ping")
+	// log = golog.LoggerFor("http-proxy-lantern.ping")
+	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("http-proxy-lantern.ping"))
 
 	letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 

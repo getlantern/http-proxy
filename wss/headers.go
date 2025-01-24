@@ -6,13 +6,15 @@ import (
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 	"github.com/getlantern/netx"
 	"github.com/getlantern/proxy/v3/filters"
 	"github.com/getlantern/tinywss"
 )
 
 var (
-	log = golog.LoggerFor("wss")
+	// log = golog.LoggerFor("wss")
+	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("wss"))
 	// these headers are replicated from the inital http upgrade request
 	// to certain subrequests on a wss connection.
 	headerWhitelist = []string{

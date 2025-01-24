@@ -12,6 +12,8 @@ import (
 	"github.com/Jigsaw-Code/outline-sdk/transport"
 	onet "github.com/Jigsaw-Code/outline-ss-server/net"
 	"github.com/Jigsaw-Code/outline-ss-server/service"
+
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 )
 
 // shadowsocks/local.go houses adapters for use with Lantern. This mostly is in
@@ -19,7 +21,8 @@ import (
 // have shadowsocks behave like other transports we use in Lantern.
 
 var (
-	log = golog.LoggerFor("shadowsocks")
+	// log = golog.LoggerFor("shadowsocks")
+	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("shadowsocks"))
 
 	ErrListenerClosed = errors.New("listener closed")
 )

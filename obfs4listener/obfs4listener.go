@@ -12,6 +12,7 @@ import (
 	"github.com/getlantern/withtimeout"
 
 	pt "git.torproject.org/pluggable-transports/goptlib.git"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 	"gitlab.com/yawning/obfs4.git/transports/base"
 	"gitlab.com/yawning/obfs4.git/transports/obfs4"
 )
@@ -23,7 +24,8 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("obfs4listener")
+	// log = golog.LoggerFor("obfs4listener")
+	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("obfs4listener"))
 )
 
 func Wrap(wrapped net.Listener, stateDir string, handshakeConcurrency int, maxPendingHandshakesPerClient int, handshakeTimeout time.Duration) (net.Listener, error) {

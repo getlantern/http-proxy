@@ -16,10 +16,12 @@ import (
 	"time"
 
 	"github.com/getlantern/golog"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 )
 
 var (
-	log = golog.LoggerFor("apache")
+	// log = golog.LoggerFor("apache")
+	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("apache"))
 )
 
 type apacheMimic struct {
