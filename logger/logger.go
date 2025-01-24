@@ -41,7 +41,7 @@ type Opts struct {
 	RouteName   string
 }
 
-func (o *Opts) attrKV() []attribute.KeyValue {
+func (o Opts) attrKV() []attribute.KeyValue {
 	return []attribute.KeyValue{
 		attribute.String("phost", o.HostMachine),
 		attribute.String("track", o.TrackName),
@@ -101,43 +101,28 @@ func kvAttributes(vs []any) []otelLog.KeyValue {
 }
 
 var InitializedLogger = &ProxyLogger{}
-var loggerOpts *Opts
-
-func GetLogger() *ProxyLogger {
-	return InitializedLogger
-}
 
 func (pl *ProxyLogger) SetStdLogger(logger golog.Logger) *ProxyLogger {
 	nL := &ProxyLogger{
 		initializedOtel: pl.initializedOtel,
-		otelLogger:      pl.otelLogger,
 		stdLogger:       logger,
 	}
+
+	otelLogger, _ := BuildOtelLogger(Opts{})
+	nL.otelLogger = otelLogger
 	return nL
 }
-
-func InitLogger(stdLoggerPrefix string, opts *Opts) *ProxyLogger {
-	goLog := golog.LoggerFor(stdLoggerPrefix)
-	p := &ProxyLogger{
-		stdLogger: goLog,
-	}
-
-	if opts == nil {
-		return p
-	}
-
-	loggerOpts = opts
-
+func BuildOtelLogger(opts Opts) (otelLog.Logger, error) {
 	expLog, err := otlpLog.New(context.Background(),
 		otlpLog.WithEndpoint(otelEndpoint),
 		otlpLog.WithInsecure(), // the endpoint is on the lo interface, so this "might" be safe
 	)
 	if err != nil {
-		return p
+		return nil, err
 	}
 
 	resourceAttributes := []attribute.KeyValue{semconv.ServiceNameKey.String(otelServiceName)}
-	resourceAttributes = append(resourceAttributes, loggerOpts.attrKV()...)
+	resourceAttributes = append(resourceAttributes, opts.attrKV()...)
 
 	r := resource.NewWithAttributes(semconv.SchemaURL, resourceAttributes...)
 	provider := otelLogSdk.NewLoggerProvider(
@@ -145,7 +130,21 @@ func InitLogger(stdLoggerPrefix string, opts *Opts) *ProxyLogger {
 		otelLogSdk.WithResource(r),
 	)
 
-	p.otelLogger = provider.Logger(otelServiceName)
+	return provider.Logger(otelServiceName), nil
+}
+
+func InitLogger(stdLoggerPrefix string, opts Opts) *ProxyLogger {
+	goLog := golog.LoggerFor(stdLoggerPrefix)
+	p := &ProxyLogger{
+		stdLogger: goLog,
+	}
+
+	oLogger, err := BuildOtelLogger(opts)
+	if err != nil {
+		return p
+	}
+
+	p.otelLogger = oLogger
 	p.initializedOtel = true
 
 	InitializedLogger = p
