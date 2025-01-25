@@ -7,7 +7,6 @@ import (
 	"io"
 	"log"
 	"path"
-	"reflect"
 	"runtime"
 	"time"
 
@@ -16,8 +15,6 @@ import (
 	"gopkg.in/ini.v1"
 
 	"github.com/getlantern/golog"
-	"github.com/mitchellh/mapstructure"
-	"github.com/uptrace/opentelemetry-go-extra/otelutil"
 	otlpLog "go.opentelemetry.io/otel/exporters/otlp/otlplog/otlploghttp"
 	otelLog "go.opentelemetry.io/otel/log"
 	otelLogSdk "go.opentelemetry.io/otel/sdk/log"
@@ -47,57 +44,6 @@ func (o Opts) attrKV() []attribute.KeyValue {
 		attribute.String("track", o.TrackName),
 		attribute.String("route", o.RouteName),
 	}
-}
-
-// convertFields converts various types of fields into a slice of key-value pairs.
-func convertFields(fields ...any) []any {
-	var result []any
-	for _, field := range fields {
-		switch v := field.(type) {
-		case []interface{}:
-			for i := 0; i < len(v); i += 2 {
-				if i+1 < len(v) {
-					result = append(result, v[i], v[i+1])
-				}
-			}
-		default:
-			val := reflect.ValueOf(v)
-			if val.Kind() == reflect.Map {
-				for _, key := range val.MapKeys() {
-					result = append(result, key.Interface(), val.MapIndex(key).Interface())
-				}
-			} else if val.Kind() == reflect.Struct {
-				var mapResult map[string]interface{}
-				err := mapstructure.Decode(v, &mapResult)
-				if err == nil {
-					result = append(result, v)
-				}
-
-			} else {
-				result = append(result, v)
-			}
-		}
-	}
-	return result
-}
-
-func kvAttributes(vs []any) []otelLog.KeyValue {
-	res := make([]otelLog.KeyValue, 0, len(vs)/2)
-
-	var i int
-	for i = 0; i+1 < len(vs); i += 2 {
-		k, ok := vs[i].(string)
-		if !ok {
-			res = append(res, otelLog.String("logError", fmt.Sprintf("%+v is not a string key", vs[i])))
-		}
-		res = append(res, otelLog.KeyValue{Key: k, Value: otelutil.LogValue(vs[i+1])})
-	}
-
-	if i < len(vs) {
-		res = append(res, otelLog.KeyValue{Key: "_EXTRA", Value: otelutil.LogValue(vs[i])})
-	}
-
-	return res
 }
 
 func (pl *ProxyLogger) SetStdLogger(logger golog.Logger) *ProxyLogger {
@@ -161,18 +107,15 @@ func InitLogger(stdLoggerPrefix string) *ProxyLogger {
 	return p
 }
 
-func (pl *ProxyLogger) writeLog(severity otelLog.Severity, message string, fields ...any) {
+func (pl *ProxyLogger) writeLog(severity otelLog.Severity, message any) {
 	if pl.otelLogger == nil {
 		return
 	}
 	var record otelLog.Record
 	record.SetTimestamp(time.Now())
-	record.SetBody(otelLog.StringValue(message))
+	record.SetBody(otelLog.StringValue(fmt.Sprintf("%v", message)))
 	record.SetSeverity(severity)
 	record.SetSeverityText(severity.String())
-
-	fields = convertFields(fields...)
-	record.AddAttributes(kvAttributes(fields)...)
 
 	if pc, file, line, ok := runtime.Caller(2); ok {
 		fn := ""
@@ -189,71 +132,43 @@ func (pl *ProxyLogger) Debug(message any) {
 	if pl.stdLogger != nil {
 		pl.stdLogger.Debug(message)
 	}
-	pl.writeLog(otelLog.SeverityDebug, fmt.Sprintf("%v", message))
+	pl.writeLog(otelLog.SeverityDebug, message)
 }
 
 func (pl *ProxyLogger) Debugf(format string, args ...any) {
 	if pl.stdLogger != nil {
 		pl.stdLogger.Debugf(format, args...)
 	}
-	pl.writeLog(otelLog.SeverityDebug, format, args...)
+	pl.writeLog(otelLog.SeverityDebug, fmt.Sprintf(format, args...))
 }
 
 func (pl *ProxyLogger) Fatal(message any) {
 	if pl.stdLogger != nil {
 		pl.stdLogger.Fatal(message)
 	}
-
-	var msg string
-
-	switch v := message.(type) {
-	case error:
-		msg = v.Error()
-	case fmt.Stringer:
-		msg = v.String()
-	case string:
-		msg = v
-	default:
-		msg = "unknown error"
-		return
-	}
-
-	pl.writeLog(otelLog.SeverityFatal, msg)
+	pl.writeLog(otelLog.SeverityFatal, message)
 }
 
 func (pl *ProxyLogger) Fatalf(format string, args ...any) {
 	if pl.stdLogger != nil {
 		pl.stdLogger.Fatalf(format, args...)
 	}
-	pl.writeLog(otelLog.SeverityFatal, format, args...)
+	pl.writeLog(otelLog.SeverityFatal, fmt.Sprintf(format, args...))
 }
 
 func (pl *ProxyLogger) Trace(message any) {
 	if pl.stdLogger != nil {
 		pl.stdLogger.Trace(message)
 	}
-	var msg string
 
-	switch v := message.(type) {
-	case error:
-		msg = v.Error()
-	case fmt.Stringer:
-		msg = v.String()
-	case string:
-		msg = v
-	default:
-		msg = "unknown error"
-		return
-	}
-
-	pl.writeLog(otelLog.SeverityTrace, msg)
+	pl.writeLog(otelLog.SeverityTrace, message)
 }
 
 func (pl *ProxyLogger) Tracef(format string, args ...any) {
 	if pl.stdLogger != nil {
 		pl.stdLogger.Tracef(format, args...)
 	}
-	pl.writeLog(otelLog.SeverityTrace, format, args...)
+	pl.writeLog(otelLog.SeverityTrace, fmt.Sprintf(format, args...))
 }
 
 func (pl *ProxyLogger) Error(message any) error {
