@@ -6,7 +6,6 @@ import (
 	"net"
 	"time"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/netx"
 
 	"github.com/Jigsaw-Code/outline-sdk/transport"
@@ -21,8 +20,7 @@ import (
 // have shadowsocks behave like other transports we use in Lantern.
 
 var (
-	// log = golog.LoggerFor("shadowsocks")
-	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("shadowsocks"))
+	log = logger.InitLogger("shadowsocks")
 
 	ErrListenerClosed = errors.New("listener closed")
 )

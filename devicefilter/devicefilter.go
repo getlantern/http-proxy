@@ -10,7 +10,6 @@ import (
 
 	"github.com/dustin/go-humanize"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/v3/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/listeners"
@@ -26,8 +25,7 @@ import (
 )
 
 var (
-	// log = golog.LoggerFor("devicefilter")
-	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("devicefilter"))
+	log = logger.InitLogger("devicefilter")
 
 	epoch = time.Date(2016, 1, 1, 0, 0, 0, 0, time.UTC)
 

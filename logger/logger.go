@@ -31,9 +31,8 @@ const (
 
 // wraps both an otel logger and std logger
 type ProxyLogger struct {
-	initializedOtel bool
-	stdLogger       golog.Logger
-	otelLogger      otelLog.Logger
+	stdLogger  golog.Logger
+	otelLogger otelLog.Logger
 }
 
 type Opts struct {
@@ -101,12 +100,9 @@ func kvAttributes(vs []any) []otelLog.KeyValue {
 	return res
 }
 
-var InitializedLogger = &ProxyLogger{}
-
 func (pl *ProxyLogger) SetStdLogger(logger golog.Logger) *ProxyLogger {
 	nL := &ProxyLogger{
-		initializedOtel: pl.initializedOtel,
-		stdLogger:       logger,
+		stdLogger: logger,
 	}
 
 	otelLogger, _ := BuildOtelLogger(BuildOtelOptsFromINI())
@@ -125,8 +121,6 @@ func BuildOtelOptsFromINI() Opts {
 	if err != nil {
 		return Opts{}
 	}
-
-	fmt.Println("MY opts>>>", opts)
 
 	return opts
 }
@@ -164,9 +158,6 @@ func InitLogger(stdLoggerPrefix string) *ProxyLogger {
 	}
 
 	p.otelLogger = oLogger
-	p.initializedOtel = true
-
-	InitializedLogger = p
 	return p
 }
 

@@ -42,8 +42,7 @@ func NewHTTPSUpgrade(configServerAuthToken string) filters.Filter {
 				IdleConnTimeout: 4 * time.Minute,
 			},
 		},
-		// log:                   golog.LoggerFor("httpsUpgrade"),
-		log: logger.InitializedLogger.SetStdLogger(golog.LoggerFor("httpsUpgrade")),
+		log: logger.InitLogger("httpsUpgrade"),
 
 		configServerAuthToken: configServerAuthToken,
 	}

@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/getlantern/enhttp"
-	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/v3/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/common"
@@ -20,8 +19,7 @@ import (
 )
 
 var (
-	// log = golog.LoggerFor("http-proxy-lantern.ping")
-	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("http-proxy-lantern.ping"))
+	log = logger.InitLogger("http-proxy-lantern.ping")
 
 	letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 

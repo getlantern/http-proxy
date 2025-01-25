@@ -8,7 +8,6 @@ import (
 	"sync/atomic"
 	"time"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/withtimeout"
 
 	pt "git.torproject.org/pluggable-transports/goptlib.git"
@@ -24,8 +23,7 @@ const (
 )
 
 var (
-	// log = golog.LoggerFor("obfs4listener")
-	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("obfs4listener"))
+	log = logger.InitLogger("obfs4listener")
 )
 
 func Wrap(wrapped net.Listener, stateDir string, handshakeConcurrency int, maxPendingHandshakesPerClient int, handshakeTimeout time.Duration) (net.Listener, error) {

@@ -15,7 +15,6 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/v2/analytics/engine"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/logger"
 	"github.com/getlantern/proxy/v3/filters"
@@ -27,8 +26,7 @@ func init() {
 }
 
 var (
-	// log = golog.LoggerFor("http-proxy-lantern.analytics")
-	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("http-proxy-lantern.analytics"))
+	log = logger.InitLogger("http-proxy-lantern.analytics")
 )
 
 // siteAccess holds information for tracking access to a site

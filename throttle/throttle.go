@@ -20,7 +20,6 @@ import (
 	"github.com/spaolacci/murmur3"
 
 	"github.com/getlantern/errors"
-	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/v2/logger"
 )
 
@@ -29,8 +28,7 @@ const (
 )
 
 var (
-	// log = golog.LoggerFor("flashlight.throttle")
-	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("flashligh.throttle"))
+	log = logger.InitLogger("flashlight.throttle")
 )
 
 type CapInterval string

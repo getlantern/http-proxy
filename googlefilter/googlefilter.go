@@ -12,9 +12,6 @@ import (
 )
 
 var (
-	// log = golog.LoggerFor("googlefilter")
-	// log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("googlefilter"))
-
 	// DefaultSearchRegex is the default regex for google search domains.
 	DefaultSearchRegex = `^(www.)?google\..+`
 

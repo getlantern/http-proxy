@@ -18,8 +18,7 @@ import (
 )
 
 var (
-	// log = golog.LoggerFor("tlslistener")
-	log = logger.InitializedLogger.SetStdLogger(golog.LoggerFor("tlslistener"))
+	log = logger.InitLogger("tlslistener")
 )
 
 // Wrap wraps the specified listener in our default TLS listener.

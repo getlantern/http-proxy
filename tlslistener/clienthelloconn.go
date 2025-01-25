@@ -140,10 +140,9 @@ func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utl
 	buf := bufferPool.Get().(*bytes.Buffer)
 	cfgClone := cfg.Clone()
 	rrc := &clientHelloRecordingConn{
-		Conn:     rawConn,
-		dataRead: buf,
-		// log:                   golog.LoggerFor("clienthello-conn"),
-		log:                   logger.InitializedLogger.SetStdLogger(golog.LoggerFor("clienthello-conn")),
+		Conn:                  rawConn,
+		dataRead:              buf,
+		log:                   logger.InitLogger("clienthello-conn"),
 		cfg:                   cfgClone,
 		ticketKeys:            ticketKeys,
 		activeReader:          io.TeeReader(rawConn, buf),

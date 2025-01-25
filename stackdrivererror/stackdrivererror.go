@@ -41,8 +41,7 @@ func (r *Reporter) Report(severity golog.Severity, err error, stack []byte) {
 // Enable enables golog to report errors to stackdriver and returns the reporter.
 func Enable(ctx context.Context, projectID, stackdriverCreds string,
 	samplePercentage float64, proxyName, externalIP, proxyProtocol string, track string) *Reporter {
-	// log := golog.LoggerFor("proxy-stackdriver")
-	log := logger.InitializedLogger.SetStdLogger(golog.LoggerFor("proxy-stackdriver"))
+	log := logger.InitLogger("proxy-stackdriver")
 	log.Debugf("Enabling stackdriver error reporting for project %v", projectID)
 	serviceVersion := track
 
