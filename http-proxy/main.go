@@ -28,6 +28,7 @@ import (
 	proxy "github.com/getlantern/http-proxy-lantern/v2"
 	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
 	"github.com/getlantern/http-proxy-lantern/v2/googlefilter"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
 	lanternredis "github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
@@ -37,7 +38,7 @@ import (
 )
 
 var (
-	log        = golog.LoggerFor("lantern-proxy")
+	log        = logger.InitLogger("lantern-proxy")
 	revision   = "unknown" // overridden by Makefile
 	build_type = "unknown" // overriden by Makefile
 

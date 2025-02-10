@@ -17,6 +17,7 @@ import (
 	"github.com/getlantern/netx"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 )
 
 var (
@@ -141,7 +142,7 @@ func newClientHelloRecordingConn(rawConn net.Conn, cfg *tls.Config, utlsCfg *utl
 	rrc := &clientHelloRecordingConn{
 		Conn:                  rawConn,
 		dataRead:              buf,
-		log:                   golog.LoggerFor("clienthello-conn"),
+		log:                   logger.InitLogger("clienthello-conn"),
 		cfg:                   cfgClone,
 		ticketKeys:            ticketKeys,
 		activeReader:          io.TeeReader(rawConn, buf),
