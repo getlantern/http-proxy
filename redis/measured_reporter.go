@@ -249,3 +249,64 @@ func daysFrom(start time.Time, days int) time.Time {
 	next := start.AddDate(0, 0, days)
 	return time.Date(next.Year(), next.Month(), next.Day(), 0, 0, 0, 0, start.Location()).Add(-1 * time.Nanosecond)
 }
+
+// reporter that is only wrapped with the broflake listener, to track its usage
+func NewBroflakeReporter(rc *redis.Client, reportInterval time.Duration) listeners.MeasuredReportFN {
+	// Provide some buffering so that we don't lose data while submitting to Redis
+	bfStatsCh := make(chan *statsAndContext, 10000)
+	go reportBroflakePeriodically(rc, reportInterval, bfStatsCh)
+	return func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
+		select {
+		case bfStatsCh <- &statsAndContext{ctx, deltaStats}:
+			// submitted successfully
+		default:
+			// data lost, probably because Redis submission is taking longer than expected
+		}
+	}
+}
+
+func reportBroflakePeriodically(rc *redis.Client, reportInterval time.Duration, bfStatsCh chan *statsAndContext) {
+	// randomize the interval to evenly distribute traffic to reporting Redis.
+	randomized := time.Duration(reportInterval.Nanoseconds()/2 + rand.Int63n(reportInterval.Nanoseconds()))
+	log.Debugf("Will report data usage to Redis every %v", randomized)
+	ticker := time.NewTicker(randomized)
+	statsByDeviceID := make(map[string]*statsAndContext)
+	var scriptSHA string
+	for {
+		select {
+		case sac := <-bfStatsCh:
+			_deviceID := sac.ctx[common.DeviceID]
+			if _deviceID == nil {
+				// ignore
+				continue
+			}
+			deviceID := _deviceID.(string)
+			statsByDeviceID[deviceID] = statsByDeviceID[deviceID].add(sac)
+		case <-ticker.C:
+			if log.IsTraceEnabled() {
+				log.Tracef("Submitting %d stats", len(statsByDeviceID))
+			}
+			if scriptSHA == "" {
+				// load BF script here
+			}
+
+			err := simulateSubmit(rc, scriptSHA, statsByDeviceID)
+			if err != nil {
+				log.Errorf("Unable to submit stats: %v", err)
+			}
+			// Reset stats
+			statsByDeviceID = make(map[string]*statsAndContext)
+		}
+	}
+}
+
+func simulateSubmit(rc *redis.Client, scriptSHA string, statsByDeviceID map[string]*statsAndContext) error {
+	//send to redis here
+	_ = rc
+	_ = scriptSHA
+	for deviceID, _ := range statsByDeviceID {
+		log.Debugf("Stats", "device", deviceID)
+	}
+	log.Debug("simulated submitted stats")
+	return nil
+}

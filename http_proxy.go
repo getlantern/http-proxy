@@ -960,6 +960,11 @@ func (p *Proxy) listenBroflake(baseListen func(string) (net.Listener, error)) li
 		// Wrap broflake streams with idletiming as well
 		wrapped = listeners.NewIdleConnListener(wrapped, p.IdleTimeout)
 
+		// Wrap broflake streams with bandwidth reporting as well
+		interval := 60 * 60 * time.Second //TODO is this the right interval?
+		bfReporter := redis.NewBroflakeReporter(p.ReportingRedisClient, interval)
+		wrapped = listeners.NewMeasuredListener(wrapped, interval, bfReporter)
+
 		return wrapped, nil
 	}
 }
