@@ -56,7 +56,7 @@ require (
 	github.com/spaolacci/murmur3 v1.1.0
 	github.com/stretchr/testify v1.10.0
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
-	github.com/xtaci/smux v1.5.24
+	github.com/xtaci/smux v1.5.35-0.20250217141229-e6b0586a4539
 	gitlab.com/yawning/obfs4.git v0.0.0-20220204003609-77af0cba934d
 	go.opentelemetry.io/otel v1.28.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.28.0
