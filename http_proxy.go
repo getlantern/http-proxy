@@ -24,7 +24,6 @@ import (
 	"github.com/getlantern/enhttp"
 	"github.com/getlantern/errors"
 	"github.com/getlantern/geo"
-	"github.com/getlantern/golog"
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
 
@@ -60,6 +59,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/httpsupgrade"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
 	"github.com/getlantern/http-proxy-lantern/v2/lampshade"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/v2/ping"
@@ -82,10 +82,13 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("lantern-proxy")
-
+	log            = logger.InitLogger("lantern-proxy")
 	proxyNameRegex = regexp.MustCompile(`(fp-([a-z0-9]+-)?([a-z0-9]+)-[0-9]{8}-[0-9]+)(-.+)?`)
 )
+
+func init() {
+	cmux.SetLogger(logger.InitLogger("cmux"))
+}
 
 // Proxy is an HTTP proxy.
 type Proxy struct {
@@ -207,6 +210,7 @@ type listenerBuilderFN func(addr string) (net.Listener, error)
 
 // ListenAndServe listens, serves and blocks.
 func (p *Proxy) ListenAndServe(ctx context.Context) error {
+	log.Debug("Testing log")
 	if p.CountryLookup == nil {
 		log.Debugf("Maxmind not configured, will not report country data with telemetry")
 		p.CountryLookup = geo.NoLookup{}
@@ -269,6 +273,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 			p.instrument.Connection(ctx, clientIP)
 		},
 	})
+
 	stopProxiedBytes := p.configureTeleportProxiedBytes()
 	defer stopProxiedBytes()
 
@@ -1044,7 +1049,7 @@ func (p *Proxy) listenWATER(addr string) (net.Listener, error) {
 	switch p.WaterMismatchProtocol {
 	case "PROTOCOL_UNSPECIFIED":
 		listener, err := waterListener.NewWATERListener(ctx, waterListener.ListenerParams{
-			Logger:    golog.LoggerFor("water"),
+			Logger:    logger.InitLogger("water"),
 			Transport: p.WaterTransport,
 			Address:   addr,
 			WASM:      wasm,
