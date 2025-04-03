@@ -29,6 +29,7 @@ type stateAwareMeasuredListener struct {
 }
 
 func NewMeasuredListener(l net.Listener, reportInterval time.Duration, report MeasuredReportFN) net.Listener {
+	log.Debugf("Creating new measured listener with report interval %v", reportInterval)
 	return &stateAwareMeasuredListener{l, reportInterval, report}
 }
 
@@ -61,6 +62,7 @@ type wrapMeasuredConn struct {
 }
 
 func (c *wrapMeasuredConn) track(reportInterval time.Duration, report MeasuredReportFN) {
+	log.Debugf("Starting to report stats every %v", reportInterval)
 	ticker := time.NewTicker(reportInterval)
 	defer ticker.Stop()
 

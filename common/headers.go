@@ -18,6 +18,7 @@ const (
 	CfgSvrAuthTokenHeader   = "X-Lantern-Config-Auth-Token"
 	CfgSvrClientIPHeader    = "X-Lantern-Config-Client-IP"
 	LocaleHeader            = "X-Lantern-Locale"
+	UnboundedTeamIdHeader   = "X-Lantern-Unbounded-Team-Id"
 	XBQHeader               = "XBQ"
 	XBQHeaderv2             = "XBQv2"
 )
@@ -44,4 +45,5 @@ const (
 	ThrottleSettings  = "throttle_settings"
 	TimeZone          = "time_zone"
 	SupportedDataCaps = "supported_data_caps"
+	UnboundedTeamId   = "unbounded_team_id"
 )

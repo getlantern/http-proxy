@@ -235,6 +235,12 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 
 	country := ins.countryLookup.CountryCode(clientIP)
 
+	unboundedTeamId := ""
+	value := ctx.Value(common.UnboundedTeamId)
+	if value != nil {
+		unboundedTeamId = value.(string)
+	}
+
 	isp := ins.ispLookup.ISP(clientIP)
 	asn := ins.ispLookup.ASN(clientIP)
 	otelAttributes := []attribute.KeyValue{
@@ -248,6 +254,7 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		{"country", attribute.StringValue(country)},
 		{"client_isp", attribute.StringValue(isp)},
 		{"client_asn", attribute.StringValue(asn)},
+		{common.UnboundedTeamId, attribute.StringValue(unboundedTeamId)},
 	}
 
 	otelinstrument.ProxyIO.Add(

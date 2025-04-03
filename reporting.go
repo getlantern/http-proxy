@@ -45,6 +45,9 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 		probingError := fromContext(ctx, common.ProbingError)
 		arch := fromContext(ctx, common.KernelArch)
 
+		//used for unbounded only
+		unboundedTeamId := fromContext(ctx, common.UnboundedTeamId)
+
 		var client_ip net.IP
 		_client_ip := ctx[common.ClientIP]
 		if _client_ip != nil {
@@ -56,7 +59,14 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 		if hasThrottleSettings {
 			dataCapCohort = throttleSettings.(*throttle.Settings).Label
 		}
-		instrument.ProxiedBytes(context.Background(), deltaStats.SentTotal, deltaStats.RecvTotal, platform, platformVersion, libraryVersion, appVersion, app, locale, dataCapCohort, probingError, client_ip, deviceID, originHost, arch)
+
+		ctxWithTeamId := context.WithValue(context.Background(), common.UnboundedTeamId, unboundedTeamId)
+		instrument.ProxiedBytes(ctxWithTeamId, deltaStats.SentTotal, deltaStats.RecvTotal, platform, platformVersion, libraryVersion, appVersion, app, locale, dataCapCohort, probingError, client_ip, deviceID, originHost, arch)
+	}
+
+	doesNothingReporter := func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
+		// noop
+		log.Debugf("Empty Reporter called, %v", ctx)
 	}
 
 	var reporter listeners.MeasuredReportFN
@@ -64,14 +74,18 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 		log.Debug("No throttling configured, don't bother reporting bandwidth usage to Redis")
 		reporter = func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats,
 			final bool) {
+			log.Debugf("Empty REDIS Reporter called, %v", ctx)
 			// noop
 		}
 	} else if rc != nil {
 		reporter = redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval, throttleConfig)
 	}
 	reporter = combineReporter(reporter, proxiedBytesReporter)
+	reporter = combineReporter(reporter, doesNothingReporter)
+
 	wrapper := func(ls net.Listener) net.Listener {
-		return listeners.NewMeasuredListener(ls, measuredReportingInterval, reporter)
+		customDuration := 1 * time.Second
+		return listeners.NewMeasuredListener(ls, customDuration, reporter)
 	}
 	return &reportingConfig{true, wrapper}
 }
