@@ -937,7 +937,6 @@ func (p *Proxy) listenWSS(addr string) (net.Listener, error) {
 func (p *Proxy) listenBroflake(baseListen func(string) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
 		l, err := baseListen(addr)
-		//l, err := net.Listen("tcp", addr)
 		if err != nil {
 			return nil, err
 		}

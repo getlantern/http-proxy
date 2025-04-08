@@ -47,6 +47,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 
 		//used for unbounded only
 		unboundedTeamId := fromContext(ctx, common.UnboundedTeamId)
+		log.Debugf("reporting stats to otel: unbounded_team_id:%s, bytes:%v", unboundedTeamId, stats.RecvTotal)
 
 		var client_ip net.IP
 		_client_ip := ctx[common.ClientIP]
@@ -64,24 +65,16 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 		instrument.ProxiedBytes(ctxWithTeamId, deltaStats.SentTotal, deltaStats.RecvTotal, platform, platformVersion, libraryVersion, appVersion, app, locale, dataCapCohort, probingError, client_ip, deviceID, originHost, arch)
 	}
 
-	doesNothingReporter := func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
-		// noop
-		log.Debugf("Empty Reporter called, %v", ctx)
-	}
-
 	var reporter listeners.MeasuredReportFN
 	if throttleConfig == nil {
 		log.Debug("No throttling configured, don't bother reporting bandwidth usage to Redis")
-		reporter = func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats,
-			final bool) {
-			log.Debugf("Empty REDIS Reporter called, %v", ctx)
+		reporter = func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 			// noop
 		}
 	} else if rc != nil {
 		reporter = redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval, throttleConfig)
 	}
 	reporter = combineReporter(reporter, proxiedBytesReporter)
-	reporter = combineReporter(reporter, doesNothingReporter)
 
 	wrapper := func(ls net.Listener) net.Listener {
 		customDuration := 1 * time.Second
