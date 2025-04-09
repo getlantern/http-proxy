@@ -47,7 +47,6 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 
 		//used for unbounded only
 		unboundedTeamId := fromContext(ctx, common.UnboundedTeamId)
-		log.Debugf("reporting stats to otel: unbounded_team_id:%s, bytes:%v", unboundedTeamId, stats.RecvTotal)
 
 		var client_ip net.IP
 		_client_ip := ctx[common.ClientIP]
