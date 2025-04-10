@@ -20,7 +20,7 @@ func TestInternalRewriteToHTTPS(t *testing.T) {
 	cfg := ConfigForHost("sub.api.getiantem.org")
 	assert.True(t, cfg.Unthrottled)
 	assert.True(t, cfg.RewriteToHTTPS)
-	assert.False(t, cfg.AddConfigServerHeaders)
+	assert.True(t, cfg.AddConfigServerHeaders)
 	assert.True(t, cfg.AddForwardedFor)
 	assert.True(t, cfg.PassInternalHeaders)
 	assert.Equal(t, "sub.api.getiantem.org", cfg.Host)
