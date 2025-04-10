@@ -62,13 +62,14 @@ var (
 var configs = configure(
 	map[string]*Config{
 		"df.iantem.io":                 internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
+		"api.iantem.io":                internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
 		"config.getiantem.org":         internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
 		"config-staging.getiantem.org": internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
 
 		// These are the config server domains Beam uses.
 		"config.ss7hc6jm.io":                       internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
 		"config-staging.ss7hc6jm.io":               internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
-		"api.getiantem.org":                        internal.withRewriteToHTTPS(),
+		"api.getiantem.org":                        internal.withRewriteToHTTPS().withAddConfigServerHeaders(),
 		"api-staging.getiantem.org":                internal.withRewriteToHTTPS(),
 		"replica-search.lantern.io":                internal.withRewriteToHTTPS(),
 		"replica-search-aws.lantern.io":            internal.withRewriteToHTTPS(),
