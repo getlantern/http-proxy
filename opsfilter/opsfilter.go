@@ -81,6 +81,8 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	addStringHeader(common.TimeZone, common.TimeZoneHeader)
 	addArrayHeader(common.SupportedDataCaps, common.SupportedDataCapsHeader)
 
+	addStringHeader(common.UnboundedTeamId, common.UnboundedTeamIdHeader)
+
 	netx.WalkWrapped(cs.Downstream(), func(conn net.Conn) bool {
 		pdc, ok := conn.(tlslistener.ProbingDetectingConn)
 		if ok {
