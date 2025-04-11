@@ -10,7 +10,6 @@ import (
 
 	"github.com/dustin/go-humanize"
 
-	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/v3/filters"
 
 	"github.com/getlantern/http-proxy-lantern/v2/listeners"
@@ -19,13 +18,14 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/usage"
 )
 
 var (
-	log = golog.LoggerFor("devicefilter")
+	log = logger.InitLogger("devicefilter")
 
 	epoch = time.Date(2016, 1, 1, 0, 0, 0, 0, time.UTC)
 
