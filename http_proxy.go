@@ -19,8 +19,6 @@ import (
 
 	rclient "github.com/go-redis/redis/v8"
 
-	"github.com/getlantern/broflake/common"
-	"github.com/getlantern/broflake/egress"
 	"github.com/getlantern/cmux/v2"
 	"github.com/getlantern/cmuxprivate"
 	"github.com/getlantern/enhttp"
@@ -30,6 +28,7 @@ import (
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
 
+	"github.com/getlantern/http-proxy-lantern/v2/broflake"
 	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	"github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
@@ -286,8 +285,6 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	bwReporting := p.configureBandwidthReporting()
 	// Throttle connections when signaled
 	srv.AddListenerWrappers(listeners.NewBitrateListener, bwReporting.wrapper)
-
-	// make a side server for broflake egress
 
 	// Add listeners for all protocols
 	allListeners := make([]net.Listener, 0)
@@ -955,37 +952,16 @@ func (p *Proxy) listenBroflake(baseListen func(string) (net.Listener, error)) li
 			log.Fatalf("Unable to read key file: %v", err)
 		}
 
-		var proxyListener *egress.ProxyListener
-		proxyListener, err = egress.NewWebSocketListener(context.Background(), l, string(certPEM), string(keyPEM))
-		if err != nil {
-			return nil, fmt.Errorf("error creating egress listener: %v", err)
+		wrapped, wrapErr := broflake.Wrap(l, string(certPEM), string(keyPEM))
+		if wrapErr != nil {
+			log.Fatalf("Unable to initialize broflake with tcp: %v", wrapErr)
 		}
-		var wrappedMainListener net.Listener
-		wrappedMainListener = proxyListener
-
-		srv := &http.Server{
-			ReadTimeout:  30 * time.Second,
-			WriteTimeout: 30 * time.Second,
-		}
-
-		http.Handle("/ws", http.HandlerFunc(proxyListener.HandleWebSocket))
-		common.Debugf("Egress server listening for WebSocket connections on %v", l.Addr())
-
-		bfReportConfig := newReportingConfig(p.CountryLookup, nil, p.instrument, nil)
-		wrappedSideListener := bfReportConfig.wrapper(l)
-
-		// Because unbounded egress has two listeners that pass data back and forth, they each have to be served separately.
-		// They are both here so the `wrappedSideListener` can be tracked,
-		// because it is the only one that will appear to have data passing through it
-		go func() {
-			err := srv.Serve(wrappedSideListener)
-			panic(fmt.Sprintf("stopped listening and serving Broflake/Unbounded egress server: %v", err))
-		}()
-		log.Debugf("Listening for broflake/Unbounded at %v", wrappedSideListener.Addr())
+		log.Debugf("Listening for broflake at %v", wrapped.Addr())
 
 		// Wrap broflake streams with idletiming as well
-		wrappedMainListener = listeners.NewIdleConnListener(wrappedMainListener, p.IdleTimeout)
-		return wrappedMainListener, nil
+		wrapped = listeners.NewIdleConnListener(wrapped, p.IdleTimeout)
+
+		return wrapped, nil
 	}
 }
 
