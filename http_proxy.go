@@ -269,6 +269,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 			p.instrument.Connection(ctx, clientIP)
 		},
 	})
+
 	stopProxiedBytes := p.configureTeleportProxiedBytes()
 	defer stopProxiedBytes()
 
@@ -936,7 +937,7 @@ func (p *Proxy) listenWSS(addr string) (net.Listener, error) {
 
 func (p *Proxy) listenBroflake(baseListen func(string) (net.Listener, error)) listenerBuilderFN {
 	return func(addr string) (net.Listener, error) {
-		l, err := net.Listen("tcp", addr)
+		l, err := baseListen(addr)
 		if err != nil {
 			return nil, err
 		}
