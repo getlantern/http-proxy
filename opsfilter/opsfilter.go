@@ -97,6 +97,7 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 		quicNetConn, ok := conn.(unboundedCommon.QUICStreamNetConn)
 		if ok {
 			unboundedTeam = quicNetConn.TeamId
+			return false
 		}
 		return true
 	})
