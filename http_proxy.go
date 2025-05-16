@@ -269,7 +269,6 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 			p.instrument.Connection(ctx, clientIP)
 		},
 	})
-
 	stopProxiedBytes := p.configureTeleportProxiedBytes()
 	defer stopProxiedBytes()
 

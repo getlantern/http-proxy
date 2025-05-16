@@ -18,7 +18,6 @@ const (
 	CfgSvrAuthTokenHeader   = "X-Lantern-Config-Auth-Token"
 	CfgSvrClientIPHeader    = "X-Lantern-Config-Client-IP"
 	LocaleHeader            = "X-Lantern-Locale"
-	UnboundedTeamIdHeader   = "X-Lantern-Unbounded-Team-Id"
 	XBQHeader               = "XBQ"
 	XBQHeaderv2             = "XBQv2"
 )
