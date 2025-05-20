@@ -51,7 +51,15 @@ func TestWrap(t *testing.T) {
 	originCert, err := tls.X509KeyPair(originCertKeyman.PEMEncoded(), originPrivateKey.PEMEncoded())
 	require.NoError(t, err)
 
-	proxiedListener, err := tls.Listen("tcp", "localhost:0", &tls.Config{Certificates: []tls.Certificate{originCert}})
+	// all curve Ids, except for X25519MLKEM768, which breaks some of these TLSMasq tests for some reason
+	curvePreferences := []tls.CurveID{tls.CurveP256, tls.CurveP384, tls.CurveP521, tls.X25519}
+
+	proxiedListener, err := tls.Listen("tcp", "localhost:0",
+		&tls.Config{
+			Certificates:     []tls.Certificate{originCert},
+			CurvePreferences: curvePreferences,
+		},
+	)
 	require.NoError(t, err)
 	defer proxiedListener.Close()
 
@@ -99,7 +107,11 @@ func TestWrap(t *testing.T) {
 		}
 	}()
 
-	insecureTLSConfig := &tls.Config{InsecureSkipVerify: true, Certificates: []tls.Certificate{originCert}}
+	insecureTLSConfig := &tls.Config{
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{originCert},
+		CurvePreferences:   curvePreferences,
+	}
 	dialerCfg := tlsmasq.DialerConfig{
 		ProxiedHandshakeConfig: ptlshs.DialerConfig{
 			Handshaker: ptlshs.StdLibHandshaker{
