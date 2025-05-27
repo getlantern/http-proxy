@@ -51,9 +51,6 @@ func TestWrap(t *testing.T) {
 	originCert, err := tls.X509KeyPair(originCertKeyman.PEMEncoded(), originPrivateKey.PEMEncoded())
 	require.NoError(t, err)
 
-	// all curve Ids, except for X25519MLKEM768, which breaks some of these TLSMasq tests for some reason
-	curvePreferences := []tls.CurveID{tls.CurveP256, tls.CurveP384, tls.CurveP521, tls.X25519}
-
 	proxiedListener, err := tls.Listen("tcp", "localhost:0",
 		&tls.Config{
 			Certificates:     []tls.Certificate{originCert},
