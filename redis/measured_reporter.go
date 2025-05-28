@@ -11,9 +11,9 @@ import (
 	"github.com/go-redis/redis/v8"
 
 	"github.com/getlantern/geo"
-	"github.com/getlantern/golog"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/listeners"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/usage"
 	"github.com/getlantern/measured"
@@ -42,7 +42,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("redis")
+	log = logger.InitLogger("redis")
 )
 
 type statsAndContext struct {

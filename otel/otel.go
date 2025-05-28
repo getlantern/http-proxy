@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 	sdkotel "go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
@@ -14,8 +15,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
 	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
-
-	"github.com/getlantern/golog"
 )
 
 const (
@@ -24,7 +23,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("otel")
+	log = logger.InitLogger("otel")
 )
 
 type Opts struct {

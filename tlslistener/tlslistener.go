@@ -14,10 +14,11 @@ import (
 	utls "github.com/refraction-networking/utls"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 )
 
 var (
-	log = golog.LoggerFor("tlslistener")
+	log = logger.InitLogger("tlslistener")
 )
 
 // Wrap wraps the specified listener in our default TLS listener.

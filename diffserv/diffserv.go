@@ -4,13 +4,15 @@
 package diffserv
 
 import (
-	"github.com/getlantern/golog"
-	"golang.org/x/net/ipv4"
 	"net"
+
+	"golang.org/x/net/ipv4"
+
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 )
 
 var (
-	log = golog.LoggerFor("diffserv")
+	log = logger.InitLogger("diffserv")
 )
 
 // Wrap wraps the given Listener into a Listener that applies the specified tos

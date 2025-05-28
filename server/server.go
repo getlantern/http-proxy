@@ -11,18 +11,18 @@ import (
 	"time"
 
 	"github.com/getlantern/errors"
-	"github.com/getlantern/golog"
 	"github.com/getlantern/ops"
 	"github.com/getlantern/proxy/v3"
 	"github.com/getlantern/proxy/v3/filters"
 	"github.com/getlantern/tlsdefaults"
 
 	"github.com/getlantern/http-proxy-lantern/v2/listeners"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 )
 
 var (
 	testingLocal = false
-	log          = golog.LoggerFor("server")
+	log          = logger.InitLogger("server")
 )
 
 // A ListenerGenerator generates a new listener from an existing one.

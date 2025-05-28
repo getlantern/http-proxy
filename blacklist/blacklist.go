@@ -9,9 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/getlantern/golog"
-
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/logger"
 )
 
 const (
@@ -33,7 +32,7 @@ const (
 )
 
 var (
-	log = golog.LoggerFor("blacklist")
+	log = logger.InitLogger("blacklist")
 
 	blacklistingEnabled = false // we've temporarily turned off blacklisting for safety
 )
