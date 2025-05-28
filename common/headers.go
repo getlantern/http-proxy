@@ -44,5 +44,4 @@ const (
 	ThrottleSettings  = "throttle_settings"
 	TimeZone          = "time_zone"
 	SupportedDataCaps = "supported_data_caps"
-	UnboundedTeamId   = "unbounded_team_id"
 )
