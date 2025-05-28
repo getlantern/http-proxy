@@ -8,5 +8,5 @@ import (
 )
 
 func Wrap(ll net.Listener, certPEM string, keyPEM string) (net.Listener, error) {
-	return egress.NewWebSocketListener(context.Background(), ll, certPEM, keyPEM)
+	return egress.NewListener(context.Background(), ll, certPEM, keyPEM)
 }
