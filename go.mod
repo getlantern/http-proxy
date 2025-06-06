@@ -2,8 +2,6 @@ module github.com/getlantern/http-proxy-lantern/v2
 
 go 1.24.2
 
-toolchain go1.24.4
-
 require (
 	cloud.google.com/go/errorreporting v0.3.0
 	git.torproject.org/pluggable-transports/goptlib.git v1.2.0
