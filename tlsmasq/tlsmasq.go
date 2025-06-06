@@ -17,6 +17,9 @@ import (
 
 var log = golog.LoggerFor("tlsmasq-listener")
 
+// all curve Ids, except for X25519MLKEM768, which can cause errors with the TLSMasq handshake
+var curvePreferences = []tls.CurveID{tls.CurveP256, tls.CurveP384, tls.CurveP521, tls.X25519}
+
 func Wrap(ll net.Listener, certFile string, keyFile string, originAddr string, secret string,
 	tlsMinVersion uint16, tlsCipherSuites []uint16, onNonFatalErrors func(error)) (net.Listener, error) {
 
@@ -51,9 +54,10 @@ func Wrap(ll net.Listener, certFile string, keyFile string, originAddr string, s
 			Secret:     secretBytes,
 		},
 		TLSConfig: &tls.Config{
-			Certificates: []tls.Certificate{cert},
-			MinVersion:   tlsMinVersion,
-			CipherSuites: tlsCipherSuites,
+			Certificates:     []tls.Certificate{cert},
+			MinVersion:       tlsMinVersion,
+			CipherSuites:     tlsCipherSuites,
+			CurvePreferences: curvePreferences,
 		},
 	}
 
