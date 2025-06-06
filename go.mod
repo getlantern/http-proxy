@@ -1,6 +1,8 @@
 module github.com/getlantern/http-proxy-lantern/v2
 
-go 1.22.9
+go 1.24.2
+
+toolchain go1.24.4
 
 require (
 	cloud.google.com/go/errorreporting v0.3.0
@@ -36,7 +38,7 @@ require (
 	github.com/getlantern/packetforward v0.0.0-20201001150407-c68a447b0360
 	github.com/getlantern/proxy/v3 v3.0.0-20240328103708-9185589b6a99
 	github.com/getlantern/psmux v1.5.15
-	github.com/getlantern/quicwrapper v0.0.0-20231117185542-d951689c4970
+	github.com/getlantern/quicwrapper v0.0.0-20250606185317-bfdf6ce90356
 	github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7
 	github.com/getlantern/sing-vmess v0.0.0-20241209111030-0f2c02b4eb9a
 	github.com/getlantern/tinywss v0.0.0-20211216020538-c10008a7d461
@@ -66,7 +68,7 @@ require (
 	go.opentelemetry.io/otel/sdk v1.28.0
 	go.opentelemetry.io/otel/sdk/metric v1.28.0
 	go.opentelemetry.io/otel/trace v1.28.0
-	golang.org/x/net v0.26.0
+	golang.org/x/net v0.28.0
 	google.golang.org/api v0.169.0
 )
 
@@ -195,7 +197,7 @@ require (
 	github.com/prometheus/common v0.48.0 // indirect
 	github.com/prometheus/procfs v0.12.0 // indirect
 	github.com/quic-go/qtls-go1-20 v0.4.1 // indirect
-	github.com/quic-go/quic-go v0.40.0 // indirect
+	github.com/quic-go/quic-go v0.52.0 // indirect
 	github.com/refraction-networking/water v0.7.0-alpha // indirect
 	github.com/remyoudompheng/bigfft v0.0.0-20230129092748-24d4a6f8daec // indirect
 	github.com/rs/dnscache v0.0.0-20211102005908-e0241e321417 // indirect
