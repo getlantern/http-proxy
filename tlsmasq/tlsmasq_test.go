@@ -51,7 +51,12 @@ func TestWrap(t *testing.T) {
 	originCert, err := tls.X509KeyPair(originCertKeyman.PEMEncoded(), originPrivateKey.PEMEncoded())
 	require.NoError(t, err)
 
-	proxiedListener, err := tls.Listen("tcp", "localhost:0", &tls.Config{Certificates: []tls.Certificate{originCert}})
+	proxiedListener, err := tls.Listen("tcp", "localhost:0",
+		&tls.Config{
+			Certificates:     []tls.Certificate{originCert},
+			CurvePreferences: curvePreferences,
+		},
+	)
 	require.NoError(t, err)
 	defer proxiedListener.Close()
 
@@ -99,7 +104,11 @@ func TestWrap(t *testing.T) {
 		}
 	}()
 
-	insecureTLSConfig := &tls.Config{InsecureSkipVerify: true, Certificates: []tls.Certificate{originCert}}
+	insecureTLSConfig := &tls.Config{
+		InsecureSkipVerify: true,
+		Certificates:       []tls.Certificate{originCert},
+		CurvePreferences:   curvePreferences,
+	}
 	dialerCfg := tlsmasq.DialerConfig{
 		ProxiedHandshakeConfig: ptlshs.DialerConfig{
 			Handshaker: ptlshs.StdLibHandshaker{
