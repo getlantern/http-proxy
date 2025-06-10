@@ -186,8 +186,6 @@ github.com/gaukas/wazerofs v0.1.0 h1:wIkW1bAxSnpaaVkQ5LOb1tm1BXdVap3eKjJpVWIqt2E
 github.com/gaukas/wazerofs v0.1.0/go.mod h1:+JECB9Fwt0taPqSgHckG9lmT3tcoVK+9VJozTsq9UlI=
 github.com/getlantern/algeneva v0.0.0-20240222191137-2b4e88234f59 h1:uWNy0b1Wtpsd4n64Kat+fRjvPCBwM2Nykwt71LupJAQ=
 github.com/getlantern/algeneva v0.0.0-20240222191137-2b4e88234f59/go.mod h1:PrNR8tMXO26YNs8K9653XCUH7u2Kv4OdfFC3Ke1GsX0=
-github.com/getlantern/broflake v0.0.0-20250430040355-2ab8974518ee h1:vfP2Bo9eY0YjchSFP2MfrT4UITGOpImxJ+p4vo07U14=
-github.com/getlantern/broflake v0.0.0-20250430040355-2ab8974518ee/go.mod h1:pH4tcEWowrmYpjwMizoTy7ZerDyFsE8180xBWVF60QU=
 github.com/getlantern/broflake v0.0.0-20250515135912-b53a6690f363 h1:eV+w/21j/e30LOkF9TIPF+/RjGjiTG3YyUTNqjGPxqA=
 github.com/getlantern/broflake v0.0.0-20250515135912-b53a6690f363/go.mod h1:pH4tcEWowrmYpjwMizoTy7ZerDyFsE8180xBWVF60QU=
 github.com/getlantern/bufconn v0.0.0-20190625204133-a08544339f8d h1:gE5pWSEYfMvSETsTanqINNLmv+nuyUjwcm9jOyqJJZI=
