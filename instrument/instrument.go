@@ -287,6 +287,7 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		isp:             isp,
 		asn:             asn,
 		probingError:    probingError,
+		unboundedTeamId: unboundedTeamId,
 	}
 
 	var originKey originDetails
@@ -383,6 +384,7 @@ type clientDetails struct {
 	isp             string
 	asn             string
 	probingError    string
+	unboundedTeamId string
 }
 
 type originDetails struct {
@@ -442,7 +444,8 @@ func (ins *defaultInstrument) ReportProxiedBytes(tp *sdktrace.TracerProvider) {
 					attribute.String("client_country", key.country),
 					attribute.String("client_isp", key.isp),
 					attribute.String("client_asn", key.asn),
-					attribute.String(common.ProbingError, key.probingError)))
+					attribute.String(common.ProbingError, key.probingError),
+					attribute.String(common.UnboundedTeamId, key.unboundedTeamId)))
 		span.End()
 	}
 }

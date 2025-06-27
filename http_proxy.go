@@ -596,7 +596,7 @@ func (p *Proxy) configureTeleportProxiedBytes() func() {
 	log.Debug("Configuring Teleport proxied bytes")
 	tp, stop := otel.BuildTracerProvider(p.buildOTELOpts(teleportHost, true))
 	if tp != nil {
-		go p.instrument.ReportProxiedBytesPeriodically(1*time.Hour, tp)
+		go p.instrument.ReportProxiedBytesPeriodically(1*time.Minute, tp)
 		ogStop := stop
 		stop = func() {
 			p.instrument.ReportProxiedBytes(tp)

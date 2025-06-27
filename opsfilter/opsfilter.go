@@ -94,7 +94,7 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 	// Get the unbounded team ID from the QUIC stream
 	unboundedTeam := ""
 	netx.WalkWrapped(cs.Downstream(), func(conn net.Conn) bool {
-		quicNetConn, ok := conn.(unboundedCommon.QUICStreamNetConn)
+		quicNetConn, ok := conn.(*unboundedCommon.QUICStreamNetConn)
 		if ok {
 			unboundedTeam = quicNetConn.TeamId
 			return false
