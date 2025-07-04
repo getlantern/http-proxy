@@ -16,6 +16,8 @@ FROM --platform=$BUILDPLATFORM alpine as user
 RUN adduser -S -u 10000 lantern
 
 FROM alpine
+RUN apk add --no-cache iptables
+
 COPY --from=user /etc/passwd /etc/passwd
 COPY --from=builder /usr/local/bin/http-proxy /usr/local/bin/http-proxy
 
