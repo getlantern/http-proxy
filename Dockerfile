@@ -24,6 +24,6 @@ COPY --from=builder /usr/local/bin/http-proxy /usr/local/bin/http-proxy
 COPY servermasq.sh /servermasq.sh
 RUN chmod +x /servermasq.sh
 
-USER root
+USER lantern
 ENTRYPOINT ["/servermasq.sh"]
 CMD ["/usr/local/bin/http-proxy"]

@@ -22,5 +22,4 @@ iptables -t nat -A LANTERN_SERVERMASQ -d "$PROXY_ADDR" ! --dport "$PROXY_PORT" -
 iptables -t nat -A PREROUTING -d "$PROXY_ADDR" -j LANTERN_SERVERMASQ
 
 echo "[+] LANTERN_SERVERMASQ setup complete: $@"
-# exec "$@"
-exec su lantern -s /bin/sh -c "$*"
+exec "$@"
