@@ -10,7 +10,7 @@ if [ -z "$PROXY_ADDR" ] || [ -z "$PROXY_PORT" ] || [ -z "$MASQ_ADDR" ]; then
   exec "$@"
 fi
 
-# The iptables rules can be expalined as follows:
+# The iptables rules can be explained as follows:
 # 1. Create a new chain called LANTERN_SERVERMASQ.
 # 2. Add a rule to the LANTERN_SERVERMASQ chain that matches packets destined for the proxy address
 #     (PROXY_ADDR) that are not destined for the proxy port (PROXY_PORT), and redirects them to the MASQ_ADDR.
