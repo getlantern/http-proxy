@@ -29,6 +29,7 @@ import (
 	"github.com/getlantern/kcpwrapper"
 
 	"github.com/getlantern/http-proxy-lantern/v2/broflake"
+	"github.com/getlantern/http-proxy-lantern/v2/datacap"
 	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	"github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
@@ -111,6 +112,7 @@ type Proxy struct {
 	ProxiedSitesSamplePercentage       float64
 	ProxiedSitesTrackingID             string
 	ReportingRedisClient               *rclient.Client
+	DatacapSidecarClient               datacap.DatacapSidecarClient
 	ThrottleRefreshInterval            time.Duration
 	Token                              string
 	TunnelPorts                        string
@@ -513,13 +515,15 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		filterChain = filterChain.Append(proxy.OnFirstOnly(tokenfilter.New(p.Token, p.instrument)))
 	}
 
-	if p.ReportingRedisClient == nil {
-		log.Debug("Not enabling bandwidth limiting")
-	} else {
+	if p.DatacapSidecarClient != nil {
+		filterChain = filterChain.Append(proxy.OnFirstOnly(datacap.NewFilter(p.DatacapSidecarClient, p.instrument, !p.Pro)))
+	} else if p.ReportingRedisClient != nil {
 		filterChain = filterChain.Append(
 			proxy.OnFirstOnly(devicefilter.NewPre(
 				redis.NewDeviceFetcher(p.ReportingRedisClient), p.throttleConfig, !p.Pro, p.instrument)),
 		)
+	} else {
+		log.Debug("Not enabling bandwidth limiting")
 	}
 
 	filterChain = filterChain.Append(
@@ -682,7 +686,7 @@ func (p *Proxy) buildOTELOpts(endpoint string, includeProxyName bool) *otel.Opts
 }
 
 func (p *Proxy) configureBandwidthReporting() *reportingConfig {
-	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.instrument, p.throttleConfig)
+	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.DatacapSidecarClient, p.instrument, p.throttleConfig)
 }
 
 func (p *Proxy) loadThrottleConfig() {
