@@ -10,12 +10,12 @@ import (
 
 	"github.com/getlantern/geo"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
-	"github.com/getlantern/http-proxy-lantern/v2/listeners"
-	"github.com/getlantern/measured"
-
+	"github.com/getlantern/http-proxy-lantern/v2/datacap"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
+	"github.com/getlantern/http-proxy-lantern/v2/listeners"
 	"github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/throttle"
+	"github.com/getlantern/measured"
 )
 
 var (
@@ -27,7 +27,7 @@ type reportingConfig struct {
 	wrapper func(ls net.Listener) net.Listener
 }
 
-func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, instrument instrument.Instrument, throttleConfig throttle.Config) *reportingConfig {
+func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, dc datacap.DatacapSidecarClient, instrument instrument.Instrument, throttleConfig throttle.Config) *reportingConfig {
 	proxiedBytesReporter := func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 		if deltaStats.SentTotal == 0 && deltaStats.RecvTotal == 0 {
 			// nothing to report
@@ -66,13 +66,23 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 
 	var reporter listeners.MeasuredReportFN
 	if throttleConfig == nil {
-		log.Debug("No throttling configured, don't bother reporting bandwidth usage to Redis")
+		log.Debug("No throttling configured, don't bother reporting bandwidth usage")
 		reporter = func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats,
 			final bool) {
 			// noop
 		}
+	} else if dc != nil {
+		log.Debug("Using datacap sidecar client for bandwidth usage reporting")
+		reporter = datacap.NewMeasuredReporter(countryLookup, dc, measuredReportingInterval)
 	} else if rc != nil {
+		log.Debug("Using redis client for bandwidth usage reporting")
 		reporter = redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval, throttleConfig)
+	} else {
+		log.Debug("No reporting client configured, using noop reporter")
+		reporter = func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats,
+			final bool) {
+			// noop
+		}
 	}
 	reporter = combineReporter(reporter, proxiedBytesReporter)
 	wrapper := func(ls net.Listener) net.Listener {

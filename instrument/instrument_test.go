@@ -24,7 +24,7 @@ func TestOriginRoot(t *testing.T) {
 	requireSuccess("facebook.com", "sub.facebook.com")
 	requireSuccess("facebook.com", "facebook.com")
 	requireSuccess("facebook", "facebook")
-	requireSuccess("facebook.com", "157.240.221.48")
+	requireSuccess("facebook.com", "157.240.229.35")
 	requireSuccess("AS62041", ipWithASN) // Telegram IP addresses don't resolve, but we can get their ASN
 }
 
