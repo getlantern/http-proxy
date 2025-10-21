@@ -48,7 +48,7 @@ func BlockLocal(exceptions []string, r resolver) filters.Filter {
 		// If there was an error resolving is probably because it wasn't an address
 		// in the form host or host:port
 		if err == nil {
-			if !ipAddr.IP.IsGlobalUnicast() {
+			if ipAddr.IP.IsPrivate() || !ipAddr.IP.IsGlobalUnicast() {
 				return fail(cs, req, http.StatusForbidden, "%v requested local address %v (%v)", req.RemoteAddr, req.Host, ipAddr)
 			}
 		}
