@@ -16,8 +16,16 @@ FROM --platform=$BUILDPLATFORM alpine as user
 RUN adduser -S -u 10000 lantern
 
 FROM alpine
+RUN apk add --no-cache iptables su-exec
+
 COPY --from=user /etc/passwd /etc/passwd
 COPY --from=builder /usr/local/bin/http-proxy /usr/local/bin/http-proxy
 
-USER lantern
+COPY servermasq.sh /servermasq.sh
+RUN chmod +x /servermasq.sh
+
+# Run as root because iptables in the servermasq.sh script needs root privileges
+# the script itself will switch to the lantern user before executing the http-proxy binary 
+USER root 
+ENTRYPOINT ["/servermasq.sh"]
 CMD ["/usr/local/bin/http-proxy"]
