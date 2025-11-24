@@ -2,6 +2,7 @@ package otel
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	sdkotel "go.opentelemetry.io/otel"
@@ -88,10 +89,18 @@ func (opts *Opts) buildResource() *resource.Resource {
 
 func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 	// Create HTTP client to talk to OTEL collector
-	client := otlptracehttp.NewClient(
+	clientOpts := []otlptracehttp.Option{
 		otlptracehttp.WithEndpoint(opts.Endpoint),
 		otlptracehttp.WithHeaders(opts.Headers),
-	)
+	}
+
+	// If endpoint doesn't use port 443, assume insecure (HTTP not HTTPS)
+	if !strings.Contains(opts.Endpoint, ":443") {
+		log.Debugf("Using insecure connection for OTEL endpoint %v", opts.Endpoint)
+		clientOpts = append(clientOpts, otlptracehttp.WithInsecure())
+	}
+
+	client := otlptracehttp.NewClient(clientOpts...)
 
 	// Create an exporter that exports to the OTEL collector
 	exporter, err := otlptrace.New(context.Background(), client)
@@ -127,7 +136,7 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 }
 
 func InitGlobalMeterProvider(opts *Opts) (func(), error) {
-	exp, err := otlpmetrichttp.New(context.Background(),
+	metricOpts := []otlpmetrichttp.Option{
 		otlpmetrichttp.WithEndpoint(opts.Endpoint),
 		otlpmetrichttp.WithHeaders(opts.Headers),
 		otlpmetrichttp.WithTemporalitySelector(func(kind sdkmetric.InstrumentKind) metricdata.Temporality {
@@ -142,7 +151,15 @@ func InitGlobalMeterProvider(opts *Opts) (func(), error) {
 				return metricdata.CumulativeTemporality
 			}
 		}),
-	)
+	}
+
+	// If endpoint doesn't use port 443, assume insecure (HTTP not HTTPS)
+	if !strings.Contains(opts.Endpoint, ":443") {
+		log.Debugf("Using insecure connection for OTEL metrics endpoint %v", opts.Endpoint)
+		metricOpts = append(metricOpts, otlpmetrichttp.WithInsecure())
+	}
+
+	exp, err := otlpmetrichttp.New(context.Background(), metricOpts...)
 	if err != nil {
 		return nil, err
 	}
