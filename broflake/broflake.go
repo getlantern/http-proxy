@@ -2,7 +2,6 @@ package broflake
 
 import (
 	"context"
-	"fmt"
 	"net"
 
 	"github.com/armon/go-socks5"
@@ -13,12 +12,6 @@ import (
 )
 
 func Wrap(ll net.Listener, certPEM string, keyPEM string) (net.Listener, error) {
-
-	l, err := net.Listen("tcp", fmt.Sprintf(":%v", 8000))
-	if err != nil {
-		panic(err)
-	}
-
 	common.Debugf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
 	common.Debugf("@ DANGER                                                @")
 	common.Debugf("@ DANGER                                                @")
@@ -31,11 +24,11 @@ func Wrap(ll net.Listener, certPEM string, keyPEM string) (net.Listener, error) 
 	// And here's why it doesn't use secure TLS at the QUIC layer
 	tlsConfig := egcmdcommon.GenerateSelfSignedTLSConfig(true)
 
-	lll, err := egress.NewListener(context.Background(), l, tlsConfig)
+	egressListener, err := egress.NewListener(context.Background(), ll, tlsConfig)
 	if err != nil {
 		panic(err)
 	}
-	defer lll.Close()
+	defer egressListener.Close()
 
 	conf := &socks5.Config{
 		Dial:     UoTDialer(),
@@ -48,9 +41,9 @@ func Wrap(ll net.Listener, certPEM string, keyPEM string) (net.Listener, error) 
 
 	common.Debugf("Starting SOCKS5 UoT proxy...")
 
-	err = proxy.Serve(lll)
+	err = proxy.Serve(egressListener)
 	if err != nil {
 		panic(err)
 	}
-	return lll, nil
+	return egressListener, nil
 }
