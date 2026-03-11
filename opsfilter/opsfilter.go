@@ -8,7 +8,6 @@ import (
 	"github.com/getlantern/netx"
 	"github.com/getlantern/proxy/v3/filters"
 
-	unboundedCommon "github.com/getlantern/broflake/common"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/listeners"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
@@ -90,18 +89,6 @@ func (f *opsfilter) Apply(cs *filters.ConnectionState, req *http.Request, next f
 		}
 		return true
 	})
-
-	// Get the unbounded team ID from the QUIC stream
-	unboundedTeam := ""
-	netx.WalkWrapped(cs.Downstream(), func(conn net.Conn) bool {
-		quicNetConn, ok := conn.(unboundedCommon.QUICStreamNetConn)
-		if ok {
-			unboundedTeam = quicNetConn.TeamId
-			return false
-		}
-		return true
-	})
-	measuredCtx[common.UnboundedTeamId] = unboundedTeam
 
 	// Send the same context data to measured as well
 	wc := cs.Downstream().(listeners.WrapConn)

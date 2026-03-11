@@ -45,9 +45,6 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 		probingError := fromContext(ctx, common.ProbingError)
 		arch := fromContext(ctx, common.KernelArch)
 
-		//used for unbounded only
-		unboundedTeamId := fromContext(ctx, common.UnboundedTeamId)
-
 		var client_ip net.IP
 		_client_ip := ctx[common.ClientIP]
 		if _client_ip != nil {
@@ -60,8 +57,7 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 			dataCapCohort = throttleSettings.(*throttle.Settings).Label
 		}
 
-		ctxWithTeamId := context.WithValue(context.Background(), common.UnboundedTeamId, unboundedTeamId)
-		instrument.ProxiedBytes(ctxWithTeamId, deltaStats.SentTotal, deltaStats.RecvTotal, platform, platformVersion, libraryVersion, appVersion, app, locale, dataCapCohort, probingError, client_ip, deviceID, originHost, arch)
+		instrument.ProxiedBytes(context.Background(), deltaStats.SentTotal, deltaStats.RecvTotal, platform, platformVersion, libraryVersion, appVersion, app, locale, dataCapCohort, probingError, client_ip, deviceID, originHost, arch)
 	}
 
 	var reporter listeners.MeasuredReportFN
