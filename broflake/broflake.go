@@ -2,11 +2,55 @@ package broflake
 
 import (
 	"context"
+	"fmt"
 	"net"
 
+	"github.com/armon/go-socks5"
+	"github.com/getlantern/broflake/common"
+
 	"github.com/getlantern/broflake/egress"
+	egcmdcommon "github.com/getlantern/broflake/egress/cmd/common"
 )
 
 func Wrap(ll net.Listener, certPEM string, keyPEM string) (net.Listener, error) {
-	return egress.NewWebSocketListener(context.Background(), ll, certPEM, keyPEM)
+
+	l, err := net.Listen("tcp", fmt.Sprintf(":%v", 8000))
+	if err != nil {
+		panic(err)
+	}
+
+	common.Debugf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@")
+	common.Debugf("@ DANGER                                                @")
+	common.Debugf("@ DANGER                                                @")
+	common.Debugf("@ DANGER                                                @")
+	common.Debugf("@                                                       @")
+	common.Debugf("@ This standalone egress server does not use secure TLS @")
+	common.Debugf("@ at the QUIC layer!                                    @")
+	common.Debugf("@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@\n")
+
+	// And here's why it doesn't use secure TLS at the QUIC layer
+	tlsConfig := egcmdcommon.GenerateSelfSignedTLSConfig(true)
+
+	lll, err := egress.NewListener(context.Background(), l, tlsConfig)
+	if err != nil {
+		panic(err)
+	}
+	defer lll.Close()
+
+	conf := &socks5.Config{
+		Dial:     UoTDialer(),
+		Resolver: &UoTResolver{},
+	}
+	proxy, err := socks5.New(conf)
+	if err != nil {
+		panic(err)
+	}
+
+	common.Debugf("Starting SOCKS5 UoT proxy...")
+
+	err = proxy.Serve(lll)
+	if err != nil {
+		panic(err)
+	}
+	return lll, nil
 }
