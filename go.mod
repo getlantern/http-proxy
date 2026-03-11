@@ -9,7 +9,6 @@ require (
 	github.com/Jigsaw-Code/outline-ss-server v1.5.0
 	github.com/OperatorFoundation/Replicant-go/Replicant/v3 v3.0.23
 	github.com/OperatorFoundation/Starbridge-go/Starbridge/v3 v3.0.17
-	github.com/armon/go-socks5 v0.0.0-20160902184237-e75332964ef5
 	github.com/dustin/go-humanize v1.0.1
 	github.com/getlantern/broflake v0.0.0-20260301201255-04f5afa7de08
 	github.com/getlantern/cmux/v2 v2.0.0-20230301223233-dac79088a4c0
