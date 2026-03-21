@@ -182,7 +182,8 @@ func (cfg *redisConfig) refreshSettings() {
 		return
 	}
 
-	log.Debugf("Loaded throttle config: %v", string(encoded))
+	// too much info in this log. disabled
+	// log.Debugf("Loaded throttle config: %v", string(encoded))
 
 	cfg.mx.Lock()
 	cfg.settings = settings

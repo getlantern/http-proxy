@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/getlantern/iptool"
 	"github.com/getlantern/proxy/v3/filters"
 )
 
@@ -23,7 +22,6 @@ func (r *Resolver) ResolveIPAddr(network string, address string) (*net.IPAddr, e
 // BlockLocal blocks attempted accesses to localhost unless they're one of the
 // listed exceptions.
 func BlockLocal(exceptions []string, r resolver) filters.Filter {
-	ipt, _ := iptool.New()
 	isException := func(host string) bool {
 		for _, exception := range exceptions {
 			if strings.EqualFold(host, exception) {
@@ -50,7 +48,7 @@ func BlockLocal(exceptions []string, r resolver) filters.Filter {
 		// If there was an error resolving is probably because it wasn't an address
 		// in the form host or host:port
 		if err == nil {
-			if ipt.IsPrivate(ipAddr) {
+			if ipAddr.IP.IsPrivate() || !ipAddr.IP.IsGlobalUnicast() {
 				return fail(cs, req, http.StatusForbidden, "%v requested local address %v (%v)", req.RemoteAddr, req.Host, ipAddr)
 			}
 		}

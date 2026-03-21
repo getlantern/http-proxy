@@ -252,17 +252,6 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		lanternsc.ClientAsnKey.String(asn),
 	}
 
-	unboundedTeamId := ""
-	value := ctx.Value(common.UnboundedTeamId)
-	if value != nil {
-		unboundedTeamId = value.(string)
-	}
-
-	if unboundedTeamId != "" {
-		otelAttrs = append(otelAttrs,
-			attribute.String(common.UnboundedTeamId, unboundedTeamId))
-	}
-
 	otelinstrument.ProxyIO.Add(
 		ctx,
 		int64(sent),

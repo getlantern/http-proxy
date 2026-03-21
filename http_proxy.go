@@ -78,8 +78,18 @@ import (
 const (
 	timeoutToDialOriginSite = 10 * time.Second
 
-	teleportHost = "telemetry.iantem.io:443"
+	defaultTeleportHost = "telemetry.iantem.io:443"
 )
+
+// getTelemetryEndpoint returns the OTEL endpoint to use for telemetry.
+// It checks the CUSTOM_OTLP_ENDPOINT environment variable first,
+// falling back to the default if not set.
+func getTelemetryEndpoint() string {
+	if endpoint := os.Getenv("CUSTOM_OTLP_ENDPOINT"); endpoint != "" {
+		return endpoint
+	}
+	return defaultTeleportHost
+}
 
 var (
 	log = golog.LoggerFor("lantern-proxy")
@@ -594,7 +604,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 
 func (p *Proxy) configureTeleportProxiedBytes() func() {
 	log.Debug("Configuring Teleport proxied bytes")
-	tp, stop := otel.BuildTracerProvider(p.buildOTELOpts(teleportHost, true))
+	tp, stop := otel.BuildTracerProvider(p.buildOTELOpts(getTelemetryEndpoint(), true))
 	if tp != nil {
 		go p.instrument.ReportProxiedBytesPeriodically(1*time.Hour, tp)
 		ogStop := stop
@@ -609,7 +619,7 @@ func (p *Proxy) configureTeleportProxiedBytes() func() {
 func (p *Proxy) configureTeleportOriginBytes() func() {
 	log.Debug("Configuring Teleport origin bytes")
 	// Note - we do not include the proxy name here to avoid associating origin site usage with devices on that proxy name
-	tp, stop := otel.BuildTracerProvider(p.buildOTELOpts(teleportHost, false))
+	tp, stop := otel.BuildTracerProvider(p.buildOTELOpts(getTelemetryEndpoint(), false))
 	if tp != nil {
 		go p.instrument.ReportOriginBytesPeriodically(1*time.Hour, tp)
 		ogStop := stop
@@ -624,7 +634,7 @@ func (p *Proxy) configureTeleportOriginBytes() func() {
 func (p *Proxy) configureOTELMetrics() (func(), error) {
 	return otel.InitGlobalMeterProvider(
 		p.buildOTELOpts(
-			teleportHost,
+			getTelemetryEndpoint(),
 			false, // don't include proxy name in order to reduce DataDog costs
 		))
 }
