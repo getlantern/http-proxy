@@ -9,9 +9,11 @@ import (
 	"sync"
 	"time"
 
+	lanternsc "github.com/getlantern/semconv"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
+	otelsc "go.opentelemetry.io/otel/semconv/v1.37.0"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/getlantern/errors"
@@ -237,17 +239,17 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 
 	isp := ins.ispLookup.ISP(clientIP)
 	asn := ins.ispLookup.ASN(clientIP)
-	otelAttributes := []attribute.KeyValue{
-		{common.Platform, attribute.StringValue(platform)},
-		{common.PlatformVersion, attribute.StringValue(platformVersion)},
-		{common.KernelArch, attribute.StringValue(arch)},
-		{common.LibraryVersion, attribute.StringValue(libVersion)},
-		{common.AppVersion, attribute.StringValue(appVersion)},
-		{common.App, attribute.StringValue(app)},
-		{"datacap_cohort", attribute.StringValue(dataCapCohort)},
-		{"country", attribute.StringValue(country)},
-		{"client_isp", attribute.StringValue(isp)},
-		{"client_asn", attribute.StringValue(asn)},
+	otelAttrs := []attribute.KeyValue{
+		lanternsc.ClientPlatformKey.String(platform),
+		attribute.String("client.platform_version", platformVersion),
+		attribute.String("client.kernel_arch", arch),
+		attribute.String("client.library_version", libVersion),
+		lanternsc.ClientVersionKey.String(appVersion),
+		lanternsc.ClientAppKey.String(app),
+		attribute.String("datacap_cohort", dataCapCohort),
+		otelsc.GeoCountryISOCodeKey.String(country),
+		lanternsc.ClientISPKey.String(isp),
+		lanternsc.ClientAsnKey.String(asn),
 	}
 
 	unboundedTeamId := ""
@@ -257,14 +259,16 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 	}
 
 	if unboundedTeamId != "" {
-		otelAttributes = append(otelAttributes, attribute.KeyValue{common.UnboundedTeamId, attribute.StringValue(unboundedTeamId)})
+		otelAttrs = append(otelAttrs,
+			attribute.String(common.UnboundedTeamId, unboundedTeamId))
 	}
 
 	otelinstrument.ProxyIO.Add(
 		ctx,
 		int64(sent),
 		metric.WithAttributes(
-			append(otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("transmit")})...,
+			append(otelAttrs,
+				otelsc.NetworkIODirectionKey.String("transmit"))...,
 		),
 	)
 
@@ -272,7 +276,8 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		ctx,
 		int64(recv),
 		metric.WithAttributes(
-			append(otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("receive")})...,
+			append(otelAttrs,
+				otelsc.NetworkIODirectionKey.String("receive"))...,
 		),
 	)
 
