@@ -1,6 +1,6 @@
 module github.com/getlantern/http-proxy-lantern/v2
 
-go 1.24.2
+go 1.25.0
 
 require (
 	cloud.google.com/go/errorreporting v0.3.0
@@ -37,6 +37,7 @@ require (
 	github.com/getlantern/psmux v1.5.15
 	github.com/getlantern/quicwrapper v0.0.0-20250417060014-acb01527c4c2
 	github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7
+	github.com/getlantern/semconv v0.0.0-20260327011855-c560ef378b95
 	github.com/getlantern/sing-vmess v0.0.0-20241209111030-0f2c02b4eb9a
 	github.com/getlantern/tinywss v0.0.0-20211216020538-c10008a7d461
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4
@@ -53,18 +54,18 @@ require (
 	github.com/sagernet/sing v0.6.0-alpha.18
 	github.com/siddontang/go v0.0.0-20180604090527-bdc77568d726
 	github.com/spaolacci/murmur3 v1.1.0
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	github.com/vharitonsky/iniflags v0.0.0-20180513140207-a33cd0b5f3de
 	github.com/xtaci/smux v1.5.35-0.20250217141229-e6b0586a4539
 	gitlab.com/yawning/obfs4.git v0.0.0-20220204003609-77af0cba934d
-	go.opentelemetry.io/otel v1.36.0
+	go.opentelemetry.io/otel v1.42.0
 	go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp v1.35.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace v1.35.0
 	go.opentelemetry.io/otel/exporters/otlp/otlptrace/otlptracehttp v1.35.0
-	go.opentelemetry.io/otel/metric v1.36.0
+	go.opentelemetry.io/otel/metric v1.42.0
 	go.opentelemetry.io/otel/sdk v1.35.0
 	go.opentelemetry.io/otel/sdk/metric v1.35.0
-	go.opentelemetry.io/otel/trace v1.36.0
+	go.opentelemetry.io/otel/trace v1.42.0
 	golang.org/x/net v0.41.0
 	google.golang.org/api v0.169.0
 )
@@ -136,7 +137,7 @@ require (
 	github.com/getlantern/uuid v1.2.0 // indirect
 	github.com/go-llsqlite/adapter v0.0.0-20230927005056-7f5ce7f0c916 // indirect
 	github.com/go-llsqlite/crawshaw v0.4.0 // indirect
-	github.com/go-logr/logr v1.4.2 // indirect
+	github.com/go-logr/logr v1.4.3 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-ole/go-ole v1.3.0 // indirect
 	github.com/go-stack/stack v1.8.1 // indirect
@@ -226,7 +227,7 @@ require (
 	gitlab.com/yawning/edwards25519-extra.git v0.0.0-20211229043746-2f91fcc9fbdb // indirect
 	go.etcd.io/bbolt v1.3.6 // indirect
 	go.opencensus.io v0.24.0 // indirect
-	go.opentelemetry.io/auto/sdk v1.1.0 // indirect
+	go.opentelemetry.io/auto/sdk v1.2.1 // indirect
 	go.opentelemetry.io/contrib/instrumentation/google.golang.org/grpc/otelgrpc v0.49.0 // indirect
 	go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp v0.49.0 // indirect
 	go.opentelemetry.io/proto/otlp v1.5.0 // indirect
