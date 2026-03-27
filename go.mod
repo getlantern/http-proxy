@@ -37,7 +37,7 @@ require (
 	github.com/getlantern/psmux v1.5.15
 	github.com/getlantern/quicwrapper v0.0.0-20250417060014-acb01527c4c2
 	github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7
-	github.com/getlantern/semconv v0.0.0-20260327033412-364dfaa6b6ec
+	github.com/getlantern/semconv v0.0.0-20260327035242-c93140b6acf3
 	github.com/getlantern/sing-vmess v0.0.0-20241209111030-0f2c02b4eb9a
 	github.com/getlantern/tinywss v0.0.0-20211216020538-c10008a7d461
 	github.com/getlantern/tlsdefaults v0.0.0-20171004213447-cf35cfd0b1b4

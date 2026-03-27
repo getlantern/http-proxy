@@ -13,7 +13,6 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	otelsc "go.opentelemetry.io/otel/semconv/v1.34.0"
 	"go.opentelemetry.io/otel/trace"
 
 	"github.com/getlantern/errors"
@@ -256,7 +255,7 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		int64(sent),
 		metric.WithAttributes(
 			append(otelAttrs,
-				otelsc.NetworkIODirectionKey.String("transmit"))...,
+				semconv.NetworkIODirectionKey.String("transmit"))...,
 		),
 	)
 
@@ -265,7 +264,7 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		int64(recv),
 		metric.WithAttributes(
 			append(otelAttrs,
-				otelsc.NetworkIODirectionKey.String("receive"))...,
+				semconv.NetworkIODirectionKey.String("receive"))...,
 		),
 	)
 
@@ -331,24 +330,24 @@ type stats struct {
 
 func (s *stats) OnRecv(n uint64) {
 	otelinstrument.MultipathFrames.Add(context.Background(), 1,
-		metric.WithAttributes(append(s.otelAttributes, otelsc.NetworkIODirectionKey.String("receive"))...))
+		metric.WithAttributes(append(s.otelAttributes, semconv.NetworkIODirectionKey.String("receive"))...))
 	otelinstrument.MultipathIO.Add(context.Background(), int64(n),
-		metric.WithAttributes(append(s.otelAttributes, otelsc.NetworkIODirectionKey.String("receive"))...))
+		metric.WithAttributes(append(s.otelAttributes, semconv.NetworkIODirectionKey.String("receive"))...))
 }
 func (s *stats) OnSent(n uint64) {
 	otelinstrument.MultipathFrames.Add(context.Background(), 1,
-		metric.WithAttributes(append(s.otelAttributes, otelsc.NetworkIODirectionKey.String("transmit"))...))
+		metric.WithAttributes(append(s.otelAttributes, semconv.NetworkIODirectionKey.String("transmit"))...))
 	otelinstrument.MultipathIO.Add(context.Background(), int64(n),
-		metric.WithAttributes(append(s.otelAttributes, otelsc.NetworkIODirectionKey.String("transmit"))...))
+		metric.WithAttributes(append(s.otelAttributes, semconv.NetworkIODirectionKey.String("transmit"))...))
 }
 func (s *stats) OnRetransmit(n uint64) {
 	otelinstrument.MultipathFrames.Add(context.Background(), 1,
 		metric.WithAttributes(append(s.otelAttributes,
-			otelsc.NetworkIODirectionKey.String("transmit"),
+			semconv.NetworkIODirectionKey.String("transmit"),
 			attribute.String("state", "retransmit"))...))
 	otelinstrument.MultipathIO.Add(context.Background(), int64(n),
 		metric.WithAttributes(append(s.otelAttributes,
-			otelsc.NetworkIODirectionKey.String("transmit"),
+			semconv.NetworkIODirectionKey.String("transmit"),
 			attribute.String("state", "retransmit"))...))
 }
 func (s *stats) UpdateRTT(time.Duration) {
