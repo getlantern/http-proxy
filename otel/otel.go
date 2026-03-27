@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	semconv "github.com/getlantern/semconv"
 	sdkotel "go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
@@ -14,7 +15,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	semconv "go.opentelemetry.io/otel/semconv/v1.7.0"
 
 	"github.com/getlantern/golog"
 )
@@ -44,47 +44,35 @@ type Opts struct {
 }
 
 func (opts *Opts) buildResource() *resource.Resource {
-	attributes := []attribute.KeyValue{
+	attrs := []attribute.KeyValue{
 		semconv.ServiceNameKey.String("http-proxy-lantern"),
-		attribute.String("protocol", opts.ProxyProtocol),
-		attribute.Bool("pro", opts.IsPro),
+		semconv.ProxyProtocolKey.String(opts.ProxyProtocol),
+		semconv.ClientIsProKey.Bool(opts.IsPro),
 		attribute.Bool("legacy", opts.Legacy),
 	}
-	// Disable reporting proxy port for Datadog cost reasons
-	// parts := strings.Split(opts.Addr, ":")
-	// if len(parts) == 2 {
-	// 	_port := parts[1]
-	// 	port, err := strconv.Atoi(_port)
-	// 	if err == nil {
-	// 		log.Debugf("will report with proxy.port %d", port)
-	// 		attributes = append(attributes, attribute.Int("proxy.port", port))
-	// 	} else {
-	// 		log.Errorf("Unable to parse proxy.port %v: %v", _port, err)
-	// 	}
-	// } else {
-	// 	log.Errorf("Unable to split proxy address %v into two pieces", opts.Addr)
-	// }
 	if opts.Track != "" {
-		attributes = append(attributes, attribute.String("track", opts.Track))
+		attrs = append(attrs,
+			semconv.ProxyTrackKey.String(opts.Track))
 	}
 	if opts.ProxyName != "" {
-		log.Debugf("Will report with proxy.name %v", opts.ProxyName)
-		attributes = append(attributes, attribute.String("proxy.name", opts.ProxyName))
+		attrs = append(attrs,
+			semconv.ProxyNameKey.String(opts.ProxyName))
 	}
 	if opts.Provider != "" {
-		log.Debugf("Will report with provider %v", opts.Provider)
-		attributes = append(attributes, attribute.String("provider", opts.Provider))
+		attrs = append(attrs,
+			semconv.ProxyProviderKey.String(opts.Provider))
 	}
 	if opts.DC != "" {
-		log.Debugf("Will report with dc %v", opts.DC)
-		attributes = append(attributes, attribute.String("dc", opts.DC))
+		attrs = append(attrs, attribute.String("dc", opts.DC))
 	}
 	if opts.FrontendProvider != "" {
-		log.Debugf("Will report frontend provider %v in dc %v", opts.FrontendProvider, opts.FrontendDC)
-		attributes = append(attributes, attribute.String("frontend.provider", opts.FrontendProvider))
-		attributes = append(attributes, attribute.String("frontend.dc", opts.FrontendDC))
+		attrs = append(attrs,
+			semconv.ProxyFrontendProviderKey.String(opts.FrontendProvider),
+			attribute.String("frontend.dc", opts.FrontendDC),
+		)
 	}
-	return resource.NewWithAttributes(semconv.SchemaURL, attributes...)
+	log.Debugf("Resource attributes: %v", attrs)
+	return resource.NewWithAttributes(semconv.SchemaURL, attrs...)
 }
 
 func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {

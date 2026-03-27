@@ -9,6 +9,7 @@ import (
 	"sync"
 	"time"
 
+	semconv "github.com/getlantern/semconv"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/metric"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
@@ -16,7 +17,6 @@ import (
 
 	"github.com/getlantern/errors"
 	"github.com/getlantern/geo"
-	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument/otelinstrument"
 	"github.com/getlantern/multipath"
 	"github.com/getlantern/proxy/v3/filters"
@@ -183,13 +183,13 @@ func (ins *defaultInstrument) WrapConnErrorHandler(prefix string, f func(conn ne
 // Blacklist instruments the blacklist checking.
 func (ins *defaultInstrument) Blacklist(ctx context.Context, b bool) {
 	otelinstrument.Blacklist.Add(ctx, 1,
-		metric.WithAttributes(attribute.KeyValue{"blacklisted", attribute.BoolValue(b)}))
+		metric.WithAttributes(attribute.Bool("blacklisted", b)))
 }
 
 // Mimic instruments the Apache mimicry.
 func (ins *defaultInstrument) Mimic(ctx context.Context, m bool) {
 	otelinstrument.Mimicked.Add(ctx, 1, metric.WithAttributes(
-		attribute.KeyValue{"mimicked", attribute.BoolValue(m)}))
+		attribute.Bool("mimicked", m)))
 
 	if m {
 		otelinstrument.Mimicked.Add(ctx, 1)
@@ -200,8 +200,8 @@ func (ins *defaultInstrument) Mimic(ctx context.Context, m bool) {
 func (ins *defaultInstrument) Throttle(ctx context.Context, m bool, reason string) {
 	otelinstrument.Throttling.Add(ctx, 1,
 		metric.WithAttributes(
-			attribute.KeyValue{"throttled", attribute.BoolValue(m)},
-			attribute.KeyValue{"reason", attribute.StringValue(reason)},
+			attribute.Bool("throttled", m),
+			attribute.String("reason", reason),
 		))
 }
 
@@ -219,8 +219,8 @@ func (ins *defaultInstrument) SuspectedProbing(ctx context.Context, fromIP net.I
 		ctx,
 		1,
 		metric.WithAttributes(
-			attribute.KeyValue{"country", attribute.StringValue(fromCountry)},
-			attribute.KeyValue{"reason", attribute.StringValue(reason)},
+			semconv.GeoCountryISOCodeKey.String(fromCountry),
+			attribute.String("reason", reason),
 		),
 	)
 }
@@ -237,24 +237,25 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 
 	isp := ins.ispLookup.ISP(clientIP)
 	asn := ins.ispLookup.ASN(clientIP)
-	otelAttributes := []attribute.KeyValue{
-		{common.Platform, attribute.StringValue(platform)},
-		{common.PlatformVersion, attribute.StringValue(platformVersion)},
-		{common.KernelArch, attribute.StringValue(arch)},
-		{common.LibraryVersion, attribute.StringValue(libVersion)},
-		{common.AppVersion, attribute.StringValue(appVersion)},
-		{common.App, attribute.StringValue(app)},
-		{"datacap_cohort", attribute.StringValue(dataCapCohort)},
-		{"country", attribute.StringValue(country)},
-		{"client_isp", attribute.StringValue(isp)},
-		{"client_asn", attribute.StringValue(asn)},
+	otelAttrs := []attribute.KeyValue{
+		semconv.ClientPlatformKey.String(platform),
+		attribute.String("client.platform_version", platformVersion),
+		attribute.String("client.kernel_arch", arch),
+		attribute.String("client.library_version", libVersion),
+		semconv.ClientVersionKey.String(appVersion),
+		semconv.ClientAppKey.String(app),
+		attribute.String("datacap_cohort", dataCapCohort),
+		semconv.GeoCountryISOCodeKey.String(country),
+		semconv.ClientISPKey.String(isp),
+		semconv.ClientAsnKey.String(asn),
 	}
 
 	otelinstrument.ProxyIO.Add(
 		ctx,
 		int64(sent),
 		metric.WithAttributes(
-			append(otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("transmit")})...,
+			append(otelAttrs,
+				semconv.NetworkIODirectionKey.String("transmit"))...,
 		),
 	)
 
@@ -262,7 +263,8 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		ctx,
 		int64(recv),
 		metric.WithAttributes(
-			append(otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("receive")})...,
+			append(otelAttrs,
+				semconv.NetworkIODirectionKey.String("receive"))...,
 		),
 	)
 
@@ -308,18 +310,18 @@ func (ins *defaultInstrument) Connection(ctx context.Context, clientIP net.IP) {
 	fromCountry := ins.countryLookup.CountryCode(clientIP)
 	otelinstrument.Connections.Add(ctx, 1,
 		metric.WithAttributes(
-			attribute.KeyValue{"country", attribute.StringValue(fromCountry)},
-			attribute.KeyValue{"proxy.name", attribute.StringValue(ins.proxyName)},
+			semconv.GeoCountryISOCodeKey.String(fromCountry),
+			semconv.ProxyNameKey.String(ins.proxyName),
 		))
 }
 
 // quicPackets is used by QuicTracer to update QUIC retransmissions mainly for block detection.
 func (ins *defaultInstrument) quicSentPacket(ctx context.Context) {
-	otelinstrument.QuicPackets.Add(ctx, 1, metric.WithAttributes(attribute.KeyValue{"state", attribute.StringValue("sent")}))
+	otelinstrument.QuicPackets.Add(ctx, 1, metric.WithAttributes(attribute.String("state", "sent")))
 }
 
 func (ins *defaultInstrument) quicLostPacket(ctx context.Context) {
-	otelinstrument.QuicPackets.Add(ctx, 1, metric.WithAttributes(attribute.KeyValue{"state", attribute.StringValue("lost")}))
+	otelinstrument.QuicPackets.Add(ctx, 1, metric.WithAttributes(attribute.String("state", "lost")))
 }
 
 type stats struct {
@@ -328,25 +330,25 @@ type stats struct {
 
 func (s *stats) OnRecv(n uint64) {
 	otelinstrument.MultipathFrames.Add(context.Background(), 1,
-		metric.WithAttributes(append(s.otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("receive")})...))
+		metric.WithAttributes(append(s.otelAttributes, semconv.NetworkIODirectionKey.String("receive"))...))
 	otelinstrument.MultipathIO.Add(context.Background(), int64(n),
-		metric.WithAttributes(append(s.otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("receive")})...))
+		metric.WithAttributes(append(s.otelAttributes, semconv.NetworkIODirectionKey.String("receive"))...))
 }
 func (s *stats) OnSent(n uint64) {
 	otelinstrument.MultipathFrames.Add(context.Background(), 1,
-		metric.WithAttributes(append(s.otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("transmit")})...))
+		metric.WithAttributes(append(s.otelAttributes, semconv.NetworkIODirectionKey.String("transmit"))...))
 	otelinstrument.MultipathIO.Add(context.Background(), int64(n),
-		metric.WithAttributes(append(s.otelAttributes, attribute.KeyValue{"direction", attribute.StringValue("transmit")})...))
+		metric.WithAttributes(append(s.otelAttributes, semconv.NetworkIODirectionKey.String("transmit"))...))
 }
 func (s *stats) OnRetransmit(n uint64) {
 	otelinstrument.MultipathFrames.Add(context.Background(), 1,
 		metric.WithAttributes(append(s.otelAttributes,
-			attribute.KeyValue{"direction", attribute.StringValue("transmit")},
-			attribute.KeyValue{"state", attribute.StringValue("retransmit")})...))
+			semconv.NetworkIODirectionKey.String("transmit"),
+			attribute.String("state", "retransmit"))...))
 	otelinstrument.MultipathIO.Add(context.Background(), int64(n),
 		metric.WithAttributes(append(s.otelAttributes,
-			attribute.KeyValue{"direction", attribute.StringValue("transmit")},
-			attribute.KeyValue{"state", attribute.StringValue("retransmit")})...))
+			semconv.NetworkIODirectionKey.String("transmit"),
+			attribute.String("state", "retransmit"))...))
 }
 func (s *stats) UpdateRTT(time.Duration) {
 	// do nothing as the RTT from different clients can vary significantly
@@ -356,7 +358,7 @@ func (ins *defaultInstrument) MultipathStats(protocols []string) (trackers []mul
 	for _, p := range protocols {
 		trackers = append(trackers, &stats{
 			otelAttributes: []attribute.KeyValue{
-				{"path_protocol", attribute.StringValue(p)}},
+				attribute.String("path_protocol", p)},
 		})
 	}
 	return
@@ -424,15 +426,15 @@ func (ins *defaultInstrument) ReportProxiedBytes(tp *sdktrace.TracerProvider) {
 					attribute.Int("bytes_sent", value.sent),
 					attribute.Int("bytes_recv", value.recv),
 					attribute.Int("bytes_total", value.sent+value.recv),
-					attribute.String(common.DeviceID, key.deviceID),
-					attribute.String(common.Platform, key.platform),
-					attribute.String(common.LibraryVersion, key.libVersion),
-					attribute.String(common.AppVersion, key.appVersion),
-					attribute.String(common.Locale, key.locale),
-					attribute.String("client_country", key.country),
-					attribute.String("client_isp", key.isp),
-					attribute.String("client_asn", key.asn),
-					attribute.String(common.ProbingError, key.probingError)))
+					semconv.ClientDeviceIDKey.String(key.deviceID),
+					semconv.ClientPlatformKey.String(key.platform),
+					attribute.String("client.library_version", key.libVersion),
+					semconv.ClientVersionKey.String(key.appVersion),
+					attribute.String("client.locale", key.locale),
+					semconv.GeoCountryISOCodeKey.String(key.country),
+					semconv.ClientISPKey.String(key.isp),
+					semconv.ClientAsnKey.String(key.asn),
+					attribute.String("probing.error", key.probingError)))
 		span.End()
 	}
 }
@@ -465,9 +467,9 @@ func (ins *defaultInstrument) ReportOriginBytes(tp *sdktrace.TracerProvider) {
 					attribute.Int("origin_bytes_recv", value.recv),
 					attribute.Int("origin_bytes_total", value.sent+value.recv),
 					attribute.String("origin", key.origin),
-					attribute.String("client_platform", key.platform),
-					attribute.String("client_version", key.version),
-					attribute.String("client_country", key.country)))
+					semconv.ClientPlatformKey.String(key.platform),
+					attribute.String("client.library_version", key.version),
+					semconv.GeoCountryISOCodeKey.String(key.country)))
 		span.End()
 	}
 }
