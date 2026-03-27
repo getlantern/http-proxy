@@ -306,6 +306,8 @@ github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7 h1:47FJ5kTeXc
 github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7/go.mod h1:OOqKCIkspqXtIWEex4uhH1H9l7NGekT9i3Hs591ZDk4=
 github.com/getlantern/semconv v0.0.0-20260327011855-c560ef378b95 h1:UktZs23WD31xMRDi+rychDFivoAZSVloFNBJoxTaR/I=
 github.com/getlantern/semconv v0.0.0-20260327011855-c560ef378b95/go.mod h1:am1xPKLmvumAUMzBdYRuxDHUeiM8wKoxUeM21DY5N30=
+github.com/getlantern/semconv v0.0.0-20260327031711-d850d4121744 h1:K+1Ld7Q+lBPXwZKs8YgxyURqrcXnWAShhPnxy+AD3z8=
+github.com/getlantern/semconv v0.0.0-20260327031711-d850d4121744/go.mod h1:am1xPKLmvumAUMzBdYRuxDHUeiM8wKoxUeM21DY5N30=
 github.com/getlantern/sing-vmess v0.0.0-20241209111030-0f2c02b4eb9a h1:EaWmH5vANbKEXCdfgTChyEpWWwLsSrLPKqO6j0h+IB8=
 github.com/getlantern/sing-vmess v0.0.0-20241209111030-0f2c02b4eb9a/go.mod h1:eyj3LXZUf1aYph1WD19MKwbj5kMUQR92WBQfOAYpb/4=
 github.com/getlantern/telemetry v0.0.0-20250606052628-8960164ec1f5 h1:6ITBYqNkLbVZ1tQNXwmH8N80rZtvyW6IZa8L6EAhBQo=

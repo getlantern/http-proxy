@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	lanternsc "github.com/getlantern/semconv"
+	semconv "github.com/getlantern/semconv"
 	sdkotel "go.opentelemetry.io/otel"
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/exporters/otlp/otlpmetric/otlpmetrichttp"
@@ -15,7 +15,6 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 	"go.opentelemetry.io/otel/sdk/resource"
 	sdktrace "go.opentelemetry.io/otel/sdk/trace"
-	otelsc "go.opentelemetry.io/otel/semconv/v1.37.0"
 
 	"github.com/getlantern/golog"
 )
@@ -46,34 +45,34 @@ type Opts struct {
 
 func (opts *Opts) buildResource() *resource.Resource {
 	attrs := []attribute.KeyValue{
-		otelsc.ServiceNameKey.String("http-proxy-lantern"),
-		lanternsc.ProxyProtocolKey.String(opts.ProxyProtocol),
-		lanternsc.ClientIsProKey.Bool(opts.IsPro),
+		semconv.ServiceNameKey.String("http-proxy-lantern"),
+		semconv.ProxyProtocolKey.String(opts.ProxyProtocol),
+		semconv.ClientIsProKey.Bool(opts.IsPro),
 		attribute.Bool("legacy", opts.Legacy),
 	}
 	if opts.Track != "" {
 		attrs = append(attrs,
-			lanternsc.ProxyTrackKey.String(opts.Track))
+			semconv.ProxyTrackKey.String(opts.Track))
 	}
 	if opts.ProxyName != "" {
 		attrs = append(attrs,
-			lanternsc.ProxyNameKey.String(opts.ProxyName))
+			semconv.ProxyNameKey.String(opts.ProxyName))
 	}
 	if opts.Provider != "" {
 		attrs = append(attrs,
-			lanternsc.ProxyProviderKey.String(opts.Provider))
+			semconv.ProxyProviderKey.String(opts.Provider))
 	}
 	if opts.DC != "" {
 		attrs = append(attrs, attribute.String("dc", opts.DC))
 	}
 	if opts.FrontendProvider != "" {
 		attrs = append(attrs,
-			lanternsc.ProxyFrontendProviderKey.String(opts.FrontendProvider),
+			semconv.ProxyFrontendProviderKey.String(opts.FrontendProvider),
 			attribute.String("frontend.dc", opts.FrontendDC),
 		)
 	}
 	log.Debugf("Resource attributes: %v", attrs)
-	return resource.NewWithAttributes(otelsc.SchemaURL, attrs...)
+	return resource.NewWithAttributes(semconv.SchemaURL, attrs...)
 }
 
 func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
