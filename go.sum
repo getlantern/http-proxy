@@ -308,6 +308,8 @@ github.com/getlantern/semconv v0.0.0-20260327033412-364dfaa6b6ec h1:lPQMlQuENIRa
 github.com/getlantern/semconv v0.0.0-20260327033412-364dfaa6b6ec/go.mod h1:GkPT5P9JoOTIRXRmFWxYgu1hhXgTFFTNc2hoG7WQc3g=
 github.com/getlantern/semconv v0.0.0-20260327035242-c93140b6acf3 h1:0xOiOarpwjmO+5dH/W456yXgHPbTB28qAjhQUGvcp0w=
 github.com/getlantern/semconv v0.0.0-20260327035242-c93140b6acf3/go.mod h1:GkPT5P9JoOTIRXRmFWxYgu1hhXgTFFTNc2hoG7WQc3g=
+github.com/getlantern/semconv v0.0.0-20260327040646-21845dda05cb h1:c5YM7b3a4r2J8Eh89KkI6M/iTFe6Bi+b8AJlfkKdFq4=
+github.com/getlantern/semconv v0.0.0-20260327040646-21845dda05cb/go.mod h1:GkPT5P9JoOTIRXRmFWxYgu1hhXgTFFTNc2hoG7WQc3g=
 github.com/getlantern/sing-vmess v0.0.0-20241209111030-0f2c02b4eb9a h1:EaWmH5vANbKEXCdfgTChyEpWWwLsSrLPKqO6j0h+IB8=
 github.com/getlantern/sing-vmess v0.0.0-20241209111030-0f2c02b4eb9a/go.mod h1:eyj3LXZUf1aYph1WD19MKwbj5kMUQR92WBQfOAYpb/4=
 github.com/getlantern/telemetry v0.0.0-20250606052628-8960164ec1f5 h1:6ITBYqNkLbVZ1tQNXwmH8N80rZtvyW6IZa8L6EAhBQo=
