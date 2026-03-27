@@ -304,8 +304,6 @@ github.com/getlantern/quicwrapper v0.0.0-20250417060014-acb01527c4c2 h1:4TMpZ++G
 github.com/getlantern/quicwrapper v0.0.0-20250417060014-acb01527c4c2/go.mod h1:8JUff02h2OIo2TSuJDJmTVphoh3MzeE7V5gbjPa+r0w=
 github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7 h1:47FJ5kTeXc3I1VPpi2hWW9I16/Y3K0cpUq/B7oWJGF8=
 github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7/go.mod h1:OOqKCIkspqXtIWEex4uhH1H9l7NGekT9i3Hs591ZDk4=
-github.com/getlantern/semconv v0.0.0-20260327011855-c560ef378b95 h1:UktZs23WD31xMRDi+rychDFivoAZSVloFNBJoxTaR/I=
-github.com/getlantern/semconv v0.0.0-20260327011855-c560ef378b95/go.mod h1:am1xPKLmvumAUMzBdYRuxDHUeiM8wKoxUeM21DY5N30=
 github.com/getlantern/semconv v0.0.0-20260327031711-d850d4121744 h1:K+1Ld7Q+lBPXwZKs8YgxyURqrcXnWAShhPnxy+AD3z8=
 github.com/getlantern/semconv v0.0.0-20260327031711-d850d4121744/go.mod h1:am1xPKLmvumAUMzBdYRuxDHUeiM8wKoxUeM21DY5N30=
 github.com/getlantern/sing-vmess v0.0.0-20241209111030-0f2c02b4eb9a h1:EaWmH5vANbKEXCdfgTChyEpWWwLsSrLPKqO6j0h+IB8=
