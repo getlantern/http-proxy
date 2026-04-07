@@ -10,7 +10,7 @@ require (
 	github.com/OperatorFoundation/Replicant-go/Replicant/v3 v3.0.23
 	github.com/OperatorFoundation/Starbridge-go/Starbridge/v3 v3.0.17
 	github.com/dustin/go-humanize v1.0.1
-	github.com/getlantern/broflake v0.0.0-20260301201255-04f5afa7de08
+	github.com/getlantern/broflake v0.0.0-20260405220006-86ebdd4b757a
 	github.com/getlantern/cmux/v2 v2.0.0-20230301223233-dac79088a4c0
 	github.com/getlantern/cmuxprivate v0.0.0-20211216020409-d29d0d38be54
 	github.com/getlantern/enhttp v0.0.0-20210901195634-6f89d45ee033
