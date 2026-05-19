@@ -1,5 +1,6 @@
 [Unit]
 Description=http-proxy service (%i)
+Wants=network-online.target
 After=network.target nss-lookup.target network-online.target
 
 [Service]
