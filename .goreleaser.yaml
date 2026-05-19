@@ -39,9 +39,6 @@ builds:
       - -s -w -buildid=
     binary: http-proxy
 
-snapshot:
-  version_template: "{{ .ShortCommit }}"
-
 nightly:
   version_template: "{{ .ShortCommit }}"
   tag_name: nightly
