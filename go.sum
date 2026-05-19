@@ -183,8 +183,6 @@ github.com/gaukas/wazerofs v0.1.0 h1:wIkW1bAxSnpaaVkQ5LOb1tm1BXdVap3eKjJpVWIqt2E
 github.com/gaukas/wazerofs v0.1.0/go.mod h1:+JECB9Fwt0taPqSgHckG9lmT3tcoVK+9VJozTsq9UlI=
 github.com/getlantern/algeneva v0.0.0-20240222191137-2b4e88234f59 h1:uWNy0b1Wtpsd4n64Kat+fRjvPCBwM2Nykwt71LupJAQ=
 github.com/getlantern/algeneva v0.0.0-20240222191137-2b4e88234f59/go.mod h1:PrNR8tMXO26YNs8K9653XCUH7u2Kv4OdfFC3Ke1GsX0=
-github.com/getlantern/broflake v0.0.0-20260301201255-04f5afa7de08 h1:WtIPl4gUWQfpeYzgr4uvZZzXhUlkyF/RBqQOBOnK6p0=
-github.com/getlantern/broflake v0.0.0-20260301201255-04f5afa7de08/go.mod h1:b40tuN7lS/j6OXOlUyo4m/CY+JbZ/dj1SBOtGfqPUKI=
 github.com/getlantern/broflake v0.0.0-20260405220006-86ebdd4b757a h1:3LbuwDXXyJFUC9k9AqL/y9IhReDZEEwie5MRc93++I4=
 github.com/getlantern/broflake v0.0.0-20260405220006-86ebdd4b757a/go.mod h1:b40tuN7lS/j6OXOlUyo4m/CY+JbZ/dj1SBOtGfqPUKI=
 github.com/getlantern/bufconn v0.0.0-20190625204133-a08544339f8d h1:gE5pWSEYfMvSETsTanqINNLmv+nuyUjwcm9jOyqJJZI=
@@ -306,10 +304,6 @@ github.com/getlantern/quicwrapper v0.0.0-20250417060014-acb01527c4c2 h1:4TMpZ++G
 github.com/getlantern/quicwrapper v0.0.0-20250417060014-acb01527c4c2/go.mod h1:8JUff02h2OIo2TSuJDJmTVphoh3MzeE7V5gbjPa+r0w=
 github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7 h1:47FJ5kTeXc3I1VPpi2hWW9I16/Y3K0cpUq/B7oWJGF8=
 github.com/getlantern/ratelimit v0.0.0-20220926192648-933ab81a6fc7/go.mod h1:OOqKCIkspqXtIWEex4uhH1H9l7NGekT9i3Hs591ZDk4=
-github.com/getlantern/semconv v0.0.0-20260327033412-364dfaa6b6ec h1:lPQMlQuENIRaBFS1aFHuyTJ0nFpNuxMXau+5KUyznKY=
-github.com/getlantern/semconv v0.0.0-20260327033412-364dfaa6b6ec/go.mod h1:GkPT5P9JoOTIRXRmFWxYgu1hhXgTFFTNc2hoG7WQc3g=
-github.com/getlantern/semconv v0.0.0-20260327035242-c93140b6acf3 h1:0xOiOarpwjmO+5dH/W456yXgHPbTB28qAjhQUGvcp0w=
-github.com/getlantern/semconv v0.0.0-20260327035242-c93140b6acf3/go.mod h1:GkPT5P9JoOTIRXRmFWxYgu1hhXgTFFTNc2hoG7WQc3g=
 github.com/getlantern/semconv v0.0.0-20260327040646-21845dda05cb h1:c5YM7b3a4r2J8Eh89KkI6M/iTFe6Bi+b8AJlfkKdFq4=
 github.com/getlantern/semconv v0.0.0-20260327040646-21845dda05cb/go.mod h1:GkPT5P9JoOTIRXRmFWxYgu1hhXgTFFTNc2hoG7WQc3g=
 github.com/getlantern/sing-vmess v0.0.0-20241209111030-0f2c02b4eb9a h1:EaWmH5vANbKEXCdfgTChyEpWWwLsSrLPKqO6j0h+IB8=

@@ -1,0 +1,19 @@
+[Unit]
+Description=http-proxy service (%i)
+Wants=network-online.target
+After=network.target nss-lookup.target network-online.target
+
+[Service]
+ExecStart=/usr/bin/http-proxy -config /etc/http-proxy/%i.ini
+ExecReload=/bin/kill -HUP $MAINPID
+DynamicUser=yes
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=full
+ProtectHome=yes
+Restart=on-failure
+RestartSec=10s
+LimitNOFILE=infinity
+
+[Install]
+WantedBy=multi-user.target

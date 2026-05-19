@@ -1,0 +1,79 @@
+# yaml-language-server: $schema=https://goreleaser.com/static/schema-pro.json
+version: 2
+project_name: http-proxy-lantern
+metadata:
+  maintainers:
+    - "Lantern Team <dev@getlantern.org>"
+  description: Lantern HTTP Proxy
+  homepage: "https://github.com/getlantern/http-proxy-lantern"
+  license: "GPL"
+
+builds:
+  - id: amd64
+    main: ./http-proxy
+    flags:
+      - -v
+      - -trimpath
+    goos:
+      - linux
+    goarch:
+      - amd64
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -buildid=
+    binary: http-proxy
+
+  - id: arm64
+    main: ./http-proxy
+    flags:
+      - -v
+      - -trimpath
+    goos:
+      - linux
+    goarch:
+      - arm64
+    env:
+      - CGO_ENABLED=0
+    ldflags:
+      - -s -w -buildid=
+    binary: http-proxy
+
+nightly:
+  version_template: "{{ .ShortCommit }}"
+  tag_name: nightly
+  publish_release: true
+  keep_single_release: true
+
+archives:
+  - formats: ["tar.gz"]
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^chore:"
+
+release:
+  replace_existing_artifacts: true
+
+nfpms:
+  - id: http-proxy
+    package_name: "http-proxy-lantern"
+    formats:
+      - deb
+      - rpm
+    section: "default"
+    maintainer: "Lantern Team <dev@getlantern.org>"
+    description: |
+      Lantern HTTP Proxy
+    vendor: "Brave New Software"
+    homepage: "https://github.com/getlantern/http-proxy-lantern"
+    license: "GPL"
+    contents:
+      - src: internal/http-proxy.service
+        dst: /usr/lib/systemd/system/http-proxy.service
+      - src: internal/http-proxy@.service
+        dst: /usr/lib/systemd/system/http-proxy@.service
