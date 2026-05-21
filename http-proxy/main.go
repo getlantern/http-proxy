@@ -89,6 +89,14 @@ var (
 	cfgSvrAuthToken           = flag.String("cfgsvrauthtoken", "", "Token attached to config-server requests, not attaching if empty")
 	connectOKWaitsForUpstream = flag.Bool("connect-ok-waits-for-upstream", false, "Set to true to wait for upstream connection before responding OK to CONNECT requests")
 
+	// Per-arm bandit callback. Plumbed at provisioning by the
+	// lantern-cloud VPS provisioner. Empty token disables emission, so
+	// non-bandit-eligible tracks (or older provisioner builds) carry
+	// the same binary without firing any callbacks.
+	banditCallbackToken = flag.String("banditcallbacktoken", "", "Per-arm bandit callback token plumbed by the provisioner")
+	banditCallbackURL   = flag.String("banditcallbackurl", "", "Full URL of the /v1/bandit/callback endpoint")
+	banditCallbackTTL   = flag.Duration("banditcallbackttl", 10*time.Minute, "Per-device dedup window for bandit callback emission")
+
 	throttleRefreshInterval = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
 
 	enableMultipath = flag.Bool("enablemultipath", false, "Enable multipath. Only clients support multipath can communicate with it.")
@@ -395,6 +403,9 @@ func main() {
 		KeyFile:                            *keyfile,
 		CfgSvrAuthToken:                    *cfgSvrAuthToken,
 		ConnectOKWaitsForUpstream:          *connectOKWaitsForUpstream,
+		BanditCallbackToken:                *banditCallbackToken,
+		BanditCallbackURL:                  *banditCallbackURL,
+		BanditCallbackTTL:                  *banditCallbackTTL,
 		EnableMultipath:                    *enableMultipath,
 		ThrottleRefreshInterval:            *throttleRefreshInterval,
 		TracesSampleRate:                   *tracesSampleRate,

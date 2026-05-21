@@ -28,7 +28,9 @@ import (
 	"github.com/getlantern/gonat"
 	"github.com/getlantern/kcpwrapper"
 
+	"github.com/getlantern/http-proxy-lantern/v2/banditcallback"
 	"github.com/getlantern/http-proxy-lantern/v2/broflake"
+	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	"github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
@@ -177,6 +179,15 @@ type Proxy struct {
 	CountryLookup                      geo.CountryLookup
 	ISPLookup                          geo.ISPLookup
 
+	// Per-arm bandit callback. Plumbed at provisioning by the
+	// lantern-cloud VPS provisioner; empty BanditCallbackToken
+	// disables emission entirely. The emitter is constructed once in
+	// ListenAndServe and then referenced by createFilterChain.
+	BanditCallbackToken   string
+	BanditCallbackURL     string
+	BanditCallbackTTL     time.Duration
+	banditCallbackEmitter *banditcallback.Emitter
+
 	MultiplexProtocol             string
 	SmuxVersion                   int
 	SmuxMaxFrameSize              int
@@ -235,6 +246,14 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	if err != nil {
 		return errors.New("Unable to configure instrumentation: %v", err)
 	}
+
+	// Per-arm bandit callback emitter. New is cheap and safe to call
+	// with empty token/URL — Enabled() reports false and EmitIfFirstSeen
+	// becomes a no-op, so the filter installs but stays silent on
+	// non-bandit-eligible builds.
+	p.banditCallbackEmitter = banditcallback.New(
+		p.BanditCallbackToken, p.BanditCallbackURL, p.BanditCallbackTTL,
+	)
 
 	var onServerError func(conn net.Conn, err error)
 	if err := p.setupPacketForward(); err != nil {
@@ -521,6 +540,19 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		}))
 	} else {
 		filterChain = filterChain.Append(proxy.OnFirstOnly(tokenfilter.New(p.Token, p.instrument)))
+	}
+
+	// Per-arm bandit callback emitter. Sits after auth so we don't
+	// fire on unauthenticated noise, but before devicefilter so it
+	// runs for pro tracks too (devicefilter skips when
+	// ReportingRedisClient is nil for pro proxies, but the bandit
+	// still wants signal for those arms). OnFirstOnly because we only
+	// need the header once per connection — same as the other
+	// auth-adjacent filters. No-op when Token/URL are empty.
+	if p.banditCallbackEmitter != nil && p.banditCallbackEmitter.Enabled() {
+		filterChain = filterChain.Append(
+			proxy.OnFirstOnly(banditcallback.NewFilter(common.DeviceIdHeader, p.banditCallbackEmitter)),
+		)
 	}
 
 	if p.ReportingRedisClient == nil {
