@@ -51,11 +51,17 @@ type Emitter struct {
 
 // New returns an emitter. token and callbackURL come from the daemon's
 // INI (banditcallbacktoken / banditcallbackurl). ttl is the per-device
-// dedup window — typically matches the API-side ProbeTTLForPollInterval
-// at the daemon's expected poll. Zero ttl uses 10m as a sensible default.
+// dedup window — also the heartbeat cadence: while a device keeps
+// using the proxy, it triggers a callback at most once per ttl. The
+// API side uses absence of those heartbeats as its only available
+// signal for censorship blocking (the proxy itself can't observe a
+// blocked connection because the client never reaches it), so ttl
+// must stay short enough that an absence is detected before users
+// suffer. Zero ttl uses 60s as a sensible default. Keep this in lock-
+// step with bandit.ArmCallbackHeartbeatWindow on the API side.
 func New(token, callbackURL string, ttl time.Duration) *Emitter {
 	if ttl <= 0 {
-		ttl = 10 * time.Minute
+		ttl = 60 * time.Second
 	}
 	return &Emitter{
 		token:       token,
