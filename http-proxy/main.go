@@ -95,7 +95,7 @@ var (
 	// the same binary without firing any callbacks.
 	banditCallbackToken = flag.String("banditcallbacktoken", "", "Per-arm bandit callback token plumbed by the provisioner")
 	banditCallbackURL   = flag.String("banditcallbackurl", "", "Full URL of the /v1/bandit/callback endpoint")
-	banditCallbackTTL   = flag.Duration("banditcallbackttl", 10*time.Minute, "Per-device dedup window for bandit callback emission")
+	banditCallbackTTL   = flag.Duration("banditcallbackttl", 60*time.Second, "Per-device dedup window and heartbeat cadence for bandit callback emission. The API's absence-reaper expects a callback within ArmCallbackHeartbeatWindow (~90s) of the previous one; values much smaller than that just amplify callback traffic, values larger risk false-positive negative rewards on idle clients.")
 
 	throttleRefreshInterval = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
 
