@@ -15,6 +15,7 @@ package banditcallback
 
 import (
 	"context"
+	"net"
 	"net/http"
 	"net/url"
 	"sync"
@@ -76,10 +77,14 @@ func (e *Emitter) Enabled() bool {
 
 // EmitIfFirstSeen records the device-id and, if it hasn't been seen
 // within the TTL window, fires an async best-effort GET to the
-// configured callback URL. Returns immediately — the HTTP request runs
-// in its own goroutine and any failure is logged at debug only (the
-// callback is a hint to the bandit, not a correctness signal).
-func (e *Emitter) EmitIfFirstSeen(ctx context.Context, deviceID string) {
+// configured callback URL. clientIP, when non-empty, is forwarded as a
+// True-Client-IP header so the API can attribute the reward to the
+// device's ASN rather than to the proxy VPS's egress IP — the source
+// address of our outbound request. Returns immediately — the HTTP
+// request runs in its own goroutine and any failure is logged at debug
+// only (the callback is a hint to the bandit, not a correctness
+// signal).
+func (e *Emitter) EmitIfFirstSeen(ctx context.Context, deviceID, clientIP string) {
 	if !e.Enabled() || deviceID == "" {
 		return
 	}
@@ -90,7 +95,7 @@ func (e *Emitter) EmitIfFirstSeen(ctx context.Context, deviceID string) {
 		return
 	}
 
-	go e.fire(ctx, deviceID)
+	go e.fire(ctx, deviceID, clientIP)
 }
 
 // checkAndRecord returns true if the deviceID is first-seen within the
@@ -120,7 +125,7 @@ func (e *Emitter) checkAndRecord(deviceID string, now time.Time) bool {
 	return true
 }
 
-func (e *Emitter) fire(ctx context.Context, deviceID string) {
+func (e *Emitter) fire(ctx context.Context, deviceID, clientIP string) {
 	// Detach from the request context so a closing client connection
 	// doesn't cancel the outbound HTTP request. The callback is for
 	// the bandit's benefit, not the client's; we want it to complete
@@ -142,6 +147,9 @@ func (e *Emitter) fire(ctx context.Context, deviceID string) {
 	if err != nil {
 		log.Debugf("banditcallback: build request: %v", err)
 		return
+	}
+	if clientIP != "" {
+		req.Header.Set("True-Client-IP", clientIP)
 	}
 
 	resp, err := e.client.Do(req)
@@ -183,10 +191,17 @@ func NewFilter(headerName string, emitter *Emitter) *Filter {
 }
 
 // Apply implements filters.Filter. Forwards unconditionally (the
-// emitter is a side-effect; failures are non-fatal).
+// emitter is a side-effect; failures are non-fatal). The client IP is
+// taken from req.RemoteAddr (same source opsfilter uses for measured
+// reporting) so the API receives the device's real IP via the
+// True-Client-IP header instead of our VPS egress.
 func (f *Filter) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
 	if f.emitter != nil && f.emitter.Enabled() {
-		f.emitter.EmitIfFirstSeen(req.Context(), req.Header.Get(f.deviceIDHeader))
+		clientIP, _, err := net.SplitHostPort(req.RemoteAddr)
+		if err != nil {
+			clientIP = req.RemoteAddr
+		}
+		f.emitter.EmitIfFirstSeen(req.Context(), req.Header.Get(f.deviceIDHeader), clientIP)
 	}
 	return next(cs, req)
 }
