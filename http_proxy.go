@@ -248,9 +248,9 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	}
 
 	// Per-arm bandit callback emitter. New is cheap and safe to call
-	// with empty token/URL — Enabled() reports false and EmitIfFirstSeen
-	// becomes a no-op, so the filter installs but stays silent on
-	// non-bandit-eligible builds.
+	// with empty token/URL — Enabled() reports false in that case and
+	// createFilterChain skips appending the filter entirely, so a
+	// non-bandit-eligible build runs no extra per-request code.
 	p.banditCallbackEmitter = banditcallback.New(
 		p.BanditCallbackToken, p.BanditCallbackURL, p.BanditCallbackTTL,
 	)
@@ -542,13 +542,19 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		filterChain = filterChain.Append(proxy.OnFirstOnly(tokenfilter.New(p.Token, p.instrument)))
 	}
 
-	// Per-arm bandit callback emitter. Sits after auth so we don't
-	// fire on unauthenticated noise, but before devicefilter so it
-	// runs for pro tracks too (devicefilter skips when
-	// ReportingRedisClient is nil for pro proxies, but the bandit
-	// still wants signal for those arms). OnFirstOnly because we only
-	// need the header once per connection — same as the other
-	// auth-adjacent filters. No-op when Token/URL are empty.
+	// Per-arm bandit callback emitter. Appended only when the
+	// emitter is enabled (non-empty token + URL); on a
+	// non-bandit-eligible build the filter is never installed and
+	// adds zero per-request work. Placement: after tokenfilter so we
+	// don't fire on unauthenticated noise (note: benchmark mode
+	// skips tokenfilter entirely, so this filter would see
+	// unauthenticated traffic there — fine because bench mode is a
+	// local-only test setup), and before devicefilter so the
+	// emitter still runs for pro tracks (devicefilter is gated on
+	// ReportingRedisClient, which pro proxies don't set, but the
+	// bandit still wants signal for pro arms). OnFirstOnly because
+	// the device-id header only needs to be read once per
+	// connection — matches the other auth-adjacent filters.
 	if p.banditCallbackEmitter != nil && p.banditCallbackEmitter.Enabled() {
 		filterChain = filterChain.Append(
 			proxy.OnFirstOnly(banditcallback.NewFilter(common.DeviceIdHeader, p.banditCallbackEmitter)),
