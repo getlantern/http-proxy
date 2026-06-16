@@ -40,7 +40,12 @@ builds:
     binary: http-proxy
 
 nightly:
-  version_template: "{{ .ShortCommit }}"
+  # Debian/RPM Version fields must start with a digit, so the bare short commit
+  # (e.g. "dd44277c") is rejected by dpkg with "version number does not start
+  # with digit" whenever the SHA happens to start with a-f. Prefix a digit-
+  # leading stub; the short commit stays in the package file name (see
+  # nfpms.file_name_template) so the cloud-init download URL is unchanged.
+  version_template: "0.0.0+{{ .ShortCommit }}"
   tag_name: nightly
   publish_release: true
   keep_single_release: true
@@ -62,6 +67,11 @@ release:
 nfpms:
   - id: http-proxy
     package_name: "http-proxy-lantern"
+    # Keep the short commit in the package file name (decoupled from the
+    # digit-prefixed Version above) so the asset stays
+    # http-proxy-lantern_<shortcommit>_linux_<arch>.deb — the name the VPS
+    # cloud-init builds its download URL from (bandit_vps_http_proxy_default_short_tag).
+    file_name_template: "http-proxy-lantern_{{ .ShortCommit }}_linux_{{ .Arch }}"
     formats:
       - deb
       - rpm
