@@ -276,8 +276,8 @@ github.com/getlantern/kcp-go/v5 v5.0.0-20220503142114-f0c1cd6e1b54 h1:JqIiaDpL6C
 github.com/getlantern/kcp-go/v5 v5.0.0-20220503142114-f0c1cd6e1b54/go.mod h1:KFBWdR0PdEQK0JtGcE1lhAoYFVTRxWDFfYBARPb0t9Q=
 github.com/getlantern/kcpwrapper v0.0.0-20230327091313-c12d7c17c6de h1:RS4Tx7aVExrAXsgvrXSln9iQ5HZNPpvHjJGM/MQH8ZE=
 github.com/getlantern/kcpwrapper v0.0.0-20230327091313-c12d7c17c6de/go.mod h1:UVPVk1fNbqBceE4i+x/qbNxUNQ7gMACdOukoIbXM9jc=
-github.com/getlantern/keepcurrent v0.0.0-20260616091602-0364abd4ecd2 h1:ZNkfDGgqtKrX2CEs/SryCx31Qe8GEu2a+HAmeyX2UU4=
-github.com/getlantern/keepcurrent v0.0.0-20260616091602-0364abd4ecd2/go.mod h1:ag5g9aWUw2FJcX5RVRpJ9EBQBy5yJuy2WXDouIn/m4w=
+github.com/getlantern/keepcurrent v0.0.0-20260616120552-f204338b01a3 h1:YPBbuyvdWv+YvXDqADVwjxM0DyABg2x4UgLVKU9McKI=
+github.com/getlantern/keepcurrent v0.0.0-20260616120552-f204338b01a3/go.mod h1:ag5g9aWUw2FJcX5RVRpJ9EBQBy5yJuy2WXDouIn/m4w=
 github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a/go.mod h1:FMf0g72BHs14jVcD8i8ubEk4sMB6JdidBn67d44i3ws=
 github.com/getlantern/keyman v0.0.0-20230503155501-4e864ca2175b h1:iyEuk8ARQC9HfraqC4r3leBhU55R1TV7bAiyPYE54kA=
 github.com/getlantern/keyman v0.0.0-20230503155501-4e864ca2175b/go.mod h1:ZJ+yDaZkJ/JU9j7EQa3UUh6ouedrNDDLA5OiowS1Iuk=
