@@ -26,6 +26,12 @@ var (
 	originRootRegex = regexp.MustCompile(`([^\.]+\.[^\.]+$)`)
 )
 
+// goodputMinBytes is the minimum received bytes a session must have moved
+// before its goodput sample is recorded. Filters out idle/tiny connections
+// whose bytes/duration is dominated by setup and idle time rather than actual
+// transfer speed.
+const goodputMinBytes = 1_000_000
+
 // Instrument is the common interface about what can be instrumented.
 type Instrument interface {
 	WrapFilter(prefix string, f filters.Filter) (filters.Filter, error)
@@ -37,6 +43,7 @@ type Instrument interface {
 	XBQHeaderSent(ctx context.Context)
 	SuspectedProbing(ctx context.Context, fromIP net.IP, reason string)
 	ProxiedBytes(ctx context.Context, sent, recv int, platform, platformVersion, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost, arch string)
+	SessionGoodput(ctx context.Context, recvBytes int, duration time.Duration, clientIP net.IP)
 	Connection(ctx context.Context, clientIP net.IP)
 	ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider)
 	ReportProxiedBytes(tp *sdktrace.TracerProvider)
@@ -72,6 +79,8 @@ func (i NoInstrument) Throttle(ctx context.Context, m bool, reason string) {}
 func (i NoInstrument) XBQHeaderSent(ctx context.Context)                                  {}
 func (i NoInstrument) SuspectedProbing(ctx context.Context, fromIP net.IP, reason string) {}
 func (i NoInstrument) ProxiedBytes(ctx context.Context, sent, recv int, platform, platformVersion, libVersion, appVersion, app, locale, dataCapCohort, probingError string, clientIP net.IP, deviceID, originHost, arch string) {
+}
+func (i NoInstrument) SessionGoodput(ctx context.Context, recvBytes int, duration time.Duration, clientIP net.IP) {
 }
 func (i NoInstrument) ReportProxiedBytesPeriodically(interval time.Duration, tp *sdktrace.TracerProvider) {
 }
@@ -303,6 +312,27 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		ins.originStats[originKey] = ins.originStats[originKey].add(sent, recv)
 	}
 	ins.statsMx.Unlock()
+}
+
+// SessionGoodput records a session's download goodput (received bytes per
+// second of connection lifetime) at close, for sessions that moved at least
+// goodputMinBytes. duration is the connection's open time; it includes idle
+// periods, so this is a floor on true transfer speed — but both arms of a
+// bandit experiment are measured identically, so it's a fair relative signal,
+// and the byte floor filters the worst idle-dominated noise. No device_id tag
+// (cardinality); track and cloud.region come from resource attributes, leaving
+// geo.country.iso_code as the only point attribute the evaluator strata need.
+func (ins *defaultInstrument) SessionGoodput(ctx context.Context, recvBytes int, duration time.Duration, clientIP net.IP) {
+	if recvBytes < goodputMinBytes || duration <= 0 {
+		return
+	}
+	goodput := float64(recvBytes) / duration.Seconds()
+	country := ins.countryLookup.CountryCode(clientIP)
+	otelinstrument.SessionGoodput.Record(ctx, goodput,
+		metric.WithAttributes(
+			semconv.GeoCountryISOCodeKey.String(country),
+			semconv.NetworkIODirectionKey.String("receive"),
+		))
 }
 
 // Connection counts the number of incoming connections
