@@ -32,6 +32,7 @@ var (
 	Throttling                                               metric.Int64Counter
 	SuspectedProbing                                         metric.Int64Counter
 	Connections                                              metric.Int64Counter
+	SessionGoodput                                           metric.Float64Histogram
 	DistinctClients1m, DistinctClients10m, DistinctClients1h *distinct.SlidingWindowDistinctCount
 	distinctClients                                          metric.Int64ObservableGauge
 )
@@ -77,6 +78,18 @@ func initialize() error {
 		return err
 	}
 	if Connections, err = meter.Int64Counter("proxy.connections"); err != nil {
+		return err
+	}
+	// Per-session download goodput (received bytes per second of connection
+	// lifetime), recorded once at connection close for sessions that moved at
+	// least goodputMinBytes. Sliceable by track (resource attr) × cloud.region
+	// (resource attr) × geo.country.iso_code (point attr) so the bandit
+	// experiment evaluator can compare a challenger track's median goodput
+	// against the incumbent's. Unit "bytes/s" follows proxy.io's "bytes"
+	// spelling for consistency within this package's metrics.
+	if SessionGoodput, err = meter.Float64Histogram("proxy.session.goodput",
+		metric.WithUnit("bytes/s"),
+		metric.WithDescription("Per-session download goodput: received bytes per second of connection lifetime")); err != nil {
 		return err
 	}
 
