@@ -29,10 +29,16 @@ type reportingConfig struct {
 
 func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, instrument instrument.Instrument, throttleConfig throttle.Config) *reportingConfig {
 	proxiedBytesReporter := func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
+		noDelta := deltaStats.SentTotal == 0 && deltaStats.RecvTotal == 0
+		if noDelta && !final {
+			// nothing to report on an idle, non-final interval; return before
+			// any client IP parsing to keep periodic reporting cheap.
+			return
+		}
+
 		var client_ip net.IP
-		_client_ip := ctx[common.ClientIP]
-		if _client_ip != nil {
-			client_ip = net.ParseIP(_client_ip.(string))
+		if s, ok := ctx[common.ClientIP].(string); ok {
+			client_ip = net.ParseIP(s)
 		}
 
 		if final {
@@ -43,8 +49,8 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 			instrument.SessionGoodput(context.Background(), stats.RecvTotal, stats.Duration, client_ip)
 		}
 
-		if deltaStats.SentTotal == 0 && deltaStats.RecvTotal == 0 {
-			// nothing to report
+		if noDelta {
+			// nothing more to report (final call with no new bytes this interval)
 			return
 		}
 		// Note - sometimes we're missing the platform and version

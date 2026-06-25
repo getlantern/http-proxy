@@ -19,6 +19,11 @@ import (
 // otel state and returns a defaultInstrument plus the reader to collect from.
 func newGoodputInstrument(t *testing.T) (*defaultInstrument, *sdkmetric.ManualReader) {
 	t.Helper()
+	// Restore the global meter provider after the test so the manual-reader
+	// provider doesn't leak into other tests in the process.
+	prev := sdkotel.GetMeterProvider()
+	t.Cleanup(func() { sdkotel.SetMeterProvider(prev) })
+
 	reader := sdkmetric.NewManualReader()
 	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	sdkotel.SetMeterProvider(provider)
@@ -48,6 +53,10 @@ func TestSessionGoodput(t *testing.T) {
 
 	attrs := extractHistogramAttrs(rm, "proxy.session.goodput")
 	assert.Equal(t, "receive", attrs["network.io.direction"])
+	// The country point attribute must always be present (empty here, since the
+	// test uses geo.NoLookup) so the metric stays sliceable by country.
+	_, hasCountry := attrs["geo.country.iso_code"]
+	assert.True(t, hasCountry, "goodput sample should carry the geo.country.iso_code attribute")
 }
 
 // TestSessionGoodputBelowThreshold verifies a sub-threshold session records no
