@@ -28,7 +28,7 @@ func newGoodputInstrument(t *testing.T) (*defaultInstrument, *sdkmetric.ManualRe
 	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	sdkotel.SetMeterProvider(provider)
 
-	ins, err := NewDefault(geo.NoLookup{}, &mockISPLookup{}, "test-proxy")
+	ins, err := NewDefault(geo.NoLookup{}, &mockISPLookup{}, "test-proxy", "test-track")
 	require.NoError(t, err)
 	return ins, reader
 }
@@ -53,6 +53,10 @@ func TestSessionGoodput(t *testing.T) {
 
 	attrs := extractHistogramAttrs(rm, "proxy.session.goodput")
 	assert.Equal(t, "receive", attrs["network.io.direction"])
+	// track must be a point attribute keyed "track" so the bandit evaluator can
+	// slice goodput per (track, country); it queries this label, not the
+	// "proxy.track" resource attribute.
+	assert.Equal(t, "test-track", attrs["track"], "goodput sample should carry the track point attribute")
 	// The country point attribute must always be present (empty here, since the
 	// test uses geo.NoLookup) so the metric stays sliceable by country.
 	_, hasCountry := attrs["geo.country.iso_code"]

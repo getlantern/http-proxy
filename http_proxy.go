@@ -242,6 +242,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		p.CountryLookup,
 		p.ISPLookup,
 		p.ProxyName,
+		p.Track,
 	)
 	if err != nil {
 		return errors.New("Unable to configure instrumentation: %v", err)
