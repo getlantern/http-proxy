@@ -112,9 +112,10 @@ type defaultInstrument struct {
 	originStats   map[originDetails]*usage
 	statsMx       sync.Mutex
 	proxyName     string
+	track         string
 }
 
-func NewDefault(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, proxyName string) (*defaultInstrument, error) {
+func NewDefault(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, proxyName, track string) (*defaultInstrument, error) {
 	if err := otelinstrument.Initialize(); err != nil {
 		return nil, err
 	}
@@ -127,6 +128,7 @@ func NewDefault(countryLookup geo.CountryLookup, ispLookup geo.ISPLookup, proxyN
 		clientStats:   make(map[clientDetails]*usage),
 		originStats:   make(map[originDetails]*usage),
 		proxyName:     proxyName,
+		track:         track,
 	}
 
 	return p, nil
@@ -320,8 +322,14 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 // periods, so this is a floor on true transfer speed — but both arms of a
 // bandit experiment are measured identically, so it's a fair relative signal,
 // and the byte floor filters the worst idle-dominated noise. No device_id tag
-// (cardinality); track and cloud.region come from resource attributes, leaving
-// geo.country.iso_code as the only point attribute the evaluator strata need.
+// (cardinality). track is emitted as a point attribute keyed "track": the bandit
+// evaluator slices goodput per (track, country) and queries that low-cardinality
+// point attribute (matching lantern-box). The resource also carries the track as
+// semconv.ProxyTrackKey ("proxy.track"), but the metrics pipeline doesn't expose
+// resource attributes as queryable labels, so the evaluator's "track" filter
+// can't see it — hence the explicit point attribute. cloud.region is left to the
+// resource: the strata are (track, country) only and a challenger is pinned to
+// one DC, so region would add cardinality without decision value.
 func (ins *defaultInstrument) SessionGoodput(ctx context.Context, recvBytes int, duration time.Duration, clientIP net.IP) {
 	if recvBytes < goodputMinBytes || duration <= 0 {
 		return
@@ -330,6 +338,7 @@ func (ins *defaultInstrument) SessionGoodput(ctx context.Context, recvBytes int,
 	country := ins.countryLookup.CountryCode(clientIP)
 	otelinstrument.SessionGoodput.Record(ctx, goodput,
 		metric.WithAttributes(
+			attribute.String("track", ins.track),
 			semconv.GeoCountryISOCodeKey.String(country),
 			semconv.NetworkIODirectionKey.String("receive"),
 		))

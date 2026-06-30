@@ -82,10 +82,10 @@ func initialize() error {
 	}
 	// Per-session download goodput (received bytes per second of connection
 	// lifetime), recorded once at connection close for sessions that moved at
-	// least goodputMinBytes. Sliceable by track (resource attr) × cloud.region
-	// (resource attr) × geo.country.iso_code (point attr) so the bandit
-	// experiment evaluator can compare a challenger track's median goodput
-	// against the incumbent's. Unit "bytes/s" follows proxy.io's "bytes"
+	// least goodputMinBytes. Sliceable by track × geo.country.iso_code (both
+	// point attrs) so the bandit experiment evaluator can compare a challenger
+	// track's median goodput against the incumbent's per market; cloud.region
+	// stays a resource attr. Unit "bytes/s" follows proxy.io's "bytes"
 	// spelling for consistency within this package's metrics.
 	if SessionGoodput, err = meter.Float64Histogram("proxy.session.goodput",
 		metric.WithUnit("bytes/s"),
