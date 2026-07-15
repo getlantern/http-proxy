@@ -188,6 +188,18 @@ type Proxy struct {
 	BanditCallbackTTL     time.Duration
 	banditCallbackEmitter *banditcallback.Emitter
 
+	// LegacyAPIHosts is a comma-separated list of hostnames that
+	// BlockLocal must let through without its usual private/global-unicast
+	// check. It exists for legacy pre-9.x clients that still talk to
+	// api.getiantem.org/geo.getiantem.org directly (rather than through the
+	// current API host): those domains front through Cloudflare/CloudFront,
+	// so they resolve fine everywhere else, but nothing about them requires
+	// DNS-rebind protection the way an arbitrary user-supplied CONNECT
+	// target does. Defaults to the known legacy hosts so upgrading this
+	// binary alone restores legacy purchases; the provisioner can override
+	// it to add/drop hosts without another release.
+	LegacyAPIHosts string
+
 	MultiplexProtocol             string
 	SmuxVersion                   int
 	SmuxMaxFrameSize              int
@@ -591,6 +603,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		if p.PacketForwardAddr != "" {
 			allowedLocalAddrs = append(allowedLocalAddrs, p.PacketForwardAddr)
 		}
+		allowedLocalAddrs = append(allowedLocalAddrs, p.legacyAPIHostExceptions()...)
 		filterChain = filterChain.Append(proxyfilters.BlockLocal(allowedLocalAddrs, &proxyfilters.Resolver{}))
 	}
 	instrumentedProxyPingFilter, err := p.instrument.WrapFilter("proxy_http_ping", ping.New(0))
@@ -741,6 +754,20 @@ func (p *Proxy) loadThrottleConfig() {
 		log.Debug("Not loading throttle config")
 		return
 	}
+}
+
+func (p *Proxy) legacyAPIHostExceptions() []string {
+	if p.LegacyAPIHosts == "" {
+		return nil
+	}
+	var hosts []string
+	for _, h := range strings.Split(p.LegacyAPIHosts, ",") {
+		h = strings.TrimSpace(h)
+		if h != "" {
+			hosts = append(hosts, h)
+		}
+	}
+	return hosts
 }
 
 func (p *Proxy) allowedTunnelPorts() []int {

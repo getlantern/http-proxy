@@ -40,6 +40,14 @@ func TestBlockLocalExceptionWithPort(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
+func TestBlockLocalExceptionIgnoresDefaultPort(t *testing.T) {
+	// A hostname exception (no port) must match regardless of whether the
+	// client's request explicitly includes the default port, since legacy
+	// clients are inconsistent about this (eng#3695).
+	_, resp := doTestBlockLocal(t, []string{"api.getiantem.org"}, "http://api.getiantem.org:80/plans-v4", &testResolver{104, 18, 3, 252})
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
 func TestBlockLocalNotLocal(t *testing.T) {
 	modifiedReq, resp := doTestBlockLocal(t, []string{"localhost"}, "http://example.com/index.html", &testResolver{93, 184, 215, 16})
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
