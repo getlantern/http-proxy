@@ -188,16 +188,9 @@ type Proxy struct {
 	BanditCallbackTTL     time.Duration
 	banditCallbackEmitter *banditcallback.Emitter
 
-	// LegacyAPIHosts is a comma-separated list of hostnames that
-	// BlockLocal must let through without its usual private/global-unicast
-	// check. It exists for legacy pre-9.x clients that still talk to
-	// api.getiantem.org/geo.getiantem.org directly (rather than through the
-	// current API host): those domains front through Cloudflare/CloudFront,
-	// so they resolve fine everywhere else, but nothing about them requires
-	// DNS-rebind protection the way an arbitrary user-supplied CONNECT
-	// target does. Defaults to the known legacy hosts so upgrading this
-	// binary alone restores legacy purchases; the provisioner can override
-	// it to add/drop hosts without another release.
+	// LegacyAPIHosts are extra hostnames exempted from BlockLocal, comma
+	// separated. Used for legacy pre-9.x clients hitting api.getiantem.org
+	// directly (see eng#3695).
 	LegacyAPIHosts string
 
 	MultiplexProtocol             string

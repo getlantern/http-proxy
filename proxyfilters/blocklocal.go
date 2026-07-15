@@ -39,10 +39,8 @@ func BlockLocal(exceptions []string, r resolver) filters.Filter {
 			host = req.URL.Host
 		}
 
-		// Check both the raw Host (so port-scoped exceptions like
-		// "127.0.0.1:7300" only match that exact address) and the bare
-		// hostname (so a hostname exception matches regardless of
-		// whether the client happened to include the default port).
+		// Check the bare host too, so a hostname exception matches with
+		// or without the default port.
 		if isException(req.URL.Host) || isException(host) {
 			return next(cs, req)
 		}

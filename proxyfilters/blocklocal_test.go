@@ -41,9 +41,7 @@ func TestBlockLocalExceptionWithPort(t *testing.T) {
 }
 
 func TestBlockLocalExceptionIgnoresDefaultPort(t *testing.T) {
-	// A hostname exception (no port) must match regardless of whether the
-	// client's request explicitly includes the default port, since legacy
-	// clients are inconsistent about this (eng#3695).
+	// eng#3695: exception should match even with the port included.
 	_, resp := doTestBlockLocal(t, []string{"api.getiantem.org"}, "http://api.getiantem.org:80/plans-v4", &testResolver{104, 18, 3, 252})
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }

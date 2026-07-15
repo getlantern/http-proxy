@@ -97,13 +97,9 @@ var (
 	banditCallbackURL   = flag.String("banditcallbackurl", "", "Full URL of the /v1/bandit/callback endpoint")
 	banditCallbackTTL   = flag.Duration("banditcallbackttl", 60*time.Second, "Per-device dedup window and heartbeat cadence for bandit callback emission. The API's absence-reaper expects a callback within ArmCallbackHeartbeatWindow (~90s) of the previous one; values much smaller than that just amplify callback traffic, values larger risk false-positive negative rewards on idle clients.")
 
-	// Hostnames exempted from the BlockLocal local-address filter. Legacy
-	// pre-9.x clients still reach api.getiantem.org/geo.getiantem.org
-	// directly; those front through Cloudflare/CloudFront and don't need
-	// DNS-rebind protection the way an arbitrary CONNECT target does.
-	// Defaulted here (rather than left empty) so this binary restores
-	// legacy purchases on its own; the provisioner can override it.
-	legacyAPIHosts = flag.String("legacyapihosts", "api.getiantem.org,geo.getiantem.org", "Comma-separated hostnames exempted from the BlockLocal private/global-unicast check")
+	// Defaults cover the legacy hosts so this fixes itself on upgrade;
+	// the provisioner can still override it later. See eng#3695.
+	legacyAPIHosts = flag.String("legacyapihosts", "api.getiantem.org,geo.getiantem.org", "Comma-separated hostnames exempted from the BlockLocal filter")
 
 	throttleRefreshInterval = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
 
