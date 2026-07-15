@@ -188,6 +188,11 @@ type Proxy struct {
 	BanditCallbackTTL     time.Duration
 	banditCallbackEmitter *banditcallback.Emitter
 
+	// LegacyAPIHosts are extra hostnames exempted from BlockLocal, comma
+	// separated. Used for legacy pre-9.x clients hitting api.getiantem.org
+	// directly (see eng#3695).
+	LegacyAPIHosts string
+
 	MultiplexProtocol             string
 	SmuxVersion                   int
 	SmuxMaxFrameSize              int
@@ -591,6 +596,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		if p.PacketForwardAddr != "" {
 			allowedLocalAddrs = append(allowedLocalAddrs, p.PacketForwardAddr)
 		}
+		allowedLocalAddrs = append(allowedLocalAddrs, p.legacyAPIHostExceptions()...)
 		filterChain = filterChain.Append(proxyfilters.BlockLocal(allowedLocalAddrs, &proxyfilters.Resolver{}))
 	}
 	instrumentedProxyPingFilter, err := p.instrument.WrapFilter("proxy_http_ping", ping.New(0))
@@ -741,6 +747,20 @@ func (p *Proxy) loadThrottleConfig() {
 		log.Debug("Not loading throttle config")
 		return
 	}
+}
+
+func (p *Proxy) legacyAPIHostExceptions() []string {
+	if p.LegacyAPIHosts == "" {
+		return nil
+	}
+	var hosts []string
+	for _, h := range strings.Split(p.LegacyAPIHosts, ",") {
+		h = strings.TrimSpace(h)
+		if h != "" {
+			hosts = append(hosts, h)
+		}
+	}
+	return hosts
 }
 
 func (p *Proxy) allowedTunnelPorts() []int {
