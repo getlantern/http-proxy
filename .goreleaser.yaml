@@ -46,9 +46,19 @@ nightly:
   # leading stub; the short commit stays in the package file name (see
   # nfpms.file_name_template) so the cloud-init download URL is unchanged.
   version_template: "0.0.0+{{ .ShortCommit }}"
-  tag_name: nightly
+  # Immutable per-build releases: each merge to main publishes its own release
+  # "nightly-<shortcommit>" whose assets are never overwritten, instead of a
+  # single mutable "nightly" release that a rebuild would delete out from under
+  # any VPS still pinned to the previous build. That deletion 404'd http-proxy
+  # VPS provisioning fleet-wide (getlantern/engineering#3697). The lantern-cloud
+  # provisioner composes the download URL as
+  # .../releases/download/nightly-<short>/http-proxy-lantern_<short>_linux_<arch>.deb.
+  tag_name: "nightly-{{ .ShortCommit }}"
   publish_release: true
-  keep_single_release: true
+  # Keep every build's release (was true). With a unique per-build tag_name
+  # there is nothing for keep_single_release to prune anyway; false makes the
+  # keep-all intent explicit.
+  keep_single_release: false
 
 archives:
   - formats: ["tar.gz"]
