@@ -44,14 +44,17 @@ nightly:
   # (e.g. "dd44277c") is rejected by dpkg with "version number does not start
   # with digit" whenever the SHA happens to start with a-f. Prefix a digit-
   # leading stub; the short commit stays in the package file name (see
-  # nfpms.file_name_template) so the cloud-init download URL is unchanged.
+  # nfpms.file_name_template) so the asset filename is unchanged (the release
+  # tag, and therefore the URL path, does change — see tag_name below).
   version_template: "0.0.0+{{ .ShortCommit }}"
-  # Immutable per-build releases: each merge to main publishes its own release
-  # "nightly-<shortcommit>" whose assets are never overwritten, instead of a
-  # single mutable "nightly" release that a rebuild would delete out from under
-  # any VPS still pinned to the previous build. That deletion 404'd http-proxy
-  # VPS provisioning fleet-wide (getlantern/engineering#3697). The lantern-cloud
-  # provisioner composes the download URL as
+  # Immutable per-commit releases: each merge to main publishes its own release
+  # "nightly-<shortcommit>", so a later merge (a different commit) can no longer
+  # delete the assets of a build a VPS is still pinned to — unlike the single
+  # mutable "nightly" release, whose rebuild-on-every-merge deletion 404'd
+  # http-proxy VPS provisioning fleet-wide (getlantern/engineering#3697). (A
+  # workflow_dispatch re-run of the *same* commit reuses the tag and replaces
+  # its own identical assets; that's harmless.) The lantern-cloud provisioner
+  # composes the download URL as
   # .../releases/download/nightly-<short>/http-proxy-lantern_<short>_linux_<arch>.deb.
   tag_name: "nightly-{{ .ShortCommit }}"
   publish_release: true
