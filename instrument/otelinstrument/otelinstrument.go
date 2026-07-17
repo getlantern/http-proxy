@@ -54,6 +54,10 @@ func Initialize() error {
 // ignored. Tests call this after installing their own provider so the package's
 // instruments record into that provider's reader. It must not be used outside
 // tests.
+//
+// It mutates package-global initialization state (initOnce, meter, and the
+// instrument handles) without synchronization, so it is only safe for
+// sequential tests; do not call it from tests that run with t.Parallel().
 func ResetForTest() error {
 	initOnce = sync.Once{}
 	return Initialize()
