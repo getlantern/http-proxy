@@ -47,6 +47,18 @@ func Initialize() error {
 	return err
 }
 
+// ResetForTest re-runs initialization against the current global meter provider.
+// initialize() is guarded by a sync.Once, so once the process has initialized
+// the instruments they stay bound to whichever meter provider was global at the
+// time — a meter provider swapped in later (e.g. a test's in-memory reader) is
+// ignored. Tests call this after installing their own provider so the package's
+// instruments record into that provider's reader. It must not be used outside
+// tests.
+func ResetForTest() error {
+	initOnce = sync.Once{}
+	return Initialize()
+}
+
 func initialize() error {
 	meter = otel.GetMeterProvider().Meter("")
 	var err error
