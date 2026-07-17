@@ -11,6 +11,7 @@ import (
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 
 	"github.com/getlantern/geo"
+	"github.com/getlantern/http-proxy-lantern/v2/instrument/otelinstrument"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -28,25 +29,31 @@ func newGoodputInstrument(t *testing.T) (*defaultInstrument, *sdkmetric.ManualRe
 	provider := sdkmetric.NewMeterProvider(sdkmetric.WithReader(reader))
 	sdkotel.SetMeterProvider(provider)
 
+	// Rebind otelinstrument's instruments to this provider's reader. Initialize()
+	// is sync.Once-guarded, so without this reset only the first goodput test to
+	// run in the process would observe recorded metrics (the rest would record
+	// into the first test's now-discarded reader).
+	require.NoError(t, otelinstrument.ResetForTest())
+
 	ins, err := NewDefault(geo.NoLookup{}, &mockISPLookup{}, "test-proxy", "test-track")
 	require.NoError(t, err)
 	return ins, reader
 }
 
-// TestSessionGoodput verifies the per-session download goodput histogram is
-// recorded once for a session that moved >= goodputMinBytes, with the value
-// ~= received bytes / connection seconds and a receive direction tag.
+// TestSessionGoodput verifies the per-session goodput histogram is recorded
+// once for a session that moved data, with the value ~= received bytes /
+// connection seconds and a receive direction tag.
 func TestSessionGoodput(t *testing.T) {
 	ins, reader := newGoodputInstrument(t)
 
-	const recv = 1_100_000 // above the 1MB goodput threshold
+	const recv = 1_100_000
 	ins.SessionGoodput(context.Background(), recv, time.Second, net.ParseIP("1.2.3.4"))
 
 	var rm metricdata.ResourceMetrics
 	require.NoError(t, reader.Collect(context.Background(), &rm))
 
 	count, sum, found := histogramCountSum(rm, "proxy.session.goodput")
-	require.True(t, found, "goodput histogram should be emitted for a >=1MB session")
+	require.True(t, found, "goodput histogram should be emitted for a session that moved data")
 	assert.Equal(t, uint64(1), count, "exactly one goodput sample")
 	// 1s open duration → goodput ~= received bytes per second.
 	assert.InDelta(t, float64(recv), sum, float64(recv)*0.01)
@@ -63,18 +70,39 @@ func TestSessionGoodput(t *testing.T) {
 	assert.True(t, hasCountry, "goodput sample should carry the geo.country.iso_code attribute")
 }
 
-// TestSessionGoodputBelowThreshold verifies a sub-threshold session records no
-// goodput sample.
-func TestSessionGoodputBelowThreshold(t *testing.T) {
+// TestSessionGoodputSmallSession verifies that a small-but-real session (well
+// under the old 1 MB floor) now records a goodput sample. This is the core of
+// the emission fix: such sessions dominate real traffic in censored markets, and
+// the old floor erased them, false-starving healthy challengers.
+func TestSessionGoodputSmallSession(t *testing.T) {
 	ins, reader := newGoodputInstrument(t)
 
-	ins.SessionGoodput(context.Background(), 42, time.Second, net.ParseIP("1.2.3.4"))
+	// 20 KB received over 2s — comfortably below the old 1 MB floor.
+	const recv = 20 * 1024
+	ins.SessionGoodput(context.Background(), recv, 2*time.Second, net.ParseIP("1.2.3.4"))
+
+	var rm metricdata.ResourceMetrics
+	require.NoError(t, reader.Collect(context.Background(), &rm))
+
+	count, sum, found := histogramCountSum(rm, "proxy.session.goodput")
+	require.True(t, found, "goodput histogram should now be emitted for a small session")
+	assert.Equal(t, uint64(1), count, "exactly one goodput sample")
+	// 20 KB over 2s → ~10 KB/s.
+	assert.InDelta(t, float64(recv)/2.0, sum, float64(recv)*0.01)
+}
+
+// TestSessionGoodputZeroBytes verifies a session that moved no received bytes
+// records nothing (guards against dividing meaningfully on empty connections).
+func TestSessionGoodputZeroBytes(t *testing.T) {
+	ins, reader := newGoodputInstrument(t)
+
+	ins.SessionGoodput(context.Background(), 0, time.Second, net.ParseIP("1.2.3.4"))
 
 	var rm metricdata.ResourceMetrics
 	require.NoError(t, reader.Collect(context.Background(), &rm))
 
 	_, _, found := histogramCountSum(rm, "proxy.session.goodput")
-	assert.False(t, found, "no goodput sample below the byte threshold")
+	assert.False(t, found, "no goodput sample when no bytes were received")
 }
 
 // TestSessionGoodputZeroDuration verifies a non-positive duration records no

@@ -7,6 +7,8 @@ package otelinstrument
 
 import (
 	"context"
+	"errors"
+	"flag"
 	"net/http"
 	"sync"
 	"time"
@@ -47,6 +49,27 @@ func Initialize() error {
 	return err
 }
 
+// ResetForTest re-runs initialization against the current global meter provider.
+// initialize() is guarded by a sync.Once, so once the process has initialized
+// the instruments they stay bound to whichever meter provider was global at the
+// time — a meter provider swapped in later (e.g. a test's in-memory reader) is
+// ignored. Tests call this after installing their own provider so the package's
+// instruments record into that provider's reader. It must not be used outside
+// tests.
+//
+// It mutates package-global initialization state (initOnce, meter, and the
+// instrument handles) without synchronization, so it is only safe for
+// sequential tests; do not call it from tests that run with t.Parallel(). It
+// refuses to run outside a `go test` binary (detected via the test.v flag) so
+// a stray production call can't re-run initialization and race live metric use.
+func ResetForTest() error {
+	if flag.Lookup("test.v") == nil {
+		return errors.New("otelinstrument: ResetForTest may only be called from a test binary")
+	}
+	initOnce = sync.Once{}
+	return Initialize()
+}
+
 func initialize() error {
 	meter = otel.GetMeterProvider().Meter("")
 	var err error
@@ -80,16 +103,18 @@ func initialize() error {
 	if Connections, err = meter.Int64Counter("proxy.connections"); err != nil {
 		return err
 	}
-	// Per-session download goodput (received bytes per second of connection
-	// lifetime), recorded once at connection close for sessions that moved at
-	// least goodputMinBytes. Sliceable by track × geo.country.iso_code (both
-	// point attrs) so the bandit experiment evaluator can compare a challenger
-	// track's median goodput against the incumbent's per market; cloud.region
-	// stays a resource attr. Unit "bytes/s" follows proxy.io's "bytes"
-	// spelling for consistency within this package's metrics.
+	// Per-session goodput (received bytes per second of connection lifetime),
+	// recorded once at connection close for any session that moved received
+	// bytes over a positive lifetime (see instrument.SessionGoodput for why
+	// there is no byte floor). "received" is the client→proxy direction, tagged
+	// network.io.direction="receive". Sliceable by track × geo.country.iso_code
+	// (both point attrs) so the bandit experiment evaluator can compare a
+	// challenger track's median goodput against the incumbent's per market;
+	// cloud.region stays a resource attr. Unit "bytes/s" follows proxy.io's
+	// "bytes" spelling for consistency within this package's metrics.
 	if SessionGoodput, err = meter.Float64Histogram("proxy.session.goodput",
 		metric.WithUnit("bytes/s"),
-		metric.WithDescription("Per-session download goodput: received bytes per second of connection lifetime")); err != nil {
+		metric.WithDescription("Per-session goodput: received (client->proxy) bytes per second of connection lifetime")); err != nil {
 		return err
 	}
 

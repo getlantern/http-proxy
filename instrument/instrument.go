@@ -26,12 +26,6 @@ var (
 	originRootRegex = regexp.MustCompile(`([^\.]+\.[^\.]+$)`)
 )
 
-// goodputMinBytes is the minimum received bytes a session must have moved
-// before its goodput sample is recorded. Filters out idle/tiny connections
-// whose bytes/duration is dominated by setup and idle time rather than actual
-// transfer speed.
-const goodputMinBytes = 1_000_000
-
 // Instrument is the common interface about what can be instrumented.
 type Instrument interface {
 	WrapFilter(prefix string, f filters.Filter) (filters.Filter, error)
@@ -316,22 +310,35 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 	ins.statsMx.Unlock()
 }
 
-// SessionGoodput records a session's download goodput (received bytes per
-// second of connection lifetime) at close, for sessions that moved at least
-// goodputMinBytes. duration is the connection's open time; it includes idle
-// periods, so this is a floor on true transfer speed — but both arms of a
-// bandit experiment are measured identically, so it's a fair relative signal,
-// and the byte floor filters the worst idle-dominated noise. No device_id tag
-// (cardinality). track is emitted as a point attribute keyed "track": the bandit
-// evaluator slices goodput per (track, country) and queries that low-cardinality
-// point attribute (matching lantern-box). The resource also carries the track as
-// semconv.ProxyTrackKey ("proxy.track"), but the metrics pipeline doesn't expose
-// resource attributes as queryable labels, so the evaluator's "track" filter
-// can't see it — hence the explicit point attribute. cloud.region is left to the
-// resource: the strata are (track, country) only and a challenger is pinned to
-// one DC, so region would add cardinality without decision value.
+// SessionGoodput records a session's goodput (received bytes per second of
+// connection lifetime) at close, for any session that moved data over a
+// positive lifetime.
+//
+// It records the "receive" direction — bytes the proxy read from the client
+// (client→proxy), which is the smaller, upload side of a typical browsing
+// session. Both arms of a bandit experiment are measured identically, so this
+// is a fair relative signal; the reader (lantern-cloud GoodputByStratum) is
+// pinned to network.io.direction="receive", so this direction must be preserved
+// here.
+//
+// There is deliberately NO minimum-byte floor. A prior 1 MB floor erased the
+// signal for small-but-real sessions: prod averages ~22 KB received and ~275 KB
+// sent per session (both far under 1 MB), so challengers serving thousands of
+// small sessions (probes, connectivity checks, blocked-then-retry, small pages
+// — common in censored markets) emitted near-zero goodput and were false-retired
+// as "starved." Emitting for every session with recvBytes > 0 makes the sample
+// count track real traffic. Very short/tiny sessions produce noisy per-second
+// rates, but the evaluator compares per-(track, country) p50 medians, which are
+// robust to that tail, so we keep the sample rather than drop, cap, or weight it.
+//
+// No device_id tag (cardinality). track is emitted as a point attribute keyed
+// "track": the bandit evaluator slices goodput per (track, country) and queries
+// that low-cardinality point attribute (matching lantern-box). The resource also
+// carries the track as semconv.ProxyTrackKey ("proxy.track"). cloud.region is
+// left to the resource: the strata are (track, country) only and a challenger is
+// pinned to one DC, so region would add cardinality without decision value.
 func (ins *defaultInstrument) SessionGoodput(ctx context.Context, recvBytes int, duration time.Duration, clientIP net.IP) {
-	if recvBytes < goodputMinBytes || duration <= 0 {
+	if recvBytes <= 0 || duration <= 0 {
 		return
 	}
 	goodput := float64(recvBytes) / duration.Seconds()
