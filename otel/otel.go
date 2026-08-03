@@ -2,6 +2,8 @@ package otel
 
 import (
 	"context"
+	"net"
+	"net/url"
 	"strings"
 	"time"
 
@@ -73,29 +75,60 @@ func (opts *Opts) buildResource() *resource.Resource {
 	}
 	log.Debugf("Resource attributes: %v", attrs)
 
-	// Merge with the SDK default resource so OTEL_RESOURCE_ATTRIBUTES,
-	// OTEL_SERVICE_NAME, and host detection (host.name from OS) all flow in.
-	// resource.Merge(a, b) prefers b on duplicate keys. Put env-derived attrs
-	// LAST so deployment identity (service.name, host.name, etc — supplied via
-	// OTEL_RESOURCE_ATTRIBUTES by the launcher) wins over the code's built-in
+	// Merge in the SDK's env and host detectors so OTEL_RESOURCE_ATTRIBUTES,
+	// OTEL_SERVICE_NAME, and host.name (from OS) all flow in.
+	// resource.Merge(a, b) prefers b on duplicate keys. WithFromEnv runs LAST
+	// so OTEL_RESOURCE_ATTRIBUTES (launcher-supplied deployment identity) wins
+	// over the OS host detector, and the merge below places base after the
+	// runtime attrs so env identity also wins over the code's built-in
 	// fallbacks. The runtime attrs above (proxy.protocol, is_pro, track, ...)
-	// don't overlap with any env-supplied key today, so this only affects
-	// identity fields whose whole purpose is deployment-time override.
+	// don't overlap with any env-supplied key today.
+	//
+	// explicit is schemaless so the merge succeeds regardless of the SDK
+	// detector semconv version (SDK v1.35.0 detectors emit v1.26.0 while
+	// getlantern/semconv currently mirrors v1.34.0).
 	base, err := resource.New(context.Background(),
-		resource.WithFromEnv(),
 		resource.WithHost(),
+		resource.WithFromEnv(),
 	)
 	if err != nil {
-		log.Errorf("resource.New failed, falling back to explicit-only: %v", err)
-		return resource.NewWithAttributes(semconv.SchemaURL, attrs...)
+		log.Errorf("resource.New returned error: %v", err)
 	}
-	explicit := resource.NewWithAttributes(semconv.SchemaURL, attrs...)
-	merged, err := resource.Merge(explicit, base)
-	if err != nil {
-		log.Errorf("resource.Merge failed, falling back to explicit-only: %v", err)
+	explicit := resource.NewSchemaless(attrs...)
+	if base == nil {
+		return explicit
+	}
+	merged, mergeErr := resource.Merge(explicit, base)
+	if mergeErr != nil {
+		log.Errorf("resource.Merge failed, falling back to explicit-only: %v", mergeErr)
 		return explicit
 	}
 	return merged
+}
+
+// endpointURL parses a URL-form endpoint and appends the OTLP signal path
+// (e.g. "v1/traces") since WithEndpointURL uses the URL path as-is. Callers
+// can pass a base URL like https://collector/otlp and end up hitting
+// https://collector/otlp/v1/traces. On parse failure, returns the endpoint
+// unchanged.
+func endpointURL(endpoint, signalPath string) string {
+	u, err := url.Parse(endpoint)
+	if err != nil {
+		log.Errorf("failed to parse OTEL endpoint %q: %v", endpoint, err)
+		return endpoint
+	}
+	return u.JoinPath(signalPath).String()
+}
+
+// isSecureHostPort reports whether a host:port endpoint targets port 443.
+// Uses net.SplitHostPort so IPv6 literals and ports like 4430 that contain
+// ":443" as a substring aren't misclassified.
+func isSecureHostPort(endpoint string) bool {
+	_, port, err := net.SplitHostPort(endpoint)
+	if err != nil {
+		return false
+	}
+	return port == "443"
 }
 
 func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
@@ -103,14 +136,13 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 		otlptracehttp.WithHeaders(opts.Headers),
 	}
 	if strings.Contains(opts.Endpoint, "://") {
-		// URL-form (e.g. http://localhost:4318). WithEndpointURL handles the
-		// scheme, host:port, and TLS/insecure derivation.
-		clientOpts = append(clientOpts, otlptracehttp.WithEndpointURL(opts.Endpoint))
+		// URL form (e.g. https://collector:4318). WithEndpointURL handles
+		// scheme and TLS derivation; append the signal path since it uses
+		// the URL path as-is.
+		clientOpts = append(clientOpts, otlptracehttp.WithEndpointURL(endpointURL(opts.Endpoint, "v1/traces")))
 	} else {
 		clientOpts = append(clientOpts, otlptracehttp.WithEndpoint(opts.Endpoint))
-		// host:port form: keep the historical heuristic that anything not on
-		// :443 is plaintext.
-		if !strings.Contains(opts.Endpoint, ":443") {
+		if !isSecureHostPort(opts.Endpoint) {
 			log.Debugf("Using insecure connection for OTEL endpoint %v", opts.Endpoint)
 			clientOpts = append(clientOpts, otlptracehttp.WithInsecure())
 		}
@@ -168,10 +200,10 @@ func InitGlobalMeterProvider(opts *Opts) (func(), error) {
 		}),
 	}
 	if strings.Contains(opts.Endpoint, "://") {
-		metricOpts = append(metricOpts, otlpmetrichttp.WithEndpointURL(opts.Endpoint))
+		metricOpts = append(metricOpts, otlpmetrichttp.WithEndpointURL(endpointURL(opts.Endpoint, "v1/metrics")))
 	} else {
 		metricOpts = append(metricOpts, otlpmetrichttp.WithEndpoint(opts.Endpoint))
-		if !strings.Contains(opts.Endpoint, ":443") {
+		if !isSecureHostPort(opts.Endpoint) {
 			log.Debugf("Using insecure connection for OTEL metrics endpoint %v", opts.Endpoint)
 			metricOpts = append(metricOpts, otlpmetrichttp.WithInsecure())
 		}
