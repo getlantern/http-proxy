@@ -84,9 +84,12 @@ const (
 )
 
 // getTelemetryEndpoint returns the OTEL endpoint to use for telemetry.
-// It checks the CUSTOM_OTLP_ENDPOINT environment variable first,
-// falling back to the default if not set.
+// Precedence: OTEL_EXPORTER_OTLP_ENDPOINT (OTel standard) → CUSTOM_OTLP_ENDPOINT
+// (legacy; kept for backwards compat) → defaultTeleportHost.
 func getTelemetryEndpoint() string {
+	if endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"); endpoint != "" {
+		return endpoint
+	}
 	if endpoint := os.Getenv("CUSTOM_OTLP_ENDPOINT"); endpoint != "" {
 		return endpoint
 	}

@@ -4,6 +4,10 @@ Wants=network-online.target
 After=network.target nss-lookup.target network-online.target
 
 [Service]
+# Optional env file for OTel wiring (endpoint + resource attrs) written by
+# deployment tooling (e.g. lantern-cloud's cloudinit). Leading '-' means the
+# unit still starts if the file is absent.
+EnvironmentFile=-/etc/http-proxy/otel.env
 ExecStart=/usr/bin/http-proxy -config /etc/http-proxy/config.ini
 ExecReload=/bin/kill -HUP $MAINPID
 DynamicUser=yes

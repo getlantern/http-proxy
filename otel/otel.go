@@ -72,20 +72,48 @@ func (opts *Opts) buildResource() *resource.Resource {
 		)
 	}
 	log.Debugf("Resource attributes: %v", attrs)
-	return resource.NewWithAttributes(semconv.SchemaURL, attrs...)
+
+	// Merge with the SDK default resource so OTEL_RESOURCE_ATTRIBUTES,
+	// OTEL_SERVICE_NAME, and host detection (host.name from OS) all flow in.
+	// resource.Merge(a, b) prefers b on duplicate keys. Put env-derived attrs
+	// LAST so deployment identity (service.name, host.name, etc — supplied via
+	// OTEL_RESOURCE_ATTRIBUTES by the launcher) wins over the code's built-in
+	// fallbacks. The runtime attrs above (proxy.protocol, is_pro, track, ...)
+	// don't overlap with any env-supplied key today, so this only affects
+	// identity fields whose whole purpose is deployment-time override.
+	base, err := resource.New(context.Background(),
+		resource.WithFromEnv(),
+		resource.WithHost(),
+	)
+	if err != nil {
+		log.Errorf("resource.New failed, falling back to explicit-only: %v", err)
+		return resource.NewWithAttributes(semconv.SchemaURL, attrs...)
+	}
+	explicit := resource.NewWithAttributes(semconv.SchemaURL, attrs...)
+	merged, err := resource.Merge(explicit, base)
+	if err != nil {
+		log.Errorf("resource.Merge failed, falling back to explicit-only: %v", err)
+		return explicit
+	}
+	return merged
 }
 
 func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
-	// Create HTTP client to talk to OTEL collector
 	clientOpts := []otlptracehttp.Option{
-		otlptracehttp.WithEndpoint(opts.Endpoint),
 		otlptracehttp.WithHeaders(opts.Headers),
 	}
-
-	// If endpoint doesn't use port 443, assume insecure (HTTP not HTTPS)
-	if !strings.Contains(opts.Endpoint, ":443") {
-		log.Debugf("Using insecure connection for OTEL endpoint %v", opts.Endpoint)
-		clientOpts = append(clientOpts, otlptracehttp.WithInsecure())
+	if strings.Contains(opts.Endpoint, "://") {
+		// URL-form (e.g. http://localhost:4318). WithEndpointURL handles the
+		// scheme, host:port, and TLS/insecure derivation.
+		clientOpts = append(clientOpts, otlptracehttp.WithEndpointURL(opts.Endpoint))
+	} else {
+		clientOpts = append(clientOpts, otlptracehttp.WithEndpoint(opts.Endpoint))
+		// host:port form: keep the historical heuristic that anything not on
+		// :443 is plaintext.
+		if !strings.Contains(opts.Endpoint, ":443") {
+			log.Debugf("Using insecure connection for OTEL endpoint %v", opts.Endpoint)
+			clientOpts = append(clientOpts, otlptracehttp.WithInsecure())
+		}
 	}
 
 	client := otlptracehttp.NewClient(clientOpts...)
@@ -125,7 +153,6 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 
 func InitGlobalMeterProvider(opts *Opts) (func(), error) {
 	metricOpts := []otlpmetrichttp.Option{
-		otlpmetrichttp.WithEndpoint(opts.Endpoint),
 		otlpmetrichttp.WithHeaders(opts.Headers),
 		otlpmetrichttp.WithTemporalitySelector(func(kind sdkmetric.InstrumentKind) metricdata.Temporality {
 			switch kind {
@@ -140,11 +167,14 @@ func InitGlobalMeterProvider(opts *Opts) (func(), error) {
 			}
 		}),
 	}
-
-	// If endpoint doesn't use port 443, assume insecure (HTTP not HTTPS)
-	if !strings.Contains(opts.Endpoint, ":443") {
-		log.Debugf("Using insecure connection for OTEL metrics endpoint %v", opts.Endpoint)
-		metricOpts = append(metricOpts, otlpmetrichttp.WithInsecure())
+	if strings.Contains(opts.Endpoint, "://") {
+		metricOpts = append(metricOpts, otlpmetrichttp.WithEndpointURL(opts.Endpoint))
+	} else {
+		metricOpts = append(metricOpts, otlpmetrichttp.WithEndpoint(opts.Endpoint))
+		if !strings.Contains(opts.Endpoint, ":443") {
+			log.Debugf("Using insecure connection for OTEL metrics endpoint %v", opts.Endpoint)
+			metricOpts = append(metricOpts, otlpmetrichttp.WithInsecure())
+		}
 	}
 
 	exp, err := otlpmetrichttp.New(context.Background(), metricOpts...)
