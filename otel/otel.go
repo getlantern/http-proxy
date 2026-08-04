@@ -2,7 +2,7 @@ package otel
 
 import (
 	"context"
-	"strings"
+	"os"
 	"time"
 
 	semconv "github.com/getlantern/semconv"
@@ -29,8 +29,6 @@ var (
 )
 
 type Opts struct {
-	Endpoint         string
-	Headers          map[string]string
 	ProxyName        string
 	Track            string
 	Provider         string
@@ -72,33 +70,77 @@ func (opts *Opts) buildResource() *resource.Resource {
 		)
 	}
 	log.Debugf("Resource attributes: %v", attrs)
-	return resource.NewWithAttributes(semconv.SchemaURL, attrs...)
+
+	// Merge in the SDK's env and host detectors so OTEL_RESOURCE_ATTRIBUTES,
+	// OTEL_SERVICE_NAME, and host.name (from OS) all flow in.
+	// resource.Merge(a, b) prefers b on duplicate keys. WithFromEnv runs LAST
+	// so OTEL_RESOURCE_ATTRIBUTES (launcher-supplied deployment identity) wins
+	// over the OS host detector, and the merge below places base after the
+	// runtime attrs so env identity wins over the code's built-in fallbacks.
+	// The only intended overlap is service.name: env's OTEL_SERVICE_NAME
+	// overrides the "http-proxy-lantern" fallback above. The Lantern-specific
+	// runtime attrs (proxy.protocol, is_pro, proxy.track, ...) don't overlap
+	// with anything env can set today.
+	//
+	// explicit is schemaless so the merge succeeds regardless of the SDK
+	// detector semconv version (SDK v1.35.0 detectors emit v1.26.0 while
+	// getlantern/semconv currently mirrors v1.34.0).
+	base, err := resource.New(context.Background(),
+		resource.WithHost(),
+		resource.WithFromEnv(),
+	)
+	if err != nil {
+		log.Errorf("resource.New returned error: %v", err)
+	}
+	explicit := resource.NewSchemaless(attrs...)
+	if base == nil {
+		return explicit
+	}
+	merged, mergeErr := resource.Merge(explicit, base)
+	if mergeErr != nil {
+		log.Errorf("resource.Merge failed, falling back to explicit-only: %v", mergeErr)
+		return explicit
+	}
+	return merged
 }
 
+// logExporterEndpoint reports the OTLP endpoint the SDK will use for the
+// given signal ("traces" or "metrics"), or logs a loud error if the env
+// isn't configured. This is the only visibility the operator gets that
+// telemetry wiring landed, since the SDK silently falls back to
+// localhost:4318 when nothing is set.
+func logExporterEndpoint(signal string) {
+	perSignal := "OTEL_EXPORTER_OTLP_" + map[string]string{
+		"traces":  "TRACES_ENDPOINT",
+		"metrics": "METRICS_ENDPOINT",
+	}[signal]
+	if ep := os.Getenv(perSignal); ep != "" {
+		log.Debugf("OTel %s exporter using %s=%s", signal, perSignal, ep)
+		return
+	}
+	if ep := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"); ep != "" {
+		log.Debugf("OTel %s exporter using OTEL_EXPORTER_OTLP_ENDPOINT=%s", signal, ep)
+		return
+	}
+	log.Errorf("OTel %s exporter: neither %s nor OTEL_EXPORTER_OTLP_ENDPOINT is set; "+
+		"SDK will default to localhost:4318 and exports will silently fail",
+		signal, perSignal)
+}
+
+// BuildTracerProvider constructs a TracerProvider that exports over OTLP/HTTP.
+// The exporter's endpoint, scheme, TLS, headers, and other transport settings
+// come from the standard OTEL_EXPORTER_OTLP_* env vars (see the OpenTelemetry
+// SDK env spec).
 func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
-	// Create HTTP client to talk to OTEL collector
-	clientOpts := []otlptracehttp.Option{
-		otlptracehttp.WithEndpoint(opts.Endpoint),
-		otlptracehttp.WithHeaders(opts.Headers),
-	}
+	logExporterEndpoint("traces")
+	client := otlptracehttp.NewClient()
 
-	// If endpoint doesn't use port 443, assume insecure (HTTP not HTTPS)
-	if !strings.Contains(opts.Endpoint, ":443") {
-		log.Debugf("Using insecure connection for OTEL endpoint %v", opts.Endpoint)
-		clientOpts = append(clientOpts, otlptracehttp.WithInsecure())
-	}
-
-	client := otlptracehttp.NewClient(clientOpts...)
-
-	// Create an exporter that exports to the OTEL collector
 	exporter, err := otlptrace.New(context.Background(), client)
 	if err != nil {
-		log.Errorf("Unable to initialize OpenTelemetry, will not report traces to %v", opts.Endpoint)
+		log.Errorf("Unable to initialize OpenTelemetry tracer: %v", err)
 		return nil, func() {}
 	}
-	log.Debugf("Will report traces to OpenTelemetry at %v", opts.Endpoint)
 
-	// Create a TracerProvider that uses the above exporter
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(
 			exporter,
@@ -123,10 +165,12 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 	return tp, stop
 }
 
+// InitGlobalMeterProvider sets a global MeterProvider that exports over
+// OTLP/HTTP. Endpoint, scheme, TLS, headers, and other transport settings
+// are read from the standard OTEL_EXPORTER_OTLP_* env vars.
 func InitGlobalMeterProvider(opts *Opts) (func(), error) {
-	metricOpts := []otlpmetrichttp.Option{
-		otlpmetrichttp.WithEndpoint(opts.Endpoint),
-		otlpmetrichttp.WithHeaders(opts.Headers),
+	logExporterEndpoint("metrics")
+	exp, err := otlpmetrichttp.New(context.Background(),
 		otlpmetrichttp.WithTemporalitySelector(func(kind sdkmetric.InstrumentKind) metricdata.Temporality {
 			switch kind {
 			case
@@ -139,33 +183,21 @@ func InitGlobalMeterProvider(opts *Opts) (func(), error) {
 				return metricdata.CumulativeTemporality
 			}
 		}),
-	}
-
-	// If endpoint doesn't use port 443, assume insecure (HTTP not HTTPS)
-	if !strings.Contains(opts.Endpoint, ":443") {
-		log.Debugf("Using insecure connection for OTEL metrics endpoint %v", opts.Endpoint)
-		metricOpts = append(metricOpts, otlpmetrichttp.WithInsecure())
-	}
-
-	exp, err := otlpmetrichttp.New(context.Background(), metricOpts...)
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create a new meter provider
 	mp := sdkmetric.NewMeterProvider(
 		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exp)),
 		sdkmetric.WithResource(opts.buildResource()),
 	)
-
-	// Set the meter provider as global
 	sdkotel.SetMeterProvider(mp)
 
 	return func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		err := mp.Shutdown(ctx)
-		if err != nil {
+		if err := mp.Shutdown(ctx); err != nil {
 			log.Errorf("error shutting down meter provider: %v", err)
 		}
 	}, nil

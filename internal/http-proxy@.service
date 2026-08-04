@@ -4,6 +4,7 @@ Wants=network-online.target
 After=network.target nss-lookup.target network-online.target
 
 [Service]
+EnvironmentFile=-/etc/http-proxy/otel.env
 ExecStart=/usr/bin/http-proxy -config /etc/http-proxy/%i.ini
 ExecReload=/bin/kill -HUP $MAINPID
 DynamicUser=yes
