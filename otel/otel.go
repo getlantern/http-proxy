@@ -2,6 +2,7 @@ package otel
 
 import (
 	"context"
+	"os"
 	"time"
 
 	semconv "github.com/getlantern/semconv"
@@ -28,7 +29,6 @@ var (
 )
 
 type Opts struct {
-	Headers          map[string]string
 	ProxyName        string
 	Track            string
 	Provider         string
@@ -102,12 +102,36 @@ func (opts *Opts) buildResource() *resource.Resource {
 	return merged
 }
 
+// logExporterEndpoint reports the OTLP endpoint the SDK will use for the
+// given signal ("traces" or "metrics"), or logs a loud error if the env
+// isn't configured. This is the only visibility the operator gets that
+// telemetry wiring landed, since the SDK silently falls back to
+// localhost:4318 when nothing is set.
+func logExporterEndpoint(signal string) {
+	perSignal := "OTEL_EXPORTER_OTLP_" + map[string]string{
+		"traces":  "TRACES_ENDPOINT",
+		"metrics": "METRICS_ENDPOINT",
+	}[signal]
+	if ep := os.Getenv(perSignal); ep != "" {
+		log.Debugf("OTel %s exporter using %s=%s", signal, perSignal, ep)
+		return
+	}
+	if ep := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"); ep != "" {
+		log.Debugf("OTel %s exporter using OTEL_EXPORTER_OTLP_ENDPOINT=%s", signal, ep)
+		return
+	}
+	log.Errorf("OTel %s exporter: neither %s nor OTEL_EXPORTER_OTLP_ENDPOINT is set; "+
+		"SDK will default to localhost:4318 and exports will silently fail",
+		signal, perSignal)
+}
+
 // BuildTracerProvider constructs a TracerProvider that exports over OTLP/HTTP.
-// The exporter's endpoint, scheme, and TLS settings come from the standard
-// OTEL_EXPORTER_OTLP_ENDPOINT / OTEL_EXPORTER_OTLP_TRACES_ENDPOINT env vars
-// (see the OpenTelemetry SDK env spec).
+// The exporter's endpoint, scheme, TLS, headers, and other transport settings
+// come from the standard OTEL_EXPORTER_OTLP_* env vars (see the OpenTelemetry
+// SDK env spec).
 func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
-	client := otlptracehttp.NewClient(otlptracehttp.WithHeaders(opts.Headers))
+	logExporterEndpoint("traces")
+	client := otlptracehttp.NewClient()
 
 	exporter, err := otlptrace.New(context.Background(), client)
 	if err != nil {
@@ -140,11 +164,11 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 }
 
 // InitGlobalMeterProvider sets a global MeterProvider that exports over
-// OTLP/HTTP. Endpoint / scheme / TLS are read from the standard OTel env
-// vars (OTEL_EXPORTER_OTLP_ENDPOINT / OTEL_EXPORTER_OTLP_METRICS_ENDPOINT).
+// OTLP/HTTP. Endpoint, scheme, TLS, headers, and other transport settings
+// are read from the standard OTEL_EXPORTER_OTLP_* env vars.
 func InitGlobalMeterProvider(opts *Opts) (func(), error) {
+	logExporterEndpoint("metrics")
 	exp, err := otlpmetrichttp.New(context.Background(),
-		otlpmetrichttp.WithHeaders(opts.Headers),
 		otlpmetrichttp.WithTemporalitySelector(func(kind sdkmetric.InstrumentKind) metricdata.Temporality {
 			switch kind {
 			case
