@@ -76,9 +76,11 @@ func (opts *Opts) buildResource() *resource.Resource {
 	// resource.Merge(a, b) prefers b on duplicate keys. WithFromEnv runs LAST
 	// so OTEL_RESOURCE_ATTRIBUTES (launcher-supplied deployment identity) wins
 	// over the OS host detector, and the merge below places base after the
-	// runtime attrs so env identity also wins over the code's built-in
-	// fallbacks. The runtime attrs above (proxy.protocol, is_pro, track, ...)
-	// don't overlap with any env-supplied key today.
+	// runtime attrs so env identity wins over the code's built-in fallbacks.
+	// The only intended overlap is service.name: env's OTEL_SERVICE_NAME
+	// overrides the "http-proxy-lantern" fallback above. The Lantern-specific
+	// runtime attrs (proxy.protocol, is_pro, proxy.track, ...) don't overlap
+	// with anything env can set today.
 	//
 	// explicit is schemaless so the merge succeeds regardless of the SDK
 	// detector semconv version (SDK v1.35.0 detectors emit v1.26.0 while
