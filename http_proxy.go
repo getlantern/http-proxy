@@ -79,22 +79,7 @@ import (
 
 const (
 	timeoutToDialOriginSite = 10 * time.Second
-
-	defaultTeleportHost = "telemetry.iantem.io:443"
 )
-
-// getTelemetryEndpoint returns the OTEL endpoint to use for telemetry.
-// Precedence: OTEL_EXPORTER_OTLP_ENDPOINT (OTel standard) → CUSTOM_OTLP_ENDPOINT
-// (legacy; kept for backwards compat) → defaultTeleportHost.
-func getTelemetryEndpoint() string {
-	if endpoint := os.Getenv("OTEL_EXPORTER_OTLP_ENDPOINT"); endpoint != "" {
-		return endpoint
-	}
-	if endpoint := os.Getenv("CUSTOM_OTLP_ENDPOINT"); endpoint != "" {
-		return endpoint
-	}
-	return defaultTeleportHost
-}
 
 var (
 	log = golog.LoggerFor("lantern-proxy")
@@ -652,7 +637,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 
 func (p *Proxy) configureTeleportProxiedBytes() func() {
 	log.Debug("Configuring Teleport proxied bytes")
-	tp, stop := otel.BuildTracerProvider(p.buildOTELOpts(getTelemetryEndpoint(), true))
+	tp, stop := otel.BuildTracerProvider(p.buildOTELOpts(true))
 	if tp != nil {
 		go p.instrument.ReportProxiedBytesPeriodically(1*time.Hour, tp)
 		ogStop := stop
@@ -667,7 +652,7 @@ func (p *Proxy) configureTeleportProxiedBytes() func() {
 func (p *Proxy) configureTeleportOriginBytes() func() {
 	log.Debug("Configuring Teleport origin bytes")
 	// Note - we do not include the proxy name here to avoid associating origin site usage with devices on that proxy name
-	tp, stop := otel.BuildTracerProvider(p.buildOTELOpts(getTelemetryEndpoint(), false))
+	tp, stop := otel.BuildTracerProvider(p.buildOTELOpts(false))
 	if tp != nil {
 		go p.instrument.ReportOriginBytesPeriodically(1*time.Hour, tp)
 		ogStop := stop
@@ -681,20 +666,17 @@ func (p *Proxy) configureTeleportOriginBytes() func() {
 
 func (p *Proxy) configureOTELMetrics() (func(), error) {
 	return otel.InitGlobalMeterProvider(
-		p.buildOTELOpts(
-			getTelemetryEndpoint(),
-			false, // don't include proxy name in order to reduce DataDog costs
-		))
+		p.buildOTELOpts(false), // don't include proxy name in order to reduce DataDog costs
+	)
 }
 
-func (p *Proxy) buildOTELOpts(endpoint string, includeProxyName bool) *otel.Opts {
+func (p *Proxy) buildOTELOpts(includeProxyName bool) *otel.Opts {
 	proxyName, provider, dc := p.ProxyName, p.Provider, p.DC
 	if dc == "" {
 		// This proxy is running on the old infrastructure, parse the name to get the dc
 		proxyName, dc = proxyNameAndDC(p.ProxyName)
 	}
 	opts := &otel.Opts{
-		Endpoint:         endpoint,
 		Track:            p.Track,
 		Provider:         provider,
 		DC:               dc,

@@ -2,9 +2,6 @@ package otel
 
 import (
 	"context"
-	"net"
-	"net/url"
-	"strings"
 	"time"
 
 	semconv "github.com/getlantern/semconv"
@@ -31,7 +28,6 @@ var (
 )
 
 type Opts struct {
-	Endpoint         string
 	Headers          map[string]string
 	ProxyName        string
 	Track            string
@@ -106,59 +102,19 @@ func (opts *Opts) buildResource() *resource.Resource {
 	return merged
 }
 
-// endpointURL parses a URL-form endpoint and appends the OTLP signal path
-// (e.g. "v1/traces") since WithEndpointURL uses the URL path as-is. Callers
-// can pass a base URL like https://collector/otlp and end up hitting
-// https://collector/otlp/v1/traces. On parse failure, returns the endpoint
-// unchanged.
-func endpointURL(endpoint, signalPath string) string {
-	u, err := url.Parse(endpoint)
-	if err != nil {
-		log.Errorf("failed to parse OTEL endpoint %q: %v", endpoint, err)
-		return endpoint
-	}
-	return u.JoinPath(signalPath).String()
-}
-
-// isSecureHostPort reports whether a host:port endpoint targets port 443.
-// Uses net.SplitHostPort so IPv6 literals and ports like 4430 that contain
-// ":443" as a substring aren't misclassified.
-func isSecureHostPort(endpoint string) bool {
-	_, port, err := net.SplitHostPort(endpoint)
-	if err != nil {
-		return false
-	}
-	return port == "443"
-}
-
+// BuildTracerProvider constructs a TracerProvider that exports over OTLP/HTTP.
+// The exporter's endpoint, scheme, and TLS settings come from the standard
+// OTEL_EXPORTER_OTLP_ENDPOINT / OTEL_EXPORTER_OTLP_TRACES_ENDPOINT env vars
+// (see the OpenTelemetry SDK env spec).
 func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
-	clientOpts := []otlptracehttp.Option{
-		otlptracehttp.WithHeaders(opts.Headers),
-	}
-	if strings.Contains(opts.Endpoint, "://") {
-		// URL form (e.g. https://collector:4318). WithEndpointURL handles
-		// scheme and TLS derivation; append the signal path since it uses
-		// the URL path as-is.
-		clientOpts = append(clientOpts, otlptracehttp.WithEndpointURL(endpointURL(opts.Endpoint, "v1/traces")))
-	} else {
-		clientOpts = append(clientOpts, otlptracehttp.WithEndpoint(opts.Endpoint))
-		if !isSecureHostPort(opts.Endpoint) {
-			log.Debugf("Using insecure connection for OTEL endpoint %v", opts.Endpoint)
-			clientOpts = append(clientOpts, otlptracehttp.WithInsecure())
-		}
-	}
+	client := otlptracehttp.NewClient(otlptracehttp.WithHeaders(opts.Headers))
 
-	client := otlptracehttp.NewClient(clientOpts...)
-
-	// Create an exporter that exports to the OTEL collector
 	exporter, err := otlptrace.New(context.Background(), client)
 	if err != nil {
-		log.Errorf("Unable to initialize OpenTelemetry, will not report traces to %v", opts.Endpoint)
+		log.Errorf("Unable to initialize OpenTelemetry tracer: %v", err)
 		return nil, func() {}
 	}
-	log.Debugf("Will report traces to OpenTelemetry at %v", opts.Endpoint)
 
-	// Create a TracerProvider that uses the above exporter
 	tp := sdktrace.NewTracerProvider(
 		sdktrace.WithBatcher(
 			exporter,
@@ -183,8 +139,11 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 	return tp, stop
 }
 
+// InitGlobalMeterProvider sets a global MeterProvider that exports over
+// OTLP/HTTP. Endpoint / scheme / TLS are read from the standard OTel env
+// vars (OTEL_EXPORTER_OTLP_ENDPOINT / OTEL_EXPORTER_OTLP_METRICS_ENDPOINT).
 func InitGlobalMeterProvider(opts *Opts) (func(), error) {
-	metricOpts := []otlpmetrichttp.Option{
+	exp, err := otlpmetrichttp.New(context.Background(),
 		otlpmetrichttp.WithHeaders(opts.Headers),
 		otlpmetrichttp.WithTemporalitySelector(func(kind sdkmetric.InstrumentKind) metricdata.Temporality {
 			switch kind {
@@ -198,36 +157,21 @@ func InitGlobalMeterProvider(opts *Opts) (func(), error) {
 				return metricdata.CumulativeTemporality
 			}
 		}),
-	}
-	if strings.Contains(opts.Endpoint, "://") {
-		metricOpts = append(metricOpts, otlpmetrichttp.WithEndpointURL(endpointURL(opts.Endpoint, "v1/metrics")))
-	} else {
-		metricOpts = append(metricOpts, otlpmetrichttp.WithEndpoint(opts.Endpoint))
-		if !isSecureHostPort(opts.Endpoint) {
-			log.Debugf("Using insecure connection for OTEL metrics endpoint %v", opts.Endpoint)
-			metricOpts = append(metricOpts, otlpmetrichttp.WithInsecure())
-		}
-	}
-
-	exp, err := otlpmetrichttp.New(context.Background(), metricOpts...)
+	)
 	if err != nil {
 		return nil, err
 	}
 
-	// Create a new meter provider
 	mp := sdkmetric.NewMeterProvider(
 		sdkmetric.WithReader(sdkmetric.NewPeriodicReader(exp)),
 		sdkmetric.WithResource(opts.buildResource()),
 	)
-
-	// Set the meter provider as global
 	sdkotel.SetMeterProvider(mp)
 
 	return func() {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
-		err := mp.Shutdown(ctx)
-		if err != nil {
+		if err := mp.Shutdown(ctx); err != nil {
 			log.Errorf("error shutting down meter provider: %v", err)
 		}
 	}, nil
