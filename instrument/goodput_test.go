@@ -119,6 +119,44 @@ func TestSessionGoodputZeroDuration(t *testing.T) {
 	assert.False(t, found, "no goodput sample for a zero-duration session")
 }
 
+// TestSessionGoodputBucketLayout verifies the emitted histogram carries the
+// explicit log-scale bucket boundaries instead of the SDK defaults, whose
+// 10,000 B/s top boundary censored everything faster than 10 kB/s into the
+// final bucket. A ~101 kB/s sample must resolve into the (100_000, 300_000]
+// bucket, which only exists in the explicit layout.
+func TestSessionGoodputBucketLayout(t *testing.T) {
+	ins, reader := newGoodputInstrument(t)
+
+	// 202 KB over 2s → ~101 kB/s, ten times the SDK default's top boundary.
+	ins.SessionGoodput(context.Background(), 202_000, 2*time.Second, net.ParseIP("1.2.3.4"))
+
+	var rm metricdata.ResourceMetrics
+	require.NoError(t, reader.Collect(context.Background(), &rm))
+
+	dp, found := histogramDataPoint(rm, "proxy.session.goodput")
+	require.True(t, found, "goodput histogram should be emitted")
+	assert.Equal(t, otelinstrument.GoodputBucketBoundaries, dp.Bounds,
+		"histogram must carry the explicit log-scale boundaries")
+	require.Len(t, dp.BucketCounts, len(otelinstrument.GoodputBucketBoundaries)+1)
+	// Boundaries are upper-inclusive: 101_000 lands in (100_000, 300_000],
+	// i.e. bucket index 11 — not the overflow bucket.
+	assert.Equal(t, uint64(1), dp.BucketCounts[11], "~101 kB/s sample should land in the (100k, 300k] bucket")
+}
+
+func histogramDataPoint(rm metricdata.ResourceMetrics, name string) (metricdata.HistogramDataPoint[float64], bool) {
+	for _, sm := range rm.ScopeMetrics {
+		for _, m := range sm.Metrics {
+			if m.Name != name {
+				continue
+			}
+			if d, ok := m.Data.(metricdata.Histogram[float64]); ok && len(d.DataPoints) > 0 {
+				return d.DataPoints[0], true
+			}
+		}
+	}
+	return metricdata.HistogramDataPoint[float64]{}, false
+}
+
 func histogramCountSum(rm metricdata.ResourceMetrics, name string) (uint64, float64, bool) {
 	for _, sm := range rm.ScopeMetrics {
 		for _, m := range sm.Metrics {
