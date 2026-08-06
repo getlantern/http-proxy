@@ -135,9 +135,17 @@ func TestSessionGoodputBucketLayout(t *testing.T) {
 
 	dp, found := histogramDataPoint(rm, "proxy.session.goodput")
 	require.True(t, found, "goodput histogram should be emitted")
-	assert.Equal(t, otelinstrument.GoodputBucketBoundaries, dp.Bounds,
+	// Spelled out rather than referencing the package variable so an
+	// accidental edit to the layout fails here. Must stay identical to
+	// lantern-box's tracker/metrics boundaries.
+	wantBounds := []float64{
+		1, 3, 10, 30, 100, 300,
+		1_000, 3_000, 10_000, 30_000, 100_000, 300_000,
+		1_000_000, 3_000_000, 10_000_000,
+	}
+	assert.Equal(t, wantBounds, dp.Bounds,
 		"histogram must carry the explicit log-scale boundaries")
-	require.Len(t, dp.BucketCounts, len(otelinstrument.GoodputBucketBoundaries)+1)
+	require.Len(t, dp.BucketCounts, len(wantBounds)+1)
 	// Boundaries are upper-inclusive: 101_000 lands in (100_000, 300_000],
 	// i.e. bucket index 11 — not the overflow bucket.
 	assert.Equal(t, uint64(1), dp.BucketCounts[11], "~101 kB/s sample should land in the (100k, 300k] bucket")

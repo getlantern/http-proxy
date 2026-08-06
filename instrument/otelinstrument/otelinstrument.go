@@ -39,7 +39,7 @@ var (
 	distinctClients                                          metric.Int64ObservableGauge
 )
 
-// GoodputBucketBoundaries are the explicit bucket boundaries, in bytes/s, for
+// goodputBucketBoundaries are the explicit bucket boundaries, in bytes/s, for
 // the proxy.session.goodput histogram: a half-decade log scale from 1 B/s to
 // 10 MB/s. Session goodput spans ~6 decades — idle keepalive sessions sit
 // below 100 B/s while real page loads run 100 kB/s–10 MB/s — and the SDK
@@ -56,7 +56,7 @@ var (
 // lantern-box emits the same metric from its tracker/metrics package and MUST
 // use identical boundaries — SigNoz merges the two streams, and quantiles
 // over mixed bucket layouts are garbage.
-var GoodputBucketBoundaries = []float64{
+var goodputBucketBoundaries = []float64{
 	1, 3, 10, 30, 100, 300,
 	1_000, 3_000, 10_000, 30_000, 100_000, 300_000,
 	1_000_000, 3_000_000, 10_000_000,
@@ -138,7 +138,7 @@ func initialize() error {
 	if SessionGoodput, err = meter.Float64Histogram("proxy.session.goodput",
 		metric.WithUnit("bytes/s"),
 		metric.WithDescription("Per-session goodput: received (client->proxy) bytes per second of connection lifetime"),
-		metric.WithExplicitBucketBoundaries(GoodputBucketBoundaries...)); err != nil {
+		metric.WithExplicitBucketBoundaries(goodputBucketBoundaries...)); err != nil {
 		return err
 	}
 
