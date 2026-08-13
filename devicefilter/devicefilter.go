@@ -228,6 +228,13 @@ func (f *deviceFilterPre) applyDatacap(cs *filters.ConnectionState, req *http.Re
 	// towards the cap (accounting is per connection, not per request), they are
 	// just never held to the capped rate — hence a separate limiter that the
 	// tracker never re-rates.
+	//
+	// This check deliberately precedes the device-ID guards below, matching the
+	// Redis path: a request to an excluded domain gets the default rate even
+	// with a missing device ID. Moving the guards first would newly subject
+	// old clients to alwaysThrottle on domains we have decided not to throttle.
+	// Such requests share one limiter under the empty device ID, exactly as
+	// rateLimiterForDevice("") does today.
 	if domains.ConfigForRequest(req).Unthrottled {
 		f.instrument.Throttle(req.Context(), true, "default")
 		wc.ControlMessage("throttle", f.tracker.Limiter(deviceID, true))

@@ -133,16 +133,20 @@ func (t *Tracker) Reporter() listeners.MeasuredReportFN {
 		if deltaStats.SentTotal == 0 && deltaStats.RecvTotal == 0 {
 			return
 		}
-		if _, ok := ctx[common.DeviceID].(string); !ok {
+		if deviceID, _ := ctx[common.DeviceID].(string); deviceID == "" {
+			// Nothing to account against, so don't spend buffer capacity on it.
 			return
 		}
+		sac := &statsAndContext{ctx, deltaStats}
 		select {
-		case t.statsCh <- &statsAndContext{ctx, deltaStats}:
+		case t.statsCh <- sac:
 		default:
-			// Dropping is better than blocking a proxied connection. This only
-			// happens if the reporting loop is stalled on the sidecar for long
-			// enough to fill the buffer.
-			log.Debug("datacap stats buffer full, dropping delta")
+			// The buffer only fills if the reporting loop is stalled, which is
+			// exactly when a device is most likely to be running past its cap.
+			// Fold the delta in directly rather than lose it: accumulate takes
+			// the tracker lock, which is never held across a sidecar call, so
+			// this cannot block on the network.
+			t.accumulate(sac)
 		}
 	}
 }
