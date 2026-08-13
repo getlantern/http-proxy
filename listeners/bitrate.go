@@ -3,6 +3,7 @@ package listeners
 import (
 	"net"
 	"net/http"
+	"sync/atomic"
 	"time"
 
 	"github.com/getlantern/ratelimit"
@@ -12,45 +13,73 @@ const (
 	minSleep = 5 * time.Millisecond // don't bother sleeping for less than this amount of time
 )
 
-type RateLimiter struct {
+// rateBuckets pairs the token buckets with the rates they were built from so a
+// re-rate swaps both together and a reader never sees a bucket that disagrees
+// with its rate.
+type rateBuckets struct {
 	r         *ratelimit.Bucket
 	w         *ratelimit.Bucket
 	rateRead  int64
 	rateWrite int64
 }
 
-func NewRateLimiter(rateRead, rateWrite int64) *RateLimiter {
-	l := &RateLimiter{
-		rateRead:  rateRead,
-		rateWrite: rateWrite,
-	}
+func newRateBuckets(rateRead, rateWrite int64) *rateBuckets {
+	b := &rateBuckets{rateRead: rateRead, rateWrite: rateWrite}
 	if rateRead > 0 {
-		l.r = ratelimit.NewBucketWithRate(float64(rateRead), rateRead)
+		b.r = ratelimit.NewBucketWithRate(float64(rateRead), rateRead)
 	}
 	if rateWrite > 0 {
-		l.w = ratelimit.NewBucketWithRate(float64(rateWrite), rateWrite)
+		b.w = ratelimit.NewBucketWithRate(float64(rateWrite), rateWrite)
 	}
+	return b
+}
+
+// RateLimiter caps read and write throughput on the connections it is attached
+// to. Its rates are mutable (see SetRates): one limiter shared by every
+// connection of a device can be re-rated in place, and the new rate applies to
+// connections that are already open rather than only to the next one.
+type RateLimiter struct {
+	buckets atomic.Pointer[rateBuckets]
+}
+
+func NewRateLimiter(rateRead, rateWrite int64) *RateLimiter {
+	l := &RateLimiter{}
+	l.buckets.Store(newRateBuckets(rateRead, rateWrite))
 	return l
 }
 
+// SetRates re-rates the limiter. It is a no-op when the rates are unchanged, so
+// a caller refreshing on every reporting cycle does not continually reset the
+// token buckets.
+func (l *RateLimiter) SetRates(rateRead, rateWrite int64) {
+	if cur := l.buckets.Load(); cur.rateRead == rateRead && cur.rateWrite == rateWrite {
+		return
+	}
+	l.buckets.Store(newRateBuckets(rateRead, rateWrite))
+}
+
 func (l *RateLimiter) GetRateRead() int64 {
-	return l.rateRead
+	return l.buckets.Load().rateRead
 }
 
 func (l *RateLimiter) GetRateWrite() int64 {
-	return l.rateWrite
+	return l.buckets.Load().rateWrite
 }
 
-func (l *RateLimiter) waitRead(n int) {
-	d := l.wait(l.r, n)
-	if d > 0 {
+func (b *rateBuckets) waitRead(n int) {
+	if b.r == nil {
+		return
+	}
+	if d := b.r.Take(int64(n)); d > 0 {
 		sleep(d)
 	}
 }
 
-func (l *RateLimiter) waitWrite(n int) {
-	d := l.wait(l.w, n)
-	if d > 0 {
+func (b *rateBuckets) waitWrite(n int) {
+	if b.w == nil {
+		return
+	}
+	if d := b.w.Take(int64(n)); d > 0 {
 		sleep(d)
 	}
 }
@@ -62,10 +91,6 @@ func sleep(d time.Duration) {
 		d = minSleep
 	}
 	time.Sleep(d)
-}
-
-func (l *RateLimiter) wait(b *ratelimit.Bucket, n int) time.Duration {
-	return b.Take(int64(n))
 }
 
 type bitrateListener struct {
@@ -83,40 +108,43 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 	}
 
 	wc, _ := c.(WrapConnEmbeddable)
-	return &bitrateConn{
+	brc := &bitrateConn{
 		WrapConnEmbeddable: wc,
 		Conn:               c,
-		limiter:            NewRateLimiter(0, 0),
-	}, err
+	}
+	brc.limiter.Store(NewRateLimiter(0, 0))
+	return brc, err
 }
 
 // Bitrate Conn wrapper
 type bitrateConn struct {
 	WrapConnEmbeddable
 	net.Conn
-	limiter *RateLimiter
+	limiter atomic.Pointer[RateLimiter]
 }
 
 func (c *bitrateConn) Read(p []byte) (n int, err error) {
-	if c.limiter.rateRead == 0 {
+	b := c.limiter.Load().buckets.Load()
+	if b.rateRead == 0 {
 		return c.Conn.Read(p)
 	}
 
 	n, err = c.Conn.Read(p)
 	if err == nil {
-		c.limiter.waitRead(n)
+		b.waitRead(n)
 	}
 	return
 }
 
 func (c *bitrateConn) Write(p []byte) (n int, err error) {
-	if c.limiter.rateWrite == 0 {
+	b := c.limiter.Load().buckets.Load()
+	if b.rateWrite == 0 {
 		return c.Conn.Write(p)
 	}
 
 	n, err = c.Conn.Write(p)
 	if err == nil {
-		c.limiter.waitWrite(n)
+		b.waitWrite(n)
 	}
 	return
 }
@@ -131,7 +159,7 @@ func (c *bitrateConn) OnState(s http.ConnState) {
 func (c *bitrateConn) ControlMessage(msgType string, data interface{}) {
 	// per user message always overrides the active flag
 	if msgType == "throttle" {
-		c.limiter = data.(*RateLimiter)
+		c.limiter.Store(data.(*RateLimiter))
 	}
 
 	if c.WrapConnEmbeddable != nil {
