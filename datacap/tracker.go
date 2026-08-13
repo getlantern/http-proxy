@@ -4,6 +4,7 @@ import (
 	"context"
 	"net"
 	"sync"
+	"sync/atomic"
 	"time"
 
 	"github.com/getlantern/geo"
@@ -28,9 +29,13 @@ const (
 	// device sees the same speed whichever proxy flavor it lands on.
 	ThrottledWriteRate int64 = 16 * 1024 // 128 Kb/s
 
-	// statsBufferSize bounds the queue of unaggregated deltas. Overflow drops
-	// the delta rather than blocking a proxied connection.
+	// statsBufferSize bounds the queue of unaggregated deltas.
 	statsBufferSize = 10000
+
+	// flushConcurrency bounds the reports in flight during one cycle, so a
+	// proxy with many active devices does not open an unbounded number of
+	// connections to the sidecar.
+	flushConcurrency = 16
 )
 
 // Usage is a device's cap state as of the last sidecar response.
@@ -112,6 +117,12 @@ func NewTracker(opts TrackerOpts) *Tracker {
 	}
 	if opts.ThrottledRate <= 0 {
 		opts.ThrottledRate = ThrottledWriteRate
+	}
+	if opts.CountryLookup == nil {
+		// Reports still carry the device and its platform; only the
+		// country-specific cap limit is lost. That beats panicking in the
+		// reporting loop.
+		opts.CountryLookup = geo.NoLookup{}
 	}
 	t := &Tracker{
 		client:         opts.Client,
@@ -204,9 +215,26 @@ func (t *Tracker) reportPeriodically() {
 		case sac := <-t.statsCh:
 			t.accumulate(sac)
 		case <-ticker.C:
-			t.flush(context.Background())
+			// Bound the whole cycle. Reports run concurrently, but a wedged
+			// sidecar would still hold this goroutine for a full HTTP timeout,
+			// and for that entire window no throttle verdict is applied and
+			// nothing drains statsCh. Deadlined reports are restored and
+			// retried on the next tick like any other failure.
+			ctx, cancel := context.WithTimeout(context.Background(), t.flushTimeout())
+			t.flush(ctx)
+			cancel()
 		}
 	}
+}
+
+// flushTimeout bounds one reporting cycle. It never drops below the per-request
+// timeout, so a healthy-but-slow sidecar is not cut off by an aggressive
+// reportInterval.
+func (t *Tracker) flushTimeout() time.Duration {
+	if d := 2 * t.reportInterval; d > DefaultHTTPTimeout {
+		return d
+	}
+	return DefaultHTTPTimeout
 }
 
 func (t *Tracker) accumulate(sac *statsAndContext) {
@@ -263,22 +291,39 @@ func (t *Tracker) flush(ctx context.Context) {
 	}
 	t.mx.Unlock()
 
-	var failed int
-	var lastErr error
+	// Report concurrently: serially, one slow device delays the throttle
+	// verdict for every device behind it in the batch, and the cycle's duration
+	// grows with the number of active devices.
+	var (
+		failed  atomic.Int64
+		lastErr atomic.Value
+		wg      sync.WaitGroup
+	)
+	sem := make(chan struct{}, flushConcurrency)
 	for _, pr := range reports {
-		status, err := t.client.ReportUsage(ctx, &pr.report)
-		if err != nil {
-			// A wedged sidecar fails every device in the batch, so log once per
-			// cycle rather than once per device.
-			failed++
-			lastErr = err
-			t.restore(pr)
-			continue
-		}
-		t.apply(pr.device, status)
+		wg.Add(1)
+		sem <- struct{}{}
+		go func(pr pendingReport) {
+			defer wg.Done()
+			defer func() { <-sem }()
+
+			status, err := t.client.ReportUsage(ctx, &pr.report)
+			if err != nil {
+				failed.Add(1)
+				lastErr.Store(err)
+				t.restore(pr)
+				return
+			}
+			t.apply(pr.device, status)
+		}(pr)
 	}
-	if failed > 0 {
-		log.Errorf("Unable to report usage for %d of %d devices, will retry: %v", failed, len(reports), lastErr)
+	wg.Wait()
+
+	if n := failed.Load(); n > 0 {
+		// A wedged sidecar fails every device in the batch, so log once per
+		// cycle rather than once per device.
+		err, _ := lastErr.Load().(error)
+		log.Errorf("Unable to report usage for %d of %d devices, will retry: %v", n, len(reports), err)
 	}
 
 	t.evictIdle()

@@ -32,6 +32,7 @@ type fakeSidecar struct {
 	total    int64
 	capLimit int64
 	fail     bool
+	delay    time.Duration
 }
 
 func newFakeSidecar(capLimit int64) *fakeSidecar {
@@ -48,6 +49,12 @@ func newFakeSidecar(capLimit int64) *fakeSidecar {
 			s.mu.Unlock()
 			w.WriteHeader(http.StatusInternalServerError)
 			return
+		}
+		delay := s.delay
+		if delay > 0 && report.DeviceID == "slowpoke" {
+			s.mu.Unlock()
+			time.Sleep(delay)
+			s.mu.Lock()
 		}
 		s.reports = append(s.reports, report)
 		s.total += report.BytesUsed
@@ -234,4 +241,25 @@ func TestDeltasWithoutADeviceIDAreIgnored(t *testing.T) {
 	reports, total := sidecar.snapshot()
 	assert.Zero(t, total)
 	assert.Empty(t, reports)
+}
+
+// One unresponsive device must not hold up the throttle verdict for every other
+// device in the batch.
+func TestASlowDeviceDoesNotDelayTheBatch(t *testing.T) {
+	sidecar := newFakeSidecar(1000)
+	defer sidecar.Close()
+	sidecar.mu.Lock()
+	sidecar.delay = 750 * time.Millisecond
+	sidecar.mu.Unlock()
+
+	tracker := newTestTracker(t, sidecar)
+	limiter := tracker.Limiter("device1", false)
+
+	report(tracker, "slowpoke", 5)
+	report(tracker, "device1", 2000)
+
+	assert.Eventually(t, func() bool {
+		return limiter.GetRateWrite() == ThrottledWriteRate
+	}, 500*time.Millisecond, 5*time.Millisecond,
+		"device1 should be throttled well before the slow device's report returns")
 }
