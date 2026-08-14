@@ -29,13 +29,16 @@ const (
 	// device sees the same speed whichever proxy flavor it lands on.
 	ThrottledWriteRate int64 = 16 * 1024 // 128 Kb/s
 
-	// statsBufferSize bounds the queue of unaggregated deltas.
-	statsBufferSize = 10000
-
 	// flushConcurrency bounds the reports in flight during one cycle, so a
 	// proxy with many active devices does not open an unbounded number of
 	// connections to the sidecar.
 	flushConcurrency = 16
+
+	// idleDeviceTTL is how long a device with nothing pending is kept around.
+	// It outlives the measured reporting interval by a wide margin so a device
+	// with a quiet connection does not lose its throttle state and get a free
+	// window at full speed.
+	idleDeviceTTL = 30 * time.Minute
 )
 
 // Usage is a device's cap state as of the last sidecar response.
@@ -47,7 +50,8 @@ type Usage struct {
 	CapLimit int64
 	// Expiry is when the current allotment resets.
 	Expiry time.Time
-	// AsOf is when the sidecar reported these numbers.
+	// AsOf is when the sidecar reported these numbers. A zero AsOf means the
+	// sidecar has not answered for this device yet.
 	AsOf time.Time
 	// Throttled is the sidecar's verdict at AsOf.
 	Throttled bool
@@ -66,13 +70,13 @@ type device struct {
 	// still counted, they are just never slowed to the capped rate.
 	unthrottledLimiter *listeners.RateLimiter
 
-	usage     Usage
-	haveUsage bool
+	usage Usage
 
 	// pendingBytes is the delta not yet accepted by the sidecar.
 	pendingBytes int64
-	// countryCode, platform are the most recent values seen for this device;
-	// the sidecar keys the cap limit off them.
+	// countryCode, platform key the sidecar's cap-limit lookup. countryCode is
+	// sticky — set once from the first delta that resolves one — matching the
+	// reporting-Redis behavior this replaces.
 	countryCode string
 	platform    string
 	// lastSeen gates eviction of idle devices.
@@ -87,18 +91,10 @@ type Tracker struct {
 	// defaultRate is the ceiling every non-pro device is held to regardless of
 	// its cap state, to keep bandwidth hogs from monopolizing a proxy.
 	defaultRate    int64
-	throttledRate  int64
 	reportInterval time.Duration
 
 	mx      sync.RWMutex
 	devices map[string]*device
-
-	statsCh chan *statsAndContext
-}
-
-type statsAndContext struct {
-	ctx   map[string]interface{}
-	stats *measured.Stats
 }
 
 // TrackerOpts configures a Tracker.
@@ -106,7 +102,6 @@ type TrackerOpts struct {
 	Client         *Client
 	CountryLookup  geo.CountryLookup
 	DefaultRate    int64
-	ThrottledRate  int64
 	ReportInterval time.Duration
 }
 
@@ -114,9 +109,6 @@ type TrackerOpts struct {
 func NewTracker(opts TrackerOpts) *Tracker {
 	if opts.ReportInterval <= 0 {
 		opts.ReportInterval = DefaultReportInterval
-	}
-	if opts.ThrottledRate <= 0 {
-		opts.ThrottledRate = ThrottledWriteRate
 	}
 	if opts.CountryLookup == nil {
 		// Reports still carry the device and its platform; only the
@@ -128,37 +120,30 @@ func NewTracker(opts TrackerOpts) *Tracker {
 		client:         opts.Client,
 		countryLookup:  opts.CountryLookup,
 		defaultRate:    opts.DefaultRate,
-		throttledRate:  opts.ThrottledRate,
 		reportInterval: opts.ReportInterval,
 		devices:        make(map[string]*device),
-		statsCh:        make(chan *statsAndContext, statsBufferSize),
 	}
 	go t.reportPeriodically()
 	return t
 }
 
 // Reporter returns the callback the measured listener feeds connection deltas
-// into.
+// into. Deltas are folded into per-device state synchronously: the tracker lock
+// is never held across a sidecar call, so this cannot block on the network.
 func (t *Tracker) Reporter() listeners.MeasuredReportFN {
 	return func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
-		if deltaStats.SentTotal == 0 && deltaStats.RecvTotal == 0 {
+		bytes := int64(deltaStats.SentTotal) + int64(deltaStats.RecvTotal)
+		if bytes == 0 {
 			return
 		}
-		if deviceID, _ := ctx[common.DeviceID].(string); deviceID == "" {
-			// Nothing to account against, so don't spend buffer capacity on it.
+		deviceID, _ := ctx[common.DeviceID].(string)
+		if deviceID == "" {
+			// Nothing to account against.
 			return
 		}
-		sac := &statsAndContext{ctx, deltaStats}
-		select {
-		case t.statsCh <- sac:
-		default:
-			// The buffer only fills if the reporting loop is stalled, which is
-			// exactly when a device is most likely to be running past its cap.
-			// Fold the delta in directly rather than lose it: accumulate takes
-			// the tracker lock, which is never held across a sidecar call, so
-			// this cannot block on the network.
-			t.accumulate(sac)
-		}
+		clientIP, _ := ctx[common.ClientIP].(string)
+		platform, _ := ctx[common.Platform].(string)
+		t.accumulate(deviceID, clientIP, platform, bytes)
 	}
 }
 
@@ -173,13 +158,24 @@ func (t *Tracker) Limiter(deviceID string, unthrottled bool) *listeners.RateLimi
 	return d.limiter
 }
 
+// LimiterAndUsage returns the device's shared limiter together with the last
+// cap state the sidecar reported for it, in one lookup. ok is false until the
+// first report for that device has been answered.
+func (t *Tracker) LimiterAndUsage(deviceID string) (limiter *listeners.RateLimiter, u Usage, ok bool) {
+	d := t.deviceFor(deviceID)
+	t.mx.RLock()
+	u = d.usage
+	t.mx.RUnlock()
+	return d.limiter, u, !u.AsOf.IsZero()
+}
+
 // Usage returns the last cap state the sidecar reported for deviceID. ok is
 // false until the first report for that device has been answered.
 func (t *Tracker) Usage(deviceID string) (Usage, bool) {
 	t.mx.RLock()
 	defer t.mx.RUnlock()
 	d, exists := t.devices[deviceID]
-	if !exists || !d.haveUsage {
+	if !exists || d.usage.AsOf.IsZero() {
 		return Usage{}, false
 	}
 	return d.usage, true
@@ -210,76 +206,73 @@ func (t *Tracker) deviceFor(deviceID string) *device {
 func (t *Tracker) reportPeriodically() {
 	ticker := time.NewTicker(t.reportInterval)
 	defer ticker.Stop()
-	for {
-		select {
-		case sac := <-t.statsCh:
-			t.accumulate(sac)
-		case <-ticker.C:
-			// Bound the whole cycle. Reports run concurrently, but a wedged
-			// sidecar would still hold this goroutine for a full HTTP timeout,
-			// and for that entire window no throttle verdict is applied and
-			// nothing drains statsCh. Deadlined reports are restored and
-			// retried on the next tick like any other failure.
-			ctx, cancel := context.WithTimeout(context.Background(), t.flushTimeout())
-			t.flush(ctx)
-			cancel()
+	for range ticker.C {
+		// Bound the whole cycle. Reports run concurrently, but a wedged
+		// sidecar would still hold this goroutine for a full HTTP timeout,
+		// and for that entire window no throttle verdict is applied.
+		// Deadlined reports are restored and retried on the next tick like
+		// any other failure. The deadline never drops below the per-request
+		// timeout, so a healthy-but-slow sidecar is not cut off by an
+		// aggressive reportInterval.
+		timeout := 2 * t.reportInterval
+		if timeout < DefaultHTTPTimeout {
+			timeout = DefaultHTTPTimeout
 		}
+		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		t.flush(ctx)
+		cancel()
 	}
 }
 
-// flushTimeout bounds one reporting cycle. It never drops below the per-request
-// timeout, so a healthy-but-slow sidecar is not cut off by an aggressive
-// reportInterval.
-func (t *Tracker) flushTimeout() time.Duration {
-	if d := 2 * t.reportInterval; d > DefaultHTTPTimeout {
-		return d
-	}
-	return DefaultHTTPTimeout
-}
-
-func (t *Tracker) accumulate(sac *statsAndContext) {
-	deviceID, _ := sac.ctx[common.DeviceID].(string)
-	if deviceID == "" {
-		return
-	}
+func (t *Tracker) accumulate(deviceID, clientIP, platform string, bytes int64) {
 	d := t.deviceFor(deviceID)
 
+	// The country lookup walks the MaxMind database, so do it at most once per
+	// device — outside the lock — rather than on every delta.
+	t.mx.RLock()
+	needCountry := d.countryCode == ""
+	t.mx.RUnlock()
 	countryCode := ""
-	if clientIP, ok := sac.ctx[common.ClientIP].(string); ok {
+	if needCountry && clientIP != "" {
 		countryCode = t.countryLookup.CountryCode(net.ParseIP(clientIP))
 	}
-	platform, _ := sac.ctx[common.Platform].(string)
 
+	now := time.Now()
 	t.mx.Lock()
-	d.pendingBytes += int64(sac.stats.SentTotal) + int64(sac.stats.RecvTotal)
-	if countryCode != "" {
+	d.pendingBytes += bytes
+	if d.countryCode == "" {
 		d.countryCode = countryCode
 	}
 	if platform != "" {
 		d.platform = platform
 	}
-	d.lastSeen = time.Now()
+	d.lastSeen = now
 	t.mx.Unlock()
 }
 
 // pendingReport is one device's delta, detached from the tracker so the HTTP
 // round-trips happen without holding the lock.
 type pendingReport struct {
-	deviceID string
-	device   *device
-	report   Report
+	device *device
+	report Report
 }
 
 func (t *Tracker) flush(ctx context.Context) {
+	evictBefore := time.Now().Add(-idleDeviceTTL)
+
 	t.mx.Lock()
-	var reports []pendingReport
+	reports := make([]pendingReport, 0, len(t.devices))
 	for deviceID, d := range t.devices {
 		if d.pendingBytes == 0 {
+			// The flush already visits every device, so idle eviction rides
+			// along instead of taking a second full scan under the lock.
+			if d.lastSeen.Before(evictBefore) {
+				delete(t.devices, deviceID)
+			}
 			continue
 		}
 		reports = append(reports, pendingReport{
-			deviceID: deviceID,
-			device:   d,
+			device: d,
 			report: Report{
 				DeviceID:    deviceID,
 				CountryCode: d.countryCode,
@@ -291,91 +284,81 @@ func (t *Tracker) flush(ctx context.Context) {
 	}
 	t.mx.Unlock()
 
-	// Report concurrently: serially, one slow device delays the throttle
-	// verdict for every device behind it in the batch, and the cycle's duration
-	// grows with the number of active devices.
-	var (
-		failed  atomic.Int64
-		lastErr atomic.Value
-		wg      sync.WaitGroup
-	)
-	sem := make(chan struct{}, flushConcurrency)
-	for _, pr := range reports {
-		wg.Add(1)
-		sem <- struct{}{}
-		go func(pr pendingReport) {
-			defer wg.Done()
-			defer func() { <-sem }()
+	if len(reports) == 0 {
+		return
+	}
 
-			status, err := t.client.ReportUsage(ctx, &pr.report)
-			if err != nil {
-				failed.Add(1)
-				lastErr.Store(err)
-				t.restore(pr)
-				return
+	// Report concurrently: serially, one slow device delays the throttle
+	// verdict for every device behind it in the batch, and the cycle's
+	// duration grows with the number of active devices.
+	statuses := make([]*Status, len(reports))
+	errs := make([]error, len(reports))
+	workers := flushConcurrency
+	if len(reports) < workers {
+		workers = len(reports)
+	}
+	var next atomic.Int64
+	var wg sync.WaitGroup
+	for w := 0; w < workers; w++ {
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			for {
+				i := int(next.Add(1)) - 1
+				if i >= len(reports) {
+					return
+				}
+				pr := reports[i]
+				statuses[i], errs[i] = t.client.ReportUsage(ctx, &pr.report)
+				if st := statuses[i]; st != nil {
+					// Re-rate as soon as the verdict is in — SetRates is
+					// lock-free, and waiting for the whole batch would let one
+					// slow device delay enforcement for every other device.
+					// Only writes back to the client are throttled: a capped
+					// device can keep uploading at the default rate.
+					if st.Throttle {
+						pr.device.limiter.SetRates(t.defaultRate, ThrottledWriteRate)
+					} else {
+						pr.device.limiter.SetRates(t.defaultRate, t.defaultRate)
+					}
+				}
 			}
-			t.apply(pr.device, status)
-		}(pr)
+		}()
 	}
 	wg.Wait()
 
-	if n := failed.Load(); n > 0 {
-		// A wedged sidecar fails every device in the batch, so log once per
-		// cycle rather than once per device.
-		err, _ := lastErr.Load().(error)
-		log.Errorf("Unable to report usage for %d of %d devices, will retry: %v", n, len(reports), err)
-	}
-
-	t.evictIdle()
-}
-
-// restore puts a failed report's bytes back so the next cycle retries them.
-func (t *Tracker) restore(pr pendingReport) {
-	t.mx.Lock()
-	defer t.mx.Unlock()
-	pr.device.pendingBytes += pr.report.BytesUsed
-}
-
-// apply records the sidecar's answer and re-rates the device's shared limiter.
-// Only writes back to the client are throttled: a capped device can keep
-// uploading at the default rate.
-func (t *Tracker) apply(d *device, status *Status) {
+	// The usage bookkeeping feeds the XBQ headers, which tolerate a batch's
+	// worth of staleness — record the whole cycle under one lock acquisition
+	// instead of one per device.
 	now := time.Now()
-	usage := Usage{
-		BytesUsed: status.BytesUsed,
-		CapLimit:  status.CapLimit,
-		AsOf:      now,
-		Throttled: status.Throttle,
-	}
-	if status.ExpiryTime > 0 {
-		usage.Expiry = time.Unix(status.ExpiryTime, 0)
-	}
-
+	failed := 0
+	var lastErr error
 	t.mx.Lock()
-	d.usage = usage
-	d.haveUsage = true
+	for i, pr := range reports {
+		if errs[i] != nil {
+			failed++
+			lastErr = errs[i]
+			// Put the bytes back so the next cycle retries them.
+			pr.device.pendingBytes += pr.report.BytesUsed
+			continue
+		}
+		st := statuses[i]
+		u := Usage{
+			BytesUsed: st.BytesUsed,
+			CapLimit:  st.CapLimit,
+			AsOf:      now,
+			Throttled: st.Throttle,
+		}
+		if st.ExpiryTime > 0 {
+			u.Expiry = time.Unix(st.ExpiryTime, 0)
+		}
+		pr.device.usage = u
+	}
 	t.mx.Unlock()
 
-	if status.Throttle {
-		d.limiter.SetRates(t.defaultRate, t.throttledRate)
-	} else {
-		d.limiter.SetRates(t.defaultRate, t.defaultRate)
-	}
-}
-
-// idleDeviceTTL is how long a device with nothing pending is kept around. It
-// outlives the measured reporting interval by a wide margin so a device with a
-// quiet connection does not lose its throttle state and get a free window at
-// full speed.
-const idleDeviceTTL = 30 * time.Minute
-
-func (t *Tracker) evictIdle() {
-	cutoff := time.Now().Add(-idleDeviceTTL)
-	t.mx.Lock()
-	defer t.mx.Unlock()
-	for deviceID, d := range t.devices {
-		if d.lastSeen.Before(cutoff) && d.pendingBytes == 0 {
-			delete(t.devices, deviceID)
-		}
+	if failed > 0 {
+		// A wedged sidecar fails every device in the batch, so log once per
+		// cycle rather than once per device.
+		log.Errorf("Unable to report usage for %d of %d devices, will retry: %v", failed, len(reports), lastErr)
 	}
 }

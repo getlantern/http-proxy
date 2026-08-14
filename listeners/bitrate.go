@@ -101,6 +101,12 @@ func NewBitrateListener(l net.Listener) net.Listener {
 	return &bitrateListener{l}
 }
 
+// unlimited is the limiter every conn starts with until a filter attaches a
+// real one. A (0,0) limiter never waits and nothing ever re-rates it —
+// ControlMessage replaces the pointer wholesale — so one shared instance
+// serves every conn instead of allocating two objects per accept.
+var unlimited = NewRateLimiter(0, 0)
+
 func (bl *bitrateListener) Accept() (net.Conn, error) {
 	c, err := bl.Listener.Accept()
 	if err != nil {
@@ -112,7 +118,7 @@ func (bl *bitrateListener) Accept() (net.Conn, error) {
 		WrapConnEmbeddable: wc,
 		Conn:               c,
 	}
-	brc.limiter.Store(NewRateLimiter(0, 0))
+	brc.limiter.Store(unlimited)
 	return brc, err
 }
 

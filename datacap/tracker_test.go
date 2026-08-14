@@ -112,6 +112,8 @@ func TestThrottleAppliesToTheLimiterAlreadyHandedOut(t *testing.T) {
 
 	limiter := tracker.Limiter("device1", false)
 	require.Equal(t, testDefaultRate, limiter.GetRateWrite(), "should start at the default rate")
+	_, known := tracker.Usage("device1")
+	require.False(t, known, "usage is unknown until the sidecar answers")
 
 	report(tracker, "device1", 400)
 	assert.Eventually(t, func() bool {
@@ -189,38 +191,6 @@ func TestFailedReportsAreRetried(t *testing.T) {
 		_, total := sidecar.snapshot()
 		return total == 250
 	}, time.Second, 5*time.Millisecond, "the delta should be retried once the sidecar recovers")
-}
-
-func TestUsageIsUnknownUntilTheSidecarAnswers(t *testing.T) {
-	sidecar := newFakeSidecar(1000)
-	defer sidecar.Close()
-	tracker := newTestTracker(t, sidecar)
-
-	_, ok := tracker.Usage("device1")
-	assert.False(t, ok)
-	assert.Equal(t, testDefaultRate, tracker.Limiter("device1", false).GetRateWrite(),
-		"an unknown device runs at the default rate, not throttled")
-}
-
-// The stats buffer only fills when the reporting loop is stalled on the
-// sidecar, which is exactly when a device is most likely to be running past its
-// cap. Deltas must survive that rather than be dropped.
-func TestOverflowingDeltasAreNotLost(t *testing.T) {
-	sidecar := newFakeSidecar(0)
-	defer sidecar.Close()
-	tracker := newTestTracker(t, sidecar)
-
-	// Far more deltas than the buffer holds, submitted without letting the
-	// reporting loop drain in between.
-	const reports = statsBufferSize * 2
-	for i := 0; i < reports; i++ {
-		report(tracker, "device1", 1)
-	}
-
-	assert.Eventually(t, func() bool {
-		_, total := sidecar.snapshot()
-		return total == int64(reports)
-	}, 5*time.Second, 10*time.Millisecond, "every delta should reach the sidecar")
 }
 
 func TestDeltasWithoutADeviceIDAreIgnored(t *testing.T) {

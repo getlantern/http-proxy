@@ -63,10 +63,12 @@ func NewClient(baseURL string, timeout time.Duration) *Client {
 	return &Client{
 		httpClient: &http.Client{
 			Timeout: timeout,
+			// A bare Transport also deliberately ignores HTTP_PROXY et al. —
+			// this client only ever talks to the local sidecar. The idle pool
+			// matches the flush fan-out so a full cycle's connections are all
+			// reusable instead of the excess being closed each cycle.
 			Transport: &http.Transport{
-				MaxIdleConns:        100,
-				MaxIdleConnsPerHost: 10,
-				IdleConnTimeout:     90 * time.Second,
+				MaxIdleConnsPerHost: flushConcurrency,
 			},
 		},
 		baseURL: strings.TrimSuffix(baseURL, "/"),
