@@ -35,9 +35,13 @@ const (
 	flushConcurrency = 16
 
 	// idleDeviceTTL is how long a device with nothing pending is kept around.
-	// It outlives the measured reporting interval by a wide margin so a device
-	// with a quiet connection does not lose its throttle state and get a free
-	// window at full speed.
+	// Evicting a device severs its open connections from re-rating (they keep
+	// the limiter pointer they were attached with, while a re-appearing device
+	// gets a fresh entry), so this must comfortably exceed the proxy's
+	// idle-close timeout (`idleclose`, ~70-90s): a connection idle longer than
+	// that is closed by the proxy itself, and one that is still alive is moving
+	// bytes, whose deltas refresh lastSeen and block eviction. At 30 minutes
+	// the margin over idleclose plus the measured reporting interval is >10x.
 	idleDeviceTTL = 30 * time.Minute
 )
 
