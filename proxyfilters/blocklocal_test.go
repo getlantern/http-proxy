@@ -46,6 +46,20 @@ func TestBlockLocalExceptionIgnoresDefaultPort(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
 }
 
+func TestBlockLocalExceptionForOriginFormRequest(t *testing.T) {
+	// Legacy clients use origin-form requests over persistent proxy tunnels,
+	// which leaves URL.Host empty and puts the authority in Request.Host.
+	req, err := http.NewRequest(http.MethodGet, "/plans-v4", nil)
+	if !assert.NoError(t, err) {
+		return
+	}
+	req.Host = "api.getiantem.org:80"
+	assert.Empty(t, req.URL.Host)
+
+	_, resp := doTestBlockLocalRequest(t, []string{"api.getiantem.org"}, req, &testResolver{127, 0, 0, 1})
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
 func TestBlockLocalNotLocal(t *testing.T) {
 	modifiedReq, resp := doTestBlockLocal(t, []string{"localhost"}, "http://example.com/index.html", &testResolver{93, 184, 215, 16})
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
@@ -55,6 +69,13 @@ func TestBlockLocalNotLocal(t *testing.T) {
 }
 
 func doTestBlockLocal(t *testing.T, exceptions []string, urlStr string, r resolver) (*http.Request, *http.Response) {
+	t.Helper()
+	req, _ := http.NewRequest(http.MethodGet, urlStr, nil)
+	return doTestBlockLocalRequest(t, exceptions, req, r)
+}
+
+func doTestBlockLocalRequest(t *testing.T, exceptions []string, req *http.Request, r resolver) (*http.Request, *http.Response) {
+	t.Helper()
 	next := func(cs *filters.ConnectionState, req *http.Request) (*http.Response, *filters.ConnectionState, error) {
 		return &http.Response{
 			StatusCode: http.StatusOK,
@@ -62,7 +83,6 @@ func doTestBlockLocal(t *testing.T, exceptions []string, urlStr string, r resolv
 	}
 
 	filter := BlockLocal(exceptions, r)
-	req, _ := http.NewRequest(http.MethodGet, urlStr, nil)
 	log.Debug(req.URL.Host)
 	cs := filters.NewConnectionState(req, nil, nil)
 	resp, _, _ := filter.Apply(cs, req, next)

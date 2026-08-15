@@ -33,15 +33,22 @@ func BlockLocal(exceptions []string, r resolver) filters.Filter {
 	}
 
 	return filters.FilterFunc(func(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
-		host, port, err := net.SplitHostPort(req.URL.Host)
+		targetHost := req.URL.Host
+		if targetHost == "" {
+			// Origin-form requests carry the authority in Request.Host. This is
+			// how legacy clients send HTTP requests over persistent proxy tunnels.
+			targetHost = req.Host
+		}
+
+		host, port, err := net.SplitHostPort(targetHost)
 		if err != nil {
 			// host didn't have a port, thus splitting didn't work
-			host = req.URL.Host
+			host = targetHost
 		}
 
 		// Check the bare host too, so a hostname exception matches with
 		// or without the default port.
-		if isException(req.URL.Host) || isException(host) {
+		if isException(targetHost) || isException(host) {
 			return next(cs, req)
 		}
 
