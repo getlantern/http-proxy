@@ -85,6 +85,11 @@ var (
 	log = golog.LoggerFor("lantern-proxy")
 
 	proxyNameRegex = regexp.MustCompile(`(fp-([a-z0-9]+-)?([a-z0-9]+)-[0-9]{8}-[0-9]+)(-.+)?`)
+
+	// Legacy clients require these hosts for account and payment operations.
+	// Keep them mandatory so deployment configuration can add exceptions but
+	// cannot accidentally remove the compatibility baseline.
+	requiredLegacyAPIHosts = [...]string{"api.getiantem.org", "geo.getiantem.org"}
 )
 
 // Proxy is an HTTP proxy.
@@ -176,9 +181,9 @@ type Proxy struct {
 	BanditCallbackTTL     time.Duration
 	banditCallbackEmitter *banditcallback.Emitter
 
-	// LegacyAPIHosts are extra hostnames exempted from BlockLocal, comma
-	// separated. Used for legacy pre-9.x clients hitting api.getiantem.org
-	// directly (see eng#3695).
+	// LegacyAPIHosts are additional comma-separated hostnames exempted from
+	// BlockLocal. The compatibility hosts required by legacy pre-9.x clients
+	// are always included separately (see eng#3695).
 	LegacyAPIHosts string
 
 	MultiplexProtocol             string
@@ -735,15 +740,26 @@ func (p *Proxy) loadThrottleConfig() {
 }
 
 func (p *Proxy) legacyAPIHostExceptions() []string {
-	if p.LegacyAPIHosts == "" {
-		return nil
-	}
-	var hosts []string
-	for _, h := range strings.Split(p.LegacyAPIHosts, ",") {
-		h = strings.TrimSpace(h)
-		if h != "" {
-			hosts = append(hosts, h)
+	hosts := make([]string, 0, len(requiredLegacyAPIHosts)+1)
+	seen := make(map[string]struct{}, len(requiredLegacyAPIHosts)+1)
+	add := func(host string) {
+		host = strings.TrimSpace(host)
+		key := strings.ToLower(host)
+		if host == "" {
+			return
 		}
+		if _, ok := seen[key]; ok {
+			return
+		}
+		seen[key] = struct{}{}
+		hosts = append(hosts, host)
+	}
+
+	for _, host := range requiredLegacyAPIHosts {
+		add(host)
+	}
+	for _, h := range strings.Split(p.LegacyAPIHosts, ",") {
+		add(h)
 	}
 	return hosts
 }

@@ -689,6 +689,22 @@ func basicServer(maxConns uint64, idleTimeout time.Duration) *server.Server {
 	return srv
 }
 
+func TestLegacyAPIHostExceptions(t *testing.T) {
+	t.Run("required hosts cannot be removed", func(t *testing.T) {
+		p := &Proxy{}
+		assert.Equal(t, []string{"api.getiantem.org", "geo.getiantem.org"}, p.legacyAPIHostExceptions())
+	})
+
+	t.Run("configuration adds unique hosts", func(t *testing.T) {
+		p := &Proxy{LegacyAPIHosts: " extra.example.org, API.GETIANTEM.ORG, "}
+		assert.Equal(t, []string{
+			"api.getiantem.org",
+			"geo.getiantem.org",
+			"extra.example.org",
+		}, p.legacyAPIHostExceptions())
+	})
+}
+
 func setupNewHTTPServer(maxConns uint64, idleTimeout time.Duration, https bool) (addr string, err error) {
 	var (
 		s     = basicServer(maxConns, idleTimeout)
