@@ -186,3 +186,71 @@ func BenchmarkThrottledReader(b *testing.B) {
 		conn.Write(benchBuf)
 	}
 }
+
+// A limiter that is re-rated must take effect on connections it is already
+// attached to: that is what lets a device be slowed the moment it crosses its
+// data cap instead of at its next connection.
+func TestReRatingAppliesToAnOpenConn(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("Error creating listener: %v", err)
+	}
+	defer ln.Close()
+
+	type accept struct {
+		conn net.Conn
+		err  error
+	}
+	accepted := make(chan accept, 1)
+	bl := NewBitrateListener(ln)
+	go func() {
+		c, err := bl.Accept()
+		accepted <- accept{c, err}
+	}()
+
+	client, err := net.Dial("tcp", ln.Addr().String())
+	if err != nil {
+		t.Fatalf("Error connecting to local server: %v", err)
+	}
+	defer client.Close()
+	go io.Copy(io.Discard, client)
+
+	res := <-accepted
+	if res.err != nil {
+		t.Fatalf("Error accepting: %v", res.err)
+	}
+	defer res.conn.Close()
+
+	limiter := NewRateLimiter(0, 0)
+	res.conn.(*bitrateConn).ControlMessage("throttle", limiter)
+
+	payload := make([]byte, 4096)
+	start := time.Now()
+	if _, err := res.conn.Write(payload); err != nil {
+		t.Fatalf("Error writing: %v", err)
+	}
+	assert.Less(t, time.Since(start), 100*time.Millisecond, "an unrated limiter should not delay writes")
+
+	// Re-rate in place — the conn is never handed a new limiter.
+	limiter.SetRates(0, 8192)
+	start = time.Now()
+	for i := 0; i < 4; i++ {
+		if _, err := res.conn.Write(payload); err != nil {
+			t.Fatalf("Error writing: %v", err)
+		}
+	}
+	assert.Greater(t, time.Since(start), 500*time.Millisecond, "the open conn should be held to the new rate")
+}
+
+func TestSetRatesKeepsBucketsWhenUnchanged(t *testing.T) {
+	l := NewRateLimiter(1000, 1000)
+	before := l.buckets.Load()
+
+	l.SetRates(1000, 1000)
+	assert.Same(t, before, l.buckets.Load(), "an unchanged rate should not reset the token buckets")
+
+	l.SetRates(1000, 500)
+	assert.NotSame(t, before, l.buckets.Load())
+	assert.Equal(t, int64(500), l.GetRateWrite())
+	assert.Equal(t, int64(1000), l.GetRateRead())
+}

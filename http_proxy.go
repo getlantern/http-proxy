@@ -31,6 +31,7 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/banditcallback"
 	"github.com/getlantern/http-proxy-lantern/v2/broflake"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
+	"github.com/getlantern/http-proxy-lantern/v2/datacap"
 	"github.com/getlantern/http-proxy-lantern/v2/opsfilter"
 	"github.com/getlantern/http-proxy-lantern/v2/otel"
 	"github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
@@ -218,7 +219,14 @@ type Proxy struct {
 	VMessAddr  string
 	VMessUUIDs []string
 
+	// DatacapURL is the base URL of the local datacap sidecar. When set, byte
+	// accounting and data-cap throttling run through the sidecar and the
+	// reporting-Redis path is left unused.
+	DatacapURL            string
+	DatacapReportInterval time.Duration
+
 	throttleConfig throttle.Config
+	datacapTracker *datacap.Tracker
 	instrument     instrument.Instrument
 }
 
@@ -260,6 +268,7 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 	}
 	p.setBenchmarkMode()
 	p.loadThrottleConfig()
+	p.loadDatacapTracker()
 
 	if p.ENHTTPAddr != "" {
 		return p.ListenAndServeENHTTP()
@@ -550,7 +559,7 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 	// unauthenticated traffic there — fine because bench mode is a
 	// local-only test setup), and before devicefilter so the
 	// emitter still runs for pro tracks (devicefilter is gated on
-	// ReportingRedisClient, which pro proxies don't set, but the
+	// the accounting source, which pro proxies aren't given, but the
 	// bandit still wants signal for pro arms). OnFirstOnly because
 	// the device-id header only needs to be read once per
 	// connection — matches the other auth-adjacent filters.
@@ -560,13 +569,18 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		)
 	}
 
-	if p.ReportingRedisClient == nil {
-		log.Debug("Not enabling bandwidth limiting")
-	} else {
+	switch {
+	case p.datacapTracker != nil:
+		filterChain = filterChain.Append(
+			proxy.OnFirstOnly(devicefilter.NewDatacapPre(p.datacapTracker, !p.Pro, p.instrument)),
+		)
+	case p.ReportingRedisClient != nil:
 		filterChain = filterChain.Append(
 			proxy.OnFirstOnly(devicefilter.NewPre(
 				redis.NewDeviceFetcher(p.ReportingRedisClient), p.throttleConfig, !p.Pro, p.instrument)),
 		)
+	default:
+		log.Debug("Not enabling bandwidth limiting")
 	}
 
 	filterChain = filterChain.Append(
@@ -727,7 +741,7 @@ func (p *Proxy) buildOTELOpts(includeProxyName bool) *otel.Opts {
 }
 
 func (p *Proxy) configureBandwidthReporting() *reportingConfig {
-	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.instrument, p.throttleConfig)
+	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.instrument, p.throttleConfig, p.datacapTracker)
 }
 
 func (p *Proxy) loadThrottleConfig() {
@@ -737,6 +751,22 @@ func (p *Proxy) loadThrottleConfig() {
 		log.Debug("Not loading throttle config")
 		return
 	}
+}
+
+// loadDatacapTracker starts the sidecar-backed accounting pipeline. Pro tracks
+// are gated server-side — the provisioner simply omits DatacapURL from their
+// config — so an unset URL is the normal case there, not a misconfiguration.
+func (p *Proxy) loadDatacapTracker() {
+	if p.Pro || p.DatacapURL == "" {
+		return
+	}
+	p.datacapTracker = datacap.NewTracker(datacap.TrackerOpts{
+		Client:         datacap.NewClient(p.DatacapURL, datacap.DefaultHTTPTimeout),
+		CountryLookup:  p.CountryLookup,
+		DefaultRate:    devicefilter.DefaultThrottleRate,
+		ReportInterval: p.DatacapReportInterval,
+	})
+	log.Debugf("Reporting bandwidth usage to the datacap sidecar at %v", p.DatacapURL)
 }
 
 func (p *Proxy) legacyAPIHostExceptions() []string {

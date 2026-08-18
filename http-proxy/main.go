@@ -27,6 +27,7 @@ import (
 
 	proxy "github.com/getlantern/http-proxy-lantern/v2"
 	"github.com/getlantern/http-proxy-lantern/v2/blacklist"
+	"github.com/getlantern/http-proxy-lantern/v2/datacap"
 	"github.com/getlantern/http-proxy-lantern/v2/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
 	lanternredis "github.com/getlantern/http-proxy-lantern/v2/redis"
@@ -120,6 +121,12 @@ var (
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
 
 	reportingRedisAddr = flag.String("reportingredis", "", "The address of the reporting Redis instance in \"redis[s]://host:port\" format")
+
+	// Successor to reportingredis. When both are set datacapurl wins: a proxy
+	// must account and enforce from exactly one source, and the sidecar is the
+	// one every other proxy flavor already reports to.
+	datacapURL            = flag.String("datacapurl", "", "Base URL of the local datacap sidecar, e.g. \"http://127.0.0.1:8078\". Enables byte accounting and data-cap throttling through the sidecar, superseding reportingredis.")
+	datacapReportInterval = flag.Duration("datacapreportinterval", datacap.DefaultReportInterval, "How frequently to flush accumulated per-device usage to the datacap sidecar.")
 
 	// default value of tunnelPorts matches ports in flashlight/client/client.go
 	tunnelPorts         = flag.String("tunnelports", "80,443,22,110,995,143,993,8080,8443,5222,5223,5224,5228,5229,7300,19302,19303,19304,19305,19306,19307,19308,19309", "Comma seperated list of ports allowed for HTTP CONNECT tunnel. Allow all ports if empty.")
@@ -391,13 +398,16 @@ func main() {
 	go periodicallyForceGC()
 
 	var reportingRedisClient *redis.Client
-	if *reportingRedisAddr != "" {
+	switch {
+	case *datacapURL != "":
+		log.Debugf("reporting bandwidth to the datacap sidecar at %v", *datacapURL)
+	case *reportingRedisAddr != "":
 		reportingRedisClient, err = lanternredis.NewClient(*reportingRedisAddr)
 		if err != nil {
 			log.Errorf("failed to initialize redis client, will not be able to perform bandwidth limiting: %v", err)
 		}
-	} else {
-		log.Debug("no redis address configured for bandwidth reporting")
+	default:
+		log.Debug("neither a datacap sidecar nor a redis address configured for bandwidth reporting")
 	}
 
 	p := &proxy.Proxy{
@@ -426,6 +436,8 @@ func main() {
 		ProxiedSitesSamplePercentage:       *proxiedSitesSamplePercentage,
 		ProxiedSitesTrackingID:             *proxiedSitesTrackingId,
 		ReportingRedisClient:               reportingRedisClient,
+		DatacapURL:                         *datacapURL,
+		DatacapReportInterval:              *datacapReportInterval,
 		Token:                              *token,
 		TunnelPorts:                        *tunnelPorts,
 		Obfs4Addr:                          *obfs4Addr,
