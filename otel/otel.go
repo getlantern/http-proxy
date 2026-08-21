@@ -171,18 +171,7 @@ func BuildTracerProvider(opts *Opts) (*sdktrace.TracerProvider, func()) {
 func InitGlobalMeterProvider(opts *Opts) (func(), error) {
 	logExporterEndpoint("metrics")
 	exp, err := otlpmetrichttp.New(context.Background(),
-		otlpmetrichttp.WithTemporalitySelector(func(kind sdkmetric.InstrumentKind) metricdata.Temporality {
-			switch kind {
-			case
-				sdkmetric.InstrumentKindCounter,
-				sdkmetric.InstrumentKindUpDownCounter,
-				sdkmetric.InstrumentKindObservableCounter,
-				sdkmetric.InstrumentKindObservableUpDownCounter:
-				return metricdata.DeltaTemporality
-			default:
-				return metricdata.CumulativeTemporality
-			}
-		}),
+		otlpmetrichttp.WithTemporalitySelector(deltaTemporality),
 	)
 	if err != nil {
 		return nil, err
@@ -201,4 +190,25 @@ func InitGlobalMeterProvider(opts *Opts) (func(), error) {
 			log.Errorf("error shutting down meter provider: %v", err)
 		}
 	}, nil
+}
+
+// deltaTemporality exports every instrument kind with delta temporality,
+// including histograms.
+//
+// Delta is what lets the ops collector aggregate an attribute away. Stripping
+// a label from a cumulative stream merges independent monotonic series whose
+// resets are interleaved, which corrupts rate() silently rather than failing;
+// delta datapoints just sum. The ops collector relies on this to drop
+// route.id/instance.id/host.name from proxy.session.goodput, whose ~10.8k
+// distinct host.name values were driving the histogram to ~55M series (see
+// getlantern/engineering#3831).
+//
+// Temporality is chosen per instrument KIND at the exporter, so this covers
+// every histogram this binary emits, not just goodput. The only other one with
+// readers is proxy_http_ping_request_duration_seconds, read as a p90 over
+// .bucket by the host_metrics and track_performance_by_volume dashboards; a
+// bucket quantile is computed over per-bucket rates and reads correctly on
+// either temporality.
+func deltaTemporality(sdkmetric.InstrumentKind) metricdata.Temporality {
+	return metricdata.DeltaTemporality
 }
