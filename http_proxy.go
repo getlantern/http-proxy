@@ -17,8 +17,6 @@ import (
 	"strings"
 	"time"
 
-	rclient "github.com/go-redis/redis/v8"
-
 	"github.com/getlantern/cmux/v2"
 	"github.com/getlantern/cmuxprivate"
 	"github.com/getlantern/enhttp"
@@ -66,8 +64,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/mimic"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
 	"github.com/getlantern/http-proxy-lantern/v2/ping"
-	"github.com/getlantern/http-proxy-lantern/v2/redis"
-	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
 	"github.com/getlantern/http-proxy-lantern/v2/tlsmasq"
 	"github.com/getlantern/http-proxy-lantern/v2/tokenfilter"
@@ -116,8 +112,6 @@ type Proxy struct {
 	Pro                                bool
 	ProxiedSitesSamplePercentage       float64
 	ProxiedSitesTrackingID             string
-	ReportingRedisClient               *rclient.Client
-	ThrottleRefreshInterval            time.Duration
 	Token                              string
 	TunnelPorts                        string
 	Obfs4Addr                          string
@@ -220,12 +214,10 @@ type Proxy struct {
 	VMessUUIDs []string
 
 	// DatacapURL is the base URL of the local datacap sidecar. When set, byte
-	// accounting and data-cap throttling run through the sidecar and the
-	// reporting-Redis path is left unused.
+	// accounting and data-cap throttling run through the sidecar.
 	DatacapURL            string
 	DatacapReportInterval time.Duration
 
-	throttleConfig throttle.Config
 	datacapTracker *datacap.Tracker
 	instrument     instrument.Instrument
 }
@@ -267,7 +259,6 @@ func (p *Proxy) ListenAndServe(ctx context.Context) error {
 		log.Errorf("Unable to set up packet forwarding, will continue to start up: %v", err)
 	}
 	p.setBenchmarkMode()
-	p.loadThrottleConfig()
 	p.loadDatacapTracker()
 
 	if p.ENHTTPAddr != "" {
@@ -569,17 +560,11 @@ func (p *Proxy) createFilterChain(bl *blacklist.Blacklist) (filters.Chain, proxy
 		)
 	}
 
-	switch {
-	case p.datacapTracker != nil:
+	if p.datacapTracker != nil {
 		filterChain = filterChain.Append(
 			proxy.OnFirstOnly(devicefilter.NewDatacapPre(p.datacapTracker, !p.Pro, p.instrument)),
 		)
-	case p.ReportingRedisClient != nil:
-		filterChain = filterChain.Append(
-			proxy.OnFirstOnly(devicefilter.NewPre(
-				redis.NewDeviceFetcher(p.ReportingRedisClient), p.throttleConfig, !p.Pro, p.instrument)),
-		)
-	default:
+	} else {
 		log.Debug("Not enabling bandwidth limiting")
 	}
 
@@ -741,16 +726,7 @@ func (p *Proxy) buildOTELOpts(includeProxyName bool) *otel.Opts {
 }
 
 func (p *Proxy) configureBandwidthReporting() *reportingConfig {
-	return newReportingConfig(p.CountryLookup, p.ReportingRedisClient, p.instrument, p.throttleConfig, p.datacapTracker)
-}
-
-func (p *Proxy) loadThrottleConfig() {
-	if !p.Pro && p.ThrottleRefreshInterval > 0 && p.ReportingRedisClient != nil {
-		p.throttleConfig = throttle.NewRedisConfig(p.ReportingRedisClient, p.ThrottleRefreshInterval)
-	} else {
-		log.Debug("Not loading throttle config")
-		return
-	}
+	return newReportingConfig(p.instrument, p.datacapTracker)
 }
 
 // loadDatacapTracker starts the sidecar-backed accounting pipeline. Pro tracks

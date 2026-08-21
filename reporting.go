@@ -6,17 +6,12 @@ import (
 	"strings"
 	"time"
 
-	rclient "github.com/go-redis/redis/v8"
-
-	"github.com/getlantern/geo"
 	"github.com/getlantern/http-proxy-lantern/v2/common"
 	"github.com/getlantern/http-proxy-lantern/v2/datacap"
 	"github.com/getlantern/http-proxy-lantern/v2/listeners"
 	"github.com/getlantern/measured"
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
-	"github.com/getlantern/http-proxy-lantern/v2/redis"
-	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 )
 
 var (
@@ -28,7 +23,7 @@ type reportingConfig struct {
 	wrapper func(ls net.Listener) net.Listener
 }
 
-func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, instrument instrument.Instrument, throttleConfig throttle.Config, datacapTracker *datacap.Tracker) *reportingConfig {
+func newReportingConfig(instrument instrument.Instrument, datacapTracker *datacap.Tracker) *reportingConfig {
 	proxiedBytesReporter := func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats, final bool) {
 		noDelta := deltaStats.SentTotal == 0 && deltaStats.RecvTotal == 0
 		if noDelta && !final {
@@ -66,27 +61,15 @@ func newReportingConfig(countryLookup geo.CountryLookup, rc *rclient.Client, ins
 		probingError := fromContext(ctx, common.ProbingError)
 		arch := fromContext(ctx, common.KernelArch)
 
-		dataCapCohort := ""
-		throttleSettings, hasThrottleSettings := ctx[common.ThrottleSettings]
-		if hasThrottleSettings {
-			dataCapCohort = throttleSettings.(*throttle.Settings).Label
-		}
-
-		instrument.ProxiedBytes(context.Background(), deltaStats.SentTotal, deltaStats.RecvTotal, platform, platformVersion, libraryVersion, appVersion, app, locale, dataCapCohort, probingError, client_ip, deviceID, originHost, arch)
+		instrument.ProxiedBytes(context.Background(), deltaStats.SentTotal, deltaStats.RecvTotal, platform, platformVersion, libraryVersion, appVersion, app, locale, "", probingError, client_ip, deviceID, originHost, arch)
 	}
 
-	var reporter listeners.MeasuredReportFN
-	switch {
-	case datacapTracker != nil:
+	reporter := func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats,
+		final bool) {
+		// noop: no accounting source configured (pro tracks, local testing)
+	}
+	if datacapTracker != nil {
 		reporter = datacapTracker.Reporter()
-	case throttleConfig == nil:
-		log.Debug("No throttling configured, don't bother reporting bandwidth usage to Redis")
-		reporter = func(ctx map[string]interface{}, stats *measured.Stats, deltaStats *measured.Stats,
-			final bool) {
-			// noop
-		}
-	case rc != nil:
-		reporter = redis.NewMeasuredReporter(countryLookup, rc, measuredReportingInterval, throttleConfig)
 	}
 	reporter = combineReporter(reporter, proxiedBytesReporter)
 	wrapper := func(ls net.Listener) net.Listener {

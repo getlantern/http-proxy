@@ -41,7 +41,6 @@ const (
 	OriginPort        = "origin_port"
 	ProbingError      = "probing_error"
 	ClientIP          = "client_ip"
-	ThrottleSettings  = "throttle_settings"
 	TimeZone          = "time_zone"
 	SupportedDataCaps = "supported_data_caps"
 )

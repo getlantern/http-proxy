@@ -17,7 +17,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/mitchellh/panicwrap"
 	"github.com/vharitonsky/iniflags"
 
@@ -30,10 +29,8 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/datacap"
 	"github.com/getlantern/http-proxy-lantern/v2/googlefilter"
 	"github.com/getlantern/http-proxy-lantern/v2/obfs4listener"
-	lanternredis "github.com/getlantern/http-proxy-lantern/v2/redis"
 	"github.com/getlantern/http-proxy-lantern/v2/shadowsocks"
 	"github.com/getlantern/http-proxy-lantern/v2/stackdrivererror"
-	"github.com/getlantern/http-proxy-lantern/v2/throttle"
 	"github.com/getlantern/http-proxy-lantern/v2/tlslistener"
 )
 
@@ -102,8 +99,6 @@ var (
 	// built into the proxy package. See eng#3695.
 	legacyAPIHosts = flag.String("legacyapihosts", "", "Comma-separated additional hostnames exempted from the BlockLocal filter")
 
-	throttleRefreshInterval = flag.Duration("throttlerefresh", throttle.DefaultRefreshInterval, "Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.")
-
 	enableMultipath = flag.Bool("enablemultipath", false, "Enable multipath. Only clients support multipath can communicate with it.")
 
 	externalIP = flag.String("externalip", "", "The external IP of this proxy, used for reporting")
@@ -120,12 +115,7 @@ var (
 	proxiedSitesSamplePercentage = flag.Float64("proxied-sites-sample-percentage", 0, "The percentage of requests to sample (0.01 = 1%)")
 	proxiedSitesTrackingId       = flag.String("proxied-sites-tracking-id", "UA-21815217-16", "The Google Analytics property id for tracking proxied sites")
 
-	reportingRedisAddr = flag.String("reportingredis", "", "The address of the reporting Redis instance in \"redis[s]://host:port\" format")
-
-	// Successor to reportingredis. When both are set datacapurl wins: a proxy
-	// must account and enforce from exactly one source, and the sidecar is the
-	// one every other proxy flavor already reports to.
-	datacapURL            = flag.String("datacapurl", "", "Base URL of the local datacap sidecar, e.g. \"http://127.0.0.1:8078\". Enables byte accounting and data-cap throttling through the sidecar, superseding reportingredis.")
+	datacapURL            = flag.String("datacapurl", "", "Base URL of the local datacap sidecar, e.g. \"http://127.0.0.1:8078\". Enables byte accounting and data-cap throttling through the sidecar.")
 	datacapReportInterval = flag.Duration("datacapreportinterval", datacap.DefaultReportInterval, "How frequently to flush accumulated per-device usage to the datacap sidecar.")
 
 	// default value of tunnelPorts matches ports in flashlight/client/client.go
@@ -397,17 +387,10 @@ func main() {
 	})
 	go periodicallyForceGC()
 
-	var reportingRedisClient *redis.Client
-	switch {
-	case *datacapURL != "":
+	if *datacapURL != "" {
 		log.Debugf("reporting bandwidth to the datacap sidecar at %v", *datacapURL)
-	case *reportingRedisAddr != "":
-		reportingRedisClient, err = lanternredis.NewClient(*reportingRedisAddr)
-		if err != nil {
-			log.Errorf("failed to initialize redis client, will not be able to perform bandwidth limiting: %v", err)
-		}
-	default:
-		log.Debug("neither a datacap sidecar nor a redis address configured for bandwidth reporting")
+	} else {
+		log.Debug("no datacap sidecar configured for bandwidth reporting")
 	}
 
 	p := &proxy.Proxy{
@@ -422,7 +405,6 @@ func main() {
 		BanditCallbackTTL:                  *banditCallbackTTL,
 		LegacyAPIHosts:                     *legacyAPIHosts,
 		EnableMultipath:                    *enableMultipath,
-		ThrottleRefreshInterval:            *throttleRefreshInterval,
 		TracesSampleRate:                   *tracesSampleRate,
 		TeleportSampleRate:                 *teleportSampleRate,
 		ExternalIP:                         *externalIP,
@@ -435,7 +417,6 @@ func main() {
 		Pro:                                *pro,
 		ProxiedSitesSamplePercentage:       *proxiedSitesSamplePercentage,
 		ProxiedSitesTrackingID:             *proxiedSitesTrackingId,
-		ReportingRedisClient:               reportingRedisClient,
 		DatacapURL:                         *datacapURL,
 		DatacapReportInterval:              *datacapReportInterval,
 		Token:                              *token,
