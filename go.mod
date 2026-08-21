@@ -23,7 +23,7 @@ require (
 	github.com/getlantern/idletiming v0.0.0-20200228204104-10036786eac5
 	github.com/getlantern/kcpwrapper v0.0.0-20230327091313-c12d7c17c6de
 	github.com/getlantern/keyman v0.0.0-20230503155501-4e864ca2175b
-	github.com/getlantern/lampshade v0.0.0-20260821105435-79296751c6d0
+	github.com/getlantern/lampshade v0.0.0-20260821140109-7c74457479f7
 	github.com/getlantern/lantern-algeneva v0.0.0-20240418193310-610690afddbc
 	github.com/getlantern/lantern-water v0.0.0-20241217184729-97b2bf6add4a
 	github.com/getlantern/measured v0.0.0-20230919230611-3d9e3776a6cd
