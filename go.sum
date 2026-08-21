@@ -281,8 +281,8 @@ github.com/getlantern/keepcurrent v0.0.0-20260616120552-f204338b01a3/go.mod h1:a
 github.com/getlantern/keyman v0.0.0-20180207174507-f55e7280e93a/go.mod h1:FMf0g72BHs14jVcD8i8ubEk4sMB6JdidBn67d44i3ws=
 github.com/getlantern/keyman v0.0.0-20230503155501-4e864ca2175b h1:iyEuk8ARQC9HfraqC4r3leBhU55R1TV7bAiyPYE54kA=
 github.com/getlantern/keyman v0.0.0-20230503155501-4e864ca2175b/go.mod h1:ZJ+yDaZkJ/JU9j7EQa3UUh6ouedrNDDLA5OiowS1Iuk=
-github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9 h1:n2t63QvweEs53Kpy7QbXv6JRSfXpDTTgPMT4cNTOt8g=
-github.com/getlantern/lampshade v0.0.0-20200303040944-fe53f13203e9/go.mod h1:Zqiq4op+E689yjuJACMLURzE9XUGj48UDZP7h8aN+kk=
+github.com/getlantern/lampshade v0.0.0-20260821140109-7c74457479f7 h1:BA/09auzzo/60SMwoYEYxDL1hzLNVfbqAHnpbkIXfRI=
+github.com/getlantern/lampshade v0.0.0-20260821140109-7c74457479f7/go.mod h1:Zqiq4op+E689yjuJACMLURzE9XUGj48UDZP7h8aN+kk=
 github.com/getlantern/lantern-algeneva v0.0.0-20240418193310-610690afddbc h1:NlvxqmHvBr27TBzbxUsOFXtRtgW7FmoMkTTQhD6LXKU=
 github.com/getlantern/lantern-algeneva v0.0.0-20240418193310-610690afddbc/go.mod h1:bNnBc1YoooeKURbR6TMgNTuBA5ZjD28TSvZjbPUomVI=
 github.com/getlantern/lantern-water v0.0.0-20241217184729-97b2bf6add4a h1:3i8teo3y32raoP3g0crSwEVjeZvCxjoEIGVbtBhttIw=
