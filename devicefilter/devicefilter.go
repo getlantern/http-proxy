@@ -5,10 +5,7 @@ import (
 	"net"
 	"net/http"
 	"net/http/httputil"
-	"sync"
 	"time"
-
-	"github.com/dustin/go-humanize"
 
 	"github.com/getlantern/golog"
 	"github.com/getlantern/proxy/v3/filters"
@@ -20,9 +17,6 @@ import (
 	"github.com/getlantern/http-proxy-lantern/v2/datacap"
 	"github.com/getlantern/http-proxy-lantern/v2/domains"
 	"github.com/getlantern/http-proxy-lantern/v2/instrument"
-	"github.com/getlantern/http-proxy-lantern/v2/redis"
-	"github.com/getlantern/http-proxy-lantern/v2/throttle"
-	"github.com/getlantern/http-proxy-lantern/v2/usage"
 )
 
 var (
@@ -75,166 +69,10 @@ func setXBQHeaders(resp *http.Response, usedBytes, capBytes int64, asOf time.Tim
 	resp.Header.Set(common.XBQHeaderv2, fmt.Sprintf("%s/%d", xbq, ttlSeconds))
 }
 
-// deviceFilterPre does the device-based filtering, with usage fetched from the
-// reporting Redis. Its datacap-sidecar counterpart is datacapFilterPre.
-type deviceFilterPre struct {
-	deviceFetcher      *redis.DeviceFetcher
-	throttleConfig     throttle.Config
-	sendXBQHeader      bool
-	instrument         instrument.Instrument
-	limitersByDevice   map[string]*listeners.RateLimiter
-	limitersByDeviceMx sync.Mutex
-}
-
-// deviceFilterPost cleans up
-type deviceFilterPost struct {
-	bl *blacklist.Blacklist
-}
-
-// NewPre creates a filter which throttling all connections from a device if its data usage threshold is reached.
-// * df is used to fetch device data usage across all proxies from a central Redis.
-// * throttleConfig is to determine the threshold and throttle rate. They can
-// be fixed values or fetched from Redis periodically.
-// * If sendXBQHeader is true, it attaches a common.XBQHeader to inform the
-// clients the usage information before this request is made. The header is
-// expected to follow this format:
-//
-// <used>/<allowed>/<asof>
-//
-// <used> is the string representation of a 64-bit unsigned integer
-// <allowed> is the string representation of a 64-bit unsigned integer
-// <asof> is the 64-bit signed integer representing seconds since a custom
-// epoch (00:00:00 01/01/2016 UTC).
-func NewPre(df *redis.DeviceFetcher, throttleConfig throttle.Config, sendXBQHeader bool, instrument instrument.Instrument) filters.Filter {
-	if throttleConfig != nil {
-		log.Debug("Throttling enabled")
-	}
-
-	return &deviceFilterPre{
-		deviceFetcher:    df,
-		throttleConfig:   throttleConfig,
-		sendXBQHeader:    sendXBQHeader,
-		instrument:       instrument,
-		limitersByDevice: make(map[string]*listeners.RateLimiter, 0),
-	}
-}
-
-func (f *deviceFilterPre) Apply(cs *filters.ConnectionState, req *http.Request, next filters.Next) (*http.Response, *filters.ConnectionState, error) {
-	if log.IsTraceEnabled() {
-		reqStr, _ := httputil.DumpRequest(req, true)
-		log.Tracef("DeviceFilter Middleware received request:\n%s", reqStr)
-	}
-
-	// Attached the uid to connection to report stats to redis correctly
-	// "conn" in context is previously attached in server.go
-	wc := cs.Downstream().(listeners.WrapConn)
-	lanternDeviceID := req.Header.Get(common.DeviceIdHeader)
-
-	// Even if a device hasn't hit its data cap, we always throttle to a default throttle rate to
-	// keep bandwidth hogs from using too much bandwidth. Note - this does not apply to pro proxies
-	// which don't use the devicefilter at all.
-	throttleDefault := func(message string) {
-		if DefaultThrottleRate <= 0 {
-			f.instrument.Throttle(req.Context(), false, message)
-		}
-		limiter := f.rateLimiterForDevice(lanternDeviceID, DefaultThrottleRate, DefaultThrottleRate)
-		if log.IsTraceEnabled() {
-			log.Tracef("Throttling connection to %v per second by default",
-				humanize.Bytes(uint64(DefaultThrottleRate)))
-		}
-		f.instrument.Throttle(req.Context(), true, "default")
-		wc.ControlMessage("throttle", limiter)
-	}
-
-	// Some domains are excluded from being throttled and don't count towards the
-	// bandwidth cap.
-	if domains.ConfigForRequest(req).Unthrottled {
-		throttleDefault("domain-excluded")
-		return next(cs, req)
-	}
-
-	if throttleSentinelDevice(f.instrument, wc, req, lanternDeviceID) {
-		return next(cs, req)
-	}
-
-	if f.throttleConfig == nil {
-		f.instrument.Throttle(req.Context(), false, "no-config")
-		return next(cs, req)
-	}
-
-	// Throttling enabled
-	u := usage.Get(lanternDeviceID)
-	if u == nil {
-		// Eagerly request device ID data from Redis and store it in usage
-		f.deviceFetcher.RequestNewDeviceUsage(lanternDeviceID)
-		throttleDefault("no-usage-data")
-		return next(cs, req)
-	}
-
-	settings, capOn := f.throttleConfig.SettingsFor(lanternDeviceID, u.CountryCode, req.Header.Get(common.PlatformHeader), req.Header.Get(common.AppHeader), req.Header[common.SupportedDataCapsHeader])
-
-	measuredCtx := map[string]interface{}{
-		"throttled": false,
-	}
-
-	// To turn the data cap off in Redis we simply set the threshold to 0 or
-	// below. This will also turn off the cap in the UI on desktop and in newer
-	// versions on mobile.
-	if capOn {
-		log.Tracef("Got throttle settings: %v", settings)
-		capOn = settings.Threshold > 0
-
-		// Send throttle settings to measured as well
-		measuredCtx["throttle_settings"] = settings
-	}
-
-	if capOn && u.Bytes > settings.Threshold {
-		// per connection limiter
-		// Note - when people hit the data cap, we only throttle writes back to the client, not reads.
-		// This way, they can continue to upload videos or other bandwidth intensive content for sharing.
-		limiter := f.rateLimiterForDevice(lanternDeviceID, DefaultThrottleRate, settings.Rate)
-		if log.IsTraceEnabled() {
-			log.Tracef("Throttling connection from device %s to %v per second", lanternDeviceID,
-				humanize.Bytes(uint64(settings.Rate)))
-		}
-		f.instrument.Throttle(req.Context(), true, "datacap")
-		wc.ControlMessage("throttle", limiter)
-		measuredCtx["throttled"] = true
-	} else {
-		// default case is not throttling
-		throttleDefault("")
-	}
-	wc.ControlMessage("measured", measuredCtx)
-
-	resp, nextCtx, err := next(cs, req)
-	if resp == nil || err != nil {
-		return resp, nextCtx, err
-	}
-	if !capOn || !f.sendXBQHeader {
-		return resp, nextCtx, err
-	}
-	setXBQHeaders(resp, u.Bytes, settings.Threshold, u.AsOf, u.TTLSeconds)
-	f.instrument.XBQHeaderSent(req.Context())
-	return resp, nextCtx, err
-}
-
-func (f *deviceFilterPre) rateLimiterForDevice(deviceID string, rateLimitRead, rateLimitWrite int64) *listeners.RateLimiter {
-	f.limitersByDeviceMx.Lock()
-	defer f.limitersByDeviceMx.Unlock()
-
-	limiter := f.limitersByDevice[deviceID]
-	if limiter == nil || limiter.GetRateRead() != rateLimitRead || limiter.GetRateWrite() != rateLimitWrite {
-		limiter = listeners.NewRateLimiter(rateLimitRead, rateLimitWrite)
-		f.limitersByDevice[deviceID] = limiter
-	}
-	return limiter
-}
-
-// datacapFilterPre is deviceFilterPre's counterpart for proxies whose byte
-// accounting runs through the local datacap sidecar. The throttle decision
-// itself is made asynchronously by the tracker; the filter attaches the
-// device's shared limiter and surfaces the tracker's latest view of the device
-// to the client via the XBQ headers.
+// datacapFilterPre throttles devices whose byte accounting runs through the
+// local datacap sidecar. The throttle decision itself is made asynchronously
+// by the tracker; the filter attaches the device's shared limiter and surfaces
+// the tracker's latest view of the device to the client via the XBQ headers.
 type datacapFilterPre struct {
 	tracker       *datacap.Tracker
 	sendXBQHeader bool
@@ -242,10 +80,10 @@ type datacapFilterPre struct {
 }
 
 // NewDatacapPre creates the filter for proxies whose byte accounting runs
-// through the local datacap sidecar. Unlike the Redis path, the limiter it
-// attaches is shared across all of a device's connections and is re-rated by
-// the tracker as reports come back, so crossing the cap slows down transfers
-// that are already in flight rather than only the next one.
+// through the local datacap sidecar. The limiter it attaches is shared across
+// all of a device's connections and is re-rated by the tracker as reports
+// come back, so crossing the cap slows down transfers that are already in
+// flight rather than only the next one.
 func NewDatacapPre(tracker *datacap.Tracker, sendXBQHeader bool, instrument instrument.Instrument) filters.Filter {
 	return &datacapFilterPre{
 		tracker:       tracker,
@@ -268,12 +106,11 @@ func (f *datacapFilterPre) Apply(cs *filters.ConnectionState, req *http.Request,
 	// just never held to the capped rate — hence a separate limiter that the
 	// tracker never re-rates.
 	//
-	// This check deliberately precedes the sentinel-device guards, matching the
-	// Redis path: a request to an excluded domain gets the default rate even
-	// with a missing device ID. Moving the guards first would newly subject
-	// old clients to alwaysThrottle on domains we have decided not to throttle.
-	// Such requests share one limiter under the empty device ID, exactly as
-	// rateLimiterForDevice("") does on the Redis path.
+	// This check deliberately precedes the sentinel-device guards: a request
+	// to an excluded domain gets the default rate even with a missing device
+	// ID. Moving the guards first would newly subject old clients to
+	// alwaysThrottle on domains we have decided not to throttle. Such requests
+	// share one limiter under the empty device ID.
 	if domains.ConfigForRequest(req).Unthrottled {
 		f.instrument.Throttle(req.Context(), true, "default")
 		wc.ControlMessage("throttle", f.tracker.Limiter(deviceID, true))
@@ -323,6 +160,11 @@ func (f *datacapFilterPre) Apply(cs *filters.ConnectionState, req *http.Request,
 	setXBQHeaders(resp, u.BytesUsed, u.CapLimit, u.AsOf, ttlSeconds)
 	f.instrument.XBQHeaderSent(req.Context())
 	return resp, nextCtx, err
+}
+
+// deviceFilterPost cleans up
+type deviceFilterPost struct {
+	bl *blacklist.Blacklist
 }
 
 func NewPost(bl *blacklist.Blacklist) filters.Filter {

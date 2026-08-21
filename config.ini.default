@@ -69,7 +69,6 @@ psmux-max-stream-buffer = 0  # psmux max stream buffer
 psmux-version = 0  # psmux protocol version
 quic-bbr = false  # Should quic-go use BBR instead of CUBIC
 quic-ietf-addr =   # Address at which to listen for IETF QUIC connections.
-reportingredis =   # The address of the reporting Redis instance in "redis[s]://host:port" format
 require-session-tickets = true  # Specifies whether or not to require TLS session tickets in ClientHellos
 sessionticketkey =   # File name for storing rotating session ticket keys
 shadowsocks-addr =   # Address at which to listen for shadowsocks connections.
@@ -84,7 +83,6 @@ smux-version = 0  # smux protocol version
 stackdriver-creds = /home/lantern/lantern-stackdriver.json  # Optional full json file path containing stackdriver credentials
 stackdriver-project-id = lantern-http-proxy  # Optional project ID for stackdriver error reporting as in http-proxy-lantern
 stackdriver-sample-percentage = 0.003  # The percentage of devices to report to Stackdriver (0.01 = 1%)
-throttlerefresh = 5m0s  # Specifies how frequently to refresh throttling configuration from redis. Defaults to 5 minutes.
 tlslistener-allow-tls13 = false  # Allow tlslistener to offer tls13. Because of session ticket issues, this is likely experimental until they can be worked out
 tlsmasq-addr =   # Address at which to listen for tlsmasq connections.
 tlsmasq-origin-addr =   # Address of tlsmasq origin with port.

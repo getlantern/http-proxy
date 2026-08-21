@@ -15,7 +15,6 @@ get-command = $(shell which="$$(which $(1) 2> /dev/null)" && if [[ ! -z "$$which
 GO        := $(call get-command,go)
 
 # Controls whether logs from Redis are included in test output.
-REDIS_LOGS ?= false
 
 BUILD_TYPE = stable
 ifeq ($(BUILD_CANARY),true)
@@ -96,4 +95,4 @@ system-checks:
 	@if [[ -z "$(GO)" ]]; then echo 'Missing "go" command.'; exit 1; fi
 
 test:
-	./test.bash $(REDIS_LOGS)
+	./test.bash
