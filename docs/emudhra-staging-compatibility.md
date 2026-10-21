@@ -101,7 +101,7 @@ Lantern-cloud was subsequently merged into staging at
 [`57280b004ea01d4e5394e46aa7cab9d30811034c`](https://github.com/getlantern/lantern-cloud/commit/57280b004ea01d4e5394e46aa7cab9d30811034c).
 The new base and deploy tooling were built first; Vault, Ops, API, Unleash,
 backoffice, netstated and update-server were deployed successfully.
-[Cloud validation and infrastructure limitations](https://github.com/getlantern/lantern-cloud/blob/security/emudhra-trust-mitigation/docs/emudhra-staging-validation.md).
+[Cloud validation and infrastructure limitations in getlantern/lantern-cloud#3665](https://github.com/getlantern/lantern-cloud/pull/3665).
 
 After checking the running API's revision, both unchanged clients repeated
 all three positive cases in the table above. This time the bootstrap ticket
