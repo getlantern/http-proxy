@@ -53,6 +53,35 @@ server-issued ticket**. Cached runs reused that state after restarting the
 proxy. Client logs confirmed loading the persisted state. Thus both ticket
 encodings were exercised through actual old client executables.
 
+### Server-side packet verification
+
+The tests were repeated with `tcpdump` on the staging VPS, filtered to TCP
+port 8021 and the test machine's source IP. Wireshark 3.6.2 decoded the capture.
+For both releases the verification matched the **exact bytes** of the ticket
+in the client's persisted cache to a `NewSessionTicket` sent by the staging
+server, then matched those bytes to a subsequent ClientHello after a proxy
+restart. These were 123-byte Go-issued tickets, distinct from the 121-byte
+API-issued bootstrap ticket.
+
+The server echoed the ClientHello session ID and sent an abbreviated TLS 1.2
+handshake: ServerHello, NewSessionTicket, ChangeCipherSpec, Finished, with no
+Certificate or ServerKeyExchange. Resumed connections carried application
+records in both directions, and the client-side HTTP/HTTPS/egress checks passed.
+This verifies actual resumption, rather than merely successful connection with
+a cached ticket that might have fallen back to a full handshake.
+
+| Client | Server issuance → client reuse | Cached reuse after restart | Resumed application traffic |
+| --- | --- | --- | --- |
+| 7.9.5 | Capture stream 0 → 1 | Ticket from stream 2 offered in stream 4 | Renewed tickets in streams 5–8 |
+| 7.7.2 | Capture stream 9 → 10 | Ticket from stream 9 offered in stream 11 | Streams 10–11 |
+
+The [sanitized assertions](test-results/emudhra-staging-resumption.json)
+contain the per-release result and stream identifiers. The private capture's
+SHA256 is `e6fb3674047aef8c57e33cb110ba56459d4dc6f0a151fcc5f971f4e6a8bfa43a`.
+Raw captures, ticket contents, session secrets, and route credentials are not
+committed. The temporary TLS listener and capture were removed; the tested
+candidate continues to use the route's original configuration.
+
 A negative control flipped one byte in the API-issued ticket. A fresh 7.9.5
 client then failed to proxy traffic and produced no egress response. This
 checks ticket rejection and rules out a direct-connection success masking a
