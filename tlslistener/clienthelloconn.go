@@ -266,12 +266,20 @@ func (rrc *clientHelloRecordingConn) processHello(info *tls.ClientHelloInfo) (*t
 		return rrc.helloError("ClientHello has no session ticket")
 	}
 
-	uss, err := rrc.utlsCfg.DecryptTicket(helloMsg.SessionTicket, utls.ConnectionState{})
-	if err != nil || uss == nil {
+	if !rrc.validSessionTicket(helloMsg.SessionTicket) {
 		return rrc.helloError("ClientHello has invalid session ticket")
 	}
 
 	return nil, nil
+}
+
+func (rrc *clientHelloRecordingConn) validSessionTicket(ticket []byte) bool {
+	// Server-issued tickets use Go's encoding; API-issued tickets use pinned uTLS.
+	if state, err := rrc.cfg.DecryptTicket(ticket, tls.ConnectionState{}); err == nil && state != nil {
+		return true
+	}
+	state, err := rrc.utlsCfg.DecryptTicket(ticket, utls.ConnectionState{})
+	return err == nil && state != nil
 }
 
 func (rrc *clientHelloRecordingConn) helloError(errStr string) (*tls.Config, error) {

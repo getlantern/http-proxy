@@ -4,6 +4,7 @@ on:
     branches: [main]
     paths:
       - 'Dockerfile'
+      - 'deploy/trust/**'
       - 'go.mod'
       - 'go.sum'
       - '**.go'
