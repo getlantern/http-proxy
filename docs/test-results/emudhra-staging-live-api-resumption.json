@@ -1,0 +1,42 @@
+[
+  {
+    "release": "7.9.5",
+    "server": "45.79.155.229:8021",
+    "ticket_bytes": 123,
+    "server_issued_ticket_matches_cache": true,
+    "client_offered_exact_ticket": true,
+    "tls12_abbreviated_handshake": true,
+    "bidirectional_application_data": true,
+    "streams": [
+      5,
+      6,
+      7
+    ],
+    "cached_ticket_streams": [
+      5,
+      6
+    ],
+    "application_data_streams": [
+      5,
+      7
+    ]
+  },
+  {
+    "release": "7.7.2",
+    "server": "45.79.155.229:8021",
+    "ticket_bytes": 123,
+    "server_issued_ticket_matches_cache": true,
+    "client_offered_exact_ticket": true,
+    "tls12_abbreviated_handshake": true,
+    "bidirectional_application_data": true,
+    "streams": [
+      11
+    ],
+    "cached_ticket_streams": [
+      11
+    ],
+    "application_data_streams": [
+      11
+    ]
+  }
+]

@@ -95,6 +95,40 @@ returned 403 (`requested local address example.com:80 ()`). The candidate
 returns 200 because it includes the origin-form Host handling fix already
 present on main. This was recorded separately from the trust/ticket changes.
 
+## Repetition after the actual lantern-cloud staging deployment
+
+Lantern-cloud was subsequently merged into staging at
+[`57280b004ea01d4e5394e46aa7cab9d30811034c`](https://github.com/getlantern/lantern-cloud/commit/57280b004ea01d4e5394e46aa7cab9d30811034c).
+The new base and deploy tooling were built first; Vault, Ops, API, Unleash,
+backoffice, netstated and update-server were deployed successfully.
+[Cloud validation and infrastructure limitations](https://github.com/getlantern/lantern-cloud/blob/security/emudhra-trust-mitigation/docs/emudhra-staging-validation.md).
+
+After checking the running API's revision, both unchanged clients repeated
+all three positive cases in the table above. This time the bootstrap ticket
+and client configuration came from the **deployed API's route endpoint**, with
+`connect_config=true&legacy_connect_config=true`, rather than an in-process
+fixture generator. The normal Shadowsocks config was used unchanged. For TLS,
+the existing IPv6 staging route `0a49204c-4605-4aa5-bcf0-7c480478ec46` was
+temporarily mirrored onto the IPv4 canary using its stored certificate,
+authentication token and ticket keys. Only the API-returned endpoint addresses
+were rewritten. The API generated the 121-byte bootstrap ticket; no local
+helper minted it. The source route and database were not modified.
+
+Both releases passed HTTP 200, HTTPS 200, staging egress and five subsequent
+requests for fresh and cached TLS sessions, including proxy restarts. A new
+server-side capture again matched each exact 123-byte server-issued ticket
+to the client cache and a later ClientHello. Both releases used abbreviated
+TLS 1.2 handshakes and carried application records in both directions.
+The [new sanitized assertions](test-results/emudhra-staging-live-api-resumption.json)
+record those results. Capture SHA256:
+`5a0be0fb1937660825f8e478eea6a049b89dc688cef58e4d91199d9d290ee3c3`.
+A one-bit mutation of the live API ticket was rejected with no egress response.
+The normal Shadowsocks tests also passed for both releases afterward.
+
+The temporary TLS fixtures and remote capture were removed and the rollback
+timer stopped. The candidate is back on the original normal route config;
+its running executable still matches the candidate SHA256 above.
+
 ## Staging deployment and rollback
 
 The installed package and original `/etc/http-proxy/config.ini` were preserved.
