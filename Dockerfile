@@ -1,11 +1,12 @@
 # syntax = docker/dockerfile:1.3
-FROM --platform=$BUILDPLATFORM golang:1.24-alpine as builder
+FROM --platform=$BUILDPLATFORM golang:1.26.10-alpine as builder
 ARG TARGETOS TARGETARCH
 
 WORKDIR $GOPATH/src/getlantern/http-proxy-lantern/
 COPY . .
 
-RUN apk add git
+RUN apk add --no-cache git ca-certificates openssl
+RUN sh deploy/trust/update-trust.sh
 RUN --mount=type=secret,id=github_oauth_token \
     git config --global url."https://$(cat /run/secrets/github_oauth_token):x-oauth-basic@github.com/".insteadOf "https://github.com/"
 
@@ -16,6 +17,9 @@ FROM --platform=$BUILDPLATFORM alpine as user
 RUN adduser -S -u 10000 lantern
 
 FROM alpine
+COPY deploy/trust /usr/local/lib/lantern-trust
+RUN apk add --no-cache ca-certificates openssl \
+    && sh /usr/local/lib/lantern-trust/update-trust.sh
 COPY --from=user /etc/passwd /etc/passwd
 COPY --from=builder /usr/local/bin/http-proxy /usr/local/bin/http-proxy
 
