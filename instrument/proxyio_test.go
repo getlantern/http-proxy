@@ -7,6 +7,7 @@ import (
 
 	"go.opentelemetry.io/otel/sdk/metric/metricdata"
 
+	"github.com/getlantern/semconv"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -27,16 +28,16 @@ func TestProxiedBytesProxyIODeviceID(t *testing.T) {
 	byDirection := map[string]int64{}
 	for _, sm := range rm.ScopeMetrics {
 		for _, m := range sm.Metrics {
-			if m.Name != "proxy.io" {
+			if m.Name != semconv.ProxyMetricIO {
 				continue
 			}
 			sum, ok := m.Data.(metricdata.Sum[int64])
 			require.True(t, ok, "proxy.io should be an int64 sum")
 			for _, dp := range sum.DataPoints {
-				deviceID, found := dp.Attributes.Value("client.device_id")
+				deviceID, found := dp.Attributes.Value(semconv.ClientDeviceIDKey)
 				require.True(t, found, "proxy.io datapoint should carry client.device_id")
 				assert.Equal(t, "dev-123", deviceID.AsString())
-				direction, _ := dp.Attributes.Value("network.io.direction")
+				direction, _ := dp.Attributes.Value(semconv.NetworkIODirectionKey)
 				byDirection[direction.AsString()] += dp.Value
 			}
 		}
