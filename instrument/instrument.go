@@ -253,6 +253,10 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		semconv.GeoCountryISOCodeKey.String(country),
 		semconv.ClientISPKey.String(isp),
 		semconv.ClientAsnKey.String(asn),
+		// Lets users be counted per protocol from proxy.io, as lantern-box
+		// already allows. The ops collector drops it before SigNoz
+		// (attributes/no_device_id); export is delta, so series don't build up.
+		semconv.ClientDeviceIDKey.String(deviceID),
 	}
 
 	otelinstrument.ProxyIO.Add(
