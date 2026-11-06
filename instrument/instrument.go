@@ -253,6 +253,10 @@ func (ins *defaultInstrument) ProxiedBytes(ctx context.Context, sent, recv int, 
 		semconv.GeoCountryISOCodeKey.String(country),
 		semconv.ClientISPKey.String(isp),
 		semconv.ClientAsnKey.String(asn),
+		// One series per device. Metrics export with delta temporality
+		// (otel.deltaTemporality), so a device's series is dropped after the
+		// export that follows its last traffic.
+		semconv.ClientDeviceIDKey.String(deviceID),
 	}
 
 	otelinstrument.ProxyIO.Add(

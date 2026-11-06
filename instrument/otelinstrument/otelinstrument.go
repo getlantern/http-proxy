@@ -19,6 +19,7 @@ import (
 
 	"github.com/getlantern/http-proxy-lantern/v2/instrument/distinct"
 	"github.com/getlantern/proxy/v3/filters"
+	"github.com/getlantern/semconv"
 )
 
 var (
@@ -96,7 +97,7 @@ func ResetForTest() error {
 func initialize() error {
 	meter = otel.GetMeterProvider().Meter("")
 	var err error
-	if ProxyIO, err = meter.Int64Counter("proxy.io", metric.WithUnit("bytes")); err != nil {
+	if ProxyIO, err = meter.Int64Counter(semconv.ProxyMetricIO, metric.WithUnit("bytes")); err != nil {
 		return err
 	}
 	if QuicPackets, err = meter.Int64Counter("proxy.quic.packets"); err != nil {
