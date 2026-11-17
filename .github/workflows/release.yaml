@@ -9,7 +9,14 @@ permissions:
   actions: write
 
 jobs:
+  go:
+    uses: ./.github/workflows/go.yml
+    with:
+      skip_s3_deploy: true
+    secrets: inherit
+
   release:
+    needs: [go]
     runs-on:
       group: large-runners
     steps:
