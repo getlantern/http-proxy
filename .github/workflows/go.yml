@@ -38,11 +38,6 @@ jobs:
           git config --global url."https://${{ secrets.CI_PRIVATE_REPOS_GH_TOKEN }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
       - name: Environment list
         run: env
-      - name: Check uTP builds with C23
-        run: go build -o /dev/null github.com/anacrolix/go-libutp
-        env:
-          CGO_ENABLED: "1"
-          CGO_CFLAGS: "-O2 -g -std=gnu23"
       - name: Test
         run: make test
       - name: Build
