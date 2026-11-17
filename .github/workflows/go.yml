@@ -2,6 +2,11 @@ name: Go
 
 on:
   workflow_call:
+    inputs:
+      skip_s3_deploy:
+        description: Only test and build; leave S3 deployment to the caller's other workflows.
+        type: boolean
+        default: false
 
   push:
     branches-ignore: main
@@ -11,8 +16,10 @@ on:
       - 'go.mod'
       - 'go.sum'
       - '**.go'
-      - '!.github/**'
-      - '!**.bash'
+      - 'Makefile'
+      - 'test.bash'
+      - '.github/workflows/go.yml'
+      - '.github/workflows/release.yaml'
 
 env:
   TELEPORT_HOST: ${{secrets.TELEPORT_HOST}}
@@ -31,12 +38,18 @@ jobs:
           git config --global url."https://${{ secrets.CI_PRIVATE_REPOS_GH_TOKEN }}:x-oauth-basic@github.com/".insteadOf "https://github.com/"
       - name: Environment list
         run: env
+      - name: Check uTP builds with C23
+        run: go build -o /dev/null github.com/anacrolix/go-libutp
+        env:
+          CGO_ENABLED: "1"
+          CGO_CFLAGS: "-O2 -g -std=gnu23"
       - name: Test
         run: make test
       - name: Build
         run: make build
 
       - name: Set up S3cmd cli tool
+        if: ${{ !inputs.skip_s3_deploy }}
         uses: s3-actions/s3cmd@v1.1
         with:
           provider: aws # default is linode
@@ -45,9 +58,9 @@ jobs:
           secret_key: ${{ secrets.S3_SECRET_KEY }}
 
       - name: Deploy canary build to S3
-        if: github.ref == 'refs/heads/canary'
+        if: ${{ !inputs.skip_s3_deploy && github.ref == 'refs/heads/canary' }}
         run: make BUILD_CANARY=true deploy-canary
 
       - name: Deploy main build to S3
-        if: github.ref == 'refs/heads/main'
+        if: ${{ !inputs.skip_s3_deploy && github.ref == 'refs/heads/main' }}
         run: make deploy
